@@ -10,7 +10,7 @@ namespace QuanLyGiuXe.Services
         string lastUID = "";
         DateTime lastScan = DateTime.MinValue;
 
-        public Action<string> OnCardScanned;
+        public event Action<string> OnCardScanned;
 
         public void Start()
         {

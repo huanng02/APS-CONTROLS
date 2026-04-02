@@ -13,7 +13,7 @@ namespace QuanLyGiuXe.Services
     public class DatabaseService
     {
         string connectionString =
-        "Server=localhost\\SQLEXPRESS;Database=BaiXe;Trusted_Connection=True;";
+        "Server=.;Database=Baixe;Trusted_Connection=True;";
 
         public void ThemXe(string bienSo, string anhXe, string uid)
         {

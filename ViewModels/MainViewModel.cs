@@ -106,6 +106,7 @@ namespace QuanLyGiuXe.ViewModels
 
         public void XeVao()
         {
+            MessageBox.Show("⚠ Biển số không trùng khớp");
             if (DanhSachXe.Any(x => x.BienSo == BienSoNhap))
             {
                 TienHienThi = "Xe này đã vào bãi!";

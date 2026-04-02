@@ -16,199 +16,196 @@ using QuanLyGiuXe.ViewModels;
 using QuanLyGiuXe.Views;
 namespace QuanLyGiuXe
 {
-	public partial class MainWindow : System.Windows.Window
-	{
-		int frameCount = 0;
-		Bitmap currentFrame;
-		bool isProcessing = false;
-		SerialPort port;
-		string lastUID = "";
-		DateTime lastScan = DateTime.MinValue;
-		FilterInfoCollection cameras;
-		VideoCaptureDevice cam;
+    public partial class MainWindow : System.Windows.Window
+    {
+        int frameCount = 0;
+        Bitmap currentFrame;
+        bool isProcessing = false;
+        SerialPort port;
+        string lastUID = "";
+        DateTime lastScan = DateTime.MinValue;
+        FilterInfoCollection cameras;
+        VideoCaptureDevice cam;
 
 
-		public MainWindow()
-		{
-			InitializeComponent();
-			DataContext = new MainViewModel();
-			MoCamera();
-			DispatcherTimer timer = new DispatcherTimer();
-			timer.Interval = TimeSpan.FromMilliseconds(800);
-			timer.Tick += Timer_Tick;
-			timer.Start();
-			var rfid = RFIDService.Instance;
-			rfid.OnCardScanned += (uid) =>
-			{
-				string uidChuan = RFIDService.ChuanHoaUID(uid);
-				Dispatcher.Invoke(() =>
-				{
-					if (uid == lastUID && (DateTime.Now - lastScan).TotalSeconds < 2)
-						return;
+        public MainWindow()
+        {
+            InitializeComponent();
+            DataContext = new MainViewModel();
+            MoCamera();
+            DispatcherTimer timer = new DispatcherTimer();
+            timer.Interval = TimeSpan.FromMilliseconds(800);
+            timer.Tick += Timer_Tick;
+            timer.Start();
+            var rfid = RFIDService.Instance;
+            rfid.OnCardScanned += RFID_OnCardScanned;
+            rfid.Start();
+        }
+        private void RFID_OnCardScanned(string uid)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                if (DataContext is MainViewModel vm)
+                {
+                    string bienSo = vm.BienSoNhap;
 
-					lastUID = uid;
-					lastScan = DateTime.Now;
+                    if (string.IsNullOrEmpty(bienSo))
+                    {
+                        MessageBox.Show("Chưa có biển số!");
+                        return;
+                    }
 
-					if (DataContext is MainViewModel vm)
-					{
+                    string bienSoDB = LayBienSoTuUID(uid);
 
-						string bienSo = vm.BienSoNhap;
+                    if (bienSo != bienSoDB)
+                    {
+                        MessageBox.Show("⚠ Biển số không trùng khớp");
+                        return;
+                    }
 
-						if (string.IsNullOrEmpty(bienSo))
-						{
-							MessageBox.Show("Chưa có biển số!");
-							return;
-						}
-						string bienSoDB = LayBienSoTuUID(uid);
+                    if (vm.DanhSachXe.Any(x => x.BienSo == bienSo))
+                        vm.XeRaCommand.Execute(null);
+                    else
+                        vm.XeVaoCommand.Execute(null);
+                }
+            });
+        }
 
-						if (bienSo != bienSoDB)
-						{
-							MessageBox.Show("⚠ Biển số không trùng khớp");
-							return;
-						}
+        private void MoLichSu(object sender, RoutedEventArgs e)
+        {
+            HistoryWindow w = new HistoryWindow();
+            w.ShowDialog();
+        }
 
-						if (vm.DanhSachXe.Any(x => x.BienSo == bienSo))
-						{
-							vm.XeRaCommand.Execute(null);
-						}
-						else
-						{
-							vm.XeVaoCommand.Execute(null);
-						}
-					}
-				});
-			};
+        void MoCamera()
+        {
+            cameras = new FilterInfoCollection(FilterCategory.VideoInputDevice);
 
-			rfid.Start();
-		}
+            if (cameras.Count == 0)
+            {
+                MessageBox.Show("Không tìm thấy camera");
+                return;
+            }
 
-		private void MoLichSu(object sender, RoutedEventArgs e)
-		{
-			HistoryWindow w = new HistoryWindow();
-			w.ShowDialog();
-		}
+            // tìm iVCam
+            foreach (FilterInfo camera in cameras)
+            {
+                if (camera.Name.ToLower().Contains("ivcam"))
+                {
+                    cam = new VideoCaptureDevice(camera.MonikerString);
+                    break;
+                }
+            }
 
-		void MoCamera()
-		{
-			cameras = new FilterInfoCollection(FilterCategory.VideoInputDevice);
+            // nếu không có iVCam thì lấy camera đầu
+            if (cam == null)
+            {
+                cam = new VideoCaptureDevice(cameras[0].MonikerString);
+            }
 
-			if (cameras.Count == 0)
-			{
-				MessageBox.Show("Không tìm thấy camera");
-				return;
-			}
+            cam.NewFrame += Cam_NewFrame;
+            cam.Start();
+        }
 
-			// tìm iVCam
-			foreach (FilterInfo camera in cameras)
-			{
-				if (camera.Name.ToLower().Contains("ivcam"))
-				{
-					cam = new VideoCaptureDevice(camera.MonikerString);
-					break;
-				}
-			}
+        void Cam_NewFrame(object sender, NewFrameEventArgs eventArgs)
+        {
+            currentFrame = (Bitmap)eventArgs.Frame.Clone();
 
-			// nếu không có iVCam thì lấy camera đầu
-			if (cam == null)
-			{
-				cam = new VideoCaptureDevice(cameras[0].MonikerString);
-			}
+            Dispatcher.Invoke(() =>
+            {
+                CameraView.Source = ConvertBitmap(currentFrame);
+            });
+        }
 
-			cam.NewFrame += Cam_NewFrame;
-			cam.Start();
-		}
+        BitmapImage ConvertBitmap(Bitmap bitmap)
+        {
+            using (MemoryStream ms = new MemoryStream())
+            {
+                bitmap.Save(ms, System.Drawing.Imaging.ImageFormat.Bmp);
+                ms.Position = 0;
 
-		void Cam_NewFrame(object sender, NewFrameEventArgs eventArgs)
-		{
-			currentFrame = (Bitmap)eventArgs.Frame.Clone();
+                BitmapImage image = new BitmapImage();
+                image.BeginInit();
+                image.StreamSource = ms;
+                image.CacheOption = BitmapCacheOption.OnLoad;
+                image.EndInit();
 
-			Dispatcher.Invoke(() =>
-			{
-				CameraView.Source = ConvertBitmap(currentFrame);
-			});
-		}
-
-		BitmapImage ConvertBitmap(Bitmap bitmap)
-		{
-			using (MemoryStream ms = new MemoryStream())
-			{
-				bitmap.Save(ms, System.Drawing.Imaging.ImageFormat.Bmp);
-				ms.Position = 0;
-
-				BitmapImage image = new BitmapImage();
-				image.BeginInit();
-				image.StreamSource = ms;
-				image.CacheOption = BitmapCacheOption.OnLoad;
-				image.EndInit();
-
-				return image;
-			}
-		}
+                return image;
+            }
+        }
 
 
-		private async void Capture_Click(object sender, RoutedEventArgs e)
-		{
-			string plate = await ApiService.SendImageAsync(currentFrame);
+        private async void Capture_Click(object sender, RoutedEventArgs e)
+        {
+            string plate = await ApiService.SendImageAsync(currentFrame);
 
-			MessageBox.Show("Biển số: " + plate);
+            MessageBox.Show("Biển số: " + plate);
 
-			if (DataContext is MainViewModel vm)
-			{
-				vm.BienSoNhap = plate.Trim();
-				vm.XeVaoCommand.Execute(null);
-			}
-		}
-		private void MoQuanLyThe(object sender, RoutedEventArgs e)
-		{
-			QuanLyThe window = new QuanLyThe();
-			window.ShowDialog();
-		}
-		string LayBienSoTuUID(string uid)
-		{
-			using (SqlConnection conn =
-				new SqlConnection("Server=localhost\\SQLEXPRESS;Database=BaiXe;Trusted_Connection=True;"))
-			{
-				conn.Open();
+            if (DataContext is MainViewModel vm)
+            {
+                vm.BienSoNhap = plate.Trim();
+                vm.XeVaoCommand.Execute(null);
+            }
+        }
+        private void MoQuanLyThe(object sender, RoutedEventArgs e)
+        {
+            var rfid = RFIDService.Instance;
 
-				string query = "SELECT BienSo FROM RFIDCards WHERE CardUID = @uid";
+            // Tắt xử lý ở MainWindow
+            rfid.OnCardScanned -= RFID_OnCardScanned;
 
-				SqlCommand cmd = new SqlCommand(query, conn);
-				cmd.Parameters.AddWithValue("@uid", uid);
+            QuanLyThe window = new QuanLyThe();
+            window.ShowDialog();
 
-				var result = cmd.ExecuteScalar();
+            // Bật lại
+            rfid.OnCardScanned += RFID_OnCardScanned;
+        }
+        string LayBienSoTuUID(string uid)
+        {
+            using (SqlConnection conn =
+                new SqlConnection("Server=.;Database=Baixe;Trusted_Connection=True;"))
+            {
+                conn.Open();
 
-				return result?.ToString() ?? "";
-			}
-		}
+                string query = "SELECT BienSo FROM RFIDCards WHERE CardUID = @uid";
 
-		private bool isSending = false;
+                SqlCommand cmd = new SqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@uid", uid);
 
-		private async void Timer_Tick(object sender, EventArgs e)
-		{
-			if (currentFrame == null || isSending) return;
+                var result = cmd.ExecuteScalar();
 
-			isSending = true;
+                return result?.ToString() ?? "";
+            }
+        }
 
-			try
-			{
-				string plate = await ApiService.SendImageAsync(currentFrame);
+        private bool isSending = false;
 
-				if (!string.IsNullOrEmpty(plate))
-				{
-					Dispatcher.Invoke(() =>
-					{
+        private async void Timer_Tick(object sender, EventArgs e)
+        {
+            if (currentFrame == null || isSending) return;
 
-						if (DataContext is MainViewModel vm)
-						{
-							vm.BienSoNhap = plate;
-						}
-					});
-				}
-			}
-			finally
-			{
-				isSending = false;
-			}
-		}
-	}
+            isSending = true;
+
+            try
+            {
+                string plate = await ApiService.SendImageAsync(currentFrame);
+
+                if (!string.IsNullOrEmpty(plate))
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+
+                        if (DataContext is MainViewModel vm)
+                        {
+                            vm.BienSoNhap = plate;
+                        }
+                    });
+                }
+            }
+            finally
+            {
+                isSending = false;
+            }
+        }
+    }
 }
