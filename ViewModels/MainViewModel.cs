@@ -121,7 +121,7 @@ namespace QuanLyGiuXe.ViewModels
             }
 
             // CHECK FORMAT (50A12345 hoặc 50AC12345)
-            var regex = new System.Text.RegularExpressions.Regex(@"^\d{2}[A-Z]{1,2}\d{4,5}$");
+            var regex = new System.Text.RegularExpressions.Regex(@"^\d{2}([A-Z]\d{5,6}|[A-Z]{1,2}\d{4,5})$");
 
             if (!regex.IsMatch(bienSo))
             {
