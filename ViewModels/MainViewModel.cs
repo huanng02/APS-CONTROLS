@@ -106,12 +106,36 @@ namespace QuanLyGiuXe.ViewModels
 
         public void XeVao()
         {
-            MessageBox.Show("⚠ Biển số không trùng khớp");
-            if (DanhSachXe.Any(x => x.BienSo == BienSoNhap))
+            // FORMAT BIỂN SỐ (chuẩn hóa)
+            string bienSo = new string(
+                BienSoNhap?
+                .Where(char.IsLetterOrDigit)
+                .ToArray()
+            ).ToUpper();
+
+            // CHECK RỖNG
+            if (string.IsNullOrEmpty(bienSo))
+            {
+                TienHienThi = "❌ Vui lòng nhập biển số!";
+                return;
+            }
+
+            // CHECK FORMAT (50A12345 hoặc 50AC12345)
+            var regex = new System.Text.RegularExpressions.Regex(@"^\d{2}[A-Z]{1,2}\d{4,5}$");
+
+            if (!regex.IsMatch(bienSo))
+            {
+                TienHienThi = "❌ Biển số không đúng định dạng!";
+                return;
+            }
+
+            // CHECK TRÙNG (dùng biển số đã chuẩn hóa)
+            if (DanhSachXe.Any(x => x.BienSo == bienSo))
             {
                 TienHienThi = "Xe này đã vào bãi!";
                 return;
             }
+
             string folder = "Images";
 
             if (!Directory.Exists(folder))
@@ -121,14 +145,17 @@ namespace QuanLyGiuXe.ViewModels
 
             var xe = new Xe
             {
-                BienSo = BienSoNhap,
+                BienSo = bienSo, // dùng biển số đã format
                 ThoiGianVao = DateTime.Now
             };
 
             DanhSachXe.Add(xe);
             TatCaXe.Add(xe);
-            db.ThemXe(BienSoNhap, "UID_TEST", "");
-            TienHienThi = "✅ Xe vào thành công";
+
+            db.ThemXe(bienSo, "UID_TEST", "");
+
+            TienHienThi = "Xe vào thành công";
+
             string path = Path.Combine(folder, DateTime.Now.Ticks + ".jpg");
         }
 
