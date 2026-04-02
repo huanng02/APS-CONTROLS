@@ -1,0 +1,167 @@
+﻿<Window x:Class="QuanLyGiuXe.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Quản Lý Giữ Xe"
+        Height="550"
+        Width="900">
+
+    <Grid Margin="20">
+
+        <!-- ROW -->
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ===== TIÊU ĐỀ ===== -->
+        <TextBlock Grid.Row="0"
+                   Text="HỆ THỐNG QUẢN LÝ GIỮ XE"
+                   FontSize="26"
+                   FontWeight="Bold"
+                   HorizontalAlignment="Center"
+                   Margin="0,0,0,15"/>
+
+        <!-- ===== NHẬP BIỂN SỐ ===== -->
+        <Grid Grid.Row="1" Margin="0,10">
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="250"/>
+                <ColumnDefinition Width="120"/>
+                <ColumnDefinition Width="120"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="120"/>
+                <ColumnDefinition Width="120"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- nhập biển số -->
+            <TextBox Grid.Column="0"
+                     Height="35"
+                     FontSize="16"
+                     VerticalContentAlignment="Center"
+                     Text="{Binding BienSoNhap, UpdateSourceTrigger=PropertyChanged}"/>
+
+            <!-- xe vào -->
+            <Button Grid.Column="1"
+                    Content="Xe vào"
+                    Margin="10,0"
+                    Command="{Binding XeVaoCommand}"
+                    Background="LightGreen"/>
+
+            <!-- xe ra -->
+            <Button Grid.Column="2"
+                    Content="Xe ra"
+                    Margin="10,0"
+                    Command="{Binding XeRaCommand}"
+                    Background="Tomato"/>
+
+            <!-- tìm kiếm -->
+            <StackPanel Grid.Column="3"
+                        Orientation="Horizontal"
+                        VerticalAlignment="Center">
+
+                <TextBlock Text="Tìm:"
+                           VerticalAlignment="Center"
+                           Margin="0,0,10,0"/>
+
+                <TextBox Width="180"
+                         Height="30"
+                         Text="{Binding TuKhoaTimKiem, UpdateSourceTrigger=PropertyChanged}"/>
+
+            </StackPanel>
+
+            <!-- lịch sử -->
+            <Button Grid.Column="4"
+                    Content="Lịch sử"
+                    Click="MoLichSu"
+                    Command="{Binding LichSuCommand}"
+                    Background="LightBlue"/>
+
+            <!-- quản lý thẻ -->
+            <Button Grid.Column="5"
+                    Content="Quản lý thẻ"
+                    Click="MoQuanLyThe"
+                    Background="LightGoldenrodYellow"/>
+
+        </Grid>
+
+        <!-- ===== DANH SÁCH XE + CAMERA ===== -->
+        <Grid Grid.Row="2">
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="1*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- DANH SÁCH XE -->
+            <GroupBox Grid.Column="0"
+                      Header="Danh sách xe trong bãi"
+                      FontSize="14"
+                      FontWeight="Bold"
+                      Margin="0,10,10,10">
+
+                <DataGrid ItemsSource="{Binding DanhSachXe}"
+                          AutoGenerateColumns="False"
+                          IsReadOnly="True">
+
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Biển số"
+                                            Width="*"
+                                            Binding="{Binding BienSo}"/>
+
+                        <DataGridTextColumn Header="Thời gian vào"
+                                            Width="2*"
+                                            Binding="{Binding ThoiGianVao}"/>
+                    </DataGrid.Columns>
+
+                </DataGrid>
+
+            </GroupBox>
+
+            <!-- CAMERA -->
+            <GroupBox Grid.Column="1"
+                      Header="Camera bãi xe"
+                      FontWeight="Bold"
+                      Margin="0,10,0,10">
+
+                <Border Background="Black"
+                        CornerRadius="5"
+                        Padding="5">
+
+                    <Image x:Name="CameraView"
+                           Stretch="Uniform"/>
+
+                </Border>
+
+            </GroupBox>
+
+        </Grid>
+
+        <!-- ===== TIỀN ===== -->
+        <Border Grid.Row="3"
+                Margin="0,10"
+                Padding="15"
+                BorderBrush="Gray"
+                BorderThickness="1"
+                CornerRadius="8"
+                Background="#F5F5F5">
+
+            <StackPanel HorizontalAlignment="Center">
+
+                <TextBlock Text="SỐ TIỀN PHẢI TRẢ"
+                           FontSize="18"
+                           FontWeight="Bold"
+                           Margin="0,0,0,5"/>
+
+                <TextBlock Text="{Binding TienHienThi}"
+                           FontSize="36"
+                           Foreground="Red"
+                           FontWeight="Bold"/>
+
+            </StackPanel>
+
+        </Border>
+
+    </Grid>
+</Window>

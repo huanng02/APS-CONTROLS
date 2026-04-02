@@ -1,0 +1,34 @@
+﻿<Window x:Class="QuanLyGiuXe.Views.QuanLyThe"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:QuanLyGiuXe.Views"
+        mc:Ignorable="d"
+        Title="QuanLyThe" Height="450" Width="800">
+    <Grid Margin="20">
+
+        <StackPanel>
+
+            <TextBlock Text="UID thẻ"/>
+            <TextBox x:Name="txtUID" Height="30"/>
+
+            <TextBlock Text="Biển số" Margin="0,10,0,0"/>
+            <TextBox x:Name="txtBienSo" Height="30"/>
+
+            <TextBlock Text="Loại thẻ" Margin="0,10,0,0"/>
+
+            <ComboBox x:Name="cbLoaiThe" Height="30">
+                <ComboBoxItem Content="Thang"/>
+                <ComboBoxItem Content="VangLai"/>
+            </ComboBox>
+
+            <Button Content="Lưu thẻ"
+                    Margin="0,20,0,0"
+                    Height="35"
+                    Click="SaveCard"/>
+
+        </StackPanel>
+
+    </Grid>
+</Window>
