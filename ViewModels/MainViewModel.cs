@@ -44,6 +44,7 @@ namespace QuanLyGiuXe.ViewModels
         public ObservableCollection<Xe> DanhSachXe { get; set; }
         public ICommand XeVaoCommand { get; set; }
         public ICommand XeRaCommand { get; set; }
+        public ICommand XeChiTietCommand { get; set; }
 
         private string _tienHienThi = "";
         public ICommand TrangChuCommand { get; set; }
@@ -72,6 +73,7 @@ namespace QuanLyGiuXe.ViewModels
 
             XeVaoCommand = new RelayCommand(XeVao);
             XeRaCommand = new RelayCommand(XeRa);
+            XeChiTietCommand = new RelayCommand<Xe>(XeChiTiet);
 
             CurrentView = new TrangChuViewModel();
 
@@ -207,6 +209,14 @@ namespace QuanLyGiuXe.ViewModels
             {
                 DanhSachXe.Add(xe);
             }
+        }
+
+        public void XeChiTiet(Xe xe)
+        {
+            if (xe == null) return;
+
+            var window = new QuanLyGiuXe.Views.VehicleDetailWindow(xe);
+            window.ShowDialog();
         }
         private string _tuKhoaTimKiem;
 
