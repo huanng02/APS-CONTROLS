@@ -110,11 +110,11 @@ Barrier tự động (BFT, FAAC, Nice, Magnetic, v.v.) đều có ngõ vào **OP
 
 > Hình 1 – Mặt trước / bo mạch C3-200 với các cọc đấu dây được đánh số:
 
-![C3-200 Panel – Mặt trước và cọc đấu dây](../docs/images/c3200-panel.jpg)
+![C3-200 Panel – Mặt trước và cọc đấu dây](images/c3200-panel.jpg)
 
 > Hình 2 – Nhãn terminal / sơ đồ đấu nối chi tiết:
 
-![C3-200 Terminal Labels – Nhãn cọc đấu dây](../docs/images/c3200-wiring.jpg)
+![C3-200 Terminal Labels – Nhãn cọc đấu dây](images/c3200-wiring.jpg)
 
 *(Nếu chưa có file ảnh, xem mô tả bảng bên dưới để xác định đúng cọc đấu dây trên thiết bị thực tế của bạn.)*
 
