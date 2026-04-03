@@ -14,7 +14,9 @@
             <TextBox x:Name="txtUID" Height="30"/>
 
             <TextBlock Text="Biển số" Margin="0,10,0,0"/>
-            <TextBox x:Name="txtBienSo" Height="30"/>
+            <TextBox x:Name="txtBienSo" Height="30"
+                     PreviewTextInput="txtBienSo_PreviewTextInput"
+                     TextChanged="txtBienSo_TextChanged"/>
 
             <TextBlock Text="Loại thẻ" Margin="0,10,0,0"/>
 

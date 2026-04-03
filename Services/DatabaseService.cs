@@ -12,12 +12,48 @@ namespace QuanLyGiuXe.Services
 {
     public class DatabaseService
     {
-        string connectionString =
-        "Server=localhost\\SQLEXPRESS;Database=BaiXe;Trusted_Connection=True;";
+        string primaryConnection = "Server=.;Database=Baixe;Trusted_Connection=True;";
+        string backupConnection = "Server=BACKUP_SERVER;Database=Baixe;Trusted_Connection=True;";
+
+        private string GetWorkingConnection()
+        {
+            // Try primary connection first
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(primaryConnection))
+                {
+                    conn.Open();
+                    conn.Close();
+                    return primaryConnection;
+                }
+            }
+            catch
+            {
+                Console.WriteLine("⚠️ Primary database connection failed, trying backup...");
+            }
+
+            // Try backup connection
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(backupConnection))
+                {
+                    conn.Open();
+                    conn.Close();
+                    Console.WriteLine("✅ Connected to backup database");
+                    return backupConnection;
+                }
+            }
+            catch
+            {
+                Console.WriteLine("❌ Both primary and backup database connections failed!");
+                throw new Exception("Database connection failed. Both primary and backup servers are unavailable.");
+            }
+        }
 
         public void ThemXe(string bienSo, string anhXe, string uid)
         {
-            using (SqlConnection conn = new SqlConnection(connectionString))
+            string conn_string = GetWorkingConnection();
+            using (SqlConnection conn = new SqlConnection(conn_string))
             {
                 conn.Open();
 
@@ -37,7 +73,8 @@ namespace QuanLyGiuXe.Services
         }
         public DataTable LayXeTrongBai()
         {
-            using (SqlConnection conn = new SqlConnection(connectionString))
+            string conn_string = GetWorkingConnection();
+            using (SqlConnection conn = new SqlConnection(conn_string))
             {
                 conn.Open();
 
@@ -53,7 +90,8 @@ namespace QuanLyGiuXe.Services
         }
         public void XoaXe(string bienSo)
         {
-            using (SqlConnection conn = new SqlConnection(connectionString))
+            string conn_string = GetWorkingConnection();
+            using (SqlConnection conn = new SqlConnection(conn_string))
             {
                 conn.Open();
 
@@ -67,7 +105,8 @@ namespace QuanLyGiuXe.Services
         }
         public void LuuLichSu(string bienSo, DateTime vao, DateTime ra, double tien, string anhXe)
         {
-            using (SqlConnection conn = new SqlConnection(connectionString))
+            string conn_string = GetWorkingConnection();
+            using (SqlConnection conn = new SqlConnection(conn_string))
             {
                 conn.Open();
 
@@ -89,7 +128,8 @@ namespace QuanLyGiuXe.Services
         {
             List<LichSuXe> list = new List<LichSuXe>();
 
-            using (SqlConnection conn = new SqlConnection(connectionString))
+            string conn_string = GetWorkingConnection();
+            using (SqlConnection conn = new SqlConnection(conn_string))
             {
                 conn.Open();
 
@@ -115,7 +155,8 @@ namespace QuanLyGiuXe.Services
         }
         public bool CheckCardExists(string uid)
         {
-            using (SqlConnection conn = new SqlConnection(connectionString))
+            string conn_string = GetWorkingConnection();
+            using (SqlConnection conn = new SqlConnection(conn_string))
             {
                 conn.Open();
 
@@ -127,6 +168,51 @@ namespace QuanLyGiuXe.Services
                 return (int)cmd.ExecuteScalar() > 0;
             }
         }
-        
+
+        public string GetBienSoFromUID(string uid)
+        {
+            string conn_string = GetWorkingConnection();
+            using (SqlConnection conn = new SqlConnection(conn_string))
+            {
+                conn.Open();
+
+                string query = "SELECT BienSo FROM RFIDCards WHERE CardUID = @uid";
+
+                SqlCommand cmd = new SqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@uid", uid);
+
+                var result = cmd.ExecuteScalar();
+
+                return result?.ToString() ?? "";
+            }
+        }
+
+        public bool AddRFIDCard(string uid, string bienSo, string loaiThe)
+        {
+            string conn_string = GetWorkingConnection();
+            using (SqlConnection conn = new SqlConnection(conn_string))
+            {
+                conn.Open();
+
+                string insertQuery = "INSERT INTO RFIDCards(CardUID,BienSo,LoaiThe) VALUES(@uid,@bs,@lt)";
+
+                SqlCommand cmd = new SqlCommand(insertQuery, conn);
+                cmd.Parameters.AddWithValue("@uid", uid);
+                cmd.Parameters.AddWithValue("@bs", bienSo);
+                cmd.Parameters.AddWithValue("@lt", loaiThe);
+
+                try
+                {
+                    cmd.ExecuteNonQuery();
+                    return true;
+                }
+                catch (SqlException ex)
+                {
+                    Console.WriteLine($"Database error: {ex.Message}");
+                    throw;
+                }
+            }
+        }
+
     }
 }
