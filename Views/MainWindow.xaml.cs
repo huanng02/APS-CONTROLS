@@ -10,7 +10,6 @@ using AForge.Video.DirectShow;
 using OpenCvSharp;
 using OpenCvSharp;
 using OpenCvSharp.Extensions;
-using QuanLyGiuXe.Models;
 using QuanLyGiuXe.Services;
 using QuanLyGiuXe.ViewModels;
 using QuanLyGiuXe.Views;
