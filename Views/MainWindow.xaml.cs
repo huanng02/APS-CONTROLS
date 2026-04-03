@@ -1,5 +1,4 @@
-﻿using System.Data.SqlClient;
-using System.Drawing;
+﻿using System.Drawing;
 using System.IO;
 using System.IO.Ports;
 using System.Windows;
@@ -162,20 +161,8 @@ namespace QuanLyGiuXe
         }
         string LayBienSoTuUID(string uid)
         {
-            using (SqlConnection conn =
-                new SqlConnection("Server=.;Database=Baixe;Trusted_Connection=True;"))
-            {
-                conn.Open();
-
-                string query = "SELECT BienSo FROM RFIDCards WHERE CardUID = @uid";
-
-                SqlCommand cmd = new SqlCommand(query, conn);
-                cmd.Parameters.AddWithValue("@uid", uid);
-
-                var result = cmd.ExecuteScalar();
-
-                return result?.ToString() ?? "";
-            }
+            var db = new DatabaseService();
+            return db.GetBienSoFromUID(uid);
         }
 
         private bool isSending = false;

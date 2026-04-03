@@ -77,50 +77,35 @@ namespace QuanLyGiuXe.Views
                 return;
             }
 
-            using (SqlConnection conn =
-                new SqlConnection("Server=.;Database=Baixe;Trusted_Connection=True;"))
+            try
             {
-                conn.Open();
+                DatabaseService dbService = new DatabaseService();
 
                 // CHECK TRÙNG UID
-                string checkQuery = "SELECT COUNT(*) FROM RFIDCards WHERE CardUID = @uid";
-                SqlCommand checkCmd = new SqlCommand(checkQuery, conn);
-                checkCmd.Parameters.AddWithValue("@uid", uid);
-
-                int count = (int)checkCmd.ExecuteScalar();
-
-                if (count > 0)
+                if (dbService.CheckCardExists(uid))
                 {
                     MessageBox.Show("❌ Thẻ này đã được đăng ký!");
                     return;
                 }
 
                 // INSERT
-                string insertQuery =
-                "INSERT INTO RFIDCards(CardUID,BienSo,LoaiThe) VALUES(@uid,@bs,@lt)";
-
-                SqlCommand cmd = new SqlCommand(insertQuery, conn);
-
-                cmd.Parameters.AddWithValue("@uid", uid);
-                cmd.Parameters.AddWithValue("@bs", bienSo);
-                cmd.Parameters.AddWithValue("@lt", loaiThe);
-
-                try
+                dbService.AddRFIDCard(uid, bienSo, loaiThe);
+                MessageBox.Show("✅ Đăng ký thẻ thành công");
+            }
+            catch (SqlException ex)
+            {
+                if (ex.Number == 2627) // lỗi duplicate
                 {
-                    cmd.ExecuteNonQuery();
-                    MessageBox.Show("Đăng ký thẻ thành công");
+                    MessageBox.Show("❌ Thẻ này đã tồn tại!");
                 }
-                catch (SqlException ex)
+                else
                 {
-                    if (ex.Number == 2627) // lỗi duplicate
-                    {
-                        MessageBox.Show("Thẻ này đã tồn tại!");
-                    }
-                    else
-                    {
-                        MessageBox.Show("Lỗi: " + ex.Message);
-                    }
+                    MessageBox.Show("❌ Lỗi: " + ex.Message);
                 }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("❌ Lỗi: " + ex.Message);
             }
 
             txtUID.Clear();
