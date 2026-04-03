@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace QuanLyGiuXe.Models
 {
-    internal class Xe
+    public class Xe
     {
         public string BienSo { get; set; } = "";
         public DateTime ThoiGianVao { get; set; }

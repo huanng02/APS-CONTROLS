@@ -10,6 +10,7 @@ using AForge.Video.DirectShow;
 using OpenCvSharp;
 using OpenCvSharp;
 using OpenCvSharp.Extensions;
+using QuanLyGiuXe.Models;
 using QuanLyGiuXe.Services;
 using QuanLyGiuXe.ViewModels;
 using QuanLyGiuXe.Views;
@@ -158,6 +159,18 @@ namespace QuanLyGiuXe
 
             // Bật lại
             rfid.OnCardScanned += RFID_OnCardScanned;
+        }
+
+        private void DataGrid_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (DataContext is MainViewModel vm)
+            {
+                if (sender is System.Windows.Controls.DataGrid dg && dg.SelectedItem is Xe selectedVehicle)
+                {
+                    var window = new VehicleDetailWindow(selectedVehicle);
+                    window.ShowDialog();
+                }
+            }
         }
         string LayBienSoTuUID(string uid)
         {

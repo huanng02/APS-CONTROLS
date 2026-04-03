@@ -103,7 +103,8 @@
 
                 <DataGrid ItemsSource="{Binding DanhSachXe}"
                           AutoGenerateColumns="False"
-                          IsReadOnly="True">
+                          IsReadOnly="True"
+                          MouseDoubleClick="DataGrid_MouseDoubleClick">
 
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Biển số"
