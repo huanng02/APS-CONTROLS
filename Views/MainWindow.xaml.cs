@@ -14,15 +14,15 @@ namespace QuanLyGiuXe
 {
     public partial class MainWindow : Window
     {
-        private Bitmap? currentFrame;
+        private Bitmap? frameVao1, frameVao2, frameRa1, frameRa2;
         private FilterInfoCollection? cameras;
-        private VideoCaptureDevice? cam;
+        private VideoCaptureDevice? camVao1, camVao2, camRa1, camRa2;
 
         public MainWindow()
         {
             InitializeComponent();
             DataContext = new MainViewModel();
-            MoCamera();
+            MoCameras();
 
             RFIDService.Instance.OnCardScanned += OnRfidScanned;
             RFIDService.Instance.Start();
@@ -43,14 +43,20 @@ namespace QuanLyGiuXe
                 var db = new DatabaseService();
                 if (!db.CheckCardExists(uid))
                 {
-                    MessageBox.Show($"❌ Thẻ {uid} chưa đăng ký!", "Lỗi thẻ");
+                    string msg = $"❌ Thẻ {uid} chưa đăng ký!";
+                    if (door == 1) vm.LanVaoTrangThai = msg;
+                    else if (door == 2) vm.LanRaTrangThai = msg;
+                    else MessageBox.Show(msg, "Lỗi thẻ");
                     return;
                 }
 
                 string bienSo = db.GetBienSoFromUID(uid);
                 if (string.IsNullOrEmpty(bienSo))
                 {
-                    MessageBox.Show($"❌ Thẻ {uid} chưa gán biển số!", "Lỗi thẻ");
+                    string msg = $"❌ Thẻ {uid} chưa gán biển số!";
+                    if (door == 1) vm.LanVaoTrangThai = msg;
+                    else if (door == 2) vm.LanRaTrangThai = msg;
+                    else MessageBox.Show(msg, "Lỗi thẻ");
                     return;
                 }
 
@@ -59,11 +65,32 @@ namespace QuanLyGiuXe
 
                 bool xeTrongBai = vm.DanhSachXe.Any(x => x.BienSo == bienSo);
 
-                if (door == 1 && !xeTrongBai)
+                // ── C3200 Reader 1 = CỔNG VÀO (chỉ cho xe vào) ──
+                if (door == 1)
+                {
+                    if (xeTrongBai)
+                    {
+                        vm.LanVaoTrangThai = $"⚠ {bienSo} đã trong bãi!";
+                        return;
+                    }
                     vm.XeVaoCommand.Execute(null);
-                else if (door == 2 && xeTrongBai)
+                    return;
+                }
+
+                // ── C3200 Reader 2 = CỔNG RA (chỉ cho xe ra) ──
+                if (door == 2)
+                {
+                    if (!xeTrongBai)
+                    {
+                        vm.LanRaTrangThai = $"⚠ {bienSo} không có trong bãi!";
+                        return;
+                    }
                     vm.XeRaCommand.Execute(null);
-                else if (xeTrongBai)
+                    return;
+                }
+
+                // ── RFID USB (door == 0) = tự động phân luồng ──
+                if (xeTrongBai)
                     vm.XeRaCommand.Execute(null);
                 else
                     vm.XeVaoCommand.Execute(null);
@@ -101,31 +128,63 @@ namespace QuanLyGiuXe
                     "C3-200 Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
 
-        // ── Camera ───────────────────────────────────────────────────────────────
+        // ── Camera (4 cam: 2 per gate) ───────────────────────────────────────
 
-        private void MoCamera()
+        private void MoCameras()
         {
             cameras = new FilterInfoCollection(FilterCategory.VideoInputDevice);
             if (cameras.Count == 0) return;
 
-            foreach (FilterInfo camera in cameras)
-            {
-                if (camera.Name.Contains("ivcam", StringComparison.OrdinalIgnoreCase))
-                {
-                    cam = new VideoCaptureDevice(camera.MonikerString);
-                    break;
-                }
-            }
+            var cfg = AppConfig.Load().Cameras;
 
-            cam ??= new VideoCaptureDevice(cameras[0].MonikerString);
-            cam.NewFrame += Cam_NewFrame;
+            StartCam(ref camVao1, cfg.VaoToanCanh, 0, CamVao1_NewFrame);
+            StartCam(ref camVao2, cfg.VaoBienSo, 1, CamVao2_NewFrame);
+            StartCam(ref camRa1, cfg.RaToanCanh, 2, CamRa1_NewFrame);
+            StartCam(ref camRa2, cfg.RaBienSo, 3, CamRa2_NewFrame);
+        }
+
+        private void StartCam(ref VideoCaptureDevice? cam, string cfgName, int fallbackIdx,
+            NewFrameEventHandler handler)
+        {
+            cam = FindCamera(cfgName);
+            if (cam == null && cameras != null && fallbackIdx < cameras.Count)
+                cam = new VideoCaptureDevice(cameras[fallbackIdx].MonikerString);
+            if (cam == null) return;
+            cam.NewFrame += handler;
             cam.Start();
         }
 
-        private void Cam_NewFrame(object sender, NewFrameEventArgs e)
+        private VideoCaptureDevice? FindCamera(string name)
         {
-            currentFrame = (Bitmap)e.Frame.Clone();
-            Dispatcher.Invoke(() => CameraView.Source = ConvertBitmap(currentFrame));
+            if (string.IsNullOrEmpty(name) || cameras == null) return null;
+            foreach (FilterInfo c in cameras)
+                if (c.Name.Contains(name, StringComparison.OrdinalIgnoreCase))
+                    return new VideoCaptureDevice(c.MonikerString);
+            return null;
+        }
+
+        private void CamVao1_NewFrame(object sender, NewFrameEventArgs e)
+        {
+            frameVao1 = (Bitmap)e.Frame.Clone();
+            Dispatcher.Invoke(() => CameraVao1.Source = ConvertBitmap(frameVao1));
+        }
+
+        private void CamVao2_NewFrame(object sender, NewFrameEventArgs e)
+        {
+            frameVao2 = (Bitmap)e.Frame.Clone();
+            Dispatcher.Invoke(() => CameraVao2.Source = ConvertBitmap(frameVao2));
+        }
+
+        private void CamRa1_NewFrame(object sender, NewFrameEventArgs e)
+        {
+            frameRa1 = (Bitmap)e.Frame.Clone();
+            Dispatcher.Invoke(() => CameraRa1.Source = ConvertBitmap(frameRa1));
+        }
+
+        private void CamRa2_NewFrame(object sender, NewFrameEventArgs e)
+        {
+            frameRa2 = (Bitmap)e.Frame.Clone();
+            Dispatcher.Invoke(() => CameraRa2.Source = ConvertBitmap(frameRa2));
         }
 
         private static BitmapImage ConvertBitmap(Bitmap bitmap)
@@ -144,9 +203,9 @@ namespace QuanLyGiuXe
 
         private async void Capture_Click(object sender, RoutedEventArgs e)
         {
-            if (currentFrame == null) return;
+            if (frameVao1 == null) return;
 
-            string plate = await ApiService.SendImageAsync(currentFrame);
+            string plate = await ApiService.SendImageAsync(frameVao1);
             if (DataContext is MainViewModel vm)
             {
                 vm.BienSoNhap = plate.Trim();
@@ -158,6 +217,9 @@ namespace QuanLyGiuXe
 
         private void MoLichSu(object sender, RoutedEventArgs e) =>
             new HistoryWindow().ShowDialog();
+
+        private void MoCameraSettings_Click(object sender, RoutedEventArgs e) =>
+            new CameraSettingsWindow { Owner = this }.ShowDialog();
 
         private void DataGrid_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {

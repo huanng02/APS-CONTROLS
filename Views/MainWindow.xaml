@@ -98,7 +98,7 @@
                     </Border>
 
                     <!-- 2 Cameras side by side -->
-                    <Grid Grid.Row="1" Margin="0,0,0,4">
+                    <Grid Grid.Row="1" Margin="0,0,0,2">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="4"/>
@@ -126,7 +126,7 @@
                     </Grid>
 
                     <!-- Ảnh chụp 2 cam (xe vừa vào) -->
-                    <Grid Grid.Row="4" Margin="0,0,0,4">
+                    <Grid Grid.Row="4" Margin="0,0,0,2">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="4"/>
@@ -157,7 +157,7 @@
                     </Grid>
 
                     <!-- Plate image (nhỏ gọn) -->
-                    <Border Grid.Row="5" Background="#0D1117" CornerRadius="4" Margin="0,0,0,4">
+                    <Border Grid.Row="5" Background="#0D1117" CornerRadius="4" Margin="0,0,0,2">
                         <Grid>
                             <TextBlock Text="Ảnh biển số nhận diện"
                    VerticalAlignment="Center" HorizontalAlignment="Center"
@@ -178,10 +178,10 @@
 
                     <!-- Info Card -->
                     <Border Grid.Row="6" Background="#F8F9FA" CornerRadius="6"
-                            Padding="10" Margin="0,0,0,6"
+                            Padding="10" Margin="0,0,0,4"
                             BorderBrush="#E2E8F0" BorderThickness="1">
                         <Grid>
-                            <Grid.RowDefinitions>
+                        <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
@@ -205,6 +205,11 @@
                                        Text="{Binding LanVaoTrangThai}"
                                        FontSize="12" Foreground="#27AE60" FontWeight="SemiBold"
                                        Margin="0,4,0,0"/>
+                            <StackPanel Grid.Row="3" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,6,0,0">
+                                <Button Width="110" Height="30" Margin="0,0,8,0"
+                                        Background="#2ECC71" Foreground="White" BorderThickness="0"
+                                        Click="OpenGateIn_Click">🔓 Mở cổng VÀO</Button>
+                            </StackPanel>
                         </Grid>
                     </Border>
 
@@ -372,6 +377,7 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="70"/>
@@ -395,6 +401,14 @@
                             <TextBlock Grid.Row="3" Grid.ColumnSpan="2"
                                        Text="{Binding LanRaTrangThai}"
                                        FontSize="12" Foreground="#E74C3C" FontWeight="SemiBold"/>
+                            <TextBlock Grid.Row="4" Grid.ColumnSpan="2"
+                                       Text="{Binding LanRaThoiGianTrongBai}"
+                                       FontSize="12" Foreground="#2C3E50"/>
+                            <StackPanel Grid.Row="4" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,6,0,0">
+                                <Button Width="110" Height="30" Margin="0,0,8,0"
+                                        Background="#E67E22" Foreground="White" BorderThickness="0"
+                                        Click="OpenGateOut_Click">🔓 Mở cổng RA</Button>
+                            </StackPanel>
                         </Grid>
                     </Border>
 

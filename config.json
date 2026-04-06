@@ -1,1 +1,1 @@
-﻿{"ZKTeco":{"Protocol":"TCP","IpAddress":"192.168.1.201","TcpPort":4370,"Timeout":4000,"Password":"","BarrierDuration":3}}
+﻿{"ZKTeco":{"Protocol":"TCP","IpAddress":"192.168.1.201","TcpPort":4370,"Timeout":4000,"Password":"","BarrierDuration":3},"Cameras":{"VaoToanCanh":"","VaoBienSo":"","RaToanCanh":"","RaBienSo":""},"ShowLog":true}

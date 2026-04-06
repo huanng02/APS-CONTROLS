@@ -7,6 +7,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Threading;
 using QuanLyGiuXe.Models;
 using QuanLyGiuXe.Services;
 
@@ -47,6 +49,148 @@ namespace QuanLyGiuXe.ViewModels
         public object CurrentView { get; set; }
         public ObservableCollection<Xe> DanhSachXe { get; set; }
 
+        // ── Làn Vào ──────────────────────────────────────────────────────────────
+
+        private string _lanVaoBienSo = "";
+        public string LanVaoBienSo
+        {
+            get => _lanVaoBienSo;
+            set { _lanVaoBienSo = value; OnPropertyChanged(nameof(LanVaoBienSo)); }
+        }
+
+        private string _lanVaoTrangThai = "Chờ xe vào...";
+        public string LanVaoTrangThai
+        {
+            get => _lanVaoTrangThai;
+            set { _lanVaoTrangThai = value; OnPropertyChanged(nameof(LanVaoTrangThai)); }
+        }
+
+        // ── Làn Ra ───────────────────────────────────────────────────────────────
+
+        private string _lanRaBienSo = "";
+        public string LanRaBienSo
+        {
+            get => _lanRaBienSo;
+            set { _lanRaBienSo = value; OnPropertyChanged(nameof(LanRaBienSo)); }
+        }
+
+        private string _lanRaTrangThai = "Chờ xe ra...";
+        public string LanRaTrangThai
+        {
+            get => _lanRaTrangThai;
+            set { _lanRaTrangThai = value; OnPropertyChanged(nameof(LanRaTrangThai)); }
+        }
+
+        private string _lanRaTien = "";
+        public string LanRaTien
+        {
+            get => _lanRaTien;
+            set { _lanRaTien = value; OnPropertyChanged(nameof(LanRaTien)); }
+        }
+
+        // ── Thông tin thêm ───────────────────────────────────────────────────────
+
+        private string _lanVaoUID = "";
+        public string LanVaoUID
+        {
+            get => _lanVaoUID;
+            set { _lanVaoUID = value; OnPropertyChanged(nameof(LanVaoUID)); }
+        }
+
+        private string _lanRaThoiGianVao = "";
+        public string LanRaThoiGianVao
+        {
+            get => _lanRaThoiGianVao;
+            set { _lanRaThoiGianVao = value; OnPropertyChanged(nameof(LanRaThoiGianVao)); }
+        }
+
+        private string _lanRaThoiGianTrongBai = "";
+        public string LanRaThoiGianTrongBai
+        {
+            get => _lanRaThoiGianTrongBai;
+            set { _lanRaThoiGianTrongBai = value; OnPropertyChanged(nameof(LanRaThoiGianTrongBai)); }
+        }
+
+        private string _trangThaiKetNoi = "C3200: Đang kết nối...";
+        public string TrangThaiKetNoi
+        {
+            get => _trangThaiKetNoi;
+            set { _trangThaiKetNoi = value; OnPropertyChanged(nameof(TrangThaiKetNoi)); }
+        }
+
+        public string SoXeTrongBai => $"Xe trong bãi: {DanhSachXe?.Count ?? 0}";
+
+        public ObservableCollection<string> LogEntries { get; } = new();
+
+        private void ThemLog(string dir, string bienSo, string status)
+        {
+            string entry = $"{DateTime.Now:HH:mm:ss}  │  {dir,-4}  │  {bienSo,-12}  │  {status}";
+            if (LogEntries.Count > 200) LogEntries.RemoveAt(0);
+            LogEntries.Add(entry);
+        }
+
+        // ── Ảnh biển số ─────────────────────────────────────────────────────────────
+
+        private ImageSource? _anhBienSoVao;
+        public ImageSource? AnhBienSoVao
+        {
+            get => _anhBienSoVao;
+            set { _anhBienSoVao = value; OnPropertyChanged(nameof(AnhBienSoVao)); }
+        }
+
+        private ImageSource? _anhBienSoRaVao;
+        public ImageSource? AnhBienSoRaVao
+        {
+            get => _anhBienSoRaVao;
+            set { _anhBienSoRaVao = value; OnPropertyChanged(nameof(AnhBienSoRaVao)); }
+        }
+
+        private ImageSource? _anhBienSoRaRa;
+        public ImageSource? AnhBienSoRaRa
+        {
+            get => _anhBienSoRaRa;
+            set { _anhBienSoRaRa = value; OnPropertyChanged(nameof(AnhBienSoRaRa)); }
+        }
+
+        // ── Ảnh chụp từ 2 cam (snapshot khi xe vào/ra) ──────────────────────────
+
+        private ImageSource? _anhChupVao1;
+        public ImageSource? AnhChupVao1
+        {
+            get => _anhChupVao1;
+            set { _anhChupVao1 = value; OnPropertyChanged(nameof(AnhChupVao1)); }
+        }
+
+        private ImageSource? _anhChupVao2;
+        public ImageSource? AnhChupVao2
+        {
+            get => _anhChupVao2;
+            set { _anhChupVao2 = value; OnPropertyChanged(nameof(AnhChupVao2)); }
+        }
+
+        private ImageSource? _anhChupRa1;
+        public ImageSource? AnhChupRa1
+        {
+            get => _anhChupRa1;
+            set { _anhChupRa1 = value; OnPropertyChanged(nameof(AnhChupRa1)); }
+        }
+
+        private ImageSource? _anhChupRa2;
+        public ImageSource? AnhChupRa2
+        {
+            get => _anhChupRa2;
+            set { _anhChupRa2 = value; OnPropertyChanged(nameof(AnhChupRa2)); }
+        }
+
+        // ── Log toggle ────────────────────────────────────────────────────────────
+
+        private bool _showLog;
+        public bool ShowLog
+        {
+            get => _showLog;
+            set { _showLog = value; OnPropertyChanged(nameof(ShowLog)); }
+        }
+
         // ── Commands ──────────────────────────────────────────────────────────────
 
         public ICommand XeVaoCommand { get; }
@@ -60,7 +204,10 @@ namespace QuanLyGiuXe.ViewModels
 
         public MainViewModel()
         {
-            var zk = AppConfig.Load().ZKTeco;
+            var cfg = AppConfig.Load();
+            _showLog = cfg.ShowLog;
+
+            var zk = cfg.ZKTeco;
             C3200Service.Instance.Configure(
                 ip: zk.IpAddress, port: zk.TcpPort,
                 password: zk.Password, timeoutMs: zk.Timeout,
@@ -68,9 +215,15 @@ namespace QuanLyGiuXe.ViewModels
             _ = C3200Service.Instance.ConnectAsync();
 
             DanhSachXe = new ObservableCollection<Xe>();
+            DanhSachXe.CollectionChanged += (_, _) => OnPropertyChanged(nameof(SoXeTrongBai));
+
             XeVaoCommand = new RelayCommand(async () => await XeVaoAsync());
             XeRaCommand = new RelayCommand(async () => await XeRaAsync());
             XeChiTietCommand = new RelayCommand<Xe>(XeChiTiet);
+
+            C3200Service.Instance.OnConnectionChanged += online =>
+                Application.Current?.Dispatcher?.Invoke(() =>
+                    TrangThaiKetNoi = online ? "C3200: Online ●" : "C3200: Offline ○");
 
             CurrentView = new TrangChuViewModel();
             TrangChuCommand = new RelayCommand(() => SetView(new TrangChuViewModel()));
@@ -106,14 +259,14 @@ namespace QuanLyGiuXe.ViewModels
             string bienSo = new string(BienSoNhap?.Where(char.IsLetterOrDigit).ToArray()).ToUpper();
 
             if (string.IsNullOrEmpty(bienSo))
-            { TienHienThi = "❌ Vui lòng nhập biển số!"; return; }
+            { LanVaoTrangThai = "❌ Vui lòng nhập biển số!"; return; }
 
             var regex = new System.Text.RegularExpressions.Regex(@"^\d{2}([A-Z]\d{5,6}|[A-Z]{1,2}\d{4,5})$");
             if (!regex.IsMatch(bienSo))
-            { TienHienThi = "❌ Biển số không đúng định dạng!"; return; }
+            { LanVaoTrangThai = "❌ Biển số không đúng định dạng!"; return; }
 
             if (DanhSachXe.Any(x => x.BienSo == bienSo))
-            { TienHienThi = "Xe này đã vào bãi!"; return; }
+            { LanVaoTrangThai = "⚠ Xe này đã vào bãi!"; return; }
 
             if (!Directory.Exists("Images"))
                 Directory.CreateDirectory("Images");
@@ -125,17 +278,28 @@ namespace QuanLyGiuXe.ViewModels
             db.ThemXe(bienSo, uid, "");
             LastScannedUID = "";
 
+            LanVaoBienSo = bienSo;
+            LanVaoUID = uid;
             bool opened = await C3200Service.Instance.OpenBarrierAsync(1);
-            TienHienThi = opened ? "✅ Xe vào – barrier đã mở" : "⚠ Xe vào – barrier lỗi";
+            LanVaoTrangThai = opened
+                ? $"✅ Xe vào lúc {DateTime.Now:HH:mm} – barrier đã mở"
+                : "⚠ Xe vào – barrier lỗi";
+            ThemLog("VÀO", bienSo, opened ? "✅ Barrier đã mở" : "⚠ Barrier lỗi");
+            BienSoNhap = "";
         }
 
         private async Task XeRaAsync()
         {
             var xe = DanhSachXe.FirstOrDefault(x => x.BienSo == BienSoNhap);
             if (xe == null)
-            { MessageBox.Show("Xe này không có trong bãi!"); return; }
+            { LanRaTrangThai = "❌ Xe này không có trong bãi!"; return; }
 
-            double tien = Math.Ceiling((DateTime.Now - xe.ThoiGianVao).TotalHours) * 5000;
+            LanRaBienSo = xe.BienSo;
+            var thoiGian = DateTime.Now - xe.ThoiGianVao;
+            LanRaThoiGianVao = $"Vào: {xe.ThoiGianVao:HH:mm} │ {thoiGian.Hours}h{thoiGian.Minutes:D2}m";
+            LanRaThoiGianTrongBai = $"Thời gian trong bãi: {thoiGian.Days}d {thoiGian.Hours}h{thoiGian.Minutes:D2}m";
+            double tien = Math.Ceiling(thoiGian.TotalHours) * 5000;
+            LanRaTien = $"💰 {tien:N0} VNĐ";
             TienHienThi = $"Tiền: {tien:N0} VNĐ";
 
             db.LuuLichSu(xe.BienSo, xe.ThoiGianVao, DateTime.Now, tien, "");
@@ -144,6 +308,8 @@ namespace QuanLyGiuXe.ViewModels
             BienSoNhap = "";
 
             await C3200Service.Instance.OpenBarrierAsync(2);
+            LanRaTrangThai = $"✅ Xe ra lúc {DateTime.Now:HH:mm} – barrier đã mở";
+            ThemLog("RA", xe.BienSo, $"💰 {tien:N0} VNĐ");
         }
 
         // ── Tìm kiếm / Chi tiết ──────────────────────────────────────────────────
