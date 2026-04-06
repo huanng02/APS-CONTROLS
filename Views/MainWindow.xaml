@@ -20,8 +20,8 @@
                    Text="HỆ THỐNG QUẢN LÝ GIỮ XE"
                    FontSize="26"
                    FontWeight="Bold"
-                   HorizontalAlignment="Center"
-                   Margin="0,0,0,15"/>
+                   HorizontalAlignment="Left"
+                   Margin="10,0,0,15"/>
 
         <!-- ===== NHẬP BIỂN SỐ ===== -->
         <Grid Grid.Row="1" Margin="0,10">
@@ -84,6 +84,22 @@
                     Click="MoQuanLyThe"
                     Background="LightGoldenrodYellow"/>
 
+        </Grid>
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="1*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Ảnh vừa chụp -->
+            <StackPanel Grid.Column="1" Margin="10">
+                <TextBlock Text="Ảnh vừa chụp" FontWeight="Bold" Margin="0,0,0,10"/>
+
+                <Border BorderBrush="Black" BorderThickness="1">
+                    <Image Source="{Binding CapturedImage}" Height="95" Stretch="Uniform" Width="271"/>
+                </Border>
+            </StackPanel>
         </Grid>
 
         <!-- ===== DANH SÁCH XE + CAMERA ===== -->

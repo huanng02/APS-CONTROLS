@@ -10,9 +10,10 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using QuanLyGiuXe.Models;
 using QuanLyGiuXe.Services;
-using System.Windows.Media;
 using QuanLyGiuXe.ViewModels;
 
 namespace QuanLyGiuXe.ViewModels
@@ -26,7 +27,27 @@ namespace QuanLyGiuXe.ViewModels
         DatabaseService db = new DatabaseService();
         public event PropertyChangedEventHandler? PropertyChanged;
         ParkingLogicService parkingService = new ParkingLogicService();
-       
+        private ImageSource _cameraImage;
+        public ImageSource CameraImage
+        {
+            get => _cameraImage;
+            set
+            {
+                _cameraImage = value;
+                OnPropertyChanged(nameof(CameraImage));
+            }
+        }
+
+        private ImageSource _capturedImage;
+        public ImageSource CapturedImage
+        {
+            get => _capturedImage;
+            set
+            {
+                _capturedImage = value;
+                OnPropertyChanged(nameof(CapturedImage));
+            }
+        }
         private void OnPropertyChanged(string name)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
@@ -34,17 +55,25 @@ namespace QuanLyGiuXe.ViewModels
         private string _bienSoNhap = "";
         public string BienSoNhap
         {
-            get { return _bienSoNhap; }
+            get => _bienSoNhap;
             set
             {
-                _bienSoNhap = value;
-                OnPropertyChanged(nameof(BienSoNhap));
+                if (value == null) return;
+
+                string newValue = new string(
+                    value.Where(char.IsLetterOrDigit).ToArray()
+                ).ToUpper();
+
+                if (_bienSoNhap != newValue)
+                {
+                    _bienSoNhap = newValue;
+                    OnPropertyChanged(nameof(BienSoNhap));
+                }
             }
         }
         public ObservableCollection<Xe> DanhSachXe { get; set; }
         public ICommand XeVaoCommand { get; set; }
         public ICommand XeRaCommand { get; set; }
-
         private string _tienHienThi = "";
         public ICommand TrangChuCommand { get; set; }
         public ICommand TimKiemCommand { get; set; }
@@ -123,7 +152,7 @@ namespace QuanLyGiuXe.ViewModels
             // CHECK FORMAT (50A12345 hoặc 50AC12345)
             var regex = new System.Text.RegularExpressions.Regex(@"^\d{2}([A-Z]\d{5,6}|[A-Z]{1,2}\d{4,5})$");
 
-            if (!regex.IsMatch(bienSo))
+            if (!regex.IsMatch(bienSo.ToUpper()))
             {
                 TienHienThi = "❌ Biển số không đúng định dạng!";
                 return;
@@ -148,15 +177,20 @@ namespace QuanLyGiuXe.ViewModels
                 BienSo = bienSo, // dùng biển số đã format
                 ThoiGianVao = DateTime.Now
             };
+            string imagePath = CameraService.Instance.CaptureAndSave("TEST", "vao");
 
+            if (!string.IsNullOrEmpty(imagePath) && File.Exists(imagePath))
+            {
+                CapturedImage = new BitmapImage(new Uri(imagePath));
+            }
             DanhSachXe.Add(xe);
             TatCaXe.Add(xe);
 
             db.ThemXe(bienSo, "UID_TEST", "");
 
-            TienHienThi = "Xe vào thành công";
-
+            TienHienThi = "Xe vào thành công";;
             string path = Path.Combine(folder, DateTime.Now.Ticks + ".jpg");
+            BienSoNhap = "";
         }
 
         private void XeRa()
@@ -179,6 +213,12 @@ namespace QuanLyGiuXe.ViewModels
             db.LuuLichSu(xe.BienSo, xe.ThoiGianVao, DateTime.Now, tien, "");
 
             db.XoaXe(BienSoNhap);
+            string imagePath = CameraService.Instance.CaptureAndSave("TEST", "ra");
+
+            if (!string.IsNullOrEmpty(imagePath) && File.Exists(imagePath))
+            {
+                CapturedImage = new BitmapImage(new Uri(imagePath));
+            }
 
             DanhSachXe.Remove(xe);
             TatCaXe.Remove(xe);
