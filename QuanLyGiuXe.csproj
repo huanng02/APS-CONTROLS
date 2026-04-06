@@ -6,6 +6,9 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <PlatformTarget>x86</PlatformTarget>
+    <Platforms>x86</Platforms>
+    <Prefer32Bit>true</Prefer32Bit>
   </PropertyGroup>
 
   <ItemGroup>
@@ -34,6 +37,34 @@
   <ItemGroup>
     <None Update="tessdata\eng.traineddata">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="config.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+
+    <None Include="Libs\C3SDK\plcommpro.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>plcommpro.dll</TargetPath>
+    </None>
+    <None Include="Libs\C3SDK\plcomms.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>plcomms.dll</TargetPath>
+    </None>
+    <None Include="Libs\C3SDK\plrscagent.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>plrscagent.dll</TargetPath>
+    </None>
+    <None Include="Libs\C3SDK\plrscomm.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>plrscomm.dll</TargetPath>
+    </None>
+    <None Include="Libs\C3SDK\pltcpcomm.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>pltcpcomm.dll</TargetPath>
+    </None>
+    <None Include="Libs\C3SDK\plusbcomm.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>plusbcomm.dll</TargetPath>
     </None>
   </ItemGroup>
 

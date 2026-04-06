@@ -11,6 +11,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
@@ -86,8 +87,32 @@
 
         </Grid>
 
+        <!-- ===== BARRIER CONTROL ===== -->
+        <StackPanel Grid.Row="2"
+                    Orientation="Horizontal"
+                    Margin="0,5,0,5">
+
+            <Button Content="🔓 Mở Cổng Vào"
+                    Width="150"
+                    Height="35"
+                    Margin="0,0,10,0"
+                    FontSize="14"
+                    Background="#27AE60"
+                    Foreground="White"
+                    Click="OpenGateIn_Click"/>
+
+            <Button Content="🔓 Mở Cổng Ra"
+                    Width="150"
+                    Height="35"
+                    FontSize="14"
+                    Background="#E67E22"
+                    Foreground="White"
+                    Click="OpenGateOut_Click"/>
+
+        </StackPanel>
+
         <!-- ===== DANH SÁCH XE + CAMERA ===== -->
-        <Grid Grid.Row="2">
+        <Grid Grid.Row="3">
 
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="2*"/>
@@ -103,7 +128,8 @@
 
                 <DataGrid ItemsSource="{Binding DanhSachXe}"
                           AutoGenerateColumns="False"
-                          IsReadOnly="True">
+                          IsReadOnly="True"
+                          MouseDoubleClick="DataGrid_MouseDoubleClick">
 
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Biển số"
@@ -139,7 +165,7 @@
         </Grid>
 
         <!-- ===== TIỀN ===== -->
-        <Border Grid.Row="3"
+        <Border Grid.Row="4"
                 Margin="0,10"
                 Padding="15"
                 BorderBrush="Gray"
