@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.IO;
 
 namespace QuanLyGiuXe.Services
 {
@@ -187,13 +188,22 @@ namespace QuanLyGiuXe.Services
 
                 StartPolling();
 
+                // log SDK return for diagnostics
+                try
+                {
+                    var dbg = $"{DateTime.Now:O}\tOpenBarrier\tdoor={doorNumber}\tret={r}\tsdk={GetSdkError()}\n";
+                    File.AppendAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ButtonPressDebug.txt"), dbg);
+                }
+                catch { }
+
                 if (r < 0)
                 {
                     LastError = $"ControlDevice thất bại (ret={r}, sdkError={GetSdkError()})";
                     return false;
                 }
 
-                LastError = "";
+                // success: keep LastError empty but record ret for trace
+                LastError = $"ret={r}";
                 return true;
             }
             catch (Exception ex)

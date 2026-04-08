@@ -1,4 +1,5 @@
 using System.Drawing;
+using System.Threading.Tasks;
 using System.IO;
 using System.Windows;
 using System.Windows.Media.Imaging;
@@ -17,6 +18,8 @@ namespace QuanLyGiuXe
         private Bitmap? frameVao1, frameVao2, frameRa1, frameRa2;
         private FilterInfoCollection? cameras;
         private VideoCaptureDevice? camVao1, camVao2, camRa1, camRa2;
+        private readonly object _manualOpenLock = new();
+        private readonly System.Collections.Generic.Dictionary<int, DateTime> _lastManualOpen = new();
 
         public MainWindow()
         {
@@ -27,6 +30,174 @@ namespace QuanLyGiuXe
             RFIDService.Instance.OnCardScanned += OnRfidScanned;
             RFIDService.Instance.Start();
             C3200Service.Instance.OnCardScanned += OnC3200Scanned;
+            // subscribe to full RT events to record button presses
+            C3200Service.Instance.OnEvent += OnC3200Event;
+            this.Closing += (s, e) => C3200Service.Instance.OnEvent -= OnC3200Event;
+        }
+
+        private void OnC3200Event(Services.C3200Event evt)
+        {
+            // debounce: ignore RTLog events that arrive immediately after a manual open command
+            try
+            {
+                // If any manual open happened very recently, skip RTLog processing to avoid duplicate/misaligned records.
+                bool recentManual = false;
+                lock (_manualOpenLock)
+                {
+                    foreach (var kv in _lastManualOpen)
+                    {
+                        if ((DateTime.UtcNow - kv.Value).TotalSeconds < 5)
+                        {
+                            recentManual = true; break;
+                        }
+                    }
+                }
+                if (recentManual)
+                {
+                    try { File.AppendAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ButtonPressDebug.txt"), $"{DateTime.Now:O}\tSKIP_RTLOG\tdoor={evt.Door}\trecent_manual_any\n"); } catch { }
+                    return;
+                }
+            }
+            catch { }
+            // detect physical button press: either raw contains BUTTON_PRESS or event type 202 (device-specific)
+            if (evt == null) return;
+            var raw = (evt.RawData ?? string.Empty).ToUpperInvariant();
+            bool isButton = raw.Contains("BUTTON") || raw.Contains("BUTTON_PRESS") || evt.EventType == 202;
+            if (!isButton) return;
+
+            // capture current frames for the door and save images + try open barrier and insert DB record
+            Task.Run(async () =>
+            {
+                try
+                {
+                    Bitmap? plate = null;
+                    Bitmap? full = null;
+                    // capture clones on UI thread
+                    Dispatcher.Invoke(() =>
+                    {
+                        if (evt.Door == 1)
+                        {
+                            if (frameVao2 != null) plate = (Bitmap)frameVao2.Clone();
+                            if (frameVao1 != null) full = (Bitmap)frameVao1.Clone();
+                        }
+                        else
+                        {
+                            if (frameRa2 != null) plate = (Bitmap)frameRa2.Clone();
+                            if (frameRa1 != null) full = (Bitmap)frameRa1.Clone();
+                        }
+                    });
+
+                    string imagesDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ButtonPressImages");
+                    Directory.CreateDirectory(imagesDir);
+                    string stamp = DateTime.Now.ToString("yyyyMMdd_HHmmss_fff");
+                    string platePath = null;
+                    string fullPath = null;
+
+                    if (full != null)
+                    {
+                        fullPath = Path.Combine(imagesDir, $"{stamp}_door{evt.Door}_full.jpg");
+                        full.Save(fullPath, System.Drawing.Imaging.ImageFormat.Jpeg);
+                        full.Dispose();
+                    }
+                    if (plate != null)
+                    {
+                        platePath = Path.Combine(imagesDir, $"{stamp}_door{evt.Door}_plate.jpg");
+                        plate.Save(platePath, System.Drawing.Imaging.ImageFormat.Jpeg);
+                        plate.Dispose();
+                    }
+
+                    // try open barrier and record result
+                    byte? barrierResult = null;
+                    try
+                    {
+                        bool opened = await C3200Service.Instance.OpenBarrierAsync(evt.Door);
+                        barrierResult = opened ? (byte)1 : (byte)0;
+                    }
+                    catch { barrierResult = null; }
+
+                    // If no images captured initially, retry a few times (small delay) to allow cameras to update.
+                    string notes = null;
+                    if (string.IsNullOrEmpty(platePath) && string.IsNullOrEmpty(fullPath))
+                    {
+                        for (int i = 0; i < 3; i++)
+                        {
+                            await Task.Delay(200);
+                            Bitmap? plate2 = null;
+                            Bitmap? full2 = null;
+                            Dispatcher.Invoke(() =>
+                            {
+                                if (evt.Door == 1)
+                                {
+                                    if (frameVao2 != null) plate2 = (Bitmap)frameVao2.Clone();
+                                    if (frameVao1 != null) full2 = (Bitmap)frameVao1.Clone();
+                                }
+                                else if (evt.Door == 2)
+                                {
+                                    if (frameRa2 != null) plate2 = (Bitmap)frameRa2.Clone();
+                                    if (frameRa1 != null) full2 = (Bitmap)frameRa1.Clone();
+                                }
+                            });
+
+                            if (full2 != null)
+                            {
+                                fullPath = Path.Combine(imagesDir, $"{stamp}_door{evt.Door}_full_retry{i}.jpg");
+                                full2.Save(fullPath, System.Drawing.Imaging.ImageFormat.Jpeg);
+                                full2.Dispose();
+                            }
+                            if (plate2 != null)
+                            {
+                                platePath = Path.Combine(imagesDir, $"{stamp}_door{evt.Door}_plate_retry{i}.jpg");
+                                plate2.Save(platePath, System.Drawing.Imaging.ImageFormat.Jpeg);
+                                plate2.Dispose();
+                            }
+
+                            if (!string.IsNullOrEmpty(platePath) || !string.IsNullOrEmpty(fullPath)) break;
+                        }
+
+                        if (string.IsNullOrEmpty(platePath) && string.IsNullOrEmpty(fullPath))
+                        {
+                            // no images after retries -> mark note; do not assume barrier failed just because images missing
+                            notes = "no_images";
+                            // leave barrierResult as null so we don't record '0' (interpreted as explicit failure)
+                            barrierResult = null;
+                        }
+                    }
+
+                    // insert to DB (with debug logging)
+                    try
+                    {
+                        var db = new DatabaseService();
+                        DateTime ts = DateTime.Now;
+                        if (!string.IsNullOrEmpty(evt.Time) && DateTime.TryParse(evt.Time, out var parsed)) ts = parsed;
+                        db.InsertButtonPressLog(ts, (byte?)evt.Door, evt.EventType, evt.InOutState,
+                            evt.CardNo, evt.Pin, evt.RawData, "BUTTON_PRESS",
+                            barrierResult, platePath, fullPath, null, null, notes);
+
+                        // try reconcile any recent manual-open records for same door
+                        try
+                        {
+                            if (barrierResult.HasValue)
+                            {
+                                db.ReconcileManualOpen(ts, (byte)evt.Door, barrierResult.Value, 5, $" (reconciled by RT opened={barrierResult})");
+                            }
+                        }
+                        catch { }
+
+                        // debug trace
+                        try
+                        {
+                            string logLine = $"{DateTime.Now:O}\tRT\tdoor={evt.Door}\tevt={evt.EventType}\topened={barrierResult}\tplateExists={(File.Exists(platePath) ? 1 : 0)}\tfullExists={(File.Exists(fullPath) ? 1 : 0)}\tplate={platePath}\tfull={fullPath}\traw={evt.RawData}\tnotes={notes}\n";
+                            File.AppendAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ButtonPressDebug.txt"), logLine);
+                        }
+                        catch { }
+                    }
+                    catch (Exception ex)
+                    {
+                        try { File.AppendAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ButtonPressDebug.txt"), $"{DateTime.Now:O}\tRT\tINsertError\t{ex.Message}\n"); } catch { }
+                    }
+                }
+                catch { }
+            });
         }
 
         private void OnRfidScanned(string uid) => XuLyQuetThe(uid);
@@ -118,14 +289,92 @@ namespace QuanLyGiuXe
         private async void OpenGateOut_Click(object sender, RoutedEventArgs e) =>
             await OpenGateAsync(2);
 
+        private void MoButtonLogs_Click(object sender, RoutedEventArgs e) =>
+            new ButtonLogsWindow().Show();
+
         private async Task OpenGateAsync(int doorNumber)
         {
             string tenCong = doorNumber == 1 ? "Cổng Vào" : "Cổng Ra";
+            // debug: record requested manual open
+            try
+            {
+                File.AppendAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ButtonPressDebug.txt"),
+                    $"{DateTime.Now:O}\tMANUAL_REQUEST\tdoor={doorNumber}\n");
+            }
+            catch { }
+
             bool opened = await C3200Service.Instance.OpenBarrierAsync(doorNumber);
 
+            try
+            {
+                File.AppendAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ButtonPressDebug.txt"),
+                    $"{DateTime.Now:O}\tMANUAL_RESULT\tdoor={doorNumber}\topened={opened}\n");
+            }
+            catch { }
+
             if (!opened)
+            {
                 MessageBox.Show($"❌ Không mở được {tenCong}\n\n{C3200Service.Instance.LastError}",
                     "C3-200 Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+
+            // Capture current frames and save a manual-open log entry
+            try
+            {
+                Bitmap? plate = null;
+                Bitmap? full = null;
+                Dispatcher.Invoke(() =>
+                {
+                    if (doorNumber == 1)
+                    {
+                        if (frameVao2 != null) plate = (Bitmap)frameVao2.Clone();
+                        if (frameVao1 != null) full = (Bitmap)frameVao1.Clone();
+                    }
+                    else if (doorNumber == 2)
+                    {
+                        if (frameRa2 != null) plate = (Bitmap)frameRa2.Clone();
+                        if (frameRa1 != null) full = (Bitmap)frameRa1.Clone();
+                    }
+                });
+
+                string imagesDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ButtonPressImages");
+                Directory.CreateDirectory(imagesDir);
+                string stamp = DateTime.Now.ToString("yyyyMMdd_HHmmss_fff");
+                string platePath = null; string fullPath = null;
+                if (full != null)
+                {
+                    fullPath = Path.Combine(imagesDir, $"{stamp}_manual_door{doorNumber}_full.jpg");
+                    full.Save(fullPath, System.Drawing.Imaging.ImageFormat.Jpeg);
+                    full.Dispose();
+                }
+                if (plate != null)
+                {
+                    platePath = Path.Combine(imagesDir, $"{stamp}_manual_door{doorNumber}_plate.jpg");
+                    plate.Save(platePath, System.Drawing.Imaging.ImageFormat.Jpeg);
+                    plate.Dispose();
+                }
+
+                try
+                {
+                    // record manual open timestamp for debounce
+                    lock (_manualOpenLock)
+                    {
+                        _lastManualOpen[doorNumber] = DateTime.UtcNow;
+                    }
+
+                    var db = new DatabaseService();
+                    // record diagnostic info with manual insert; do not force 0 if uncertain
+                    string manualNotes = $"Manual open via UI; sdkLastError={C3200Service.Instance.LastError}; diag={C3200Service.Instance.GetDiagnosticText()}";
+                    db.InsertButtonPressLog(DateTime.Now, (byte?)doorNumber, null, null,
+                        "MANUAL", null, null, "MANUAL_OPEN",
+                        opened ? (byte)1 : (byte?)null, platePath, fullPath, Environment.UserName, null, manualNotes);
+                }
+                catch (Exception ex)
+                {
+                    try { File.AppendAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ButtonPressDebug.txt"), $"{DateTime.Now:O}\tMANUAL_INSERT_ERROR\t{ex.Message}\n"); } catch { }
+                }
+            }
+            catch { }
         }
 
         // ── Camera (4 cam: 2 per gate) ───────────────────────────────────────

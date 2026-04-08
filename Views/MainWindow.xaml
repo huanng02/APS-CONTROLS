@@ -52,6 +52,10 @@
                             Padding="12,5" Margin="4,0"
                             Background="#34495E" Foreground="White" BorderThickness="0"
                             Click="MoLichSu" Command="{Binding LichSuCommand}"/>
+                    <Button Content="📷 Logs nút"
+                            Padding="12,5" Margin="4,0"
+                            Background="#34495E" Foreground="White" BorderThickness="0"
+                            Click="MoButtonLogs_Click"/>
                     <Button Content="💳 Quản lý thẻ"
                             Padding="12,5" Margin="4,0"
                             Background="#34495E" Foreground="White" BorderThickness="0"

@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using System.IO;
 using System.Linq;
-using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using QuanLyGiuXe.Models;
@@ -12,8 +12,8 @@ namespace QuanLyGiuXe.Services
 {
     public class DatabaseService
     {
-        string primaryConnection = "Server=.;Database=Baixe;Trusted_Connection=True;";
-        string backupConnection = "Server=BACKUP_SERVER;Database=Baixe;Trusted_Connection=True;";
+        private string primaryConnection = "Server=.;Database=BaiXe;Trusted_Connection=True;";
+        private string backupConnection = "Server=BACKUP_SERVER;Database=Baixe;Trusted_Connection=True;";
 
         private string GetWorkingConnection()
         {
@@ -23,30 +23,93 @@ namespace QuanLyGiuXe.Services
                 using (SqlConnection conn = new SqlConnection(primaryConnection))
                 {
                     conn.Open();
-                    conn.Close();
                     return primaryConnection;
                 }
             }
             catch
             {
-                Console.WriteLine("⚠️ Primary database connection failed, trying backup...");
+                // fallback to backup
             }
 
-            // Try backup connection
             try
             {
                 using (SqlConnection conn = new SqlConnection(backupConnection))
                 {
                     conn.Open();
-                    conn.Close();
-                    Console.WriteLine("✅ Connected to backup database");
                     return backupConnection;
                 }
             }
             catch
             {
-                Console.WriteLine("❌ Both primary and backup database connections failed!");
                 throw new Exception("Database connection failed. Both primary and backup servers are unavailable.");
+            }
+        }
+
+        // Expose working connection string for UI components
+        public string GetConnectionString() => GetWorkingConnection();
+
+        public void InsertButtonPressLog(DateTime timestamp, byte? door, int? eventType, int? inOutState,
+            string? cardNo, int? pin, string? rawData, string? action,
+            byte? barrierResult, string? plateImagePath, string? fullImagePath,
+            string? operatorName, string? sourceIp, string? notes)
+        {
+            string conn_string = GetWorkingConnection();
+            using (SqlConnection conn = new SqlConnection(conn_string))
+            {
+                conn.Open();
+
+                string sql = @"INSERT INTO dbo.ButtonPressLog
+                    (Timestamp, Door, EventType, InOutState, CardNo, Pin, RawData, Action, BarrierResult, PlateImagePath, FullImagePath, Operator, SourceIp, Notes)
+                    VALUES
+                    (@ts, @door, @evt, @inout, @card, @pin, @raw, @action, @barrier, @plate, @full, @op, @srcip, @notes)";
+
+                using (var cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@ts", timestamp);
+                    cmd.Parameters.AddWithValue("@door", (object?)door ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@evt", (object?)eventType ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@inout", (object?)inOutState ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@card", (object?)cardNo ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@pin", (object?)pin ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@raw", (object?)rawData ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@action", (object?)action ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@barrier", (object?)barrierResult ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@plate", (object?)plateImagePath ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@full", (object?)fullImagePath ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@op", (object?)operatorName ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@srcip", (object?)sourceIp ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@notes", (object?)notes ?? DBNull.Value);
+
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Reconcile a recent manual open record: if there's a MANUAL_OPEN row for the same door
+        /// with null or 0 BarrierResult within +/- secondsWindow seconds of rtTimestamp, update it.
+        /// </summary>
+        public void ReconcileManualOpen(DateTime rtTimestamp, byte door, byte barrierResult, int secondsWindow = 5, string appendNote = "")
+        {
+            string conn_string = GetWorkingConnection();
+            using (SqlConnection conn = new SqlConnection(conn_string))
+            {
+                conn.Open();
+
+                string sql = @"UPDATE dbo.ButtonPressLog
+                                SET BarrierResult = @barrier, Notes = COALESCE(Notes,'') + @append
+                                WHERE Door = @door AND Action = 'MANUAL_OPEN' AND (BarrierResult IS NULL OR BarrierResult = 0)
+                                  AND ABS(DATEDIFF(SECOND, Timestamp, @ts)) <= @window";
+
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@barrier", (object?)barrierResult ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@append", appendNote ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@door", door);
+                    cmd.Parameters.AddWithValue("@ts", rtTimestamp);
+                    cmd.Parameters.AddWithValue("@window", secondsWindow);
+                    cmd.ExecuteNonQuery();
+                }
             }
         }
 
@@ -57,20 +120,19 @@ namespace QuanLyGiuXe.Services
             {
                 conn.Open();
 
-                string sql =
-                "INSERT INTO XeTrongBai (cardUID, BienSo, ThoiGianVao, AnhXe) VALUES (@uid, @BienSo, @Time, @Anh)";
+                string sql = "INSERT INTO XeTrongBai (cardUID, BienSo, ThoiGianVao, AnhXe) VALUES (@uid, @BienSo, @Time, @Anh)";
 
                 SqlCommand cmd = new SqlCommand(sql, conn);
 
                 cmd.Parameters.AddWithValue("@uid", uid);
                 cmd.Parameters.AddWithValue("@BienSo", bienSo);
                 cmd.Parameters.AddWithValue("@Time", DateTime.Now);
-                cmd.Parameters.AddWithValue("@Anh", anhXe);
-
+                cmd.Parameters.AddWithValue("@Anh", anhXe ?? string.Empty);
 
                 cmd.ExecuteNonQuery();
             }
         }
+
         public DataTable LayXeTrongBai()
         {
             string conn_string = GetWorkingConnection();
@@ -88,6 +150,7 @@ namespace QuanLyGiuXe.Services
                 return table;
             }
         }
+
         public void XoaXe(string bienSo)
         {
             string conn_string = GetWorkingConnection();
@@ -103,6 +166,7 @@ namespace QuanLyGiuXe.Services
                 cmd.ExecuteNonQuery();
             }
         }
+
         public void LuuLichSu(string bienSo, DateTime vao, DateTime ra, double tien, string anhXe)
         {
             string conn_string = GetWorkingConnection();
@@ -118,7 +182,7 @@ namespace QuanLyGiuXe.Services
                 cmd.Parameters.AddWithValue("@vao", vao);
                 cmd.Parameters.AddWithValue("@ra", ra);
                 cmd.Parameters.AddWithValue("@tien", tien);
-                cmd.Parameters.AddWithValue("@anh", anhXe);
+                cmd.Parameters.AddWithValue("@anh", anhXe ?? string.Empty);
 
                 cmd.ExecuteNonQuery();
             }
@@ -153,6 +217,7 @@ namespace QuanLyGiuXe.Services
 
             return list;
         }
+
         public bool CheckCardExists(string uid)
         {
             string conn_string = GetWorkingConnection();
@@ -183,7 +248,7 @@ namespace QuanLyGiuXe.Services
 
                 var result = cmd.ExecuteScalar();
 
-                return result?.ToString() ?? "";
+                return result?.ToString() ?? string.Empty;
             }
         }
 
@@ -213,6 +278,5 @@ namespace QuanLyGiuXe.Services
                 }
             }
         }
-
     }
 }
