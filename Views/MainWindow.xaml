@@ -64,6 +64,10 @@
                             Padding="12,5" Margin="4,0"
                             Background="#34495E" Foreground="White" BorderThickness="0"
                             Click="MoCameraSettings_Click"/>
+                    <Button Content="⚙ C3-200"
+                            Padding="12,5" Margin="4,0"
+                            Background="#34495E" Foreground="White" BorderThickness="0"
+                            Click="MoC3200Settings_Click"/>
                     <ToggleButton Content="📋 Log"
                                   IsChecked="{Binding ShowLog}"
                                   Padding="12,5" Margin="4,0"

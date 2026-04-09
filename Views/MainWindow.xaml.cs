@@ -1,7 +1,10 @@
 using System.Drawing;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.IO;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using AForge.Video;
@@ -20,6 +23,7 @@ namespace QuanLyGiuXe
         private VideoCaptureDevice? camVao1, camVao2, camRa1, camRa2;
         private readonly object _manualOpenLock = new();
         private readonly System.Collections.Generic.Dictionary<int, DateTime> _lastManualOpen = new();
+        private readonly Dictionary<string, DateTime> _lastScanByUid = new();
 
         public MainWindow()
         {
@@ -33,6 +37,54 @@ namespace QuanLyGiuXe
             // subscribe to full RT events to record button presses
             C3200Service.Instance.OnEvent += OnC3200Event;
             this.Closing += (s, e) => C3200Service.Instance.OnEvent -= OnC3200Event;
+        }
+
+        // Simple toast: create a small window showing message and auto-close after ms
+        private void ShowToast(string message, int milliseconds = 1500)
+        {
+            try
+            {
+                var toast = new Window
+                {
+                    Width = 320,
+                    Height = 60,
+                    WindowStyle = WindowStyle.None,
+                    AllowsTransparency = true,
+                    Background = System.Windows.Media.Brushes.Transparent,
+                    ShowInTaskbar = false,
+                    Topmost = true,
+                    ShowActivated = false,
+                };
+
+                var border = new Border
+                {
+                    Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(204, 51, 51, 51)),
+                    CornerRadius = new CornerRadius(6),
+                    Padding = new Thickness(12)
+                };
+                var tb = new TextBlock { Text = message, Foreground = System.Windows.Media.Brushes.White, FontSize = 14, TextWrapping = TextWrapping.Wrap };
+                border.Child = tb;
+                toast.Content = border;
+
+                // position bottom-right of primary screen working area
+                var wa = SystemParameters.WorkArea;
+                toast.Left = wa.Right - toast.Width - 20;
+                toast.Top = wa.Bottom - toast.Height - 20;
+
+                toast.Show();
+
+                var _ = Task.Run(async () =>
+                {
+                    await Task.Delay(milliseconds);
+                    try { toast.Dispatcher.Invoke(() => toast.Close()); } catch { }
+                });
+            }
+            catch { }
+        }
+
+        private void MoC3200Settings_Click(object sender, RoutedEventArgs e)
+        {
+            new C3200SettingsWindow().ShowDialog();
         }
 
         private void OnC3200Event(Services.C3200Event evt)
@@ -106,11 +158,37 @@ namespace QuanLyGiuXe
                         plate.Dispose();
                     }
 
+                    // determine logical mapping for this button press (IN/OUT) using current config
+                    var cfg = AppConfig.Load();
+                    int logicalDoor = cfg.ZKTeco.MapPhysicalToLogical(evt.Door);
+                    evt.InOutState = logicalDoor;
+
                     // try open barrier and record result
                     byte? barrierResult = null;
                     try
                     {
-                        bool opened = await C3200Service.Instance.OpenBarrierAsync(evt.Door);
+                        // determine button action from config (Button1 maps to evt.Door==1, Button2 to evt.Door==2)
+                        bool opened = false;
+                        string action = evt.Door == 1 ? cfg.ZKTeco.Button1Action : cfg.ZKTeco.Button2Action;
+                        switch (action)
+                        {
+                            case "OpenThisDoor":
+                                opened = await C3200Service.Instance.OpenBarrierAsync(evt.Door);
+                                break;
+                            case "OpenGroupIn":
+                                var inSet = cfg.ZKTeco.GetInSet();
+                                foreach (var d in inSet) await C3200Service.Instance.OpenBarrierAsync(d);
+                                opened = true;
+                                break;
+                            case "OpenGroupOut":
+                                var outSet = cfg.ZKTeco.GetOutSet();
+                                foreach (var d in outSet) await C3200Service.Instance.OpenBarrierAsync(d);
+                                opened = true;
+                                break;
+                            default:
+                                opened = false; // Disabled or unknown
+                                break;
+                        }
                         barrierResult = opened ? (byte)1 : (byte)0;
                     }
                     catch { barrierResult = null; }
@@ -211,12 +289,82 @@ namespace QuanLyGiuXe
             {
                 if (DataContext is not MainViewModel vm) return;
 
+                var cfg = AppConfig.Load();
+                int mappedIn = cfg.ZKTeco.GateInDoor;
+                int mappedOut = cfg.ZKTeco.GateOutDoor;
+
+                // map physical door (from device) to logical door: 1 = IN, 2 = OUT, 0 = unknown/usb
+                int logicalDoor = 0;
+                if (door != 0)
+                {
+                    if (cfg.ZKTeco.ForceAllIn)
+                    {
+                        logicalDoor = 1;
+                    }
+                    else if (cfg.ZKTeco.ForceAllOut)
+                    {
+                        logicalDoor = 2;
+                    }
+                    else
+                    {
+                        // multi-door mapping from CSV
+                        var inSet = new HashSet<int>();
+                        var outSet = new HashSet<int>();
+                        foreach (var part in (cfg.ZKTeco.GateInDoors ?? "").Split(',', System.StringSplitOptions.RemoveEmptyEntries))
+                            if (int.TryParse(part.Trim(), out var v)) inSet.Add(v);
+                        foreach (var part in (cfg.ZKTeco.GateOutDoors ?? "").Split(',', System.StringSplitOptions.RemoveEmptyEntries))
+                            if (int.TryParse(part.Trim(), out var v)) outSet.Add(v);
+
+                        if (inSet.Contains(door)) logicalDoor = 1;
+                        else if (outSet.Contains(door)) logicalDoor = 2;
+                        else logicalDoor = 0;
+                    }
+                }
+
+                // debug trace: incoming scan + mapping
+                try
+                {
+                    File.AppendAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ButtonPressDebug.txt"),
+                        $"{DateTime.Now:O}\tSCAN_IN\trawDoor={door}\tmappedIn={cfg.ZKTeco.GateInDoors}\tmappedOut={cfg.ZKTeco.GateOutDoors}\n");
+                }
+                catch { }
+
+                // normalize UID and throttle repeated scans per-UID using configured cooldown
+                try
+                {
+                    uid = RFIDService.ChuanHoaUID(uid);
+
+                    int cooldown = cfg.ZKTeco.CardCooldownMs > 0 ? cfg.ZKTeco.CardCooldownMs : 2000;
+
+                    if (!_lastScanByUid.TryGetValue(uid, out var last)) last = DateTime.MinValue;
+                    var elapsed = (DateTime.Now - last).TotalMilliseconds;
+                    if (elapsed < cooldown)
+                    {
+                        // still cooling down: show a brief message depending on direction
+                        double leftMs = Math.Ceiling(cooldown - elapsed);
+                        string human = leftMs >= 1000 ? $"{(leftMs/1000.0):0.0}s" : $"{leftMs}ms";
+                        string msg = $"⏳ Vui lòng đợi {human} trước khi quét lại";
+                        if (logicalDoor == 1) vm.LanVaoTrangThai = msg;
+                        else if (logicalDoor == 2) vm.LanRaTrangThai = msg;
+                        else
+                        {
+                            // generic brief notification (non-blocking toast)
+                            ShowToast(msg, 1500);
+                        }
+
+                        return;
+                    }
+
+                    _lastScanByUid[uid] = DateTime.Now;
+                }
+                catch { }
+
                 var db = new DatabaseService();
                 if (!db.CheckCardExists(uid))
                 {
                     string msg = $"❌ Thẻ {uid} chưa đăng ký!";
-                    if (door == 1) vm.LanVaoTrangThai = msg;
-                    else if (door == 2) vm.LanRaTrangThai = msg;
+                    if (logicalDoor == 1) vm.LanVaoTrangThai = msg;
+                    else if (logicalDoor == 2) vm.LanRaTrangThai = msg;
                     else MessageBox.Show(msg, "Lỗi thẻ");
                     return;
                 }
@@ -225,8 +373,8 @@ namespace QuanLyGiuXe
                 if (string.IsNullOrEmpty(bienSo))
                 {
                     string msg = $"❌ Thẻ {uid} chưa gán biển số!";
-                    if (door == 1) vm.LanVaoTrangThai = msg;
-                    else if (door == 2) vm.LanRaTrangThai = msg;
+                    if (logicalDoor == 1) vm.LanVaoTrangThai = msg;
+                    else if (logicalDoor == 2) vm.LanRaTrangThai = msg;
                     else MessageBox.Show(msg, "Lỗi thẻ");
                     return;
                 }
@@ -237,7 +385,7 @@ namespace QuanLyGiuXe
                 bool xeTrongBai = vm.DanhSachXe.Any(x => x.BienSo == bienSo);
 
                 // ── C3200 Reader 1 = CỔNG VÀO (chỉ cho xe vào) ──
-                if (door == 1)
+                if (logicalDoor == 1)
                 {
                     if (xeTrongBai)
                     {
@@ -249,7 +397,7 @@ namespace QuanLyGiuXe
                 }
 
                 // ── C3200 Reader 2 = CỔNG RA (chỉ cho xe ra) ──
-                if (door == 2)
+                if (logicalDoor == 2)
                 {
                     if (!xeTrongBai)
                     {
