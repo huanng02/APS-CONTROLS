@@ -325,5 +325,62 @@ namespace QuanLyGiuXe.Services
                 // swallow DB logging errors
             }
         }
+
+        // Read persisted app logs from the AppLogs table. Returns newest-first list.
+        public System.Collections.Generic.List<QuanLyGiuXe.Services.LogEntry> GetAppLogs(DateTime? fromUtc = null, DateTime? toUtc = null, int max = 1000)
+        {
+            var list = new System.Collections.Generic.List<QuanLyGiuXe.Services.LogEntry>();
+            try
+            {
+                string conn_string = GetWorkingConnection();
+                using (SqlConnection conn = new SqlConnection(conn_string))
+                {
+                    conn.Open();
+                    string sql = @"SELECT TimestampUtc, [Level], EventType, Source, UserId, Plate, Details, Exception
+                                   FROM dbo.AppLogs
+                                   WHERE (@from IS NULL OR TimestampUtc >= @from)
+                                     AND (@to IS NULL OR TimestampUtc <= @to)
+                                   ORDER BY TimestampUtc DESC";
+
+                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@from", (object?)fromUtc ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@to", (object?)toUtc ?? DBNull.Value);
+
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            int count = 0;
+                            while (reader.Read())
+                            {
+                                try
+                                {
+                                    var ts = reader.GetValue(0);
+                                    DateTime timestampUtc = ts is DateTime dt ? DateTime.SpecifyKind(dt, DateTimeKind.Utc) : DateTime.UtcNow;
+                                    var entry = new QuanLyGiuXe.Services.LogEntry
+                                    {
+                                        Timestamp = timestampUtc,
+                                        Level = reader.IsDBNull(1) ? string.Empty : reader.GetString(1),
+                                        EventType = reader.IsDBNull(2) ? string.Empty : reader.GetString(2),
+                                        Source = reader.IsDBNull(3) ? string.Empty : reader.GetString(3),
+                                        UserId = reader.IsDBNull(4) ? string.Empty : reader.GetString(4),
+                                        Plate = reader.IsDBNull(5) ? string.Empty : reader.GetString(5),
+                                        Details = reader.IsDBNull(6) ? string.Empty : reader.GetString(6),
+                                        Exception = reader.IsDBNull(7) ? string.Empty : reader.GetString(7)
+                                    };
+                                    list.Add(entry);
+                                }
+                                catch { }
+
+                                count++;
+                                if (count >= max) break;
+                            }
+                        }
+                    }
+                }
+            }
+            catch { }
+
+            return list;
+        }
     }
 }

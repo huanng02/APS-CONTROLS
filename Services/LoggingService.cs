@@ -55,6 +55,21 @@ namespace QuanLyGiuXe.Services
 
             // enqueue for background write (best-effort)
             try { _queue.Add(entry, _cts.Token); } catch { }
+
+            // also persist to DB (best-effort, fire-and-forget)
+            try
+            {
+                Task.Run(() =>
+                {
+                    try
+                    {
+                        var db = new DatabaseService();
+                        db.InsertAppLog(entry.Timestamp, entry.Level, entry.EventType, entry.Source, entry.UserId, entry.Plate, entry.Details, entry.Exception);
+                    }
+                    catch { }
+                }, _cts.Token);
+            }
+            catch { }
         }
 
         public void LogError(string eventType, string source, string details = null, Exception ex = null, string userId = null, string plate = null)
@@ -73,6 +88,21 @@ namespace QuanLyGiuXe.Services
 
             try { if (!_suppressUi.Contains(entry.EventType)) LogEmitted?.Invoke(entry); } catch { }
             try { _queue.Add(entry, _cts.Token); } catch { }
+
+            // persist error to DB as well
+            try
+            {
+                Task.Run(() =>
+                {
+                    try
+                    {
+                        var db = new DatabaseService();
+                        db.InsertAppLog(entry.Timestamp, entry.Level, entry.EventType, entry.Source, entry.UserId, entry.Plate, entry.Details, entry.Exception);
+                    }
+                    catch { }
+                }, _cts.Token);
+            }
+            catch { }
         }
 
         public void Shutdown()

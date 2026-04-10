@@ -147,6 +147,13 @@ namespace QuanLyGiuXe.ViewModels
 
         public ObservableCollection<Services.LogEntry> LogEntries { get; } = new();
 
+        private bool _newestOnTop = true;
+        public bool NewestOnTop
+        {
+            get => _newestOnTop;
+            set { _newestOnTop = value; OnPropertyChanged(nameof(NewestOnTop)); }
+        }
+
         private void ThemLog(string dir, string bienSo, string status)
         {
             var entry = new Services.LogEntry
@@ -160,8 +167,17 @@ namespace QuanLyGiuXe.ViewModels
                 Details = status,
                 Exception = null
             };
-            if (LogEntries.Count > 200) LogEntries.RemoveAt(0);
-            LogEntries.Add(entry);
+            // insert according to NewestOnTop preference
+            if (NewestOnTop)
+            {
+                if (LogEntries.Count > 200) LogEntries.RemoveAt(LogEntries.Count - 1);
+                LogEntries.Insert(0, entry);
+            }
+            else
+            {
+                if (LogEntries.Count > 200) LogEntries.RemoveAt(0);
+                LogEntries.Add(entry);
+            }
         }
 
         // ── Ảnh biển số ─────────────────────────────────────────────────────────────
@@ -282,10 +298,19 @@ namespace QuanLyGiuXe.ViewModels
                 // add the LogEntry object directly so UI grid shows fields
                 Application.Current?.Dispatcher?.Invoke(() =>
                 {
-                    if (LogEntries.Count > 200) LogEntries.RemoveAt(0);
                     // convert timestamp to local time for display
                     entry.Timestamp = entry.Timestamp.ToLocalTime();
-                    LogEntries.Add(entry);
+                    // insert according to NewestOnTop preference
+                    if (NewestOnTop)
+                    {
+                        if (LogEntries.Count > 200) LogEntries.RemoveAt(LogEntries.Count - 1);
+                        LogEntries.Insert(0, entry);
+                    }
+                    else
+                    {
+                        if (LogEntries.Count > 200) LogEntries.RemoveAt(0);
+                        LogEntries.Add(entry);
+                    }
                 });
             }
             catch { }
