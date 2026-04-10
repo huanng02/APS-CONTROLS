@@ -1,5 +1,6 @@
 using System.IO;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace QuanLyGiuXe.Services
 {
@@ -23,7 +24,9 @@ namespace QuanLyGiuXe.Services
                 try
                 {
                     var json = File.ReadAllText(path);
-                    return JsonConvert.DeserializeObject<AppConfig>(json) ?? new AppConfig();
+                    var cfg = JsonConvert.DeserializeObject<AppConfig>(json) ?? new AppConfig();
+                    try { LoggingService.Instance.LogInfo("ConfigLoaded", "AppConfig", $"Loaded config from {path}"); } catch { }
+                    return cfg;
                 }
                 catch
                 {
@@ -41,6 +44,7 @@ namespace QuanLyGiuXe.Services
 
             var json = JsonConvert.SerializeObject(this, Formatting.Indented);
             File.WriteAllText(path, json);
+            try { LoggingService.Instance.LogInfo("ConfigSaved", "AppConfig", $"Saved config to {path}"); } catch { }
         }
     }
 

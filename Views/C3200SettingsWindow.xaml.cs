@@ -204,6 +204,20 @@ namespace QuanLyGiuXe
 
         private void Save_Click(object sender, RoutedEventArgs e)
         {
+            // capture previous values for diff
+            var prevIp = _cfg.ZKTeco.IpAddress;
+            var prevPort = _cfg.ZKTeco.TcpPort;
+            var prevPwd = _cfg.ZKTeco.Password;
+            var prevTimeout = _cfg.ZKTeco.Timeout;
+            var prevBarrier = _cfg.ZKTeco.BarrierDuration;
+            var prevCooldown = _cfg.ZKTeco.CardCooldownMs;
+            var prevGateIn = _cfg.ZKTeco.GateInDoors;
+            var prevGateOut = _cfg.ZKTeco.GateOutDoors;
+            var prevForceIn = _cfg.ZKTeco.ForceAllIn;
+            var prevForceOut = _cfg.ZKTeco.ForceAllOut;
+            var prevBtn1 = _cfg.ZKTeco.Button1Action;
+            var prevBtn2 = _cfg.ZKTeco.Button2Action;
+
             _cfg.ZKTeco.IpAddress = IpBox.Text;
             _cfg.ZKTeco.TcpPort = int.TryParse(PortBox.Text, out var p) ? p : _cfg.ZKTeco.TcpPort;
             _cfg.ZKTeco.Password = PwdBox.Text;
@@ -234,11 +248,49 @@ namespace QuanLyGiuXe
                 return;
             }
 
-            _cfg.Save();
+            // compute diffs
+            try
+            {
+                var changes = new System.Text.StringBuilder();
+                void AddChange(string name, object oldV, object newV)
+                {
+                    if ((oldV?.ToString() ?? string.Empty) != (newV?.ToString() ?? string.Empty))
+                    {
+                        if (changes.Length > 0) changes.Append("; ");
+                        changes.Append($"{name}: '{oldV}' -> '{newV}'");
+                    }
+                }
 
-            // reconfigure runtime
-            C3200Service.Instance.Configure(_cfg.ZKTeco.IpAddress, _cfg.ZKTeco.TcpPort,
-                _cfg.ZKTeco.Password, _cfg.ZKTeco.Timeout, _cfg.ZKTeco.BarrierDuration);
+                AddChange("IpAddress", prevIp, _cfg.ZKTeco.IpAddress);
+                AddChange("TcpPort", prevPort, _cfg.ZKTeco.TcpPort);
+                AddChange("Password", string.IsNullOrEmpty(prevPwd) ? "(empty)" : "(redacted)", string.IsNullOrEmpty(_cfg.ZKTeco.Password) ? "(empty)" : "(redacted)");
+                AddChange("Timeout", prevTimeout, _cfg.ZKTeco.Timeout);
+                AddChange("BarrierDuration", prevBarrier, _cfg.ZKTeco.BarrierDuration);
+                AddChange("CardCooldownMs", prevCooldown, _cfg.ZKTeco.CardCooldownMs);
+                AddChange("GateInDoors", prevGateIn, _cfg.ZKTeco.GateInDoors);
+                AddChange("GateOutDoors", prevGateOut, _cfg.ZKTeco.GateOutDoors);
+                AddChange("ForceAllIn", prevForceIn, _cfg.ZKTeco.ForceAllIn);
+                AddChange("ForceAllOut", prevForceOut, _cfg.ZKTeco.ForceAllOut);
+                AddChange("Button1Action", prevBtn1, _cfg.ZKTeco.Button1Action);
+                AddChange("Button2Action", prevBtn2, _cfg.ZKTeco.Button2Action);
+
+                _cfg.Save();
+
+                // reconfigure runtime
+                C3200Service.Instance.Configure(_cfg.ZKTeco.IpAddress, _cfg.ZKTeco.TcpPort,
+                    _cfg.ZKTeco.Password, _cfg.ZKTeco.Timeout, _cfg.ZKTeco.BarrierDuration);
+
+                // log detailed audit of changes
+                if (changes.Length > 0)
+                {
+                    try { LoggingService.Instance.LogInfo("ConfigChanged", "C3200SettingsWindow", changes.ToString(), userId: Environment.UserName); } catch { }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to save config: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
 
             MessageBox.Show("Saved", "Settings", MessageBoxButton.OK, MessageBoxImage.Information);
         }

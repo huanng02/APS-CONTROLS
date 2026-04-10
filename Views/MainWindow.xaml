@@ -47,15 +47,16 @@
                              Text="{Binding TuKhoaTimKiem, UpdateSourceTrigger=PropertyChanged}"/>
                 </StackPanel>
 
-                <StackPanel Grid.Column="3" Orientation="Horizontal">
-                    <Button Content="📋 Lịch sử"
-                            Padding="12,5" Margin="4,0"
-                            Background="#34495E" Foreground="White" BorderThickness="0"
-                            Click="MoLichSu" Command="{Binding LichSuCommand}"/>
-                    <Button Content="📷 Logs nút"
-                            Padding="12,5" Margin="4,0"
-                            Background="#34495E" Foreground="White" BorderThickness="0"
-                            Click="MoButtonLogs_Click"/>
+                <StackPanel x:Name="TopPanel" Grid.Column="3" Orientation="Horizontal">
+                    <Menu VerticalAlignment="Center" Background="Transparent" Foreground="White">
+                        <MenuItem Header="📋 Logs" Background="#34495E" Foreground="White">
+                            <MenuItem Header="Lịch sử" Click="MoLichSu" />
+                            <MenuItem Header="Logs nút" Click="MoButtonLogs_Click" />
+                            <MenuItem Header="Generate Test Logs" Click="GenerateTestLogs_Click" />
+                            <Separator />
+                            <MenuItem Header="Realtime Log" IsCheckable="True" IsChecked="{Binding ShowLog, Mode=TwoWay}" />
+                        </MenuItem>
+                    </Menu>
                     <Button Content="💳 Quản lý thẻ"
                             Padding="12,5" Margin="4,0"
                             Background="#34495E" Foreground="White" BorderThickness="0"
@@ -68,10 +69,6 @@
                             Padding="12,5" Margin="4,0"
                             Background="#34495E" Foreground="White" BorderThickness="0"
                             Click="MoC3200Settings_Click"/>
-                    <ToggleButton Content="📋 Log"
-                                  IsChecked="{Binding ShowLog}"
-                                  Padding="12,5" Margin="4,0"
-                                  Background="#34495E" Foreground="White" BorderThickness="0"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -452,18 +449,23 @@
                 </Grid.RowDefinitions>
 
                 <Grid Margin="0,0,0,6">
-                    <TextBlock Text="📋 LOG REAL-TIME"
+                <TextBlock Text="📋 LOG REAL-TIME"
                                FontSize="13" FontWeight="Bold" Foreground="White"/>
-                    <TextBlock Text="Thời gian   │  Hướng  │  Biển số       │  Trạng thái"
+                    <TextBlock Text="Time │ Level │ Event │ Details"
                                HorizontalAlignment="Right"
                                FontSize="11" Foreground="#7F8C8D" FontFamily="Consolas"/>
                 </Grid>
 
-                <ListBox Grid.Row="1"
-                         ItemsSource="{Binding LogEntries}"
-                         Background="Transparent" Foreground="#BDC3C7"
-                         BorderThickness="0" FontFamily="Consolas" FontSize="12"
-                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"/>
+                <DataGrid Grid.Row="1" ItemsSource="{Binding LogEntries}" AutoGenerateColumns="False"
+                          Background="Transparent" Foreground="#BDC3C7" HeadersVisibility="Column"
+                          BorderThickness="0" FontFamily="Consolas" FontSize="12">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Time" Binding="{Binding Timestamp, StringFormat=HH:mm:ss}" Width="110" />
+                        <DataGridTextColumn Header="Level" Binding="{Binding Level}" Width="80" />
+                        <DataGridTextColumn Header="Event" Binding="{Binding EventType}" Width="200" />
+                        <DataGridTextColumn Header="Details" Binding="{Binding Details}" Width="*" />
+                    </DataGrid.Columns>
+                </DataGrid>
             </Grid>
         </Border>
     </Grid>

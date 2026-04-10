@@ -37,6 +37,24 @@ namespace QuanLyGiuXe
             // subscribe to full RT events to record button presses
             C3200Service.Instance.OnEvent += OnC3200Event;
             this.Closing += (s, e) => C3200Service.Instance.OnEvent -= OnC3200Event;
+
+            // UI: logs menu is defined in XAML (TopPanel) — no dynamic button needed here
+        }
+
+        private void GenerateTestLogs_Click(object sender, RoutedEventArgs e)
+        {
+            // Create several test logs to make sure LoggingService and DB path execute
+            try
+            {
+                LoggingService.Instance.LogInfo("TestRFIDRead", "RFIDService", "Test UID: ABC123", userId: null, plate: null);
+                LoggingService.Instance.LogInfo("TestPlateRecognized", "ParkingLogicService", "Plate: TEST123", userId: null, plate: "TEST123");
+                LoggingService.Instance.LogError("TestError", "App", "This is a test error", new Exception("Test exception"));
+                MessageBox.Show("Test logs generated (check logs folder and AppLogs table).", "Test Logs", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Failed to generate test logs: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         // Simple toast: create a small window showing message and auto-close after ms

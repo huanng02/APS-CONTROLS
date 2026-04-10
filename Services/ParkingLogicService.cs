@@ -48,6 +48,11 @@ namespace QuanLyGiuXe.Services
                 plateTime = DateTime.Now;
 
                 Console.WriteLine("Plate: " + plate);
+                LoggingService.Instance.LogInfo("PlateRecognized", "ParkingLogicService", plate, plate: plate);
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("PlateProcessError", "ParkingLogicService", "Error processing frame", ex);
             }
             finally
             {
@@ -59,28 +64,40 @@ namespace QuanLyGiuXe.Services
         // gọi từ RFIDService
         public void OnRFIDScanned(string uid)
         {
-            if (!db.CheckCardExists(uid))
+            try
             {
-                Console.WriteLine("❌ Thẻ chưa đăng ký");
-                return;
+                if (!db.CheckCardExists(uid))
+                {
+                    Console.WriteLine("❌ Thẻ chưa đăng ký");
+                    LoggingService.Instance.LogInfo("RFIDUnregisteredCard", "ParkingLogicService", uid);
+                    return;
+                }
+                if (string.IsNullOrEmpty(currentPlate))
+                {
+                    Console.WriteLine("❌ Không có biển");
+                    LoggingService.Instance.LogInfo("RFIDNoPlate", "ParkingLogicService", uid);
+                    return;
+                }
+                if (XeDaTrongBai(currentPlate))
+                {
+                    // XE RA
+                    Console.WriteLine("Xe ra: " + currentPlate);
+                    LoggingService.Instance.LogInfo("XeRa", "ParkingLogicService", currentPlate, plate: currentPlate);
+                    db.LuuLichSu(currentPlate, plateTime, DateTime.Now, 0, string.Empty);
+                }
+                else
+                {
+                    // XE VÀO
+                    Console.WriteLine("Xe vào: " + currentPlate);
+                    LoggingService.Instance.LogInfo("XeVao", "ParkingLogicService", currentPlate, plate: currentPlate);
+                    db.ThemXe(currentPlate, uid, "");
+                }
+                currentPlate = "";
             }
-            if (string.IsNullOrEmpty(currentPlate))
+            catch (Exception ex)
             {
-                Console.WriteLine("❌ Không có biển");
-                return;
+                LoggingService.Instance.LogError("OnRFIDScannedError", "ParkingLogicService", "Error handling RFID scan", ex);
             }
-            if (XeDaTrongBai(currentPlate))
-            {
-                // XE RA
-                Console.WriteLine("Xe ra: " + currentPlate);
-            }
-            else
-            {
-                // XE VÀO
-                Console.WriteLine("Xe vào: " + currentPlate);
-                db.ThemXe(currentPlate, uid, "");
-            }
-            currentPlate = "";
         }
 
         public bool XeDaTrongBai(string bienSo)

@@ -18,8 +18,33 @@ namespace QuanLyGiuXe.ViewModels
     {
         private readonly DatabaseService db = new();
         public event PropertyChangedEventHandler? PropertyChanged;
-        private void OnPropertyChanged(string name) =>
+        private void OnPropertyChanged(string name)
+        {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+            try
+            {
+                // avoid logging the realtime log collection changes to prevent recursion/noise
+                if (string.Equals(name, nameof(LogEntries), StringComparison.OrdinalIgnoreCase))
+                    return;
+
+                // try to read property value via reflection for context
+                string val = string.Empty;
+                try
+                {
+                    var pi = this.GetType().GetProperty(name);
+                    if (pi != null)
+                    {
+                        var v = pi.GetValue(this);
+                        val = v?.ToString() ?? "";
+                    }
+                }
+                catch { }
+
+                // emit a property-changed audit entry
+                try { QuanLyGiuXe.Services.LoggingService.Instance.LogInfo("PropertyChanged", "MainViewModel", $"{name}={val}"); } catch { }
+            }
+            catch { }
+        }
 
         // ── Properties ────────────────────────────────────────────────────────────
 
@@ -120,11 +145,21 @@ namespace QuanLyGiuXe.ViewModels
 
         public string SoXeTrongBai => $"Xe trong bãi: {DanhSachXe?.Count ?? 0}";
 
-        public ObservableCollection<string> LogEntries { get; } = new();
+        public ObservableCollection<Services.LogEntry> LogEntries { get; } = new();
 
         private void ThemLog(string dir, string bienSo, string status)
         {
-            string entry = $"{DateTime.Now:HH:mm:ss}  │  {dir,-4}  │  {bienSo,-12}  │  {status}";
+            var entry = new Services.LogEntry
+            {
+                Timestamp = DateTime.Now,
+                Level = "Info",
+                EventType = dir,
+                Source = "UI",
+                UserId = string.Empty,
+                Plate = bienSo,
+                Details = status,
+                Exception = null
+            };
             if (LogEntries.Count > 200) LogEntries.RemoveAt(0);
             LogEntries.Add(entry);
         }
@@ -231,6 +266,29 @@ namespace QuanLyGiuXe.ViewModels
             LichSuCommand = new RelayCommand(() => SetView(new LichSuViewModel()));
 
             LoadXeTrongBai();
+
+            // subscribe to emitted log events so UI shows realtime app logs
+            try
+            {
+                QuanLyGiuXe.Services.LoggingService.Instance.LogEmitted += OnLogEmitted;
+            }
+            catch { }
+        }
+
+        private void OnLogEmitted(Services.LogEntry entry)
+        {
+            try
+            {
+                // add the LogEntry object directly so UI grid shows fields
+                Application.Current?.Dispatcher?.Invoke(() =>
+                {
+                    if (LogEntries.Count > 200) LogEntries.RemoveAt(0);
+                    // convert timestamp to local time for display
+                    entry.Timestamp = entry.Timestamp.ToLocalTime();
+                    LogEntries.Add(entry);
+                });
+            }
+            catch { }
         }
 
         private void SetView(object view)
@@ -284,6 +342,8 @@ namespace QuanLyGiuXe.ViewModels
             LanVaoTrangThai = opened
                 ? $"✅ Xe vào lúc {DateTime.Now:HH:mm} – barrier đã mở"
                 : "⚠ Xe vào – barrier lỗi";
+            // log event
+            try { QuanLyGiuXe.Services.LoggingService.Instance.LogInfo("XeVao", "MainViewModel", $"BienSo={bienSo}; opened={opened}", userId: uid, plate: bienSo); } catch { }
             ThemLog("VÀO", bienSo, opened ? "✅ Barrier đã mở" : "⚠ Barrier lỗi");
             BienSoNhap = "";
         }
@@ -309,6 +369,7 @@ namespace QuanLyGiuXe.ViewModels
 
             await C3200Service.Instance.OpenBarrierAsync(2);
             LanRaTrangThai = $"✅ Xe ra lúc {DateTime.Now:HH:mm} – barrier đã mở";
+            try { QuanLyGiuXe.Services.LoggingService.Instance.LogInfo("XeRa", "MainViewModel", $"BienSo={xe.BienSo}; tien={tien}", userId: null, plate: xe.BienSo); } catch { }
             ThemLog("RA", xe.BienSo, $"💰 {tien:N0} VNĐ");
         }
 

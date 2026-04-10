@@ -25,10 +25,12 @@ namespace QuanLyGiuXe.Services
                 port.Open();
 
                 Console.WriteLine("✅ RFID Connected");
+                LoggingService.Instance.LogInfo("RFIDConnected", "RFIDService", "RFID connected to COM3");
             }
             catch (Exception ex)
             {
                 Console.WriteLine("❌ RFID not available: " + ex.Message);
+                LoggingService.Instance.LogError("RFIDStartFailed", "RFIDService", ex.Message, ex);
             }
         }
 
@@ -44,10 +46,13 @@ namespace QuanLyGiuXe.Services
                 lastUID = uid;
                 lastScan = DateTime.Now;
 
+                LoggingService.Instance.LogInfo("RFIDRead", "RFIDService", uid);
+
                 OnCardScanned?.Invoke(uid);
             }
-            catch
+            catch (Exception ex)
             {
+                LoggingService.Instance.LogError("RFIDReadError", "RFIDService", "Error reading UID", ex);
             }
         }
 

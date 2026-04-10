@@ -278,5 +278,52 @@ namespace QuanLyGiuXe.Services
                 }
             }
         }
+
+        // Insert a generic app log record for audit/important events
+        public void InsertAppLog(DateTime timestampUtc, string level, string eventType, string source, string userId, string plate, string details, string exception)
+        {
+            try
+            {
+                string conn_string = GetWorkingConnection();
+                using (SqlConnection conn = new SqlConnection(conn_string))
+                {
+                    conn.Open();
+                    string sql = @"IF OBJECT_ID('dbo.AppLogs') IS NULL
+                                    BEGIN
+                                        CREATE TABLE dbo.AppLogs (
+                                            Id INT IDENTITY(1,1) PRIMARY KEY,
+                                            TimestampUtc DATETIME2,
+                                            [Level] NVARCHAR(50),
+                                            EventType NVARCHAR(200),
+                                            Source NVARCHAR(200),
+                                            UserId NVARCHAR(200),
+                                            Plate NVARCHAR(200),
+                                            Details NVARCHAR(MAX),
+                                            Exception NVARCHAR(MAX)
+                                        )
+                                    END
+                                    INSERT INTO dbo.AppLogs (TimestampUtc, [Level], EventType, Source, UserId, Plate, Details, Exception)
+                                    VALUES (@ts, @lvl, @evt, @src, @uid, @plate, @details, @ex)";
+
+                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@ts", timestampUtc);
+                        cmd.Parameters.AddWithValue("@lvl", level ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@evt", eventType ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@src", source ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@uid", userId ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@plate", plate ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@details", details ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@ex", exception ?? string.Empty);
+
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+            }
+            catch
+            {
+                // swallow DB logging errors
+            }
+        }
     }
 }
