@@ -105,6 +105,11 @@ namespace QuanLyGiuXe
             new C3200SettingsWindow().ShowDialog();
         }
 
+        private void MoAdvancedSettings_Click(object sender, RoutedEventArgs e)
+        {
+            new Views.AdvancedSettingsWindow { Owner = this }.ShowDialog();
+        }
+
         private void OnC3200Event(Services.C3200Event evt)
         {
             // debounce: ignore RTLog events that arrive immediately after a manual open command
