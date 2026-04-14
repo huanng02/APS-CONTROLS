@@ -135,7 +135,8 @@
             <Border Grid.Column="0" Style="{StaticResource CardStyle}">
                 <StackPanel>
                     <TextBlock Text="Danh mục" FontWeight="Bold" FontSize="14" Margin="4" Foreground="{StaticResource AccentLight}" />
-                    <Button Style="{StaticResource SidebarButtonStyle}" Content="📋 Logs" Click="MoLichSu" />
+                    <!--<Button Style="{StaticResource SidebarButtonStyle}" Content="📜 Lịch sử" Click="MoLichSu" />-->
+                    <!--<Button Style="{StaticResource SidebarButtonStyle}" Content="📋 Logs" Click="MoLichSu" />-->
                     <Button Style="{StaticResource SidebarButtonStyle}" Content="📋 Realtime Log" Click="MoRealtimeLog_Click" />
                     <Button Style="{StaticResource SidebarButtonStyle}" Content="📋 Logs nút" Click="MoButtonLogs_Click" />
                     <Button Style="{StaticResource SidebarButtonStyle}" Content="💳 Quản lý thẻ" Click="MoQuanLyThe" />
@@ -143,7 +144,7 @@
                     <Button Style="{StaticResource SidebarButtonStyle}" Content="⚙ C3-200" Click="MoC3200Settings_Click" />
                     <Button Style="{StaticResource SidebarButtonStyle}" Content="⚙ Cấu hình nâng cao" Click="MoAdvancedSettings_Click" />
                     <Separator Margin="6" />
-                    <Button Style="{StaticResource SidebarButtonStyle}" Content="📜 Lịch sử" />
+                    <Button Style="{StaticResource SidebarButtonStyle}" Content="📜 Lịch sử" Click="MoLichSu" />
                     <Separator Margin="6" />
                     <Button Style="{StaticResource SidebarButtonStyle}" Content="📈 Báo cáo" />
                     <Button Style="{StaticResource SidebarButtonStyle}" Content="🔧 Quản trị" />

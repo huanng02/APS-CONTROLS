@@ -1,61 +1,163 @@
 ﻿<Window x:Class="QuanLyGiuXe.HistoryWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:sys="clr-namespace:System;assembly=System.Runtime"
         Title="Lịch sử xe"
-        Height="450"
-        Width="800">
+        Height="650"
+        Width="1000"
+        WindowStartupLocation="CenterScreen"
+        Background="#F5F6FA">
 
     <Grid Margin="20">
 
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- tìm kiếm -->
-        <StackPanel Orientation="Horizontal"
-                    Margin="0,0,0,10">
+        <!-- HEADER -->
+        <Border Background="White"
+                Padding="15"
+                CornerRadius="10"
+                Margin="0,0,0,10">
 
-            <TextBlock Text="Tìm biển số:"
-                       VerticalAlignment="Center"
-                       Margin="0,0,10,0"/>
+            <TextBlock Text="📊 LỊCH SỬ XE"
+                       FontSize="20"
+                       FontWeight="Bold"/>
+        </Border>
 
-            <TextBox Width="200"
-            Text="{Binding TuKhoaTimKiem, UpdateSourceTrigger=PropertyChanged}"/>
+        <!-- FILTER -->
+        <Border Grid.Row="1"
+                Background="White"
+                Padding="15"
+                CornerRadius="10"
+                Margin="0,0,0,10">
 
-        </StackPanel>
+            <!-- 🔥 ONE ROW FILTER -->
+            <StackPanel Orientation="Horizontal">
 
-        <!-- bảng -->
-        <DataGrid Grid.Row="1"
-                  ItemsSource="{Binding DanhSachLichSu}"
-                  AutoGenerateColumns="False">
+                <!-- SEARCH -->
+                <StackPanel Orientation="Horizontal" Margin="0,0,10,0">
+                    <TextBlock Text="🔎"
+                               VerticalAlignment="Center"
+                               Margin="0,0,5,0"/>
 
-            <DataGrid.Columns>
+                    <TextBox Width="180"
+                             Height="32"
+                             Padding="5"
+                             VerticalContentAlignment="Center"
+                             Text="{Binding TuKhoaTimKiem, UpdateSourceTrigger=PropertyChanged}"/>
+                </StackPanel>
 
-                <DataGridTextColumn Header="Biển số"
-                                    Binding="{Binding BienSo}"/>
+                <!-- DATE FROM -->
+                <DatePicker SelectedDate="{Binding TuNgay}"
+                            Width="140"
+                            Margin="5,0"/>
 
-                <DataGridTextColumn Header="Thời gian vào"
-                                    Binding="{Binding ThoiGianVao}"/>
+                <!-- DATE TO -->
+                <DatePicker SelectedDate="{Binding DenNgay}"
+                            Width="140"
+                            Margin="5,0"/>
 
-                <DataGridTextColumn Header="Thời gian ra"
-                                    Binding="{Binding ThoiGianRa}"/>
+                <!-- MONEY MIN -->
+                <!--<TextBox Width="120"
+                         Height="32"
+                         Margin="5,0"
+                         VerticalContentAlignment="Center"
+                         Text="{Binding TienMin, UpdateSourceTrigger=PropertyChanged}"
+                         ToolTip="Tiền tối thiểu"/> -->
 
-                <DataGridTextColumn Header="Tiền"
-                                    Binding="{Binding Tien}"/>
+                <!-- FILTER BUTTON -->
+                <Button Content="Lọc"
+                        Width="80"
+                        Height="32"
+                        Margin="10,0,0,0"
+                        Background="#4CAF50"
+                        Foreground="White"
+                        Click="Loc_Click"/>
 
-                <DataGridTemplateColumn Header="Ảnh xe">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <Image Source="{Binding AnhXe}" Height="60"/>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
+                <!-- RESET BUTTON -->
+                <Button Content="Reset"
+                        Width="80"
+                        Height="32"
+                        Margin="5,0,0,0"
+                        Background="#FF5252"
+                        Foreground="White"
+                        Click="Reset_Click"/>
 
-            </DataGrid.Columns>
+            </StackPanel>
 
-        </DataGrid>
+        </Border>
+
+        <!-- TABLE -->
+        <Border Grid.Row="2"
+                Background="White"
+                Padding="10"
+                CornerRadius="10">
+
+            <DataGrid ItemsSource="{Binding DanhSachLichSu}"
+                      AutoGenerateColumns="False"
+                      IsReadOnly="True"
+                      RowHeight="30">
+
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="🚗 Biển số" Binding="{Binding BienSo}" Width="*"/>
+                    <DataGridTextColumn Header="🟢 Vào" Binding="{Binding ThoiGianVao}" Width="2*"/>
+                    <DataGridTextColumn Header="🔴 Ra" Binding="{Binding ThoiGianRa}" Width="2*"/>
+                    <DataGridTextColumn Header="💰 Tiền" Binding="{Binding Tien}" Width="*"/>
+                </DataGrid.Columns>
+
+            </DataGrid>
+
+        </Border>
+
+        <!-- PAGING -->
+        <Border Grid.Row="3"
+                Background="White"
+                Padding="10"
+                CornerRadius="10"
+                Margin="0,10,0,0">
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+
+                <!-- PAGE SIZE -->
+                <TextBlock Text="Hiển thị:"
+                           VerticalAlignment="Center"
+                           Margin="0,0,5,0"/>
+
+                <ComboBox Width="90"
+                          SelectedItem="{Binding PageSize, Mode=TwoWay}">
+                    <sys:Int32>5</sys:Int32>
+                    <sys:Int32>10</sys:Int32>
+                    <sys:Int32>50</sys:Int32>
+                    <sys:Int32>100</sys:Int32>
+                </ComboBox>
+
+                <TextBlock Text="dòng/trang"
+                           VerticalAlignment="Center"
+                           Margin="5,0,15,0"/>
+
+                <!-- NAV -->
+                <Button Content="⏮" Width="40" Click="TrangDau_Click"/>
+                <Button Content="◀" Width="40" Click="TrangTruoc_Click"/>
+
+                <TextBlock Text="{Binding TrangHienTai}"
+                           FontWeight="Bold"
+                           Margin="10,0"/>
+
+                <TextBlock Text="/"/>
+
+                <TextBlock Text="{Binding TongTrang}"
+                           Margin="5,0"/>
+
+                <Button Content="▶" Width="40" Click="TrangSau_Click"/>
+                <Button Content="⏭" Width="40" Click="TrangCuoi_Click"/>
+
+            </StackPanel>
+
+        </Border>
 
     </Grid>
-
 </Window>

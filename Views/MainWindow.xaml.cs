@@ -646,5 +646,12 @@ namespace QuanLyGiuXe
             if (sender is System.Windows.Controls.DataGrid dg && dg.SelectedItem is Xe xe)
                 new VehicleDetailWindow(xe).ShowDialog();
         }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            base.OnClosed(e);
+            // Ép tắt toàn bộ ứng dụng và tất cả các luồng ngầm (camera, thẻ, v.v.)
+            Environment.Exit(0);
+        }
     }
 }
