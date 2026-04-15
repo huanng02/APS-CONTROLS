@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
@@ -47,6 +47,469 @@ namespace QuanLyGiuXe.Services
 
         // Expose working connection string for UI components
         public string GetConnectionString() => GetWorkingConnection();
+
+        public RFIDCard GetRFIDCardByUid(string uid)
+        {
+            using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+                string sql = "SELECT Id, CardUID, BienSo, LoaiVeId, LoaiXeId, TrangThai, NgayDangKy FROM RFIDCards WHERE CardUID = @uid";
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@uid", uid ?? string.Empty);
+                    using (var r = cmd.ExecuteReader())
+                    {
+                        if (r.Read())
+                        {
+                            return new RFIDCard
+                            {
+                                Id = r["Id"] != DBNull.Value ? Convert.ToInt32(r["Id"]) : 0,
+                                UID = r["CardUID"]?.ToString() ?? string.Empty,
+                                BienSo = r["BienSo"]?.ToString() ?? string.Empty,
+                                LoaiVeId = r["LoaiVeId"] != DBNull.Value ? Convert.ToInt32(r["LoaiVeId"]) : 0,
+                                LoaiXeId = r["LoaiXeId"] != DBNull.Value ? Convert.ToInt32(r["LoaiXeId"]) : 0,
+                                TrangThai = r["TrangThai"]?.ToString() ?? string.Empty,
+                                NgayTao = r["NgayDangKy"] != DBNull.Value ? Convert.ToDateTime(r["NgayDangKy"]) : DateTime.MinValue
+                            };
+                        }
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Get entry time for a vehicle currently in the lot by its plate.
+        /// Returns null if not found.
+        /// </summary>
+        public DateTime? GetXeVaoTimeByBienSo(string bienSo)
+        {
+            string conn_string = GetWorkingConnection();
+            using (SqlConnection conn = new SqlConnection(conn_string))
+            {
+                conn.Open();
+                string sql = "SELECT ThoiGianVao FROM XeTrongBai WHERE BienSo = @bs";
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@bs", bienSo ?? string.Empty);
+                    var v = cmd.ExecuteScalar();
+                    if (v != null && v != DBNull.Value)
+                    {
+                        return Convert.ToDateTime(v);
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private void ExecuteNonQuery(string sql, Action<SqlCommand> addParams)
+        {
+            string conn = GetWorkingConnection();
+            using (SqlConnection con = new SqlConnection(conn))
+            {
+                con.Open();
+                using (SqlCommand cmd = new SqlCommand(sql, con))
+                {
+                    addParams(cmd);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        // =====================================================
+        // 🟢 MODERN (MVVM CLEAN VERSION)
+        // =====================================================
+
+        public List<LoaiXe> GetLoaiXe()
+        {
+            var list = new List<LoaiXe>();
+
+            using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+                string sql = "SELECT Id, TenLoai, TrangThai FROM LoaiXe";
+
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                using (SqlDataReader r = cmd.ExecuteReader())
+                {
+                    while (r.Read())
+                    {
+                        list.Add(new LoaiXe
+                        {
+                            Id = (int)r["Id"],
+                            TenLoai = r["TenLoai"].ToString(),
+                            TrangThai = r["TrangThai"].ToString()
+                        });
+                    }
+                }
+            }
+
+            return list;
+        }
+
+        public List<BangGia> LayBangGia()
+        {
+            var list = new List<BangGia>();
+            string conn_string = GetWorkingConnection();
+            using (SqlConnection conn = new SqlConnection(conn_string))
+            {
+                conn.Open();
+                string sql = "SELECT Id, LoaiXeId, GiaTheoGio, GiaQuaDem, TrangThai FROM dbo.BangGia";
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                using (SqlDataReader r = cmd.ExecuteReader())
+                {
+                    while (r.Read())
+                    {
+                        list.Add(new BangGia
+                        {
+                            Id = r["Id"] != DBNull.Value ? Convert.ToInt32(r["Id"]) : 0,
+                            LoaiXeId = r["LoaiXeId"] != DBNull.Value ? (int?)Convert.ToInt32(r["LoaiXeId"]) : null,
+                            GiaTheoGio = r["GiaTheoGio"] != DBNull.Value ? (double?)Convert.ToDouble(r["GiaTheoGio"]) : null,
+                            GiaQuaDem = r["GiaQuaDem"] != DBNull.Value ? (double?)Convert.ToDouble(r["GiaQuaDem"]) : null,
+                            TrangThai = r["TrangThai"]?.ToString() ?? string.Empty
+                        });
+                    }
+                }
+            }
+
+            return list;
+        }
+
+        public void UpdateBangGia(int id, double giaTheoGio, double giaQuaDem)
+        {
+            string conn_string = GetWorkingConnection();
+            using (SqlConnection conn = new SqlConnection(conn_string))
+            {
+                conn.Open();
+                string sql = "UPDATE dbo.BangGia SET GiaTheoGio=@g1, GiaQuaDem=@g2 WHERE Id=@id";
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@g1", giaTheoGio);
+                    cmd.Parameters.AddWithValue("@g2", giaQuaDem);
+                    cmd.Parameters.AddWithValue("@id", id);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        public void InsertLoaiXe(string tenLoai, string trangThai)
+        {
+            using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+
+                string sql = @"INSERT INTO LoaiXe (TenLoai, TrangThai)
+                       VALUES (@ten, @tt)";
+
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@ten", tenLoai);
+                    cmd.Parameters.AddWithValue("@tt", trangThai ?? "Active");
+
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        public void UpdateLoaiXe(int id, string tenLoai, string trangThai)
+        {
+            using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+
+                string sql = @"UPDATE LoaiXe 
+                       SET TenLoai=@ten, TrangThai=@tt 
+                       WHERE Id=@id";
+
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@id", id);
+                    cmd.Parameters.AddWithValue("@ten", tenLoai);
+                    cmd.Parameters.AddWithValue("@tt", trangThai ?? "Active");
+
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        public void DeleteLoaiXe(int id)
+        {
+            using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+                string sql = "DELETE FROM LoaiXe WHERE Id=@id";
+
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@id", id);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+        // -----------------------
+        // LOAI THE CRUD (mapped to LoaiVe table in DB)
+        // -----------------------
+
+        public List<LoaiThe> GetLoaiThe()
+        {
+            var list = new List<LoaiThe>();
+
+            using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+                string sql = "SELECT Id, TenLoai, GiaTien, TrangThai FROM LoaiVe";
+
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                using (SqlDataReader r = cmd.ExecuteReader())
+                {
+                    while (r.Read())
+                    {
+                        list.Add(new LoaiThe
+                        {
+                            Id = r["Id"] != DBNull.Value ? Convert.ToInt32(r["Id"]) : 0,
+                            TenLoaiThe = r["TenLoai"]?.ToString() ?? string.Empty,
+                            GiaTien = r["GiaTien"] != DBNull.Value ? Convert.ToDecimal(r["GiaTien"]) : 0m,
+                            TrangThai = r["TrangThai"]?.ToString() ?? string.Empty
+                        });
+                    }
+                }
+            }
+
+            return list;
+        }
+
+        public void InsertLoaiThe(string tenLoaiThe, decimal giaTien, string trangThai)
+        {
+            using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+                string sql = "INSERT INTO LoaiVe (TenLoai, GiaTien, TrangThai) VALUES (@ten, @gia, @trang)";
+
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@ten", tenLoaiThe ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@gia", giaTien);
+                    cmd.Parameters.AddWithValue("@trang", trangThai ?? string.Empty);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        public void UpdateLoaiThe(int id, string tenLoaiThe, decimal giaTien, string trangThai)
+        {
+            using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+                string sql = "UPDATE LoaiVe SET TenLoai=@ten, GiaTien=@gia, TrangThai=@trang WHERE Id=@id";
+
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@ten", tenLoaiThe ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@gia", giaTien);
+                    cmd.Parameters.AddWithValue("@trang", trangThai ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@id", id);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        public void DeleteLoaiThe(int id)
+        {
+            using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+                string sql = "DELETE FROM LoaiVe WHERE Id=@id";
+
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@id", id);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        // LOAI VE CRUD
+        public List<LoaiVe> GetLoaiVe()
+        {
+            var list = new List<LoaiVe>();
+
+            using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+                string sql = "SELECT Id, TenLoai, GiaTien, TrangThai FROM LoaiVe";
+
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                using (SqlDataReader r = cmd.ExecuteReader())
+                {
+                    while (r.Read())
+                    {
+                        list.Add(new LoaiVe
+                        {
+                            Id = r["Id"] != DBNull.Value ? Convert.ToInt32(r["Id"]) : 0,
+                            TenLoai = r["TenLoai"]?.ToString() ?? string.Empty,
+                            GiaTien = r["GiaTien"] != DBNull.Value ? Convert.ToDecimal(r["GiaTien"]) : 0m,
+                            TrangThai = r["TrangThai"]?.ToString() ?? string.Empty
+                        });
+                    }
+                }
+            }
+
+            return list;
+        }
+
+        public void InsertLoaiVe(string tenLoaiVe, decimal giaTien, string trangThai)
+        {
+            using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+                string sql = "INSERT INTO LoaiVe (TenLoai, GiaTien, TrangThai) VALUES (@ten, @gia, @trang)";
+
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@ten", tenLoaiVe ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@gia", giaTien);
+                    cmd.Parameters.AddWithValue("@trang", trangThai ?? string.Empty);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        public void UpdateLoaiVe(int id, string tenLoaiVe, decimal giaTien, string trangThai)
+        {
+            using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+                string sql = "UPDATE LoaiVe SET TenLoai=@ten, GiaTien=@gia, TrangThai=@trang WHERE Id=@id";
+
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@ten", tenLoaiVe ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@gia", giaTien);
+                    cmd.Parameters.AddWithValue("@trang", trangThai ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@id", id);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        public void DeleteLoaiVe(int id)
+        {
+            using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+                string sql = "DELETE FROM LoaiVe WHERE Id=@id";
+
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@id", id);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        // RFID CARD CRUD (strongly-typed RFIDCard model)
+        public List<RFIDCard> GetRFIDCards()
+        {
+            var list = new List<RFIDCard>();
+
+            using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+                string sql = @"SELECT Id, CardUID, BienSo, LoaiVeId, LoaiXeId, TrangThai, NgayDangKy FROM RFIDCards";
+
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                using (SqlDataReader r = cmd.ExecuteReader())
+                {
+                    while (r.Read())
+                    {
+                        list.Add(new RFIDCard
+                        {
+                            Id = r["Id"] != DBNull.Value ? Convert.ToInt32(r["Id"]) : 0,
+                            UID = r["CardUID"]?.ToString() ?? string.Empty,
+                            BienSo = r["BienSo"]?.ToString() ?? string.Empty,
+                            LoaiVeId = r["LoaiVeId"] != DBNull.Value ? Convert.ToInt32(r["LoaiVeId"]) : 0,
+                            LoaiXeId = r["LoaiXeId"] != DBNull.Value ? Convert.ToInt32(r["LoaiXeId"]) : 0,
+                            TrangThai = r["TrangThai"]?.ToString() ?? string.Empty,
+                            NgayTao = r["NgayDangKy"] != DBNull.Value ? Convert.ToDateTime(r["NgayDangKy"]) : DateTime.MinValue
+                        });
+                    }
+                }
+            }
+
+            return list;
+        }
+
+        public void InsertRFIDCard(string uid, string bienSo, int loaiVeId, int loaiXeId, string trangThai, DateTime ngayTao)
+        {
+            using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+                string sql = @"INSERT INTO RFIDCards (CardUID, BienSo, LoaiVeId, LoaiXeId, TrangThai, NgayDangKy) VALUES (@uid, @bien, @loaive, @loaixe, @trang, @ngay)";
+
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@uid", uid ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@bien", bienSo ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@loaive", loaiVeId);
+                    cmd.Parameters.AddWithValue("@loaixe", loaiXeId);
+                    cmd.Parameters.AddWithValue("@trang", trangThai ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@ngay", ngayTao);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        public void UpdateRFIDCard(int id, string uid, string bienSo, int loaiVeId, int loaiXeId, string trangThai)
+        {
+            using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+                string sql = @"UPDATE RFIDCards SET CardUID=@uid, BienSo=@bien, LoaiVeId=@loaive, LoaiXeId=@loaixe, TrangThai=@trang WHERE Id=@id";
+
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@uid", uid ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@bien", bienSo ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@loaive", loaiVeId);
+                    cmd.Parameters.AddWithValue("@loaixe", loaiXeId);
+                    cmd.Parameters.AddWithValue("@trang", trangThai ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@id", id);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        public void DeleteRFIDCard(int id)
+        {
+            using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+                string sql = "DELETE FROM RFIDCards WHERE Id=@id";
+
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@id", id);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        public bool IsRFIDUidExists(string uid)
+        {
+            using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+                string sql = "SELECT COUNT(1) FROM RFIDCards WHERE CardUID = @uid";
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@uid", uid ?? string.Empty);
+                    var v = cmd.ExecuteScalar();
+                    return Convert.ToInt32(v) > 0;
+                }
+            }
+        }
 
         public void InsertButtonPressLog(DateTime timestamp, byte? door, int? eventType, int? inOutState,
             string? cardNo, int? pin, string? rawData, string? action,
@@ -197,20 +660,47 @@ namespace QuanLyGiuXe.Services
             {
                 conn.Open();
 
-                string query = "SELECT BienSo, ThoiGianVao, ThoiGianRa, Tien FROM LichSuXe";
+                string query = @"
+            SELECT 
+                Id,
+                CardId,
+                BienSo,
+                ThoiGianVao,
+                ThoiGianRa,
+                Tien,
+                TrangThai,
+                AnhVao,
+                AnhRa
+            FROM LichSuXe
+            ORDER BY ThoiGianVao DESC";
 
                 SqlCommand cmd = new SqlCommand(query, conn);
-
                 SqlDataReader reader = cmd.ExecuteReader();
 
                 while (reader.Read())
                 {
                     list.Add(new LichSuXe
                     {
-                        BienSo = reader["BienSo"].ToString(),
-                        ThoiGianVao = Convert.ToDateTime(reader["ThoiGianVao"]),
-                        ThoiGianRa = Convert.ToDateTime(reader["ThoiGianRa"]),
-                        Tien = Convert.ToDouble(reader["Tien"])
+                        Id = reader["Id"] != DBNull.Value ? Convert.ToInt32(reader["Id"]) : 0,
+                        CardId = reader["CardId"] != DBNull.Value ? Convert.ToInt32(reader["CardId"]) : 0,
+
+                        BienSo = reader["BienSo"]?.ToString(),
+
+                        ThoiGianVao = reader["ThoiGianVao"] != DBNull.Value
+                            ? Convert.ToDateTime(reader["ThoiGianVao"])
+                            : DateTime.MinValue,
+
+                        ThoiGianRa = reader["ThoiGianRa"] != DBNull.Value
+                            ? Convert.ToDateTime(reader["ThoiGianRa"])
+                            : (DateTime?)null,
+
+                        Tien = reader["Tien"] != DBNull.Value
+                            ? Convert.ToDouble(reader["Tien"])
+                            : (double?)null,
+
+                        TrangThai = reader["TrangThai"]?.ToString(),
+                        AnhVao = reader["AnhVao"]?.ToString(),
+                        AnhRa = reader["AnhRa"]?.ToString()
                     });
                 }
             }
@@ -289,15 +779,17 @@ namespace QuanLyGiuXe.Services
                 conn.Open();
 
                 string sql = @"
-        SELECT 
-            r.CardUID,
-            r.BienSo,
-            lx.TenLoai AS LoaiXe,
-            lv.TenLoai AS LoaiVe
-        FROM RFIDCards r
-        LEFT JOIN LoaiXe lx ON r.LoaiXeId = lx.Id
-        LEFT JOIN LoaiVe lv ON r.LoaiVeId = lv.Id
-        ";
+                    SELECT 
+                        r.Id,
+                        r.CardUID,
+                        r.BienSo,
+                        r.TrangThai,
+                        lx.TenLoai AS LoaiXe,
+                        lv.TenLoai AS LoaiVe
+                    FROM RFIDCards r
+                    LEFT JOIN LoaiXe lx ON r.LoaiXeId = lx.Id
+                    LEFT JOIN LoaiVe lv ON r.LoaiVeId = lv.Id
+                    ";
 
                 using (SqlCommand cmd = new SqlCommand(sql, conn))
                 using (SqlDataReader reader = cmd.ExecuteReader())
@@ -306,8 +798,12 @@ namespace QuanLyGiuXe.Services
                     {
                         list.Add(new RFIDCards
                         {
+                            Id = reader["Id"] != DBNull.Value ? Convert.ToInt32(reader["Id"]) : 0,
+
                             CardUID = reader["CardUID"]?.ToString(),
                             BienSo = reader["BienSo"]?.ToString(),
+                            TrangThai = reader["TrangThai"]?.ToString(),
+
                             LoaiXe = reader["LoaiXe"]?.ToString(),
                             LoaiVe = reader["LoaiVe"]?.ToString()
                         });

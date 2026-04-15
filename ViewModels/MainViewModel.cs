@@ -268,8 +268,8 @@ namespace QuanLyGiuXe.ViewModels
             DanhSachXe = new ObservableCollection<Xe>();
             DanhSachXe.CollectionChanged += (_, _) => OnPropertyChanged(nameof(SoXeTrongBai));
 
-            XeVaoCommand = new RelayCommand(async () => await XeVaoAsync());
-            XeRaCommand = new RelayCommand(async () => await XeRaAsync());
+            XeVaoCommand = new RelayCommand(async _ => await XeVaoAsync());
+            XeRaCommand = new RelayCommand(async _ => await XeRaAsync());
             XeChiTietCommand = new RelayCommand<Xe>(XeChiTiet);
 
             C3200Service.Instance.OnConnectionChanged += online =>
@@ -277,9 +277,10 @@ namespace QuanLyGiuXe.ViewModels
                     TrangThaiKetNoi = online ? "C3200: Online ●" : "C3200: Offline ○");
 
             CurrentView = new TrangChuViewModel();
-            TrangChuCommand = new RelayCommand(() => SetView(new TrangChuViewModel()));
-            TimKiemCommand = new RelayCommand(() => SetView(new TimKiemViewModel()));
-            LichSuCommand = new RelayCommand(() => SetView(new LichSuViewModel()));
+
+            TrangChuCommand = new RelayCommand(_ => SetView(new TrangChuViewModel()));
+            TimKiemCommand = new RelayCommand(_ => SetView(new TimKiemViewModel()));
+            LichSuCommand = new RelayCommand(_ => SetView(new LichSuViewModel()));
 
             LoadXeTrongBai();
 

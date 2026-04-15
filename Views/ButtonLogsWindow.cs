@@ -51,7 +51,7 @@ namespace QuanLyGiuXe.Views
         private bool _firstLoad = true;
         private bool _suppressAutoRefresh = false;
 
-        private ObservableCollection<ButtonLogItem> _logs = new();
+        private ObservableCollection<ButtonPressLog> _logs = new();
         private int _lastMaxId = 0;
         private bool _pendingRefresh = false;
         private System.Timers.Timer? _refreshTimer;
@@ -583,10 +583,10 @@ namespace QuanLyGiuXe.Views
             btnExportDetail.Click += async (s, e) =>
             {
                 // determine selected log
-                Models.ButtonLogItem? log = null;
+                Models.ButtonPressLog? log = null;
                 if (this.DataContext is ViewModels.ButtonLogsViewModel vm && vm.SelectedLog != null)
                     log = vm.SelectedLog;
-                else if (_dgLogs.SelectedItem is Models.ButtonLogItem sel)
+                else if (_dgLogs.SelectedItem is Models.ButtonPressLog sel)
                     log = sel;
 
                 if (log == null)
@@ -757,7 +757,7 @@ namespace QuanLyGiuXe.Views
         private void OpenSelectedDetail()
         {
             if (_dgLogs.SelectedItem == null) return;
-            if (_dgLogs.SelectedItem is ButtonLogItem log)
+            if (_dgLogs.SelectedItem is ButtonPressLog log)
             {
                 ShowDetailFromLog(log);
             }
@@ -766,11 +766,11 @@ namespace QuanLyGiuXe.Views
         private void OnSelectionChanged()
         {
             if (_dgLogs.SelectedItem == null) return;
-            if (_dgLogs.SelectedItem is ButtonLogItem log)
+            if (_dgLogs.SelectedItem is ButtonPressLog log)
                 ShowDetailFromLog(log);
         }
 
-        private void ShowDetailFromLog(ButtonLogItem log)
+        private void ShowDetailFromLog(ButtonPressLog log)
         {
             if (log == null) return;
 

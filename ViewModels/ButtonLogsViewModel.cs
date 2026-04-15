@@ -13,10 +13,10 @@ namespace QuanLyGiuXe.ViewModels
 {
     public class ButtonLogsViewModel : INotifyPropertyChanged
     {
-        public ObservableCollection<ButtonLogItem> Logs { get; } = new();
+        public ObservableCollection<ButtonPressLog> Logs { get; } = new();
 
-        private ButtonLogItem? _selectedLog;
-        public ButtonLogItem? SelectedLog
+        private ButtonPressLog? _selectedLog;
+        public ButtonPressLog? SelectedLog
         {
             get => _selectedLog;
             set { _selectedLog = value; OnPropertyChanged(nameof(SelectedLog)); }
@@ -80,7 +80,7 @@ namespace QuanLyGiuXe.ViewModels
                 }
                 // do not append ORDER BY here — it will be added when building the paged query
 
-                var rowsBatch = new List<ButtonLogItem>(batchSize);
+                var rowsBatch = new List<ButtonPressLog>(batchSize);
                 int fetchedTotal = 0;
 
                 await Task.Run(async () =>
@@ -111,7 +111,7 @@ namespace QuanLyGiuXe.ViewModels
 
                                     while (await rdr.ReadAsync())
                                     {
-                                        var item = new ButtonLogItem
+                                        var item = new ButtonPressLog
                                         {
                                             Id = rdr.GetInt32(rdr.GetOrdinal("Id")),
                                             Timestamp = rdr.GetDateTime(rdr.GetOrdinal("Timestamp")),
@@ -188,7 +188,7 @@ namespace QuanLyGiuXe.ViewModels
 
                                 while (await rdr.ReadAsync())
                                 {
-                                    var item = new ButtonLogItem
+                                    var item = new ButtonPressLog
                                     {
                                         Id = rdr.GetInt32(rdr.GetOrdinal("Id")),
                                         Timestamp = rdr.GetDateTime(rdr.GetOrdinal("Timestamp")),

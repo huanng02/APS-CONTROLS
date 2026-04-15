@@ -6,7 +6,7 @@ namespace QuanLyGiuXe.Models
     /// Lightweight DTO for a button/RT log row.
     /// Kept as a mutable POCO to work with data adapters and ObservableCollection.
     /// </summary>
-    public sealed class ButtonLogItem
+    public sealed class ButtonPressLog
     {
         /// <summary>Primary key.</summary>
         public int Id { get; set; }

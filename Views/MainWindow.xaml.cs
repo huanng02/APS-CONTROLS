@@ -1,3 +1,4 @@
+using System;
 using System.Drawing;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -7,6 +8,7 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using System.Windows.Input;
 using AForge.Video;
 using AForge.Video.DirectShow;
 using QuanLyGiuXe.Models;
@@ -653,5 +655,99 @@ namespace QuanLyGiuXe
             // Ép tắt toàn bộ ứng dụng và tất cả các luồng ngầm (camera, thẻ, v.v.)
             Environment.Exit(0);
         }
+
+        // ===== SIDEBAR HANDLERS =====
+        private void MoRealtimeLog_Click(object sender, RoutedEventArgs e)
+        {
+            new RealtimeLogWindow { Owner = this }.Show();
+        }
+
+        private void MoDanhSachRFID(object sender, RoutedEventArgs e)
+        {
+            ShowToast("Mở danh sách thẻ RFID (chưa triển khai)");
+        }
+
+        // ===== MODULE CRUD HANDLER =====
+        private void OpenModule_Click(object sender, RoutedEventArgs e)
+        {
+            var tag = (sender as Button)?.Tag?.ToString();
+            try
+            {
+                UserControl content = null;
+                string title = "";
+                switch (tag)
+                {
+                    case "LoaiXe":
+                        content = (UserControl)Application.LoadComponent(new Uri("Views/LoaiXeView.xaml", UriKind.Relative));
+                        title = "Quản lý Loại Xe";
+                        break;
+                    case "LoaiVe":
+                        content = (UserControl)Application.LoadComponent(new Uri("Views/LoaiVeView.xaml", UriKind.Relative));
+                        title = "Quản lý Loại Vé";
+                        break;
+                    case "RFID":
+                        content = (UserControl)Application.LoadComponent(new Uri("Views/RFIDCardView.xaml", UriKind.Relative));
+                        title = "Quản lý RFID";
+                        break;
+                    case "BangGia":
+                        // load admin BangGia view (inline edit only)
+                        content = (UserControl)Application.LoadComponent(new Uri("Views/BangGiaView.xaml", UriKind.Relative));
+                        title = "Bảng giá (Quản trị)";
+                        break;
+                }
+
+                if (content != null)
+                {
+                    var win = new Window
+                    {
+                        Title = title,
+                        Content = content,
+                        Owner = this,
+                        Width = 900,
+                        Height = 600,
+                        WindowStartupLocation = WindowStartupLocation.CenterOwner
+                    };
+                    win.Show();
+                }
+                else
+                {
+                    ShowToast("Tính năng chưa có giao diện: " + (tag ?? "(unknown)"));
+                }
+            }
+            catch (Exception ex)
+            {
+                try { System.IO.File.AppendAllText(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ModuleOpenErrors.txt"), DateTime.Now.ToString("o") + "\t" + ex.ToString() + "\n\n"); } catch { }
+                MessageBox.Show(ex.ToString(), "Lỗi khi mở module", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        //private DatabaseService db = new DatabaseService();
+
+        //private void ThemLoaiXe_Click(object sender, RoutedEventArgs e)
+        //{
+        //    if (string.IsNullOrWhiteSpace(txtTenLoai.Text))
+        //        return;
+
+        //    db.ThemLoaiXe(txtTenLoai.Text);
+        //    txtTenLoai.Text = "";
+
+        //    LoadLoaiXe();
+        //}
+
+        //private void LoadLoaiXe()
+        //{
+        //    dgLoaiXe.ItemsSource = db.GetLoaiXe().DefaultView;
+        //}
+
+        //private void OpenModule_Click(object sender, RoutedEventArgs e)
+        //{
+        //    var btn = sender as Button;
+        //    string tag = btn.Tag.ToString();
+
+        //    if (tag == "LoaiXe")
+        //    //{
+        //        MainContent.Content = new Views.LoaiXeView();
+        //    }
+        //}
     }
 }

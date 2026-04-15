@@ -15,5 +15,7 @@ namespace QuanLyGiuXe.Models
         public double? GiaQuaDem { get; set; }
 
         public string TrangThai { get; set; }
+        // UI helper - not persisted
+        public string LoaiXe { get; set; }
     }
 }

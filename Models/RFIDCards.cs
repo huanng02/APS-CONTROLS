@@ -14,14 +14,12 @@ namespace QuanLyGiuXe.Models
 
         public int? LoaiXeId { get; set; }
         public int? LoaiVeId { get; set; }
-
         public DateTime? NgayDangKy { get; set; }
         public DateTime? NgayHetHan { get; set; }
 
         public string TrangThai { get; set; }
 
-        // 🔥 UI ONLY
         public string LoaiXe { get; set; }
-        public string LoaiVe { get; set; }
+        public string LoaiVe { get; set; } // 👉 dùng cái này thay LoaiThe
     }
 }

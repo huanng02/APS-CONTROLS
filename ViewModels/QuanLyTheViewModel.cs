@@ -68,7 +68,7 @@ namespace QuanLyGiuXe.ViewModels
 
         public void LoadData()
         {
-            var data = db.LayDanhSachRFIDCardss();
+            var data = db.LayDanhSachRFIDCards();
 
             var query = data.AsEnumerable();
 
@@ -82,7 +82,7 @@ namespace QuanLyGiuXe.ViewModels
 
             if (!string.IsNullOrWhiteSpace(FilterLoaiThe) &&
                 FilterLoaiThe != "All")
-                query = query.Where(x => x.LoaiThe == FilterLoaiThe);
+                query = query.Where(x => x.LoaiVe == FilterLoaiThe); // ✅ FIX
 
             if (!string.IsNullOrWhiteSpace(FilterTrangThai) &&
                 FilterTrangThai != "All")

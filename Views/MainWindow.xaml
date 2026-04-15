@@ -86,7 +86,7 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- ===== STATUS BAR ===== -->
+        <!-- STATUS BAR -->
         <Border Grid.Row="0" Background="#2C3E50" Padding="14,8">
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -97,31 +97,15 @@
                 </Grid.ColumnDefinitions>
 
                 <TextBlock Text="APS - QUẢN LÝ XE RA/VÀO"
-                           FontSize="16" FontWeight="Bold" Foreground="White"
-                           VerticalAlignment="Center"/>
+                           FontSize="16" FontWeight="Bold" Foreground="White"/>
 
-                <StackPanel Grid.Column="1" Orientation="Horizontal"
-                            VerticalAlignment="Center" Margin="30,0,0,0">
-                    <TextBlock Text="{Binding TrangThaiKetNoi}"
-                               Foreground="#2ECC71" FontSize="13"/>
-                    <TextBlock Text="  │  " Foreground="#555"/>
-                    <TextBlock Text="{Binding SoXeTrongBai}"
-                               Foreground="#BDC3C7" FontSize="13"/>
-                    <TextBlock Text="  │  " Foreground="#555"/>
-                    <TextBlock Text="Tìm:" Foreground="#BDC3C7" FontSize="13"
-                               VerticalAlignment="Center" Margin="0,0,6,0"/>
-                    <TextBox Width="160" Height="26" FontSize="12"
-                             VerticalContentAlignment="Center"
-                             Text="{Binding TuKhoaTimKiem, UpdateSourceTrigger=PropertyChanged}"/>
-                </StackPanel>
-
-                <StackPanel x:Name="TopPanel" Grid.Column="3" Orientation="Horizontal">
-                    <!-- Top action buttons moved to left sidebar. Keep this area minimal. -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="30,0,0,0">
+                    <TextBlock Text="{Binding TrangThaiKetNoi}" Foreground="#2ECC71"/>
                 </StackPanel>
             </Grid>
         </Border>
 
-        <!-- ===== MAIN: IN LANE | OUT LANE ===== -->
+        <!-- MAIN -->
         <Grid Grid.Row="1" Margin="8,6,8,4">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="220"/>
@@ -131,32 +115,97 @@
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <!-- LEFT SIDEBAR: main function menu -->
+            <!-- LEFT SIDEBAR (FULL UPDATED + CRUD) -->
             <Border Grid.Column="0" Style="{StaticResource CardStyle}">
                 <StackPanel>
-                    <TextBlock Text="Danh mục" FontWeight="Bold" FontSize="14" Margin="4" Foreground="{StaticResource AccentLight}" />
-                    <!--<Button Style="{StaticResource SidebarButtonStyle}" Content="📜 Lịch sử" Click="MoLichSu" />-->
-                    <!--<Button Style="{StaticResource SidebarButtonStyle}" Content="📋 Logs" Click="MoLichSu" />-->
-                    <Button Style="{StaticResource SidebarButtonStyle}" Content="📋 Realtime Log" Click="MoRealtimeLog_Click" />
-                    <Button Style="{StaticResource SidebarButtonStyle}" Content="📋 Logs nút" Click="MoButtonLogs_Click" />
-                    <Button Style="{StaticResource SidebarButtonStyle}" Content="📡 Danh sách thẻ RFID" Click="MoDanhSachRFID" />
-                    <Button Style="{StaticResource SidebarButtonStyle}" Content="💳 Quản lý thẻ" Click="MoQuanLyThe" />
-                    <Button Style="{StaticResource SidebarButtonStyle}" Content="📷 Camera" Click="MoCameraSettings_Click" />
-                    <Button Style="{StaticResource SidebarButtonStyle}" Content="⚙ C3-200" Click="MoC3200Settings_Click" />
-                    <Button Style="{StaticResource SidebarButtonStyle}" Content="⚙ Cấu hình nâng cao" Click="MoAdvancedSettings_Click" />
-                    <Separator Margin="6" />
-                    <Button Style="{StaticResource SidebarButtonStyle}" Content="📜 Lịch sử" Click="MoLichSu" />
-                    <Separator Margin="6" />
-                    <Button Style="{StaticResource SidebarButtonStyle}" Content="📈 Báo cáo" />
-                    <Button Style="{StaticResource SidebarButtonStyle}" Content="🔧 Quản trị" />
-                    <Button Style="{StaticResource SidebarButtonStyle}" Content="↕ Import/Export" />
+
+                    <TextBlock Text="DASHBOARD"
+                               FontWeight="Bold"
+                               FontSize="14"
+                               Margin="4"
+                               Foreground="{StaticResource AccentLight}" />
+
+                    <!-- SYSTEM -->
+                    <Button Style="{StaticResource SidebarButtonStyle}"
+                            Content="📋 Realtime Log"
+                            Click="MoRealtimeLog_Click" />
+
+                    <Button Style="{StaticResource SidebarButtonStyle}"
+                            Content="📋 Logs nút"
+                            Click="MoButtonLogs_Click" />
+
+                    <Button Style="{StaticResource SidebarButtonStyle}"
+                            Content="📜 Lịch sử xe"
+                            Click="MoLichSu" />
+
+                    <Separator Margin="6"/>
+
+                    <!-- RFID -->
+                    <Button Style="{StaticResource SidebarButtonStyle}"
+                            Content="📡 Danh sách thẻ RFID"
+                            Click="MoDanhSachRFID" />
+
+                    <Button Style="{StaticResource SidebarButtonStyle}"
+                            Content="💳 Quản lý thẻ RFID"
+                            Click="MoQuanLyThe" />
+
+                    <Separator Margin="6"/>
+
+                    <!-- CRUD -->
+                    <TextBlock Text="QUẢN LÝ DANH MỤC"
+                               FontWeight="Bold"
+                               FontSize="12"
+                               Margin="4,10,4,4"
+                               Foreground="{StaticResource AccentLight}" />
+
+                    <Button Style="{StaticResource SidebarButtonStyle}"
+        Content="🚗 Loại xe"
+        Tag="LoaiXe"
+        Click="OpenModule_Click"/>
+
+                    <Button Style="{StaticResource SidebarButtonStyle}"
+        Content="🎫 Loại vé"
+        Tag="LoaiVe"
+        Click="OpenModule_Click"/>
+
+                    <Button Style="{StaticResource SidebarButtonStyle}"
+        Content="💳 RFID"
+        Tag="RFID"
+        Click="OpenModule_Click"/>
+
+                    <Button Style="{StaticResource SidebarButtonStyle}"
+        Content="💰 Bảng giá"
+        Tag="BangGia"
+        Click="OpenModule_Click"/>
+
+                    <Separator Margin="6"/>
+
+                    <!-- SYSTEM -->
+                    <TextBlock Text="HỆ THỐNG"
+                               FontWeight="Bold"
+                               FontSize="12"
+                               Margin="4,10,4,4"
+                               Foreground="{StaticResource AccentLight}" />
+
+                    <Button Style="{StaticResource SidebarButtonStyle}"
+                            Content="📷 Camera"
+                            Click="MoCameraSettings_Click" />
+
+                    <Button Style="{StaticResource SidebarButtonStyle}"
+                            Content="⚙ C3-200"
+                            Click="MoC3200Settings_Click" />
+
+                    <Button Style="{StaticResource SidebarButtonStyle}"
+                            Content="⚙ Cấu hình nâng cao"
+                            Click="MoAdvancedSettings_Click" />
+
                 </StackPanel>
             </Border>
 
             <!-- ══════════ LUỒNG XE VÀO ══════════ -->
             <Border Grid.Column="2"
-                    Style="{StaticResource CardStyle}"
-                    BorderBrush="{StaticResource PositiveBrush}" BorderThickness="0,3,0,0">
+        Style="{StaticResource CardStyle}"
+        BorderBrush="{StaticResource PositiveBrush}" BorderThickness="0,3,0,0">
                 <Grid Margin="12">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -171,7 +220,7 @@
                     <!-- Header -->
                     <Border Background="{StaticResource PositiveBrush}" CornerRadius="4" Padding="10,6" Margin="0,0,0,6">
                         <TextBlock Text="🟢 LUỒNG XE VÀO  ─  Gate 1 Reader 1"
-                                   FontSize="14" FontWeight="Bold" Foreground="White"/>
+                       FontSize="14" FontWeight="Bold" Foreground="White"/>
                     </Border>
 
                     <!-- 2 Cameras side by side -->
@@ -186,8 +235,8 @@
                             <Grid>
                                 <Image x:Name="CameraVao1" Stretch="Uniform"/>
                                 <TextBlock Text="CAM 1 • Toàn cảnh"
-                                           VerticalAlignment="Top" HorizontalAlignment="Left"
-                                           Foreground="#666" FontSize="10" Margin="4,2"/>
+                               VerticalAlignment="Top" HorizontalAlignment="Left"
+                               Foreground="#666" FontSize="10" Margin="4,2"/>
                             </Grid>
                         </Border>
 
@@ -195,8 +244,8 @@
                             <Grid>
                                 <Image x:Name="CameraVao2" Stretch="Uniform"/>
                                 <TextBlock Text="CAM 2 • Biển số"
-                                           VerticalAlignment="Top" HorizontalAlignment="Left"
-                                           Foreground="#666" FontSize="10" Margin="4,2"/>
+                               VerticalAlignment="Top" HorizontalAlignment="Left"
+                               Foreground="#666" FontSize="10" Margin="4,2"/>
                                 <!-- moved open gate button down under plate image -->
                             </Grid>
                         </Border>
@@ -213,22 +262,22 @@
                         <Border Background="#0D1117" CornerRadius="4">
                             <Grid>
                                 <TextBlock Text="Cam 1 – Xe vừa vào"
-                                           VerticalAlignment="Center" HorizontalAlignment="Center"
-                                           Foreground="#555" FontSize="9"/>
+                               VerticalAlignment="Center" HorizontalAlignment="Center"
+                               Foreground="#555" FontSize="9"/>
                                 <Image Source="{Binding AnhChupVao1}" Stretch="Uniform" Margin="3"/>
                                 <TextBlock Text="CHỤP 1" VerticalAlignment="Top" HorizontalAlignment="Left"
-                                           Foreground="#F39C12" FontSize="8" FontWeight="Bold" Margin="3,1"/>
+                               Foreground="#F39C12" FontSize="8" FontWeight="Bold" Margin="3,1"/>
                             </Grid>
                         </Border>
 
                         <Border Grid.Column="2" Background="#0D1117" CornerRadius="4">
                             <Grid>
                                 <TextBlock Text="Cam 2 – Xe vừa vào"
-                                           VerticalAlignment="Center" HorizontalAlignment="Center"
-                                           Foreground="#555" FontSize="9"/>
+                               VerticalAlignment="Center" HorizontalAlignment="Center"
+                               Foreground="#555" FontSize="9"/>
                                 <Image Source="{Binding AnhChupVao2}" Stretch="Uniform" Margin="3"/>
                                 <TextBlock Text="CHỤP 2" VerticalAlignment="Top" HorizontalAlignment="Left"
-                                           Foreground="#F39C12" FontSize="8" FontWeight="Bold" Margin="3,1"/>
+                               Foreground="#F39C12" FontSize="8" FontWeight="Bold" Margin="3,1"/>
                             </Grid>
                         </Border>
                     </Grid>
@@ -237,28 +286,28 @@
                     <Border Grid.Row="5" Background="#0D1117" CornerRadius="4" Margin="0,0,0,2">
                         <Grid>
                             <TextBlock Text="Ảnh biển số nhận diện"
-                   VerticalAlignment="Center" HorizontalAlignment="Center"
-                   Foreground="#555" FontSize="10"/>
+       VerticalAlignment="Center" HorizontalAlignment="Center"
+       Foreground="#555" FontSize="10"/>
                             <Image Source="{Binding AnhBienSoVao}" Stretch="Uniform" Margin="4"/>
                             <Button Width="36" Height="24" Padding="2"
-                                    HorizontalAlignment="Right" VerticalAlignment="Top"
-                                    Margin="0,4,4,0"
-                                    Background="#2ECC71" Foreground="White" BorderThickness="0"
-                                    Click="OpenGateIn_Click"
-                                    ToolTip="Mở barrier vào">
+                        HorizontalAlignment="Right" VerticalAlignment="Top"
+                        Margin="0,4,4,0"
+                        Background="#2ECC71" Foreground="White" BorderThickness="0"
+                        Click="OpenGateIn_Click"
+                        ToolTip="Mở barrier vào">
                                 🔓
                             </Button>
                             <TextBlock Text="BIỂN SỐ VÀO" VerticalAlignment="Top" HorizontalAlignment="Left"
-                   Foreground="#27AE60" FontSize="9" FontWeight="Bold" Margin="4,2"/>
+       Foreground="#27AE60" FontSize="9" FontWeight="Bold" Margin="4,2"/>
                         </Grid>
                     </Border>
 
                     <!-- Info Card -->
                     <Border Grid.Row="6" Background="#F8F9FA" CornerRadius="6"
-                            Padding="10" Margin="0,0,0,4"
-                            BorderBrush="#E2E8F0" BorderThickness="1">
+                Padding="10" Margin="0,0,0,4"
+                BorderBrush="#E2E8F0" BorderThickness="1">
                         <Grid>
-                        <Grid.RowDefinitions>
+                            <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
@@ -270,67 +319,67 @@
 
                             <TextBlock Text="Biển số:" Foreground="#666" VerticalAlignment="Center"/>
                             <TextBlock Grid.Column="1" Text="{Binding LanVaoBienSo}"
-                                       FontSize="18" FontWeight="Bold" Foreground="#2C3E50"/>
+                           FontSize="18" FontWeight="Bold" Foreground="#2C3E50"/>
 
                             <TextBlock Grid.Row="1" Text="Mã thẻ:" Foreground="#666"
-                                       VerticalAlignment="Center" Margin="0,3,0,0"/>
+                           VerticalAlignment="Center" Margin="0,3,0,0"/>
                             <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding LanVaoUID}"
-                                       FontSize="12" Foreground="#555" FontFamily="Consolas"
-                                       Margin="0,3,0,0"/>
+                           FontSize="12" Foreground="#555" FontFamily="Consolas"
+                           Margin="0,3,0,0"/>
 
                             <TextBlock Grid.Row="2" Grid.ColumnSpan="2"
-                                       Text="{Binding LanVaoTrangThai}"
-                                       FontSize="12" Foreground="#27AE60" FontWeight="SemiBold"
-                                       Margin="0,4,0,0"/>
+                           Text="{Binding LanVaoTrangThai}"
+                           FontSize="12" Foreground="#27AE60" FontWeight="SemiBold"
+                           Margin="0,4,0,0"/>
                             <StackPanel Grid.Row="3" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,6,0,0">
                                 <Button Width="100" Height="28" Margin="0,0,0,0"
-                                        Style="{StaticResource ActionButtonStyle}"
-                                        Background="{StaticResource PositiveBrush}"
-                                        Click="OpenGateIn_Click">🔓 Mở cổng VÀO</Button>
+                            Style="{StaticResource ActionButtonStyle}"
+                            Background="{StaticResource PositiveBrush}"
+                            Click="OpenGateIn_Click">🔓 Mở cổng VÀO</Button>
                             </StackPanel>
                         </Grid>
                     </Border>
 
                     <!-- Actions -->
                     <!--<StackPanel Grid.Row="2" Orientation="Horizontal">-->
-                        <!-- Nhập biển số -->
+                    <!-- Nhập biển số -->
                     <!--<TextBox Grid.Row="2" Height="32" FontSize="14"
-                        VerticalContentAlignment="Center"
-                        Text="{Binding BienSoNhap, UpdateSourceTrigger=PropertyChanged}"
-                        Margin="0,0,0,4"/>
-                    <Button Content="✅ Xe vào"
-                       Width="110" Height="32"
-                       Command="{Binding XeVaoCommand}"
-                       Background="#27AE60" Foreground="White"
-                       FontWeight="Bold" Margin="0,0,8,0"/>
-                    <Button Content="🔓 Mở Cổng Vào"
-                       Width="120" Height="32"
-                       Click="OpenGateIn_Click"
-                       Background="#2ECC71" Foreground="White"/>-->
+            VerticalContentAlignment="Center"
+            Text="{Binding BienSoNhap, UpdateSourceTrigger=PropertyChanged}"
+            Margin="0,0,0,4"/>
+        <Button Content="✅ Xe vào"
+           Width="110" Height="32"
+           Command="{Binding XeVaoCommand}"
+           Background="#27AE60" Foreground="White"
+           FontWeight="Bold" Margin="0,0,8,0"/>
+        <Button Content="🔓 Mở Cổng Vào"
+           Width="120" Height="32"
+           Click="OpenGateIn_Click"
+           Background="#2ECC71" Foreground="White"/>-->
                     <!--</StackPanel>-->
                     <!--<StackPanel Grid.Row="2" Orientation="Horizontal">-->
-                        <!-- Nhập biển số -->
+                    <!-- Nhập biển số -->
                     <!--<TextBox Grid.Row="2" Height="32" FontSize="14"
-                        VerticalContentAlignment="Center"
-                        Text="{Binding BienSoNhap, UpdateSourceTrigger=PropertyChanged}"
-                        Margin="0,0,0,4"/>
-                    <Button Content="✅ Xe vào"
-                       Width="110" Height="32"
-                       Command="{Binding XeVaoCommand}"
-                       Background="#27AE60" Foreground="White"
-                       FontWeight="Bold" Margin="0,0,8,0"/>
-                    <Button Content="🔓 Mở Cổng Vào"
-                       Width="120" Height="32"
-                       Click="OpenGateIn_Click"
-                       Background="#2ECC71" Foreground="White"/>-->
+            VerticalContentAlignment="Center"
+            Text="{Binding BienSoNhap, UpdateSourceTrigger=PropertyChanged}"
+            Margin="0,0,0,4"/>
+        <Button Content="✅ Xe vào"
+           Width="110" Height="32"
+           Command="{Binding XeVaoCommand}"
+           Background="#27AE60" Foreground="White"
+           FontWeight="Bold" Margin="0,0,8,0"/>
+        <Button Content="🔓 Mở Cổng Vào"
+           Width="120" Height="32"
+           Click="OpenGateIn_Click"
+           Background="#2ECC71" Foreground="White"/>-->
                     <!--</StackPanel>-->
                 </Grid>
             </Border>
 
             <!-- ══════════ LUỒNG XE RA ══════════ -->
             <Border Grid.Column="4"
-                    Background="White" CornerRadius="8"
-                    BorderBrush="#E74C3C" BorderThickness="0,3,0,0">
+        Background="White" CornerRadius="8"
+        BorderBrush="#E74C3C" BorderThickness="0,3,0,0">
                 <Grid Margin="12">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -345,7 +394,7 @@
                     <!-- Header -->
                     <Border Background="#E74C3C" CornerRadius="4" Padding="10,5" Margin="0,0,0,6">
                         <TextBlock Text="🔴 LUỒNG XE RA  ─  Gate 1 Reader 2"
-                                   FontSize="14" FontWeight="Bold" Foreground="White"/>
+                       FontSize="14" FontWeight="Bold" Foreground="White"/>
                     </Border>
 
                     <!-- 2 Cameras side by side -->
@@ -360,8 +409,8 @@
                             <Grid>
                                 <Image Stretch="Uniform"/>
                                 <TextBlock Text="CAM 1 • Toàn cảnh"
-                                           VerticalAlignment="Top" HorizontalAlignment="Left"
-                                           Foreground="#666" FontSize="10" Margin="4,2"/>
+                               VerticalAlignment="Top" HorizontalAlignment="Left"
+                               Foreground="#666" FontSize="10" Margin="4,2"/>
                             </Grid>
                         </Border>
 
@@ -369,8 +418,8 @@
                             <Grid>
                                 <Image Stretch="Uniform"/>
                                 <TextBlock Text="CAM 2 • Biển số"
-                                           VerticalAlignment="Top" HorizontalAlignment="Left"
-                                           Foreground="#666" FontSize="10" Margin="4,2"/>
+                               VerticalAlignment="Top" HorizontalAlignment="Left"
+                               Foreground="#666" FontSize="10" Margin="4,2"/>
                             </Grid>
                         </Border>
                     </Grid>
@@ -386,22 +435,22 @@
                         <Border Background="#0D1117" CornerRadius="4">
                             <Grid>
                                 <TextBlock Text="Cam 1 – Xe vừa ra"
-                                           VerticalAlignment="Center" HorizontalAlignment="Center"
-                                           Foreground="#555" FontSize="9"/>
+                               VerticalAlignment="Center" HorizontalAlignment="Center"
+                               Foreground="#555" FontSize="9"/>
                                 <Image Source="{Binding AnhChupRa1}" Stretch="Uniform" Margin="3"/>
                                 <TextBlock Text="CHỤP 1" VerticalAlignment="Top" HorizontalAlignment="Left"
-                                           Foreground="#F39C12" FontSize="8" FontWeight="Bold" Margin="3,1"/>
+                               Foreground="#F39C12" FontSize="8" FontWeight="Bold" Margin="3,1"/>
                             </Grid>
                         </Border>
 
                         <Border Grid.Column="2" Background="#0D1117" CornerRadius="4">
                             <Grid>
                                 <TextBlock Text="Cam 2 – Xe vừa ra"
-                                           VerticalAlignment="Center" HorizontalAlignment="Center"
-                                           Foreground="#555" FontSize="9"/>
+                               VerticalAlignment="Center" HorizontalAlignment="Center"
+                               Foreground="#555" FontSize="9"/>
                                 <Image Source="{Binding AnhChupRa2}" Stretch="Uniform" Margin="3"/>
                                 <TextBlock Text="CHỤP 2" VerticalAlignment="Top" HorizontalAlignment="Left"
-                                           Foreground="#F39C12" FontSize="8" FontWeight="Bold" Margin="3,1"/>
+                               Foreground="#F39C12" FontSize="8" FontWeight="Bold" Margin="3,1"/>
                             </Grid>
                         </Border>
                     </Grid>
@@ -417,38 +466,38 @@
                         <Border Background="#0D1117" CornerRadius="4">
                             <Grid>
                                 <TextBlock Text="BS lúc VÀO"
-                       VerticalAlignment="Center" HorizontalAlignment="Center"
-                       Foreground="#555" FontSize="9"/>
+           VerticalAlignment="Center" HorizontalAlignment="Center"
+           Foreground="#555" FontSize="9"/>
                                 <Image Source="{Binding AnhBienSoRaVao}" Stretch="Uniform" Margin="3"/>
                                 <TextBlock Text="VÀO" VerticalAlignment="Top" HorizontalAlignment="Left"
-                       Foreground="#27AE60" FontSize="8" FontWeight="Bold" Margin="3,1"/>
+           Foreground="#27AE60" FontSize="8" FontWeight="Bold" Margin="3,1"/>
                             </Grid>
                         </Border>
 
                         <Border Grid.Column="2" Background="#0D1117" CornerRadius="4">
                             <Grid>
                                 <TextBlock Text="BS lúc RA"
-                       VerticalAlignment="Center" HorizontalAlignment="Center"
-                       Foreground="#555" FontSize="9"/>
+           VerticalAlignment="Center" HorizontalAlignment="Center"
+           Foreground="#555" FontSize="9"/>
                                 <Image Source="{Binding AnhBienSoRaRa}" Stretch="Uniform" Margin="3"/>
                                 <Button Width="36" Height="24" Padding="2"
-                                        HorizontalAlignment="Right" VerticalAlignment="Top"
-                                        Margin="0,4,4,0"
-                                        Background="#E67E22" Foreground="White" BorderThickness="0"
-                                        Click="OpenGateOut_Click"
-                                        ToolTip="Mở barrier ra">
+                            HorizontalAlignment="Right" VerticalAlignment="Top"
+                            Margin="0,4,4,0"
+                            Background="#E67E22" Foreground="White" BorderThickness="0"
+                            Click="OpenGateOut_Click"
+                            ToolTip="Mở barrier ra">
                                     🔓
                                 </Button>
                                 <TextBlock Text="RA" VerticalAlignment="Top" HorizontalAlignment="Left"
-                       Foreground="#E74C3C" FontSize="8" FontWeight="Bold" Margin="3,1"/>
+           Foreground="#E74C3C" FontSize="8" FontWeight="Bold" Margin="3,1"/>
                             </Grid>
                         </Border>
                     </Grid>
 
                     <!-- Info Card -->
                     <Border Grid.Row="6" Background="#F8F9FA" CornerRadius="6"
-                            Padding="10" Margin="0,0,0,6"
-                            BorderBrush="#E2E8F0" BorderThickness="1">
+                Padding="10" Margin="0,0,0,6"
+                BorderBrush="#E2E8F0" BorderThickness="1">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
@@ -464,28 +513,28 @@
 
                             <TextBlock Text="Biển số:" Foreground="#666" VerticalAlignment="Center"/>
                             <TextBlock Grid.Column="1" Text="{Binding LanRaBienSo}"
-                                       FontSize="18" FontWeight="Bold" Foreground="#2C3E50"/>
+                           FontSize="18" FontWeight="Bold" Foreground="#2C3E50"/>
 
                             <TextBlock Grid.Row="1" Text="Thời gian:" Foreground="#666"
-                                       VerticalAlignment="Center" Margin="0,3,0,0"/>
+                           VerticalAlignment="Center" Margin="0,3,0,0"/>
                             <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding LanRaThoiGianVao}"
-                                       FontSize="12" Foreground="#555" Margin="0,3,0,0"/>
+                           FontSize="12" Foreground="#555" Margin="0,3,0,0"/>
 
                             <TextBlock Grid.Row="2" Grid.ColumnSpan="2"
-                                       Text="{Binding LanRaTien}"
-                                       FontSize="22" FontWeight="Bold" Foreground="#E74C3C"
-                                       Margin="0,4,0,2"/>
+                           Text="{Binding LanRaTien}"
+                           FontSize="22" FontWeight="Bold" Foreground="#E74C3C"
+                           Margin="0,4,0,2"/>
 
                             <TextBlock Grid.Row="3" Grid.ColumnSpan="2"
-                                       Text="{Binding LanRaTrangThai}"
-                                       FontSize="12" Foreground="#E74C3C" FontWeight="SemiBold"/>
+                           Text="{Binding LanRaTrangThai}"
+                           FontSize="12" Foreground="#E74C3C" FontWeight="SemiBold"/>
                             <TextBlock Grid.Row="4" Grid.ColumnSpan="2"
-                                       Text="{Binding LanRaThoiGianTrongBai}"
-                                       FontSize="12" Foreground="#2C3E50"/>
+                           Text="{Binding LanRaThoiGianTrongBai}"
+                           FontSize="12" Foreground="#2C3E50"/>
                             <StackPanel Grid.Row="4" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,6,0,0">
                                 <Button Width="110" Height="30" Margin="0,0,8,0"
-                                        Background="#E67E22" Foreground="White" BorderThickness="0"
-                                        Click="OpenGateOut_Click">🔓 Mở cổng RA</Button>
+                            Background="#E67E22" Foreground="White" BorderThickness="0"
+                            Click="OpenGateOut_Click">🔓 Mở cổng RA</Button>
                             </StackPanel>
                         </Grid>
                     </Border>
@@ -493,7 +542,6 @@
                 </Grid>
             </Border>
         </Grid>
-
         <!-- bottom realtime log removed; moved into left sidebar -->
         <!-- Hidden placeholders for cameras previously in RA panel (code-behind expects these names) -->
         <StackPanel Visibility="Collapsed">

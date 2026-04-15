@@ -1,0 +1,42 @@
+<UserControl x:Class="QuanLyGiuXe.Views.BangGiaView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:QuanLyGiuXe.ViewModels">
+    <UserControl.DataContext>
+        <vm:BangGiaAdminViewModel />
+    </UserControl.DataContext>
+
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="Bảng giá (Chỉ cập nhật giá)" FontSize="18" FontWeight="Bold" />
+
+        <DataGrid Grid.Row="1" x:Name="dgBangGia" ItemsSource="{Binding BangGiaList}" AutoGenerateColumns="False" CanUserAddRows="False" RowHeight="36" Margin="0,8,0,8" IsReadOnly="False">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="80" IsReadOnly="True" />
+                <DataGridTextColumn Header="Loại Xe" Binding="{Binding LoaiXe}" Width="*" IsReadOnly="True" />
+                <DataGridTextColumn Header="Giá theo giờ" Binding="{Binding GiaTheoGio, StringFormat=N2, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="140" />
+                <DataGridTextColumn Header="Giá qua đêm" Binding="{Binding GiaQuaDem, StringFormat=N2, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="140" />
+                <DataGridTextColumn Header="Trạng thái" Binding="{Binding TrangThai}" Width="120" IsReadOnly="True" />
+                <DataGridTemplateColumn Header="Action" Width="120">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Button Content="Cập nhật" Width="100" HorizontalAlignment="Center"
+                                    Command="{Binding DataContext.OpenEditCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                    CommandParameter="{Binding}" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button x:Name="btnSaveBangGia" Content="Save" Command="{Binding SaveCommand}" Width="100" Margin="0,0,8,0" IsEnabled="{Binding IsDirty}" Visibility="Visible" Click="Update_Click" />
+            <Button Content="Reload" Command="{Binding LoadCommand}" Width="100" />
+        </StackPanel>
+    </Grid>
+</UserControl>

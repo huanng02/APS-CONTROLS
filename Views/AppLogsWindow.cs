@@ -12,7 +12,7 @@ namespace QuanLyGiuXe.Views
     public class AppLogsWindow : Window
     {
         private DataGrid _dg;
-        private ObservableCollection<AppLogItem> _items = new();
+        private ObservableCollection<AppLog> _items = new();
 
         public AppLogsWindow()
         {
@@ -63,7 +63,7 @@ namespace QuanLyGiuXe.Views
                     {
                         while (await rdr.ReadAsync())
                         {
-                            _items.Add(new AppLogItem
+                            _items.Add(new AppLog
                             {
                                 Id = rdr.GetInt32(rdr.GetOrdinal("Id")),
                                 TimestampUtc = rdr.GetDateTime(rdr.GetOrdinal("TimestampUtc")),

@@ -1,0 +1,80 @@
+<UserControl x:Class="QuanLyGiuXe.Views.LoaiXeView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+			 xmlns:vm="clr-namespace:QuanLyGiuXe.ViewModels">
+
+	<UserControl.DataContext>
+		<vm:LoaiXeViewModel />
+	</UserControl.DataContext>
+
+	<Grid Margin="16" Background="Transparent">
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto" />
+			<RowDefinition Height="Auto" />
+			<RowDefinition Height="*" />
+		</Grid.RowDefinitions>
+
+		<!-- Header -->
+		<TextBlock Grid.Row="0" Text="Quản lý Loại Xe" FontSize="20" FontWeight="Bold" Margin="4" />
+
+		<!-- Button bar -->
+		<StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Left" Margin="0,8,0,12">
+			<Button Content="Thêm" Command="{Binding AddCommand}" Width="100" Margin="0,0,8,0"/>
+			<Button Content="Delete Selected" Command="{Binding DeleteSelectedCommand}" Width="140" Margin="0,0,8,0"/>
+			<Button Content="Delete All" Command="{Binding DeleteAllCommand}" Width="120"/>
+			<Button Content="Load" Command="{Binding LoadCommand}" Width="80" Margin="12,0,0,0"/>
+		</StackPanel>
+
+		<!-- Data grid area -->
+		<Border Grid.Row="2" Background="#FFF" CornerRadius="6" Padding="8" BorderBrush="#E0E0E0" BorderThickness="1">
+			<DataGrid ItemsSource="{Binding DanhSach}"
+					  SelectedItem="{Binding Selected}"
+					  AutoGenerateColumns="False"
+					  IsReadOnly="True"
+					  CanUserAddRows="False"
+					  RowHeight="36"
+					  GridLinesVisibility="Horizontal"
+					  AlternationCount="2"
+					  HorizontalAlignment="Stretch"
+					  VerticalAlignment="Stretch">
+
+				<DataGrid.Resources>
+					<Style TargetType="DataGridColumnHeader">
+						<Setter Property="FontWeight" Value="Bold" />
+						<Setter Property="Background" Value="#FAFAFA" />
+						<Setter Property="Padding" Value="8,4" />
+					</Style>
+					<Style TargetType="DataGridRow">
+						<Setter Property="Background" Value="Transparent" />
+						<Setter Property="Margin" Value="0" />
+					</Style>
+				</DataGrid.Resources>
+
+				<DataGrid.Columns>
+					<DataGridTemplateColumn Width="44">
+						<DataGridTemplateColumn.CellTemplate>
+							<DataTemplate>
+								<CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+							</DataTemplate>
+						</DataGridTemplateColumn.CellTemplate>
+					</DataGridTemplateColumn>
+
+					<DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="80"/>
+					<DataGridTextColumn Header="Tên Loại Xe" Binding="{Binding TenLoai}" Width="*"/>
+					<DataGridTextColumn Header="Trạng Thái" Binding="{Binding TrangThai}" Width="160"/>
+
+					<DataGridTemplateColumn Header="Action" Width="120">
+						<DataGridTemplateColumn.CellTemplate>
+							<DataTemplate>
+								<StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+									<Button Content="Sửa" Width="56" Margin="4" Command="{Binding DataContext.UpdateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
+									<Button Content="Xóa" Width="56" Margin="4" Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
+								</StackPanel>
+							</DataTemplate>
+						</DataGridTemplateColumn.CellTemplate>
+					</DataGridTemplateColumn>
+				</DataGrid.Columns>
+			</DataGrid>
+		</Border>
+	</Grid>
+</UserControl>

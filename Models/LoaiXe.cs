@@ -11,5 +11,7 @@ namespace QuanLyGiuXe.Models
         public int Id { get; set; }
         public string TenLoai { get; set; }
         public string TrangThai { get; set; }
+        // Non-persistent UI flag for selection in DataGrid
+        public bool IsSelected { get; set; }
     }
 }

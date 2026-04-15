@@ -66,7 +66,8 @@ namespace QuanLyGiuXe.Services
         {
             try
             {
-                if (!db.CheckCardExists(uid))
+                var card = db.GetRFIDCardByUid(uid);
+                if (card == null || card.Id == 0)
                 {
                     Console.WriteLine("❌ Thẻ chưa đăng ký");
                     LoggingService.Instance.LogInfo("RFIDUnregisteredCard", "ParkingLogicService", uid);
@@ -83,7 +84,15 @@ namespace QuanLyGiuXe.Services
                     // XE RA
                     Console.WriteLine("Xe ra: " + currentPlate);
                     LoggingService.Instance.LogInfo("XeRa", "ParkingLogicService", currentPlate, plate: currentPlate);
-                    db.LuuLichSu(currentPlate, plateTime, DateTime.Now, 0, string.Empty);
+                    // calculate fee
+                    DateTime timeIn = plateTime;
+                    DateTime timeOut = DateTime.Now;
+                    var loaiVeId = card.LoaiVeId;
+                    var loaiXeId = card.LoaiXeId;
+                    var payment = new PaymentService();
+                    decimal fee = payment.CalculateFee(loaiVeId == 0 ? (int?)null : loaiVeId, loaiXeId == 0 ? (int?)null : loaiXeId, timeIn, timeOut);
+
+                    db.LuuLichSu(currentPlate, plateTime, DateTime.Now, Convert.ToDouble(fee), string.Empty);
                 }
                 else
                 {
