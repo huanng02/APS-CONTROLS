@@ -55,7 +55,7 @@ namespace QuanLyGiuXe.Views
                 if (db.CheckCardExists(uid))
                 { MessageBox.Show("❌ Thẻ này đã được đăng ký!"); return; }
 
-                db.AddRFIDCard(uid, bienSo, loaiThe);
+                db.AddRFIDCards(uid, bienSo, loaiThe);
                 MessageBox.Show("✅ Đăng ký thẻ thành công");
             }
             catch (SqlException ex) when (ex.Number == 2627)

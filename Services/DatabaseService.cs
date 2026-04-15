@@ -225,7 +225,7 @@ namespace QuanLyGiuXe.Services
             {
                 conn.Open();
 
-                string sql = "SELECT COUNT(*) FROM RFIDCards WHERE CardUID = @uid";
+                string sql = "SELECT COUNT(*) FROM RFIDCardss WHERE CardUID = @uid";
 
                 SqlCommand cmd = new SqlCommand(sql, conn);
                 cmd.Parameters.AddWithValue("@uid", uid);
@@ -241,7 +241,7 @@ namespace QuanLyGiuXe.Services
             {
                 conn.Open();
 
-                string query = "SELECT BienSo FROM RFIDCards WHERE CardUID = @uid";
+                string query = "SELECT BienSo FROM RFIDCardss WHERE CardUID = @uid";
 
                 SqlCommand cmd = new SqlCommand(query, conn);
                 cmd.Parameters.AddWithValue("@uid", uid);
@@ -252,14 +252,14 @@ namespace QuanLyGiuXe.Services
             }
         }
 
-        public bool AddRFIDCard(string uid, string bienSo, string loaiThe)
+        public bool AddRFIDCards(string uid, string bienSo, string loaiThe)
         {
             string conn_string = GetWorkingConnection();
             using (SqlConnection conn = new SqlConnection(conn_string))
             {
                 conn.Open();
 
-                string insertQuery = "INSERT INTO RFIDCards(CardUID,BienSo,LoaiThe) VALUES(@uid,@bs,@lt)";
+                string insertQuery = "INSERT INTO RFIDCardss(CardUID,BienSo,LoaiThe) VALUES(@uid,@bs,@lt)";
 
                 SqlCommand cmd = new SqlCommand(insertQuery, conn);
                 cmd.Parameters.AddWithValue("@uid", uid);
@@ -277,6 +277,45 @@ namespace QuanLyGiuXe.Services
                     throw;
                 }
             }
+        }
+
+        public List<RFIDCards> LayDanhSachRFIDCards()
+        {
+            var list = new List<RFIDCards>();
+            string conn_string = GetWorkingConnection();
+
+            using (SqlConnection conn = new SqlConnection(conn_string))
+            {
+                conn.Open();
+
+                string sql = @"
+        SELECT 
+            r.CardUID,
+            r.BienSo,
+            lx.TenLoai AS LoaiXe,
+            lv.TenLoai AS LoaiVe
+        FROM RFIDCards r
+        LEFT JOIN LoaiXe lx ON r.LoaiXeId = lx.Id
+        LEFT JOIN LoaiVe lv ON r.LoaiVeId = lv.Id
+        ";
+
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                using (SqlDataReader reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        list.Add(new RFIDCards
+                        {
+                            CardUID = reader["CardUID"]?.ToString(),
+                            BienSo = reader["BienSo"]?.ToString(),
+                            LoaiXe = reader["LoaiXe"]?.ToString(),
+                            LoaiVe = reader["LoaiVe"]?.ToString()
+                        });
+                    }
+                }
+            }
+
+            return list;
         }
 
         // Insert a generic app log record for audit/important events

@@ -14,5 +14,26 @@ namespace QuanLyGiuXe
             }
             catch { }
         }
+
+        private void MoDanhSachRFID(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var win = new QuanLyGiuXe.Views.QuanLyTheWindow
+                {
+                    Owner = this
+                };
+
+                win.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"Lỗi mở danh sách RFID:\n{ex.Message}",
+                    "Error",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+        }
     }
 }

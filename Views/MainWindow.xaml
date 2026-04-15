@@ -139,6 +139,7 @@
                     <!--<Button Style="{StaticResource SidebarButtonStyle}" Content="📋 Logs" Click="MoLichSu" />-->
                     <Button Style="{StaticResource SidebarButtonStyle}" Content="📋 Realtime Log" Click="MoRealtimeLog_Click" />
                     <Button Style="{StaticResource SidebarButtonStyle}" Content="📋 Logs nút" Click="MoButtonLogs_Click" />
+                    <Button Style="{StaticResource SidebarButtonStyle}" Content="📡 Danh sách thẻ RFID" Click="MoDanhSachRFID" />
                     <Button Style="{StaticResource SidebarButtonStyle}" Content="💳 Quản lý thẻ" Click="MoQuanLyThe" />
                     <Button Style="{StaticResource SidebarButtonStyle}" Content="📷 Camera" Click="MoCameraSettings_Click" />
                     <Button Style="{StaticResource SidebarButtonStyle}" Content="⚙ C3-200" Click="MoC3200Settings_Click" />
