@@ -718,7 +718,7 @@ namespace QuanLyGiuXe.Services
             {
                 conn.Open();
 
-                string sql = "SELECT COUNT(*) FROM RFIDCardss WHERE CardUID = @uid";
+                string sql = "SELECT COUNT(*) FROM RFIDCards WHERE CardUID = @uid";
 
                 SqlCommand cmd = new SqlCommand(sql, conn);
                 cmd.Parameters.AddWithValue("@uid", uid);
@@ -734,7 +734,7 @@ namespace QuanLyGiuXe.Services
             {
                 conn.Open();
 
-                string query = "SELECT BienSo FROM RFIDCardss WHERE CardUID = @uid";
+                string query = "SELECT BienSo FROM RFIDCards WHERE CardUID = @uid";
 
                 SqlCommand cmd = new SqlCommand(query, conn);
                 cmd.Parameters.AddWithValue("@uid", uid);
@@ -752,7 +752,7 @@ namespace QuanLyGiuXe.Services
             {
                 conn.Open();
 
-                string insertQuery = "INSERT INTO RFIDCardss(CardUID,BienSo,LoaiThe) VALUES(@uid,@bs,@lt)";
+                string insertQuery = "INSERT INTO RFIDCards(CardUID,BienSo,LoaiThe) VALUES(@uid,@bs,@lt)";
 
                 SqlCommand cmd = new SqlCommand(insertQuery, conn);
                 cmd.Parameters.AddWithValue("@uid", uid);

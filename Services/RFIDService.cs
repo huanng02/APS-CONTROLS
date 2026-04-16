@@ -58,6 +58,7 @@ namespace QuanLyGiuXe.Services
 
         public static string ChuanHoaUID(string uid)
         {
+            if (string.IsNullOrEmpty(uid)) return string.Empty;
             return new string(uid
                    .Where(c => char.IsLetterOrDigit(c)) // ⭐ chỉ giữ chữ và số
                    .ToArray())
