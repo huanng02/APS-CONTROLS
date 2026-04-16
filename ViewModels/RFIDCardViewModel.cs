@@ -11,10 +11,10 @@ namespace QuanLyGiuXe.ViewModels
     {
         private readonly RFIDCardService service = new RFIDCardService();
 
-        public ObservableCollection<RFIDCard> Items { get; } = new ObservableCollection<RFIDCard>();
+        public ObservableCollection<QuanLyGiuXe.Models.RFIDCards> Items { get; } = new ObservableCollection<QuanLyGiuXe.Models.RFIDCards>();
 
-        private RFIDCard _selectedItem;
-        public RFIDCard SelectedItem
+        private QuanLyGiuXe.Models.RFIDCards _selectedItem;
+        public QuanLyGiuXe.Models.RFIDCards SelectedItem
         {
             get => _selectedItem;
             set
@@ -23,10 +23,9 @@ namespace QuanLyGiuXe.ViewModels
                 OnPropertyChanged(nameof(SelectedItem));
                 if (_selectedItem != null)
                 {
-                    UID = _selectedItem.UID;
+                    UID = _selectedItem.CardUID;
                     BienSo = _selectedItem.BienSo;
-                    LoaiVeId = _selectedItem.LoaiVeId;
-                    LoaiXeId = _selectedItem.LoaiXeId;
+                    // LoaiVe/LoaiXe names are available in SelectedItem.LoaiVe / LoaiXe but we expose ids via Temp fields when editing
                     TrangThai = _selectedItem.TrangThai;
                 }
             }
@@ -52,13 +51,17 @@ namespace QuanLyGiuXe.ViewModels
         public ICommand UpdateCommand { get; }
         public ICommand DeleteCommand { get; }
         public ICommand ClearCommand { get; }
+        public ICommand DeleteSelectedCommand { get; }
+        public ICommand DeleteAllCommand { get; }
 
         public RFIDCardViewModel()
         {
             LoadCommand = new RelayCommand(_ => Load());
             AddCommand = new RelayCommand(_ => Add());
-            UpdateCommand = new RelayCommand(_ => Update());
-            DeleteCommand = new RelayCommand(_ => Delete());
+            UpdateCommand = new RelayCommand(param => Update(param));
+            DeleteCommand = new RelayCommand(param => Delete(param));
+            DeleteSelectedCommand = new RelayCommand(_ => DeleteSelected());
+            DeleteAllCommand = new RelayCommand(_ => DeleteAll());
             ClearCommand = new RelayCommand(_ => Clear());
             Load();
         }
@@ -72,22 +75,107 @@ namespace QuanLyGiuXe.ViewModels
 
         private void Add()
         {
-            service.Add(UID, BienSo, LoaiVeId, LoaiXeId, TrangThai);
-            Load();
-            Clear();
+            // open modal add dialog using a wizard ViewModel and map back on save
+            var model = new QuanLyGiuXe.Models.RFIDCards { CardUID = string.Empty, BienSo = string.Empty, TrangThai = "Active" };
+
+            var vm = new RFIDCardWizardViewModel();
+            vm.InitForAdd();
+            // seed initial values from model (if any)
+            vm.CardUID = model.CardUID;
+            vm.BienSo = model.BienSo;
+            vm.TrangThai = model.TrangThai;
+
+            var dlg = new Views.RFIDCardAddEditWindow(null) { Owner = System.Windows.Application.Current.MainWindow };
+            dlg.DataContext = vm;
+            var result = dlg.ShowDialog();
+            if (result == true)
+            {
+                try
+                {
+                    // map back from vm to model
+                    var toAdd = new QuanLyGiuXe.Models.RFIDCards
+                    {
+                        CardUID = vm.CardUID,
+                        BienSo = vm.BienSo,
+                        LoaiXeId = vm.LoaiXeId ?? 0,
+                        LoaiVeId = vm.LoaiVeId ?? 0,
+                        NgayDangKy = vm.NgayDangKy,
+                        NgayHetHan = vm.NgayHetHan,
+                        TrangThai = vm.TrangThai
+                    };
+
+                    service.Add(toAdd);
+                    System.Windows.MessageBox.Show("Thêm thành công", "Thông báo", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    System.Windows.MessageBox.Show($"Thêm thất bại: {ex.Message}", "Lỗi", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                }
+                Load();
+            }
         }
 
-        private void Update()
+        private void Update(object parameter)
         {
-            if (SelectedItem == null) return;
-            service.Update(SelectedItem.Id, UID, BienSo, LoaiVeId, LoaiXeId, TrangThai);
-            Load();
+            QuanLyGiuXe.Models.RFIDCards target = null;
+            if (parameter is QuanLyGiuXe.Models.RFIDCards rc) target = rc;
+            else if (SelectedItem != null) target = SelectedItem;
+            if (target == null) return;
+            // Use wizard ViewModel for edit flow: load data BEFORE showing window
+            var vm = new RFIDCardWizardViewModel();
+            vm.LoadForEdit(target.Id);
+
+            var window = new Views.RFIDCardAddEditWindow(null) { Owner = System.Windows.Application.Current.MainWindow };
+            window.DataContext = vm;
+            var result = window.ShowDialog();
+            if (result == true)
+            {
+                try
+                {
+                    // map back from vm to model and update
+                    var updated = new QuanLyGiuXe.Models.RFIDCards
+                    {
+                        Id = vm.Id,
+                        // preserve original CardUID (identity) — do not allow edits to UID
+                        CardUID = target.CardUID,
+                        BienSo = vm.BienSo,
+                        LoaiXeId = vm.LoaiXeId,
+                        LoaiVeId = vm.LoaiVeId,
+                        NgayDangKy = vm.NgayDangKy,
+                        NgayHetHan = vm.NgayHetHan,
+                        TrangThai = vm.TrangThai
+                    };
+                    service.Update(updated);
+                    System.Windows.MessageBox.Show("Sửa thành công", "Thông báo", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    System.Windows.MessageBox.Show($"Cập nhật thất bại: {ex.Message}", "Lỗi", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                }
+                Load();
+            }
         }
 
-        private void Delete()
+        private void Delete(object parameter)
         {
-            if (SelectedItem == null) return;
-            service.Delete(SelectedItem.Id);
+            QuanLyGiuXe.Models.RFIDCards toDelete = null;
+            if (parameter is QuanLyGiuXe.Models.RFIDCards rc) toDelete = rc;
+            else if (SelectedItem != null) toDelete = SelectedItem;
+            if (toDelete == null) return;
+
+            if (System.Windows.MessageBox.Show($"Bạn có chắc muốn xóa thẻ '{toDelete.CardUID}'?", "Xác nhận", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Question) != System.Windows.MessageBoxResult.Yes)
+                return;
+
+            try
+            {
+                service.Delete(toDelete.Id);
+                System.Windows.MessageBox.Show("Xoá thành công", "Thông báo", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+            }
+            catch (Exception)
+            {
+                System.Windows.MessageBox.Show("Xoá thất bại", "Lỗi", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
+
             Load();
             Clear();
         }
@@ -100,6 +188,44 @@ namespace QuanLyGiuXe.ViewModels
             LoaiVeId = 0;
             LoaiXeId = 0;
             TrangThai = string.Empty;
+        }
+
+        private void DeleteSelected()
+        {
+            var selected = Items.Where(x => x.IsSelected).ToList();
+            if (!selected.Any()) return;
+            if (System.Windows.MessageBox.Show($"Bạn có chắc muốn xóa {selected.Count} mục đã chọn?", "Xác nhận", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Question) != System.Windows.MessageBoxResult.Yes)
+                return;
+
+            bool ok = true;
+            foreach (var it in selected)
+            {
+                try { service.Delete(it.Id); }
+                catch { ok = false; }
+            }
+
+            if (ok) System.Windows.MessageBox.Show("Xoá thành công", "Thông báo", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+            else System.Windows.MessageBox.Show("Xoá thất bại", "Lỗi", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+
+            Load();
+        }
+
+        private void DeleteAll()
+        {
+            if (System.Windows.MessageBox.Show("Bạn có chắc muốn xóa tất cả thẻ?", "Xác nhận", System.Windows.MessageBoxButton.YesNo, System.Windows.MessageBoxImage.Warning) != System.Windows.MessageBoxResult.Yes)
+                return;
+
+            bool ok = true;
+            foreach (var it in Items.ToList())
+            {
+                try { service.Delete(it.Id); }
+                catch { ok = false; }
+            }
+
+            if (ok) System.Windows.MessageBox.Show("Xoá thành công", "Thông báo", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+            else System.Windows.MessageBox.Show("Xoá thất bại", "Lỗi", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+
+            Load();
         }
 
         public event PropertyChangedEventHandler PropertyChanged;

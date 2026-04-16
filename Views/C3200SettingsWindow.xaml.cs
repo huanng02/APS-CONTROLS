@@ -22,6 +22,7 @@ namespace QuanLyGiuXe
             TimeoutBox.Text = _cfg.ZKTeco.Timeout.ToString();
             BarrierBox.Text = _cfg.ZKTeco.BarrierDuration.ToString();
             CooldownBox.Text = _cfg.ZKTeco.CardCooldownMs.ToString();
+
             // populate group combos (C3-200 reports rawDoor groups 1 or 2)
             var gi = this.FindName("GateInCombo") as ComboBox;
             var go = this.FindName("GateOutCombo") as ComboBox;
@@ -36,10 +37,6 @@ namespace QuanLyGiuXe
                 go.Items.Add(new ComboBoxItem { Content = "Group A — readers 1+2 (rawDoor=1)", Tag = "1" });
                 go.Items.Add(new ComboBoxItem { Content = "Group B — readers 3+4 (rawDoor=2)", Tag = "2" });
 
-                // wire up selection sync so choosing one group auto-selects the opposite in the other combo
-                gi.SelectionChanged += GateInCombo_SelectionChanged;
-                go.SelectionChanged += GateOutCombo_SelectionChanged;
-
                 // pre-select according to CSV config (choose first matching group)
                 var inCsv = _cfg.ZKTeco.GateInDoors ?? _cfg.ZKTeco.GateInDoor.ToString();
                 if (inCsv.Contains("1")) gi.SelectedItem = item1;
@@ -47,19 +44,17 @@ namespace QuanLyGiuXe
                 var outCsv = _cfg.ZKTeco.GateOutDoors ?? _cfg.ZKTeco.GateOutDoor.ToString();
                 if (outCsv.Contains("1")) go.SelectedIndex = 0;
                 else if (outCsv.Contains("2")) go.SelectedIndex = 1;
-                // add button action options
-                // Button1/2 actions: OpenThisDoor (default), OpenGroupIn, OpenGroupOut
+
                 // show current config in tooltips
                 gi.ToolTip = "Select IN group. Button actions configured in C3-200 Settings.";
                 go.ToolTip = "Select OUT group. Button actions configured in C3-200 Settings.";
             }
 
-            // populate button action combos
+            // populate button action combos selection
             var b1 = this.FindName("Button1ActionCombo") as ComboBox;
             var b2 = this.FindName("Button2ActionCombo") as ComboBox;
             if (b1 != null && b2 != null)
             {
-                // select according to config
                 var act1 = _cfg.ZKTeco.Button1Action ?? "OpenThisDoor";
                 var act2 = _cfg.ZKTeco.Button2Action ?? "OpenThisDoor";
                 for (int i = 0; i < b1.Items.Count; i++)
@@ -73,8 +68,12 @@ namespace QuanLyGiuXe
             }
 
             // wire up selection sync so choosing one group auto-selects the opposite in the other combo
-            gi.SelectionChanged += GateInCombo_SelectionChanged;
-            go.SelectionChanged += GateOutCombo_SelectionChanged;
+            if (gi != null && go != null)
+            {
+                gi.SelectionChanged += GateInCombo_SelectionChanged;
+                go.SelectionChanged += GateOutCombo_SelectionChanged;
+            }
+
             if (_cfg.ZKTeco.ForceAllIn)
             {
                 ForceAllInRadio.IsChecked = true;
@@ -183,6 +182,7 @@ namespace QuanLyGiuXe
             }
             finally { _suppressGroupSync = false; }
         }
+
         private async void TestConnection_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -199,6 +199,46 @@ namespace QuanLyGiuXe
             catch (Exception ex)
             {
                 MessageBox.Show($"Lỗi: {ex.Message}", "Test kết nối");
+            }
+        }
+
+        private void TestConnectionDetailed_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string ip = IpBox.Text;
+                int port = int.TryParse(PortBox.Text, out var p) ? p : 4370;
+                string pwd = PwdBox.Text;
+                int timeout = int.TryParse(TimeoutBox.Text, out var t) ? t : 3000;
+
+                // Call detailed test
+                var res = Services.C3200Service.TestConnectDetailed(ip, port, pwd, timeout);
+
+                var sb = new System.Text.StringBuilder();
+                sb.AppendLine(res.Success ? "Connection: SUCCESS" : "Connection: FAILED");
+                sb.AppendLine($"SDK Error: {res.SdkError}");
+                sb.AppendLine("Diagnostic:");
+                sb.AppendLine(res.Diagnostic ?? "(no diagnostic)");
+                sb.AppendLine("Params Tried:");
+                foreach (var tparam in res.TriedParams)
+                {
+                    // mask password in display
+                    var masked = tparam;
+                    masked = System.Text.RegularExpressions.Regex.Replace(masked, ",password=[^,]*", ",password=***", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                    masked = System.Text.RegularExpressions.Regex.Replace(masked, ",passwd=[^,]*", ",passwd=***", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                    sb.AppendLine(" - " + masked);
+                }
+                sb.AppendLine($"DLL Arch: {res.DllArch}");
+                sb.AppendLine($"Process Arch: {(Environment.Is64BitProcess ? "x64" : "x86")} ");
+
+                // log attempts without password
+                try { LoggingService.Instance.LogInfo("C3200TestDetailed", "C3200SettingsWindow", sb.ToString(), userId: Environment.UserName); } catch { }
+
+                MessageBox.Show(sb.ToString(), "C3200 Detailed Test", MessageBoxButton.OK);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error while testing: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

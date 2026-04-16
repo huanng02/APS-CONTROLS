@@ -476,6 +476,16 @@ namespace QuanLyGiuXe
             }
             catch { }
 
+            // record manual open time so RTLog processing can ignore the corresponding RT log
+            try
+            {
+                lock (_manualOpenLock)
+                {
+                    _lastManualOpen[doorNumber] = DateTime.UtcNow;
+                }
+            }
+            catch { }
+
             bool opened = await C3200Service.Instance.OpenBarrierAsync(doorNumber);
 
             try
@@ -490,6 +500,20 @@ namespace QuanLyGiuXe
                 MessageBox.Show($"❌ Không mở được {tenCong}\n\n{C3200Service.Instance.LastError}",
                     "C3-200 Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
+
+            // update UI status briefly to reflect manual open
+            try
+            {
+                Dispatcher.Invoke(() =>
+                {
+                    if (DataContext is MainViewModel vm)
+                    {
+                        if (doorNumber == 1) vm.LanVaoTrangThai = opened ? $"✅ {tenCong} đã mở (thủ công)" : $"❌ Mở {tenCong} thất bại";
+                        else vm.LanRaTrangThai = opened ? $"✅ {tenCong} đã mở (thủ công)" : $"❌ Mở {tenCong} thất bại";
+                    }
+                });
+            }
+            catch { }
 
             // Capture current frames and save a manual-open log entry
             try

@@ -100,5 +100,10 @@ namespace QuanLyGiuXe.Views
                 textBox.SelectionStart = Math.Min(cursor, upper.Length);
             }
         }
+
+        private void txtUID_TextChanged(object sender, TextChangedEventArgs e)
+        {
+
+        }
     }
 }

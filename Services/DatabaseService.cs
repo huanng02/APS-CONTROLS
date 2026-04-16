@@ -441,12 +441,12 @@ namespace QuanLyGiuXe.Services
             return list;
         }
 
-        public void InsertRFIDCard(string uid, string bienSo, int loaiVeId, int loaiXeId, string trangThai, DateTime ngayTao)
+        public void InsertRFIDCard(string uid, string bienSo, int loaiVeId, int loaiXeId, string trangThai, DateTime ngayTao, DateTime? ngayHetHan)
         {
             using (SqlConnection conn = new SqlConnection(GetConnectionString()))
             {
                 conn.Open();
-                string sql = @"INSERT INTO RFIDCards (CardUID, BienSo, LoaiVeId, LoaiXeId, TrangThai, NgayDangKy) VALUES (@uid, @bien, @loaive, @loaixe, @trang, @ngay)";
+                string sql = @"INSERT INTO RFIDCards (CardUID, BienSo, LoaiVeId, LoaiXeId, TrangThai, NgayDangKy, NgayHetHan) VALUES (@uid, @bien, @loaive, @loaixe, @trang, @ngay, @ngayhh)";
 
                 using (SqlCommand cmd = new SqlCommand(sql, conn))
                 {
@@ -456,17 +456,18 @@ namespace QuanLyGiuXe.Services
                     cmd.Parameters.AddWithValue("@loaixe", loaiXeId);
                     cmd.Parameters.AddWithValue("@trang", trangThai ?? string.Empty);
                     cmd.Parameters.AddWithValue("@ngay", ngayTao);
+                    cmd.Parameters.AddWithValue("@ngayhh", (object?)ngayHetHan ?? DBNull.Value);
                     cmd.ExecuteNonQuery();
                 }
             }
         }
 
-        public void UpdateRFIDCard(int id, string uid, string bienSo, int loaiVeId, int loaiXeId, string trangThai)
+        public void UpdateRFIDCard(int id, string uid, string bienSo, int loaiVeId, int loaiXeId, string trangThai, DateTime? ngayDangKy, DateTime? ngayHetHan)
         {
             using (SqlConnection conn = new SqlConnection(GetConnectionString()))
             {
                 conn.Open();
-                string sql = @"UPDATE RFIDCards SET CardUID=@uid, BienSo=@bien, LoaiVeId=@loaive, LoaiXeId=@loaixe, TrangThai=@trang WHERE Id=@id";
+                string sql = @"UPDATE RFIDCards SET CardUID=@uid, BienSo=@bien, LoaiVeId=@loaive, LoaiXeId=@loaixe, TrangThai=@trang, NgayDangKy=@ngay, NgayHetHan=@ngayhh WHERE Id=@id";
 
                 using (SqlCommand cmd = new SqlCommand(sql, conn))
                 {
@@ -475,6 +476,8 @@ namespace QuanLyGiuXe.Services
                     cmd.Parameters.AddWithValue("@loaive", loaiVeId);
                     cmd.Parameters.AddWithValue("@loaixe", loaiXeId);
                     cmd.Parameters.AddWithValue("@trang", trangThai ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@ngay", (object?)ngayDangKy ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@ngayhh", (object?)ngayHetHan ?? DBNull.Value);
                     cmd.Parameters.AddWithValue("@id", id);
                     cmd.ExecuteNonQuery();
                 }

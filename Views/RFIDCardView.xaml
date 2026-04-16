@@ -12,50 +12,38 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <StackPanel Orientation="Horizontal" Grid.Row="0" Margin="0,0,0,10">
-            <StackPanel Orientation="Vertical" Margin="0,0,12,0">
-                <TextBlock Text="UID" Margin="0,0,0,4"/>
-                <TextBox Width="220" Text="{Binding UID, UpdateSourceTrigger=PropertyChanged}" />
-            </StackPanel>
-
-            <StackPanel Orientation="Vertical" Margin="0,0,12,0">
-                <TextBlock Text="Biển số" Margin="0,0,0,4"/>
-                <TextBox Width="160" Text="{Binding BienSo, UpdateSourceTrigger=PropertyChanged}" />
-            </StackPanel>
-
-                <StackPanel Orientation="Vertical" Margin="0,0,12,0">
-                <TextBlock Text="Loại vé Id" Margin="0,0,0,4"/>
-                <TextBox Width="100" Text="{Binding LoaiVeId, UpdateSourceTrigger=PropertyChanged}" />
-            </StackPanel>
-
-            <StackPanel Orientation="Vertical" Margin="0,0,12,0">
-                <TextBlock Text="Loại xe Id" Margin="0,0,0,4"/>
-                <TextBox Width="100" Text="{Binding LoaiXeId, UpdateSourceTrigger=PropertyChanged}" />
-            </StackPanel>
-
-            <StackPanel Orientation="Vertical" Margin="0,0,12,0">
-                <TextBlock Text="Trạng thái" Margin="0,0,0,4"/>
-                <TextBox Width="140" Text="{Binding TrangThai, UpdateSourceTrigger=PropertyChanged}" />
-            </StackPanel>
-
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom">
-                <Button Content="Thêm" Command="{Binding AddCommand}" Width="90" Margin="0,0,6,0"/>
-                <Button Content="Sửa" Command="{Binding UpdateCommand}" Width="90" Margin="0,0,6,0"/>
-                <Button Content="Xóa" Command="{Binding DeleteCommand}" Width="90" Margin="0,0,6,0"/>
-                <Button Content="Load" Command="{Binding LoadCommand}" Width="90" Margin="0,0,6,0"/>
-                <Button Content="Clear" Command="{Binding ClearCommand}" Width="90"/>
-            </StackPanel>
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+            <Button Content="Thêm" Command="{Binding AddCommand}" Width="90" Margin="0,0,6,0"/>
+            <Button Content="Delete Selected" Command="{Binding DeleteSelectedCommand}" Width="120" Margin="0,0,6,0"/>
+            <Button Content="Delete All" Command="{Binding DeleteAllCommand}" Width="100" Margin="0,0,6,0"/>
+            <Button Content="Load" Command="{Binding LoadCommand}" Width="90" Margin="0,0,6,0"/>
         </StackPanel>
 
-        <DataGrid Grid.Row="2" ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem, Mode=TwoWay}" AutoGenerateColumns="False">
+        <DataGrid Grid.Row="2" ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem, Mode=TwoWay}" AutoGenerateColumns="False" CanUserAddRows="False" RowHeight="36">
             <DataGrid.Columns>
+                <DataGridTemplateColumn Width="44">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
                 <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="80"/>
-                <DataGridTextColumn Header="UID" Binding="{Binding UID}" Width="150"/>
+                <DataGridTextColumn Header="CardUID" Binding="{Binding CardUID}" Width="150"/>
                 <DataGridTextColumn Header="Biển số" Binding="{Binding BienSo}" Width="120"/>
-                <DataGridTextColumn Header="Loại vé Id" Binding="{Binding LoaiVeId}" Width="100"/>
-                <DataGridTextColumn Header="Loại xe Id" Binding="{Binding LoaiXeId}" Width="100"/>
+                <DataGridTextColumn Header="Loại xe" Binding="{Binding LoaiXe}" Width="140"/>
+                <DataGridTextColumn Header="Loại vé" Binding="{Binding LoaiVe}" Width="140"/>
                 <DataGridTextColumn Header="Trạng thái" Binding="{Binding TrangThai}" Width="120"/>
-                <DataGridTextColumn Header="Ngày tạo" Binding="{Binding NgayTao, StringFormat=dd/MM/yyyy HH:mm}" Width="160"/>
+                <DataGridTemplateColumn Header="Action" Width="140">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <Button Content="Sửa" Width="56" Margin="4" Command="{Binding DataContext.UpdateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
+                                <Button Content="Xóa" Width="56" Margin="4" Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
             </DataGrid.Columns>
         </DataGrid>
     </Grid>

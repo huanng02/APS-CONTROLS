@@ -364,6 +364,97 @@ namespace QuanLyGiuXe.Services
             catch { return -9999; }
         }
 
+        /// <summary>
+        /// Test connection with detailed diagnostics. Does not change instance state.
+        /// Returns tuple: (success, sdkError, diagnosticText, triedParams, dllArch)
+        /// </summary>
+        public static (bool Success, int SdkError, string Diagnostic, string[] TriedParams, string DllArch) TestConnectDetailed(string ip, int port, string password, int timeoutMs)
+        {
+            var tried = new System.Collections.Generic.List<string>();
+            bool success = false;
+            int sdkErr = 0;
+            string diag = string.Empty;
+
+            try
+            {
+                string baseParams = $"protocol=TCP,ipaddress={ip},port={port},timeout={timeoutMs},device=1";
+                // variants
+                var candidates = new System.Collections.Generic.List<string>();
+                if (string.IsNullOrWhiteSpace(password))
+                {
+                    candidates.Add(baseParams);
+                    candidates.Add(baseParams + ",password=");
+                    candidates.Add(baseParams + ",passwd=");
+                }
+                else
+                {
+                    candidates.Add(baseParams + $",password={password}");
+                    candidates.Add(baseParams + $",passwd={password}");
+                    candidates.Add(baseParams);
+                }
+
+                foreach (var p in candidates)
+                {
+                    tried.Add(p);
+                    try
+                    {
+                        int handle = PLConnect(p);
+                        if (handle > 0)
+                        {
+                            // immediate disconnect
+                            try { PLDisconnect(handle); } catch { }
+                            success = true;
+                            sdkErr = 0;
+                            break;
+                        }
+                        else
+                        {
+                            // read sdk error
+                            try { sdkErr = PLPullLastError(); } catch { sdkErr = -9999; }
+                        }
+                    }
+                    catch
+                    {
+                        try { sdkErr = PLPullLastError(); } catch { sdkErr = -9999; }
+                    }
+                }
+
+                // diagnostic text
+                try
+                {
+                    var temp = Instance?.GetDiagnosticText();
+                    if (!string.IsNullOrEmpty(temp)) diag = temp;
+                }
+                catch { }
+            }
+            catch { }
+
+            // detect DLL arch
+            string dllArch = DetectPlcommproArch();
+
+            return (success, sdkErr, diag, tried.ToArray(), dllArch);
+        }
+
+        private static string DetectPlcommproArch()
+        {
+            try
+            {
+                var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+                var path = System.IO.Path.Combine(baseDir, "plcommpro.dll");
+                if (!System.IO.File.Exists(path)) return "MISSING";
+
+                using var fs = new System.IO.FileStream(path, System.IO.FileMode.Open, System.IO.FileAccess.Read);
+                using var br = new System.IO.BinaryReader(fs);
+                // DOS header e_lfanew at 0x3C
+                fs.Seek(0x3C, System.IO.SeekOrigin.Begin);
+                int peOffset = br.ReadInt32();
+                fs.Seek(peOffset + 4, System.IO.SeekOrigin.Begin);
+                ushort machine = br.ReadUInt16();
+                return machine == 0x8664 ? "x64" : machine == 0x14c ? "x86" : ("0x" + machine.ToString("X"));
+            }
+            catch { return "UNKNOWN"; }
+        }
+
         public string GetDiagnosticText() =>
             $"Target: {_ip}:{_port}\n" +
             $"Connected: {IsConnected}\n" +

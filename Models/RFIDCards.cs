@@ -21,5 +21,7 @@ namespace QuanLyGiuXe.Models
 
         public string LoaiXe { get; set; }
         public string LoaiVe { get; set; } // 👉 dùng cái này thay LoaiThe
+        // UI-only selection flag for DataGrid bulk actions
+        public bool IsSelected { get; set; }
     }
 }

@@ -78,7 +78,8 @@
         </Grid>
 
         <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
-            <Button Width="100" Margin="6,0" Click="TestConnection_Click">Test</Button>
+            <Button Width="140" Margin="6,0" Click="TestConnection_Click">Test</Button>
+            <Button Width="200" Margin="6,0" Click="TestConnectionDetailed_Click">Test Connection (Detailed)</Button>
             <Button Width="100" Margin="6,0" Click="Reset_Click">Reset</Button>
             <Button Width="100" Margin="6,0" Click="Save_Click">Save</Button>
             <Button Width="100" Margin="6,0" Click="Close_Click">Close</Button>
