@@ -44,6 +44,110 @@ namespace QuanLyGiuXe.Services
                 throw new Exception("Database connection failed. Both primary and backup servers are unavailable.");
             }
         }
+        /// <summary>
+        /// Lookup an RFIDCard by plate (BienSo). Returns null if not found.
+        /// </summary>
+        public RFIDCard GetRFIDCardByBienSo(string bienSo)
+        {
+            using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+                string sql = "SELECT Id, CardUID, BienSo, LoaiVeId, LoaiXeId, TrangThai, NgayDangKy FROM RFIDCards WHERE BienSo = @bs";
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@bs", bienSo ?? string.Empty);
+                    using (var r = cmd.ExecuteReader())
+                    {
+                        if (r.Read())
+                        {
+                            return new RFIDCard
+                            {
+                                Id = r["Id"] != DBNull.Value ? Convert.ToInt32(r["Id"]) : 0,
+                                UID = r["CardUID"]?.ToString() ?? string.Empty,
+                                BienSo = r["BienSo"]?.ToString() ?? string.Empty,
+                                LoaiVeId = r["LoaiVeId"] != DBNull.Value ? Convert.ToInt32(r["LoaiVeId"]) : 0,
+                                LoaiXeId = r["LoaiXeId"] != DBNull.Value ? Convert.ToInt32(r["LoaiXeId"]) : 0,
+                                TrangThai = r["TrangThai"]?.ToString() ?? string.Empty,
+                                NgayTao = r["NgayDangKy"] != DBNull.Value ? Convert.ToDateTime(r["NgayDangKy"]) : DateTime.MinValue
+                            };
+                        }
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        public void UpdateXeRaById(int id, DateTime thoiGianRa)
+        {
+            string conn_string = GetWorkingConnection();
+            using (SqlConnection conn = new SqlConnection(conn_string))
+            {
+                conn.Open();
+                string sql = "UPDATE XeTrongBai SET ThoiGianRa = @ra WHERE Id = @id";
+                using (var cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@ra", thoiGianRa);
+                    cmd.Parameters.AddWithValue("@id", id);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Calculate parking fee based on vehicle type, ticket type and duration.
+        /// - If LoaiVe indicates a monthly/subscription type => returns 0.
+        /// - Otherwise uses BangGia.GiaTheoGio for the given LoaiXeId. Falls back to 5000/hour if not configured.
+        /// Duration rounding: Math.Ceiling(totalHours)
+        /// </summary>
+        public double TinhTien(int? loaiXeId, int? loaiVeId, TimeSpan duration)
+        {
+            try
+            {
+                // default per-hour fallback
+                double defaultRate = 5000.0;
+
+                // Resolve LoaiVe to determine if it's monthly/subscription
+                if (loaiVeId.HasValue && loaiVeId.Value > 0)
+                {
+                    var loaiVe = GetLoaiVe().FirstOrDefault(x => x.Id == loaiVeId.Value);
+                    if (loaiVe != null)  
+                    {
+                        var name = (loaiVe.TenLoai ?? string.Empty).ToLowerInvariant();
+                        if (name.Contains("thang") || name.Contains("tháng") || name.Contains("month"))
+                        {
+                            // monthly/subscription: charge handled outside (0 here)
+                            return 0.0;
+                        }
+                    }
+                }
+
+                // Determine hourly rate from BangGia for the given LoaiXeId
+                double rate = defaultRate;
+                var rates = LayBangGia();
+                BangGia selected = null;
+                if (loaiXeId.HasValue && loaiXeId.Value > 0)
+                {
+                    selected = rates.FirstOrDefault(r => r.LoaiXeId.HasValue && r.LoaiXeId.Value == loaiXeId.Value);
+                }
+                if (selected == null)
+                {
+                    // fallback to a default entry (LoaiXeId NULL) or first available
+                    selected = rates.FirstOrDefault(r => !r.LoaiXeId.HasValue) ?? rates.FirstOrDefault();
+                }
+                if (selected != null && selected.GiaTheoGio.HasValue)
+                    rate = selected.GiaTheoGio.Value;
+
+                double hours = Math.Ceiling(duration.TotalHours <= 0 ? 1 : duration.TotalHours);
+                return rate * hours;
+            }
+            catch
+            {
+                // On any failure, fallback to simple rule to preserve compatibility
+                double hours = Math.Ceiling(duration.TotalHours <= 0 ? 1 : duration.TotalHours);
+                return 5000.0 * hours;
+            }
+        }
 
         // Expose working connection string for UI components
         public string GetConnectionString() => GetWorkingConnection();
@@ -330,6 +434,7 @@ namespace QuanLyGiuXe.Services
             }
         }
 
+
         // LOAI VE CRUD
         public List<LoaiVe> GetLoaiVe()
         {
@@ -579,23 +684,49 @@ namespace QuanLyGiuXe.Services
             }
         }
 
-        public void ThemXe(string bienSo, string anhXe, string uid)
+        // Add an entry when a vehicle enters. Primary key for identification is uid (CardUID).
+        // Parameters: uid (CardUID), bienSo (nullable), anhXe (nullable)
+        public void ThemXe(int cardId, string bienSo, string anhXe)
         {
+            if (cardId <= 0)
+                throw new ArgumentException("CardId is invalid", nameof(cardId));
+
             string conn_string = GetWorkingConnection();
+
             using (SqlConnection conn = new SqlConnection(conn_string))
             {
                 conn.Open();
 
-                string sql = "INSERT INTO XeTrongBai (cardUID, BienSo, ThoiGianVao, AnhXe) VALUES (@uid, @BienSo, @Time, @Anh)";
+                // kiểm tra xe đang trong bãi theo CardId (ĐÚNG DB)
+                string checkSql = "SELECT COUNT(1) FROM XeTrongBai WHERE CardId = @cardId AND ThoiGianRa IS NULL";
 
-                SqlCommand cmd = new SqlCommand(sql, conn);
+                using (SqlCommand checkCmd = new SqlCommand(checkSql, conn))
+                {
+                    checkCmd.Parameters.AddWithValue("@cardId", cardId);
 
-                cmd.Parameters.AddWithValue("@uid", uid);
-                cmd.Parameters.AddWithValue("@BienSo", bienSo);
-                cmd.Parameters.AddWithValue("@Time", DateTime.Now);
-                cmd.Parameters.AddWithValue("@Anh", anhXe ?? string.Empty);
+                    int exists = Convert.ToInt32(checkCmd.ExecuteScalar());
+                    if (exists > 0)
+                        return; // tránh insert trùng
+                }
 
-                cmd.ExecuteNonQuery();
+                // INSERT theo đúng schema DB
+                string sql = @"
+            INSERT INTO XeTrongBai (CardId, BienSo, ThoiGianVao, AnhXe)
+            VALUES (@CardId, @BienSo, @Time, @AnhXe)";
+
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@CardId", cardId);
+                    cmd.Parameters.AddWithValue("@BienSo",
+                        string.IsNullOrEmpty(bienSo) ? (object)DBNull.Value : bienSo);
+
+                    cmd.Parameters.AddWithValue("@Time", DateTime.Now);
+
+                    cmd.Parameters.AddWithValue("@AnhXe",
+                        string.IsNullOrEmpty(anhXe) ? (object)DBNull.Value : anhXe);
+
+                    cmd.ExecuteNonQuery();
+                }
             }
         }
 
@@ -627,30 +758,175 @@ namespace QuanLyGiuXe.Services
                 string sql = "DELETE FROM XeTrongBai WHERE BienSo = @bienSo";
 
                 SqlCommand cmd = new SqlCommand(sql, conn);
-                cmd.Parameters.AddWithValue("@bienSo", bienSo);
+                cmd.Parameters.AddWithValue("@bienSo", bienSo ?? string.Empty);
 
                 cmd.ExecuteNonQuery();
             }
         }
 
-        public void LuuLichSu(string bienSo, DateTime vao, DateTime ra, double tien, string anhXe)
+        // Delete active entries by CardId (preferred). Do NOT use CardUID in XeTrongBai queries.
+        public void XoaXeByCardId(int cardId)
+        {
+            string conn_string = GetWorkingConnection();
+            using (SqlConnection conn = new SqlConnection(conn_string))
+            {
+                conn.Open();
+                string sql = "DELETE FROM XeTrongBai WHERE CardId = @cardId";
+                SqlCommand cmd = new SqlCommand(sql, conn);
+                cmd.Parameters.AddWithValue("@cardId", cardId);
+                cmd.ExecuteNonQuery();
+            }
+        }
+
+        public bool IsXeTrongBaiByCardId(int cardId)
+        {
+            string conn_string = GetWorkingConnection();
+
+            using (SqlConnection conn = new SqlConnection(conn_string))
+            {
+                conn.Open();
+
+                string sql = @"
+            SELECT COUNT(1)
+            FROM XeTrongBai
+            WHERE CardId = @cardId
+              AND ThoiGianRa IS NULL";
+
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@cardId", cardId);
+                    return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
+                }
+            }
+        }
+
+        public int GetXeTrongBaiCountByCardId(int cardId)
+        {
+            string conn_string = GetWorkingConnection();
+
+            using (SqlConnection conn = new SqlConnection(conn_string))
+            {
+                conn.Open();
+
+                string sql = @"
+            SELECT COUNT(1)
+            FROM XeTrongBai
+            WHERE CardId = @cardId
+              AND ThoiGianRa IS NULL";
+
+                using (var cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@cardId", cardId);
+                    return Convert.ToInt32(cmd.ExecuteScalar());
+                }
+            }
+        }
+
+        // Get plate from active XeTrongBai by CardId
+        public string GetBienSoFromXeTrongBaiByCardId(int cardId)
+        {
+            string conn_string = GetWorkingConnection();
+            using (SqlConnection conn = new SqlConnection(conn_string))
+            {
+                conn.Open();
+                string sql = "SELECT BienSo FROM XeTrongBai WHERE CardId = @cardId AND ThoiGianRa IS NULL";
+                using (var cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@cardId", cardId);
+                    var v = cmd.ExecuteScalar();
+                    return v?.ToString() ?? string.Empty;
+                }
+            }
+        }
+
+        // Return XeTrongBai record for a CardId where ThoiGianRa IS NULL. Returns null if not found.
+        public (int Id, string BienSo, DateTime ThoiGianVao)? GetXeTrongBaiRecordByCardId(int cardId)
+        {
+            string conn_string = GetWorkingConnection();
+            using (SqlConnection conn = new SqlConnection(conn_string))
+            {
+                conn.Open();
+                string sql = "SELECT TOP 1 Id, BienSo, ThoiGianVao FROM XeTrongBai WHERE CardId = @cardId AND ThoiGianRa IS NULL ORDER BY ThoiGianVao DESC";
+                using (var cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@cardId", cardId);
+                    using (var r = cmd.ExecuteReader())
+                    {
+                        if (r.Read())
+                        {
+                            int id = r["Id"] != DBNull.Value ? Convert.ToInt32(r["Id"]) : 0;
+                            string bs = r["BienSo"]?.ToString() ?? string.Empty;
+                            DateTime vao = r["ThoiGianVao"] != DBNull.Value ? Convert.ToDateTime(r["ThoiGianVao"]) : DateTime.MinValue;
+                            return (id, bs, vao);
+                        }
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private bool ColumnExists(SqlConnection conn, string tableName, string columnName)
+        {
+            using (var cmd = new SqlCommand("SELECT COUNT(1) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = @table AND COLUMN_NAME = @col", conn))
+            {
+                cmd.Parameters.AddWithValue("@table", tableName);
+                cmd.Parameters.AddWithValue("@col", columnName);
+                var v = cmd.ExecuteScalar();
+                return v != null && Convert.ToInt32(v) > 0;
+            }
+        }
+
+        public void LuuLichSu(string bienSo, DateTime vao, DateTime ra, double tien, string anhXe, string cardUid = null)
         {
             string conn_string = GetWorkingConnection();
             using (SqlConnection conn = new SqlConnection(conn_string))
             {
                 conn.Open();
 
-                string sql = "INSERT INTO LichSuXe (BienSo, ThoiGianVao, ThoiGianRa, Tien, AnhXe) VALUES (@bs,@vao,@ra,@tien,@anh)";
+                // Align with actual LichSuXe schema:
+                // Columns: Id, CardId, BienSo, ThoiGianVao, ThoiGianRa, Tien, TrangThai, AnhVao, AnhRa
+                // We will look up CardId (if any) from RFIDCards by BienSo and insert into CardId.
+                // The incoming anhXe parameter represents the exit snapshot, so we store it in AnhRa.
 
-                SqlCommand cmd = new SqlCommand(sql, conn);
+                int? cardId = null;
+                try
+                {
+                    if (!string.IsNullOrEmpty(cardUid))
+                    {
+                        using (var lookup = new SqlCommand("SELECT Id FROM RFIDCards WHERE CardUID = @uid", conn))
+                        {
+                            lookup.Parameters.AddWithValue("@uid", cardUid);
+                            var v = lookup.ExecuteScalar();
+                            if (v != null && v != DBNull.Value)
+                                cardId = Convert.ToInt32(v);
+                        }
+                    }
+                    else
+                    {
+                        using (var lookup = new SqlCommand("SELECT Id FROM RFIDCards WHERE BienSo = @bs", conn))
+                        {
+                            lookup.Parameters.AddWithValue("@bs", bienSo ?? string.Empty);
+                            var v = lookup.ExecuteScalar();
+                            if (v != null && v != DBNull.Value)
+                                cardId = Convert.ToInt32(v);
+                        }
+                    }
+                }
+                catch { /* swallow lookup errors to avoid failing history save */ }
 
-                cmd.Parameters.AddWithValue("@bs", bienSo);
-                cmd.Parameters.AddWithValue("@vao", vao);
-                cmd.Parameters.AddWithValue("@ra", ra);
-                cmd.Parameters.AddWithValue("@tien", tien);
-                cmd.Parameters.AddWithValue("@anh", anhXe ?? string.Empty);
+                string sql = "INSERT INTO LichSuXe (CardId, BienSo, ThoiGianVao, ThoiGianRa, Tien, AnhRa) VALUES (@cardId, @bs, @vao, @ra, @tien, @anh)";
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@cardId", (object?)cardId ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@bs", string.IsNullOrEmpty(bienSo) ? (object?)DBNull.Value : bienSo);
+                    cmd.Parameters.AddWithValue("@vao", vao);
+                    cmd.Parameters.AddWithValue("@ra", ra);
+                    cmd.Parameters.AddWithValue("@tien", tien);
+                    cmd.Parameters.AddWithValue("@anh", (object?)anhXe ?? DBNull.Value);
 
-                cmd.ExecuteNonQuery();
+                    cmd.ExecuteNonQuery();
+                }
             }
         }
 

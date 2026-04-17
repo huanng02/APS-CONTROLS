@@ -331,12 +331,7 @@
                            Text="{Binding LanVaoTrangThai}"
                            FontSize="12" Foreground="#27AE60" FontWeight="SemiBold"
                            Margin="0,4,0,0"/>
-                            <StackPanel Grid.Row="3" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,6,0,0">
-                                <Button Width="100" Height="28" Margin="0,0,0,0"
-                            Style="{StaticResource ActionButtonStyle}"
-                            Background="{StaticResource PositiveBrush}"
-                            Click="OpenGateIn_Click">🔓 Mở cổng VÀO</Button>
-                            </StackPanel>
+
                         </Grid>
                     </Border>
 
@@ -531,11 +526,8 @@
                             <TextBlock Grid.Row="4" Grid.ColumnSpan="2"
                            Text="{Binding LanRaThoiGianTrongBai}"
                            FontSize="12" Foreground="#2C3E50"/>
-                            <StackPanel Grid.Row="4" Grid.ColumnSpan="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,6,0,0">
-                                <Button Width="110" Height="30" Margin="0,0,8,0"
-                            Background="#E67E22" Foreground="White" BorderThickness="0"
-                            Click="OpenGateOut_Click">🔓 Mở cổng RA</Button>
-                            </StackPanel>
+
+
                         </Grid>
                     </Border>
 

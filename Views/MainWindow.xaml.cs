@@ -315,10 +315,7 @@ namespace QuanLyGiuXe
                 if (DataContext is not MainViewModel vm) return;
 
                 var cfg = AppConfig.Load();
-                int mappedIn = cfg.ZKTeco.GateInDoor;
-                int mappedOut = cfg.ZKTeco.GateOutDoor;
 
-                // map physical door (from device) to logical door: 1 = IN, 2 = OUT, 0 = unknown/usb
                 int logicalDoor = 0;
                 if (door != 0)
                 {
@@ -332,12 +329,13 @@ namespace QuanLyGiuXe
                     }
                     else
                     {
-                        // multi-door mapping from CSV
                         var inSet = new HashSet<int>();
                         var outSet = new HashSet<int>();
-                        foreach (var part in (cfg.ZKTeco.GateInDoors ?? "").Split(',', System.StringSplitOptions.RemoveEmptyEntries))
+
+                        foreach (var part in (cfg.ZKTeco.GateInDoors ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries))
                             if (int.TryParse(part.Trim(), out var v)) inSet.Add(v);
-                        foreach (var part in (cfg.ZKTeco.GateOutDoors ?? "").Split(',', System.StringSplitOptions.RemoveEmptyEntries))
+
+                        foreach (var part in (cfg.ZKTeco.GateOutDoors ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries))
                             if (int.TryParse(part.Trim(), out var v)) outSet.Add(v);
 
                         if (inSet.Contains(door)) logicalDoor = 1;
@@ -346,15 +344,6 @@ namespace QuanLyGiuXe
                     }
                 }
 
-                // debug trace: incoming scan + mapping
-                try
-                {
-                    File.AppendAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ButtonPressDebug.txt"),
-                        $"{DateTime.Now:O}\tSCAN_IN\trawDoor={door}\tmappedIn={cfg.ZKTeco.GateInDoors}\tmappedOut={cfg.ZKTeco.GateOutDoors}\n");
-                }
-                catch { }
-
-                // normalize UID and throttle repeated scans per-UID using configured cooldown
                 try
                 {
                     uid = RFIDService.ChuanHoaUID(uid);
@@ -362,30 +351,18 @@ namespace QuanLyGiuXe
                     int cooldown = cfg.ZKTeco.CardCooldownMs > 0 ? cfg.ZKTeco.CardCooldownMs : 2000;
 
                     if (!_lastScanByUid.TryGetValue(uid, out var last)) last = DateTime.MinValue;
-                    var elapsed = (DateTime.Now - last).TotalMilliseconds;
-                    if (elapsed < cooldown)
-                    {
-                        // still cooling down: show a brief message depending on direction
-                        double leftMs = Math.Ceiling(cooldown - elapsed);
-                        string human = leftMs >= 1000 ? $"{(leftMs/1000.0):0.0}s" : $"{leftMs}ms";
-                        string msg = $"⏳ Vui lòng đợi {human} trước khi quét lại";
-                        if (logicalDoor == 1) vm.LanVaoTrangThai = msg;
-                        else if (logicalDoor == 2) vm.LanRaTrangThai = msg;
-                        else
-                        {
-                            // generic brief notification (non-blocking toast)
-                            ShowToast(msg, 1500);
-                        }
 
+                    if ((DateTime.Now - last).TotalMilliseconds < cooldown)
                         return;
-                    }
 
                     _lastScanByUid[uid] = DateTime.Now;
                 }
                 catch { }
 
                 var db = new DatabaseService();
-                if (!db.CheckCardExists(uid))
+                var card = db.GetRFIDCardByUid(uid);
+
+                if (card == null || card.Id == 0)
                 {
                     string msg = $"❌ Thẻ {uid} chưa đăng ký!";
                     if (logicalDoor == 1) vm.LanVaoTrangThai = msg;
@@ -394,46 +371,39 @@ namespace QuanLyGiuXe
                     return;
                 }
 
-                string bienSo = db.GetBienSoFromUID(uid);
-                if (string.IsNullOrEmpty(bienSo))
-                {
-                    string msg = $"❌ Thẻ {uid} chưa gán biển số!";
-                    if (logicalDoor == 1) vm.LanVaoTrangThai = msg;
-                    else if (logicalDoor == 2) vm.LanRaTrangThai = msg;
-                    else MessageBox.Show(msg, "Lỗi thẻ");
-                    return;
-                }
-
-                vm.BienSoNhap = bienSo;
+                vm.BienSoNhap = card.BienSo ?? string.Empty;
                 vm.LastScannedUID = uid;
 
-                bool xeTrongBai = vm.DanhSachXe.Any(x => x.BienSo == bienSo);
+                // 🔥 FIX CHÍNH: dùng CardId
+                bool xeTrongBai = db.IsXeTrongBaiByCardId(card.Id);
 
-                // ── C3200 Reader 1 = CỔNG VÀO (chỉ cho xe vào) ──
+                // ── CỔNG VÀO ──
                 if (logicalDoor == 1)
                 {
                     if (xeTrongBai)
                     {
-                        vm.LanVaoTrangThai = $"⚠ {bienSo} đã trong bãi!";
+                        vm.LanVaoTrangThai = $"⚠ {card.BienSo ?? uid} đã trong bãi!";
                         return;
                     }
+
                     vm.XeVaoCommand.Execute(null);
                     return;
                 }
 
-                // ── C3200 Reader 2 = CỔNG RA (chỉ cho xe ra) ──
+                // ── CỔNG RA ──
                 if (logicalDoor == 2)
                 {
                     if (!xeTrongBai)
                     {
-                        vm.LanRaTrangThai = $"⚠ {bienSo} không có trong bãi!";
+                        vm.LanRaTrangThai = $"⚠ {card.BienSo ?? uid} không có trong bãi!";
                         return;
                     }
+
                     vm.XeRaCommand.Execute(null);
                     return;
                 }
 
-                // ── RFID USB (door == 0) = tự động phân luồng ──
+                // ── AUTO MODE ──
                 if (xeTrongBai)
                     vm.XeRaCommand.Execute(null);
                 else
