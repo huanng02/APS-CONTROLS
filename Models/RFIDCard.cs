@@ -11,5 +11,7 @@ namespace QuanLyGiuXe.Models
         public int LoaiXeId { get; set; }
         public string TrangThai { get; set; } = string.Empty;
         public DateTime NgayTao { get; set; }
+        // Optional expiry date stored in DB (nullable)
+        public DateTime? NgayHetHan { get; set; }
     }
 }

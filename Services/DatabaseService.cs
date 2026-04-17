@@ -10,7 +10,7 @@ using QuanLyGiuXe.Models;
 
 namespace QuanLyGiuXe.Services
 {
-    public class DatabaseService
+    public partial class DatabaseService
     {
         private string primaryConnection = "Server=.;Database=BaiXe;Trusted_Connection=True;";
         private string backupConnection = "Server=BACKUP_SERVER;Database=Baixe;Trusted_Connection=True;";
@@ -251,6 +251,34 @@ namespace QuanLyGiuXe.Services
             }
 
             return list;
+        }
+
+        /// <summary>
+        /// Bulk insert RFIDCards from a DataTable. Columns must match: CardUID,BienSo,LoaiVeId,LoaiXeId,NgayDangKy,NgayHetHan,TrangThai
+        /// </summary>
+        public void BulkInsertRFIDCards(System.Data.DataTable table)
+        {
+            if (table == null) throw new ArgumentNullException(nameof(table));
+
+            string conn_string = GetWorkingConnection();
+            using (var conn = new SqlConnection(conn_string))
+            {
+                conn.Open();
+                using (var bulk = new SqlBulkCopy(conn))
+                {
+                    bulk.DestinationTableName = "RFIDCards";
+                    // map columns
+                    bulk.ColumnMappings.Add("CardUID", "CardUID");
+                    bulk.ColumnMappings.Add("BienSo", "BienSo");
+                    bulk.ColumnMappings.Add("LoaiVeId", "LoaiVeId");
+                    bulk.ColumnMappings.Add("LoaiXeId", "LoaiXeId");
+                    bulk.ColumnMappings.Add("NgayDangKy", "NgayDangKy");
+                    bulk.ColumnMappings.Add("NgayHetHan", "NgayHetHan");
+                    bulk.ColumnMappings.Add("TrangThai", "TrangThai");
+
+                    bulk.WriteToServer(table);
+                }
+            }
         }
 
         public List<BangGia> LayBangGia()
@@ -522,7 +550,7 @@ namespace QuanLyGiuXe.Services
             using (SqlConnection conn = new SqlConnection(GetConnectionString()))
             {
                 conn.Open();
-                string sql = @"SELECT Id, CardUID, BienSo, LoaiVeId, LoaiXeId, TrangThai, NgayDangKy FROM RFIDCards";
+                string sql = @"SELECT Id, CardUID, BienSo, LoaiVeId, LoaiXeId, TrangThai, NgayDangKy, NgayHetHan FROM RFIDCards";
 
                 using (SqlCommand cmd = new SqlCommand(sql, conn))
                 using (SqlDataReader r = cmd.ExecuteReader())
@@ -537,7 +565,8 @@ namespace QuanLyGiuXe.Services
                             LoaiVeId = r["LoaiVeId"] != DBNull.Value ? Convert.ToInt32(r["LoaiVeId"]) : 0,
                             LoaiXeId = r["LoaiXeId"] != DBNull.Value ? Convert.ToInt32(r["LoaiXeId"]) : 0,
                             TrangThai = r["TrangThai"]?.ToString() ?? string.Empty,
-                            NgayTao = r["NgayDangKy"] != DBNull.Value ? Convert.ToDateTime(r["NgayDangKy"]) : DateTime.MinValue
+                            NgayTao = r["NgayDangKy"] != DBNull.Value ? Convert.ToDateTime(r["NgayDangKy"]) : DateTime.MinValue,
+                            NgayHetHan = r["NgayHetHan"] != DBNull.Value ? (DateTime?)Convert.ToDateTime(r["NgayHetHan"]) : null
                         });
                     }
                 }

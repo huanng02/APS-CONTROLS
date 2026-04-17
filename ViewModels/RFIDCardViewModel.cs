@@ -53,6 +53,8 @@ namespace QuanLyGiuXe.ViewModels
         public ICommand ClearCommand { get; }
         public ICommand DeleteSelectedCommand { get; }
         public ICommand DeleteAllCommand { get; }
+        public ICommand DownloadTemplateCommand { get; }
+        public ICommand ExportCommand { get; }
 
         public RFIDCardViewModel()
         {
@@ -63,7 +65,51 @@ namespace QuanLyGiuXe.ViewModels
             DeleteSelectedCommand = new RelayCommand(_ => DeleteSelected());
             DeleteAllCommand = new RelayCommand(_ => DeleteAll());
             ClearCommand = new RelayCommand(_ => Clear());
+            DownloadTemplateCommand = new RelayCommand(async _ => await DownloadTemplate());
+            ExportCommand = new RelayCommand(_ => Export());
             Load();
+        }
+
+
+        private void Export()
+        {
+            try
+            {
+                var dlg = new Microsoft.Win32.SaveFileDialog();
+                dlg.Filter = "Excel Workbook|*.xlsx";
+                dlg.FileName = "RFIDCards_Export.xlsx";
+                if (dlg.ShowDialog() == true)
+                {
+                    var svc = new ImportExportService();
+                    svc.ExportToExcel(dlg.FileName);
+                    System.Windows.MessageBox.Show("Export hoàn tất", "Thông báo", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show($"Export thất bại: {ex.Message}", "Lỗi", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
+        }
+
+        private async System.Threading.Tasks.Task DownloadTemplate()
+        {
+            try
+            {
+                var svc = new TemplateExportService();
+                var path = await svc.CreateTemplateOnDesktopAsync();
+                if (!string.IsNullOrEmpty(path))
+                {
+                    System.Windows.MessageBox.Show($"Template folder created:\n{path}", "Done", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                }
+                else
+                {
+                    System.Windows.MessageBox.Show($"Failed to create template folder.", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show($"Failed: {ex.Message}", "Error", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+            }
         }
 
         private void Load()

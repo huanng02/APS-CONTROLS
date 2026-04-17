@@ -497,7 +497,7 @@ namespace QuanLyGiuXe.ViewModels
                 try
                 {
                     db.UpdateXeRaById(id, DateTime.Now);
-                    db.LuuLichSu(
+                    db.LuuLichSu(   
                         string.IsNullOrEmpty(plate) ? null : plate,
                         timeIn,
                         DateTime.Now,

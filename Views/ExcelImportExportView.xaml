@@ -1,0 +1,45 @@
+<UserControl x:Class="QuanLyGiuXe.Views.ExcelImportExportView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:QuanLyGiuXe.ViewModels"
+             mc:Ignorable="d"
+             d:DesignHeight="600" d:DesignWidth="1000">
+
+    <!-- DataContext is set in code-behind to allow safe construction with try/catch -->
+
+    <Grid Margin="8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Orientation="Horizontal" Grid.Row="0" Margin="0,0,0,8">
+            <Button Content="Import Excel" Command="{Binding ImportExcelCommand}" Width="120" Margin="0,0,8,0" />
+            <Button Content="Export Excel" Command="{Binding ExportExcelCommand}" Width="120" />
+        </StackPanel>
+
+        <ProgressBar Grid.Row="1" Height="18" Minimum="0" Maximum="100" Value="{Binding Progress}" />
+
+        <DataGrid Grid.Row="2" ItemsSource="{Binding PreviewRows}" AutoGenerateColumns="False" IsReadOnly="True">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="CardUID" Binding="{Binding CardUID}" Width="*" />
+                <DataGridTextColumn Header="BienSo" Binding="{Binding BienSo}" Width="120" />
+                <DataGridTextColumn Header="LoaiXeId" Binding="{Binding LoaiXeId}" Width="80" />
+                <DataGridTextColumn Header="LoaiVeId" Binding="{Binding LoaiVeId}" Width="80" />
+                <DataGridTextColumn Header="NgayDangKy" Binding="{Binding NgayDangKy, StringFormat=dd/MM/yyyy}" Width="120" />
+                <DataGridTextColumn Header="NgayHetHan" Binding="{Binding NgayHetHan, StringFormat=dd/MM/yyyy}" Width="120" />
+                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="120" />
+                <DataGridTextColumn Header="Message" Binding="{Binding StatusMessage}" Width="*" />
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
+            <Button Content="Confirm Import" Command="{Binding ConfirmImportCommand}" Width="140" Margin="0,0,8,0" />
+            <TextBlock Text="{Binding StatusSummary}" VerticalAlignment="Center" />
+        </StackPanel>
+    </Grid>
+</UserControl>
