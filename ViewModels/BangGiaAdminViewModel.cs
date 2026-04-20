@@ -19,7 +19,7 @@ namespace QuanLyGiuXe.ViewModels
 
         // dirty tracking
         private readonly System.Collections.Generic.HashSet<int> _modifiedIds = new System.Collections.Generic.HashSet<int>();
-        private readonly System.Collections.Generic.Dictionary<int, (double? giaTheoGio, double? giaQuaDem)> _originalValues = new System.Collections.Generic.Dictionary<int, (double?, double?)>();
+        private readonly System.Collections.Generic.Dictionary<int, (decimal? giaTheoGio, decimal? giaQuaDem)> _originalValues = new System.Collections.Generic.Dictionary<int, (decimal?, decimal?)>();
 
         private bool _isDirty;
         public bool IsDirty { get => _isDirty; private set { if (_isDirty != value) { _isDirty = value; OnPropertyChanged(nameof(IsDirty)); System.Windows.Input.CommandManager.InvalidateRequerySuggested(); } } }
@@ -54,7 +54,7 @@ namespace QuanLyGiuXe.ViewModels
             var loaiXeList = new DatabaseService().GetLoaiXe();
             foreach (var b in list)
             {
-                b.LoaiXe = loaiXeList.FirstOrDefault(l => l != null && l.Id == (b.LoaiXeId ?? 0))?.TenLoai ?? string.Empty;
+                b.LoaiXe = (b.LoaiXeId > 0) ? loaiXeList.FirstOrDefault(l => l != null && l.Id == b.LoaiXeId)?.TenLoai ?? string.Empty : string.Empty;
                 BangGiaList.Add(b);
                 // store original values for dirty-check / revert
                 _originalValues[b.Id] = (b.GiaTheoGio, b.GiaQuaDem);
@@ -150,7 +150,7 @@ namespace QuanLyGiuXe.ViewModels
             }
             // if values equal original, remove from modified set
             var now = (model.GiaTheoGio, model.GiaQuaDem);
-            if (_originalValues.TryGetValue(model.Id, out var old) && old == now)
+            if (_originalValues.TryGetValue(model.Id, out var old) && old.Equals(now))
             {
                 _modifiedIds.Remove(model.Id);
             }

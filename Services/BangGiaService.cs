@@ -14,7 +14,7 @@ namespace QuanLyGiuXe.Services
             return _db.LayBangGia();
         }
 
-        public void UpdateGia(int id, double giaTheoGio, double giaQuaDem)
+        public void UpdateGia(int id, decimal giaTheoGio, decimal giaQuaDem)
         {
             if (id <= 0) throw new ArgumentException("ID không hợp lệ", nameof(id));
             if (giaTheoGio <= 0) throw new ArgumentException("GiaTheoGio phải > 0", nameof(giaTheoGio));

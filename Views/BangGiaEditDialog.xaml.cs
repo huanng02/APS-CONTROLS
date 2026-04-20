@@ -33,12 +33,12 @@ namespace QuanLyGiuXe.Views
 
         private void Save_Click(object sender, RoutedEventArgs e)
         {
-            if (!double.TryParse(tbGiaTheoGio.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out var g1) || g1 <= 0)
+            if (!decimal.TryParse(tbGiaTheoGio.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out var g1) || g1 <= 0)
             {
                 MessageBox.Show("Giá theo giờ phải lớn hơn 0", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
-            if (!double.TryParse(tbGiaQuaDem.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out var g2) || g2 < 0)
+            if (!decimal.TryParse(tbGiaQuaDem.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out var g2) || g2 < 0)
             {
                 MessageBox.Show("Giá qua đêm không hợp lệ", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;

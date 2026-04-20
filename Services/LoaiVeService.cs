@@ -6,32 +6,32 @@ namespace QuanLyGiuXe.Services
 {
     public class LoaiVeService
     {
-        private readonly DatabaseService db = new();
+        private readonly LoaiVeRepository _repo = new();
 
-        public List<LoaiVe> GetAll()
+        public System.Collections.Generic.List<LoaiVe> GetAll()
         {
-            return db.GetLoaiVe();
+            return _repo.GetAll();
         }
 
-        public void Add(string ten, decimal giaTien, string trangThai)
+        public void Add(string ten, string trangThai, string detail = null)
         {
             if (string.IsNullOrWhiteSpace(ten)) throw new ArgumentException("Tên loại vé không được rỗng", nameof(ten));
-            if (giaTien < 0) throw new ArgumentException("Giá tiền phải >= 0", nameof(giaTien));
-            db.InsertLoaiVe(ten, giaTien, trangThai ?? string.Empty);
+            var lv = new LoaiVe { TenLoai = ten, TrangThai = trangThai ?? string.Empty, Detail = detail };
+            _repo.Insert(lv);
         }
 
-        public void Update(int id, string ten, decimal giaTien, string trangThai)
+        public void Update(int id, string ten, string trangThai, string detail = null)
         {
             if (id <= 0) throw new ArgumentException("ID không hợp lệ", nameof(id));
             if (string.IsNullOrWhiteSpace(ten)) throw new ArgumentException("Tên loại vé không được rỗng", nameof(ten));
-            if (giaTien < 0) throw new ArgumentException("Giá tiền phải >= 0", nameof(giaTien));
-            db.UpdateLoaiVe(id, ten, giaTien, trangThai ?? string.Empty);
+            var lv = new LoaiVe { Id = id, TenLoai = ten, TrangThai = trangThai ?? string.Empty, Detail = detail };
+            _repo.Update(lv);
         }
 
         public void Delete(int id)
         {
             if (id <= 0) throw new ArgumentException("ID không hợp lệ", nameof(id));
-            db.DeleteLoaiVe(id);
+            _repo.Delete(id);
         }
     }
 }

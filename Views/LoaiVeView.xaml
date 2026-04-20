@@ -31,8 +31,8 @@
                 </DataGridTemplateColumn>
                 <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="80"/>
                 <DataGridTextColumn Header="Tên loại vé" Binding="{Binding TenLoai}" Width="*"/>
-                <DataGridTextColumn Header="Giá tiền" Binding="{Binding GiaTien, StringFormat=N2}" Width="140"/>
                 <DataGridTextColumn Header="Trạng thái" Binding="{Binding TrangThai}" Width="140"/>
+                <DataGridTextColumn Header="Chi tiết" Binding="{Binding Detail}" Width="200"/>
                 <DataGridTemplateColumn Header="Action" Width="140">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>

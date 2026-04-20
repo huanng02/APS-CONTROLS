@@ -26,8 +26,8 @@ namespace QuanLyGiuXe.ViewModels
                 if (_selectedItem != null)
                 {
                     TenLoai = _selectedItem.TenLoai; // Ensuring consistency
-                    GiaTien = _selectedItem.GiaTien;
                     TrangThai = _selectedItem.TrangThai;
+                    Detail = _selectedItem.Detail;
                 }
             }
         }
@@ -35,11 +35,13 @@ namespace QuanLyGiuXe.ViewModels
         private string _tenLoai;
         public string TenLoai { get => _tenLoai; set { _tenLoai = value; OnPropertyChanged(nameof(TenLoai)); } }
 
-        private decimal _giaTien;
-        public decimal GiaTien { get => _giaTien; set { _giaTien = value; OnPropertyChanged(nameof(GiaTien)); } }
+        // Pricing moved to BangGia. LoaiVeViewModel no longer exposes GiaTien.
 
         private string _trangThai;
         public string TrangThai { get => _trangThai; set { _trangThai = value; OnPropertyChanged(nameof(TrangThai)); } }
+
+        private string _detail;
+        public string Detail { get => _detail; set { _detail = value; OnPropertyChanged(nameof(Detail)); } }
 
         public ICommand LoadCommand { get; }
         public ICommand AddCommand { get; }
@@ -69,7 +71,7 @@ namespace QuanLyGiuXe.ViewModels
         private void Add()
         {
             // Open modal Add dialog
-            var model = new LoaiVe { TenLoai = string.Empty, GiaTien = 0m, TrangThai = "Active" };
+            var model = new LoaiVe { TenLoai = string.Empty, TrangThai = "Active", Detail = string.Empty };
             var dlg = new Views.GenericAddEditWindow(model) { Owner = System.Windows.Application.Current.MainWindow };
             var result = dlg.ShowDialog();
             if (result == true)
@@ -80,11 +82,6 @@ namespace QuanLyGiuXe.ViewModels
                     System.Windows.MessageBox.Show("Tên loại không được để trống", "Lỗi", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
                     return;
                 }
-                if (model.GiaTien <= 0)
-                {
-                    System.Windows.MessageBox.Show("Giá tiền phải lớn hơn 0", "Lỗi", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
-                    return;
-                }
                 if (string.IsNullOrWhiteSpace(model.TrangThai))
                 {
                     System.Windows.MessageBox.Show("Vui lòng chọn trạng thái", "Lỗi", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
@@ -93,7 +90,7 @@ namespace QuanLyGiuXe.ViewModels
 
                 try
                 {
-                    service.Add(model.TenLoai, model.GiaTien, model.TrangThai);
+                    service.Add(model.TenLoai, model.TrangThai, model.Detail);
                     System.Windows.MessageBox.Show("Thêm loại vé thành công", "Thông báo", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
                 }
                 catch (Exception)
@@ -113,7 +110,7 @@ namespace QuanLyGiuXe.ViewModels
             else if (SelectedItem != null) target = SelectedItem;
             if (target == null) return;
 
-            var model = new LoaiVe { Id = target.Id, TenLoai = target.TenLoai, GiaTien = target.GiaTien, TrangThai = target.TrangThai };
+            var model = new LoaiVe { Id = target.Id, TenLoai = target.TenLoai, TrangThai = target.TrangThai, Detail = target.Detail };
             var dlg = new Views.GenericAddEditWindow(model) { Owner = System.Windows.Application.Current.MainWindow };
             var result = dlg.ShowDialog();
             if (result == true)
@@ -121,11 +118,6 @@ namespace QuanLyGiuXe.ViewModels
                 if (string.IsNullOrWhiteSpace(model.TenLoai))
                 {
                     System.Windows.MessageBox.Show("Tên loại không được để trống", "Lỗi", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
-                    return;
-                }
-                if (model.GiaTien <= 0)
-                {
-                    System.Windows.MessageBox.Show("Giá tiền phải lớn hơn 0", "Lỗi", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
                     return;
                 }
                 if (string.IsNullOrWhiteSpace(model.TrangThai))
@@ -136,7 +128,7 @@ namespace QuanLyGiuXe.ViewModels
 
                 try
                 {
-                    service.Update(model.Id, model.TenLoai, model.GiaTien, model.TrangThai);
+                    service.Update(model.Id, model.TenLoai, model.TrangThai, model.Detail);
                     System.Windows.MessageBox.Show("Cập nhật thành công", "Thông báo", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
                 }
                 catch (Exception)
@@ -214,8 +206,8 @@ namespace QuanLyGiuXe.ViewModels
         {
             SelectedItem = null;
             TenLoai = string.Empty;
-            GiaTien = 0m;
             TrangThai = string.Empty;
+            Detail = string.Empty;
         }
 
         public event PropertyChangedEventHandler PropertyChanged;

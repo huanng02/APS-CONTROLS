@@ -102,7 +102,7 @@ namespace QuanLyGiuXe.Views
             if (vm.LoaiVeId.HasValue)
             {
                 var item = _loaiVeService.GetAll().FirstOrDefault(x => x.Id == vm.LoaiVeId.Value);
-                bool isMonthly = item != null && ((item.TenLoai ?? string.Empty).ToLower().Contains("tháng") || item.GiaTien > 0);
+                bool isMonthly = item != null && ((item.TenLoai ?? string.Empty).ToLower().Contains("tháng") || (item.TenLoai ?? string.Empty).ToLower().Contains("thang"));
                 vm.CurrentStep = isMonthly ? 4 : 5;
             }
         }

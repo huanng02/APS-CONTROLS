@@ -9,13 +9,17 @@ namespace QuanLyGiuXe.Models
     public class BangGia
     {
         public int Id { get; set; }
-        public int? LoaiXeId { get; set; }
+        public int LoaiXeId { get; set; }
+        public int LoaiVeId { get; set; }
 
-        public double? GiaTheoGio { get; set; }
-        public double? GiaQuaDem { get; set; }
+        // Use decimal for money
+        public decimal? GiaTheoGio { get; set; }
+        public decimal? GiaQuaDem { get; set; }
+        public decimal? GiaThang { get; set; }
 
         public string TrangThai { get; set; }
-        // UI helper - not persisted
+        // UI helpers
         public string LoaiXe { get; set; }
+        public string LoaiVe { get; set; }
     }
 }

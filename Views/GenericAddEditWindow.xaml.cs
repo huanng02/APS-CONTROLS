@@ -80,7 +80,8 @@ namespace QuanLyGiuXe.Views
                 var prop = (PropertyInfo)input.Tag;
                 if (input is TextBox tb)
                 {
-                    if (string.IsNullOrWhiteSpace(tb.Text))
+                    // Allow Detail to be optional
+                    if (prop.Name != "Detail" && string.IsNullOrWhiteSpace(tb.Text))
                     {
                         MessageBox.Show($"Field {prop.Name} is required", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
                         return;

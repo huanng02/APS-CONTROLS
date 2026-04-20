@@ -128,15 +128,15 @@ namespace QuanLyGiuXe.Services
                 BangGia selected = null;
                 if (loaiXeId.HasValue && loaiXeId.Value > 0)
                 {
-                    selected = rates.FirstOrDefault(r => r.LoaiXeId.HasValue && r.LoaiXeId.Value == loaiXeId.Value);
+                    selected = rates.FirstOrDefault(r => r.LoaiXeId > 0 && r.LoaiXeId == loaiXeId.Value);
                 }
                 if (selected == null)
                 {
-                    // fallback to a default entry (LoaiXeId NULL) or first available
-                    selected = rates.FirstOrDefault(r => !r.LoaiXeId.HasValue) ?? rates.FirstOrDefault();
+                    // fallback to a default entry (LoaiXeId == 0) or first available
+                    selected = rates.FirstOrDefault(r => r.LoaiXeId == 0) ?? rates.FirstOrDefault();
                 }
                 if (selected != null && selected.GiaTheoGio.HasValue)
-                    rate = selected.GiaTheoGio.Value;
+                    rate = Convert.ToDouble(selected.GiaTheoGio.Value);
 
                 double hours = Math.Ceiling(duration.TotalHours <= 0 ? 1 : duration.TotalHours);
                 return rate * hours;
@@ -288,7 +288,7 @@ namespace QuanLyGiuXe.Services
             using (SqlConnection conn = new SqlConnection(conn_string))
             {
                 conn.Open();
-                string sql = "SELECT Id, LoaiXeId, GiaTheoGio, GiaQuaDem, TrangThai FROM dbo.BangGia";
+                string sql = "SELECT Id, LoaiXeId, LoaiVeId, GiaTheoGio, GiaQuaDem, GiaThang, TrangThai FROM dbo.BangGia";
                 using (SqlCommand cmd = new SqlCommand(sql, conn))
                 using (SqlDataReader r = cmd.ExecuteReader())
                 {
@@ -297,9 +297,11 @@ namespace QuanLyGiuXe.Services
                         list.Add(new BangGia
                         {
                             Id = r["Id"] != DBNull.Value ? Convert.ToInt32(r["Id"]) : 0,
-                            LoaiXeId = r["LoaiXeId"] != DBNull.Value ? (int?)Convert.ToInt32(r["LoaiXeId"]) : null,
-                            GiaTheoGio = r["GiaTheoGio"] != DBNull.Value ? (double?)Convert.ToDouble(r["GiaTheoGio"]) : null,
-                            GiaQuaDem = r["GiaQuaDem"] != DBNull.Value ? (double?)Convert.ToDouble(r["GiaQuaDem"]) : null,
+                            LoaiXeId = r["LoaiXeId"] != DBNull.Value ? Convert.ToInt32(r["LoaiXeId"]) : 0,
+                            LoaiVeId = r["LoaiVeId"] != DBNull.Value ? Convert.ToInt32(r["LoaiVeId"]) : 0,
+                            GiaTheoGio = r["GiaTheoGio"] != DBNull.Value ? (decimal?)Convert.ToDecimal(r["GiaTheoGio"]) : null,
+                            GiaQuaDem = r["GiaQuaDem"] != DBNull.Value ? (decimal?)Convert.ToDecimal(r["GiaQuaDem"]) : null,
+                            GiaThang = r["GiaThang"] != DBNull.Value ? (decimal?)Convert.ToDecimal(r["GiaThang"]) : null,
                             TrangThai = r["TrangThai"]?.ToString() ?? string.Empty
                         });
                     }
@@ -309,17 +311,18 @@ namespace QuanLyGiuXe.Services
             return list;
         }
 
-        public void UpdateBangGia(int id, double giaTheoGio, double giaQuaDem)
+        public void UpdateBangGia(int id, decimal? giaTheoGio, decimal? giaQuaDem, decimal? giaThang = null)
         {
             string conn_string = GetWorkingConnection();
             using (SqlConnection conn = new SqlConnection(conn_string))
             {
                 conn.Open();
-                string sql = "UPDATE dbo.BangGia SET GiaTheoGio=@g1, GiaQuaDem=@g2 WHERE Id=@id";
+                string sql = "UPDATE dbo.BangGia SET GiaTheoGio=@g1, GiaQuaDem=@g2, GiaThang=@gt WHERE Id=@id";
                 using (SqlCommand cmd = new SqlCommand(sql, conn))
                 {
-                    cmd.Parameters.AddWithValue("@g1", giaTheoGio);
-                    cmd.Parameters.AddWithValue("@g2", giaQuaDem);
+                    cmd.Parameters.AddWithValue("@g1", (object?)giaTheoGio ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@g2", (object?)giaQuaDem ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@gt", (object?)giaThang ?? DBNull.Value);
                     cmd.Parameters.AddWithValue("@id", id);
                     cmd.ExecuteNonQuery();
                 }
@@ -391,7 +394,7 @@ namespace QuanLyGiuXe.Services
             using (SqlConnection conn = new SqlConnection(GetConnectionString()))
             {
                 conn.Open();
-                string sql = "SELECT Id, TenLoai, GiaTien, TrangThai FROM LoaiVe";
+                string sql = "SELECT Id, TenLoai, TrangThai, Detail FROM LoaiVe";
 
                 using (SqlCommand cmd = new SqlCommand(sql, conn))
                 using (SqlDataReader r = cmd.ExecuteReader())
@@ -402,7 +405,7 @@ namespace QuanLyGiuXe.Services
                         {
                             Id = r["Id"] != DBNull.Value ? Convert.ToInt32(r["Id"]) : 0,
                             TenLoaiThe = r["TenLoai"]?.ToString() ?? string.Empty,
-                            GiaTien = r["GiaTien"] != DBNull.Value ? Convert.ToDecimal(r["GiaTien"]) : 0m,
+                            GiaTien = 0m, // pricing moved to BangGia
                             TrangThai = r["TrangThai"]?.ToString() ?? string.Empty
                         });
                     }
@@ -417,12 +420,11 @@ namespace QuanLyGiuXe.Services
             using (SqlConnection conn = new SqlConnection(GetConnectionString()))
             {
                 conn.Open();
-                string sql = "INSERT INTO LoaiVe (TenLoai, GiaTien, TrangThai) VALUES (@ten, @gia, @trang)";
+                string sql = "INSERT INTO LoaiVe (TenLoai, TrangThai) VALUES (@ten, @trang)";
 
                 using (SqlCommand cmd = new SqlCommand(sql, conn))
                 {
                     cmd.Parameters.AddWithValue("@ten", tenLoaiThe ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@gia", giaTien);
                     cmd.Parameters.AddWithValue("@trang", trangThai ?? string.Empty);
                     cmd.ExecuteNonQuery();
                 }
@@ -434,12 +436,11 @@ namespace QuanLyGiuXe.Services
             using (SqlConnection conn = new SqlConnection(GetConnectionString()))
             {
                 conn.Open();
-                string sql = "UPDATE LoaiVe SET TenLoai=@ten, GiaTien=@gia, TrangThai=@trang WHERE Id=@id";
+                string sql = "UPDATE LoaiVe SET TenLoai=@ten, TrangThai=@trang WHERE Id=@id";
 
                 using (SqlCommand cmd = new SqlCommand(sql, conn))
                 {
                     cmd.Parameters.AddWithValue("@ten", tenLoaiThe ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@gia", giaTien);
                     cmd.Parameters.AddWithValue("@trang", trangThai ?? string.Empty);
                     cmd.Parameters.AddWithValue("@id", id);
                     cmd.ExecuteNonQuery();
@@ -471,7 +472,7 @@ namespace QuanLyGiuXe.Services
             using (SqlConnection conn = new SqlConnection(GetConnectionString()))
             {
                 conn.Open();
-                string sql = "SELECT Id, TenLoai, GiaTien, TrangThai FROM LoaiVe";
+                string sql = "SELECT Id, TenLoai, TrangThai, Detail FROM LoaiVe";
 
                 using (SqlCommand cmd = new SqlCommand(sql, conn))
                 using (SqlDataReader r = cmd.ExecuteReader())
@@ -482,8 +483,8 @@ namespace QuanLyGiuXe.Services
                         {
                             Id = r["Id"] != DBNull.Value ? Convert.ToInt32(r["Id"]) : 0,
                             TenLoai = r["TenLoai"]?.ToString() ?? string.Empty,
-                            GiaTien = r["GiaTien"] != DBNull.Value ? Convert.ToDecimal(r["GiaTien"]) : 0m,
-                            TrangThai = r["TrangThai"]?.ToString() ?? string.Empty
+                            TrangThai = r["TrangThai"]?.ToString() ?? string.Empty,
+                            Detail = r["Detail"]?.ToString() ?? string.Empty
                         });
                     }
                 }
@@ -492,35 +493,35 @@ namespace QuanLyGiuXe.Services
             return list;
         }
 
-        public void InsertLoaiVe(string tenLoaiVe, decimal giaTien, string trangThai)
+        public void InsertLoaiVe(string tenLoaiVe, string trangThai, string detail = null)
         {
             using (SqlConnection conn = new SqlConnection(GetConnectionString()))
             {
                 conn.Open();
-                string sql = "INSERT INTO LoaiVe (TenLoai, GiaTien, TrangThai) VALUES (@ten, @gia, @trang)";
+                string sql = "INSERT INTO LoaiVe (TenLoai, TrangThai, Detail) VALUES (@ten, @trang, @detail)";
 
                 using (SqlCommand cmd = new SqlCommand(sql, conn))
                 {
                     cmd.Parameters.AddWithValue("@ten", tenLoaiVe ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@gia", giaTien);
                     cmd.Parameters.AddWithValue("@trang", trangThai ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@detail", (object?)detail ?? DBNull.Value);
                     cmd.ExecuteNonQuery();
                 }
             }
         }
 
-        public void UpdateLoaiVe(int id, string tenLoaiVe, decimal giaTien, string trangThai)
+        public void UpdateLoaiVe(int id, string tenLoaiVe, string trangThai, string detail = null)
         {
             using (SqlConnection conn = new SqlConnection(GetConnectionString()))
             {
                 conn.Open();
-                string sql = "UPDATE LoaiVe SET TenLoai=@ten, GiaTien=@gia, TrangThai=@trang WHERE Id=@id";
+                string sql = "UPDATE LoaiVe SET TenLoai=@ten, TrangThai=@trang, Detail=@detail WHERE Id=@id";
 
                 using (SqlCommand cmd = new SqlCommand(sql, conn))
                 {
                     cmd.Parameters.AddWithValue("@ten", tenLoaiVe ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@gia", giaTien);
                     cmd.Parameters.AddWithValue("@trang", trangThai ?? string.Empty);
+                    cmd.Parameters.AddWithValue("@detail", (object?)detail ?? DBNull.Value);
                     cmd.Parameters.AddWithValue("@id", id);
                     cmd.ExecuteNonQuery();
                 }
