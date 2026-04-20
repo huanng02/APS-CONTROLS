@@ -16,41 +16,54 @@ namespace QuanLyGiuXe.Services
         {
             if (timeOut < timeIn) timeOut = timeIn;
 
-            // Determine LoaiVe name
-            string tenLoaiVe = string.Empty;
-            if (loaiVeId.HasValue && loaiVeId.Value > 0)
-            {
-                var lv = _db.GetLoaiVe().FirstOrDefault(x => x.Id == loaiVeId.Value);
-                tenLoaiVe = lv?.TenLoai ?? string.Empty;
-            }
-
-            if (!loaiXeId.HasValue || loaiXeId.Value <= 0 || !loaiVeId.HasValue)
+            // basic validation
+            if (!loaiXeId.HasValue || loaiXeId.Value <= 0 || !loaiVeId.HasValue || loaiVeId.Value <= 0)
                 return 0m;
 
             var bg = _bgRepo.GetByLoaiXeAndLoaiVe(loaiXeId.Value, loaiVeId.Value);
             if (bg == null)
                 return 0m;
 
-            var name = (tenLoaiVe ?? string.Empty).ToLowerInvariant();
-            var span = timeOut - timeIn;
-            var hours = (int)Math.Ceiling(span.TotalHours <= 0 ? 1 : span.TotalHours);
-            bool isOvernight = timeIn.Date != timeOut.Date;
+            // Monthly ticket
+            if (bg.GiaThang.HasValue && bg.GiaThang.Value > 0)
+                return bg.GiaThang.Value;
 
-            if (name.Contains("thang") || name.Contains("tháng"))
+            // Pricing zones
+            // DAY: 06:00 -> 19:59 (we treat end as 20:00 exclusive)
+            // NIGHT: 20:00 -> 05:59 (spans midnight)
+
+            var total = timeOut - timeIn;
+
+            // If duration > 30 minutes -> AUTO NIGHT price
+            if (total > TimeSpan.FromMinutes(30))
             {
-                return bg.GiaThang ?? 0m;
+                return bg.GiaQuaDem ?? 0m;
             }
 
-            if (name.Contains("vang") || name.Contains("vanglai") || name.Contains("vang lai"))
+            // duration <= 30 minutes -> split into day/night portions across covered dates
+            long dayTicks = 0;
+            var firstDate = timeIn.Date;
+            var lastDate = timeOut.Date;
+            for (var d = firstDate; d <= lastDate; d = d.AddDays(1))
             {
-                if (isOvernight && bg.GiaQuaDem.HasValue)
-                    return bg.GiaQuaDem.Value;
-                return (bg.GiaTheoGio ?? 0m) * hours;
+                var dayStart = d + new TimeSpan(6, 0, 0);
+                var dayEnd = d + new TimeSpan(20, 0, 0); // exclusive
+
+                var overlapStart = timeIn > dayStart ? timeIn : dayStart;
+                var overlapEnd = timeOut < dayEnd ? timeOut : dayEnd;
+                if (overlapEnd > overlapStart)
+                {
+                    dayTicks += (overlapEnd - overlapStart).Ticks;
+                }
             }
 
-            // fallback
-            if (isOvernight && bg.GiaQuaDem.HasValue) return bg.GiaQuaDem.Value;
-            return (bg.GiaTheoGio ?? 0m) * hours;
+            var daySpan = TimeSpan.FromTicks(dayTicks);
+            var nightSpan = total - daySpan;
+
+            // Compare durations: if day>night => DAY price, if night>=day => NIGHT price (night wins tie)
+            if (daySpan > nightSpan)
+                return bg.GiaTheoGio ?? 0m;
+            return bg.GiaQuaDem ?? 0m;
         }
     }
 }
