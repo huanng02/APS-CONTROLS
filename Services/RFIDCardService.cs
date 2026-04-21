@@ -37,6 +37,7 @@ namespace QuanLyGiuXe.Services
                 {
                     Id = r.Id,
                     CardUID = r.UID,
+                    CardName = r.CardName,
                     BienSo = r.BienSo,
                     LoaiVeId = r.LoaiVeId == 0 ? (int?)null : r.LoaiVeId,
                     LoaiXeId = r.LoaiXeId == 0 ? (int?)null : r.LoaiXeId,
@@ -81,6 +82,7 @@ namespace QuanLyGiuXe.Services
                 {
                     Id = r.Id,
                     CardUID = r.UID,
+                    CardName = r.CardName,
                     BienSo = r.BienSo,
                     LoaiVeId = r.LoaiVeId == 0 ? (int?)null : r.LoaiVeId,
                     LoaiXeId = r.LoaiXeId == 0 ? (int?)null : r.LoaiXeId,
@@ -104,7 +106,7 @@ namespace QuanLyGiuXe.Services
             var ngayDangKy = model.NgayDangKy ?? DateTime.Now;
             var ngayHetHan = model.NgayHetHan;
 
-            db.InsertRFIDCard(model.CardUID, model.BienSo ?? string.Empty, model.LoaiVeId ?? 0, model.LoaiXeId ?? 0, model.TrangThai ?? string.Empty, ngayDangKy, ngayHetHan);
+            db.InsertRFIDCard(model.CardUID, model.BienSo ?? string.Empty, model.CardName ?? string.Empty, model.LoaiVeId ?? 0, model.LoaiXeId ?? 0, model.TrangThai ?? string.Empty, ngayDangKy, ngayHetHan);
         }
 
         public void Update(RFIDCards model)
@@ -123,7 +125,7 @@ namespace QuanLyGiuXe.Services
             if (!string.Equals(existing.UID, model.CardUID, StringComparison.OrdinalIgnoreCase) && db.IsRFIDUidExists(model.CardUID))
                 throw new InvalidOperationException("CardUID đã tồn tại");
 
-            db.UpdateRFIDCard(model.Id, model.CardUID, model.BienSo ?? string.Empty, model.LoaiVeId ?? 0, model.LoaiXeId ?? 0, model.TrangThai ?? string.Empty, model.NgayDangKy, model.NgayHetHan);
+            db.UpdateRFIDCard(model.Id, model.CardUID, model.BienSo ?? string.Empty, model.CardName ?? string.Empty, model.LoaiVeId ?? 0, model.LoaiXeId ?? 0, model.TrangThai ?? string.Empty, model.NgayDangKy, model.NgayHetHan);
         }
 
         public void Delete(int id)
@@ -143,6 +145,7 @@ namespace QuanLyGiuXe.Services
             {
                 Id = found.Id,
                 CardUID = found.UID,
+                CardName = found.CardName,
                 BienSo = found.BienSo,
                 LoaiVeId = found.LoaiVeId == 0 ? (int?)null : found.LoaiVeId,
                 LoaiXeId = found.LoaiXeId == 0 ? (int?)null : found.LoaiXeId,

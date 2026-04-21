@@ -38,6 +38,15 @@
                                      PreviewTextInput="TxtCardUID_PreviewTextInput"
                                      ContextMenuOpening="TxtCardUID_ContextMenuOpening" />
                         </Grid>
+                        <Grid Margin="0,8,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="12" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Tên xe:" Grid.Column="0" VerticalAlignment="Center" />
+                            <TextBox Grid.Column="2" MinHeight="32" Text="{Binding CardName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        </Grid>
                     </StackPanel>
                 </Border>
 

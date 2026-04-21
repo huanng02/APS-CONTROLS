@@ -137,6 +137,7 @@
                                     <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="70"/>
                                     <DataGridTextColumn Header="Card UID" Binding="{Binding CardUID}" Width="150"/>
                                     <DataGridTextColumn Header="Biển số" Binding="{Binding BienSo}" Width="120"/>
+                                    <DataGridTextColumn Header="Tên xe" Binding="{Binding CardName}" Width="160"/>
                                     <DataGridTextColumn Header="Loại vé" Binding="{Binding LoaiVe}" Width="120"/>
                                     <DataGridTextColumn Header="Loại xe" Binding="{Binding LoaiXe}" Width="120"/>
                                     <DataGridTextColumn Header="Trạng thái" Binding="{Binding TrangThai}" Width="120"/>

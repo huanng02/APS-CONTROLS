@@ -11,6 +11,7 @@ namespace QuanLyGiuXe.Models
         public int Id { get; set; }
         public string CardUID { get; set; }
         public string BienSo { get; set; }
+        public string CardName { get; set; }
 
         public int? LoaiXeId { get; set; }
         public int? LoaiVeId { get; set; }

@@ -225,6 +225,7 @@ namespace QuanLyGiuXe.ViewModels
                     var toAdd = new QuanLyGiuXe.Models.RFIDCards
                     {
                         CardUID = vm.CardUID,
+                        CardName = vm.CardName,
                         BienSo = vm.BienSo,
                         LoaiXeId = vm.LoaiXeId ?? 0,
                         LoaiVeId = vm.LoaiVeId ?? (SelectedTab != null ? SelectedTab.Id : 0),
@@ -271,6 +272,7 @@ namespace QuanLyGiuXe.ViewModels
                         Id = vm.Id,
                         // preserve original CardUID (identity) — do not allow edits to UID
                         CardUID = target.CardUID,
+                        CardName = vm.CardName,
                         BienSo = vm.BienSo,
                         LoaiXeId = vm.LoaiXeId,
                         // if user did not select LoaiVe in wizard, keep the SelectedTab.Id as priority

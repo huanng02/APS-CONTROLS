@@ -261,6 +261,9 @@ namespace QuanLyGiuXe.ViewModels
         private string _bienSo;
         public string BienSo { get => _bienSo; set { _bienSo = value; OnPropertyChanged(nameof(BienSo)); } }
 
+        private string _cardName;
+        public string CardName { get => _cardName; set { _cardName = value; OnPropertyChanged(nameof(CardName)); } }
+
         private int? _loaiXeId;
         public int? LoaiXeId { get => _loaiXeId; set { _loaiXeId = value; OnPropertyChanged(nameof(LoaiXeId)); } }
 
@@ -333,6 +336,7 @@ namespace QuanLyGiuXe.ViewModels
             LoaiXeId = data.LoaiXeId;
             LoaiVeId = data.LoaiVeId;
             BienSo = data.BienSo;
+            CardName = data.CardName;
             NgayDangKy = data.NgayDangKy;
             NgayHetHan = data.NgayHetHan;
             TrangThai = data.TrangThai;
@@ -361,6 +365,7 @@ namespace QuanLyGiuXe.ViewModels
             OnPropertyChanged(nameof(LoaiVeList));
             OnPropertyChanged(nameof(GuestCardUID));
             OnPropertyChanged(nameof(MonthlyCardUID));
+            OnPropertyChanged(nameof(CardName));
             OnPropertyChanged(nameof(LoaiXeId));
             OnPropertyChanged(nameof(LoaiVeId));
             OnPropertyChanged(nameof(BienSo));
@@ -435,6 +440,7 @@ namespace QuanLyGiuXe.ViewModels
 
             LoaiXeList = new LoaiXeService().GetAll();
             LoaiVeList = new LoaiVeService().GetAll();
+            CardName = string.Empty;
         }
 
         private void UpdateNgayHetHan()
