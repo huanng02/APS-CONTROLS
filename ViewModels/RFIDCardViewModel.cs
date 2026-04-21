@@ -12,6 +12,41 @@ namespace QuanLyGiuXe.ViewModels
         private readonly RFIDCardService service = new RFIDCardService();
 
         public ObservableCollection<QuanLyGiuXe.Models.RFIDCards> Items { get; } = new ObservableCollection<QuanLyGiuXe.Models.RFIDCards>();
+        // tabs for LoaiVe
+        public ObservableCollection<LoaiVeTabViewModel> Tabs { get; } = new ObservableCollection<LoaiVeTabViewModel>();
+
+        private LoaiVeTabViewModel _selectedTab;
+        public LoaiVeTabViewModel SelectedTab
+        {
+            get => _selectedTab;
+            set
+            {
+                if (_selectedTab == value) return;
+                _selectedTab = value;
+                OnPropertyChanged(nameof(SelectedTab));
+                // inform convenience properties
+                OnPropertyChanged(nameof(IsAllTabSelected));
+                OnPropertyChanged(nameof(IsLoaiVeSelectable));
+                // load tab data into Items without reinitializing ViewModel
+                if (_selectedTab != null)
+                {
+                    // ensure tab has data
+                    if (_selectedTab.Items.Count == 0) _selectedTab.Load(service);
+                    Items.Clear();
+                    foreach (var it in _selectedTab.Items) Items.Add(it);
+                }
+            }
+        }
+
+        // Convenience: true when current tab is 'Tất cả' (Id == 0)
+        public bool IsAllTabSelected => SelectedTab != null && SelectedTab.Id == 0;
+
+        // LoaiVe is selectable only when on 'Tất cả' tab
+        public bool IsLoaiVeSelectable => IsAllTabSelected;
+
+        // When opening add form, provide DefaultLoaiVeId to form VM
+        private int? _defaultLoaiVeId;
+        public int? DefaultLoaiVeId { get => _defaultLoaiVeId; set { _defaultLoaiVeId = value; OnPropertyChanged(nameof(DefaultLoaiVeId)); } }
 
         private QuanLyGiuXe.Models.RFIDCards _selectedItem;
         public QuanLyGiuXe.Models.RFIDCards SelectedItem
@@ -59,6 +94,8 @@ namespace QuanLyGiuXe.ViewModels
         public RFIDCardViewModel()
         {
             LoadCommand = new RelayCommand(_ => Load());
+            // initialize tabs
+            InitTabs();
             AddCommand = new RelayCommand(_ => Add());
             UpdateCommand = new RelayCommand(param => Update(param));
             DeleteCommand = new RelayCommand(param => Delete(param));
@@ -68,6 +105,20 @@ namespace QuanLyGiuXe.ViewModels
             DownloadTemplateCommand = new RelayCommand(async _ => await DownloadTemplate());
             ExportCommand = new RelayCommand(_ => Export());
             Load();
+        }
+
+        private void InitTabs()
+        {
+            Tabs.Clear();
+            // 'Tất cả' tab id=0
+            Tabs.Add(new LoaiVeTabViewModel { Id = 0, Title = "Tất cả" });
+            var lvs = new LoaiVeService().GetAll();
+            foreach (var lv in lvs)
+            {
+                Tabs.Add(new LoaiVeTabViewModel { Id = lv.Id, Title = lv.TenLoai });
+            }
+            // default select first
+            SelectedTab = Tabs.Count > 0 ? Tabs[0] : null;
         }
 
 
@@ -115,13 +166,37 @@ namespace QuanLyGiuXe.ViewModels
         private void Load()
         {
             Items.Clear();
-            var list = service.GetAll();
-            foreach (var it in list) Items.Add(it);
+            // populate tabs data cache only if empty
+            foreach (var tab in Tabs)
+            {
+                if (tab.Items.Count == 0) tab.Load(service);
+            }
+
+            // set selected tab items into Items
+            if (SelectedTab != null)
+            {
+                Items.Clear();
+                foreach (var it in SelectedTab.Items) Items.Add(it);
+            }
+        }
+
+        // Refresh a single tab by id (0 = all)
+        private void RefreshTab(int loaiVeId)
+        {
+            var tab = Tabs.FirstOrDefault(t => t.Id == loaiVeId);
+            if (tab == null) return;
+            tab.Load(service);
+            // if refreshing current tab, update Items
+            if (SelectedTab != null && SelectedTab.Id == loaiVeId)
+            {
+                Items.Clear();
+                foreach (var it in SelectedTab.Items) Items.Add(it);
+            }
         }
 
         private void Add()
         {
-            // open modal add dialog using a wizard ViewModel and map back on save
+            // open wizard (multi-step) add dialog
             var model = new QuanLyGiuXe.Models.RFIDCards { CardUID = string.Empty, BienSo = string.Empty, TrangThai = "Active" };
 
             var vm = new RFIDCardWizardViewModel();
@@ -130,6 +205,11 @@ namespace QuanLyGiuXe.ViewModels
             vm.CardUID = model.CardUID;
             vm.BienSo = model.BienSo;
             vm.TrangThai = model.TrangThai;
+            // If current tab is specific, preselect that LoaiVe in wizard
+            if (SelectedTab != null && SelectedTab.Id > 0)
+            {
+                vm.LoaiVeId = SelectedTab.Id;
+            }
 
             var dlg = new Views.RFIDCardAddEditWindow(null) { Owner = System.Windows.Application.Current.MainWindow };
             dlg.DataContext = vm;
@@ -138,13 +218,12 @@ namespace QuanLyGiuXe.ViewModels
             {
                 try
                 {
-                    // map back from vm to model
                     var toAdd = new QuanLyGiuXe.Models.RFIDCards
                     {
                         CardUID = vm.CardUID,
                         BienSo = vm.BienSo,
                         LoaiXeId = vm.LoaiXeId ?? 0,
-                        LoaiVeId = vm.LoaiVeId ?? 0,
+                        LoaiVeId = vm.LoaiVeId ?? (SelectedTab != null ? SelectedTab.Id : 0),
                         NgayDangKy = vm.NgayDangKy,
                         NgayHetHan = vm.NgayHetHan,
                         TrangThai = vm.TrangThai
@@ -152,12 +231,16 @@ namespace QuanLyGiuXe.ViewModels
 
                     service.Add(toAdd);
                     System.Windows.MessageBox.Show("Thêm thành công", "Thông báo", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+
+                    int addedLoaiVe = toAdd.LoaiVeId ?? 0;
+                    int current = SelectedTab?.Id ?? 0;
+                    RefreshTab(addedLoaiVe);
+                    if (addedLoaiVe != current) RefreshTab(current);
                 }
                 catch (Exception ex)
                 {
                     System.Windows.MessageBox.Show($"Thêm thất bại: {ex.Message}", "Lỗi", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
                 }
-                Load();
             }
         }
 
@@ -186,11 +269,14 @@ namespace QuanLyGiuXe.ViewModels
                         CardUID = target.CardUID,
                         BienSo = vm.BienSo,
                         LoaiXeId = vm.LoaiXeId,
-                        LoaiVeId = vm.LoaiVeId,
+                        // if user did not select LoaiVe in wizard, keep the SelectedTab.Id as priority
+                        LoaiVeId = vm.LoaiVeId ?? (SelectedTab != null && SelectedTab.Id > 0 ? SelectedTab.Id : vm.LoaiVeId ?? 0),
                         NgayDangKy = vm.NgayDangKy,
                         NgayHetHan = vm.NgayHetHan,
                         TrangThai = vm.TrangThai
                     };
+                    // remember previous LoaiVe for refresh decisions
+                    int previousLoaiVe = target.LoaiVeId ?? 0;
                     service.Update(updated);
                     System.Windows.MessageBox.Show("Sửa thành công", "Thông báo", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
                 }
@@ -198,7 +284,11 @@ namespace QuanLyGiuXe.ViewModels
                 {
                     System.Windows.MessageBox.Show($"Cập nhật thất bại: {ex.Message}", "Lỗi", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
                 }
-                Load();
+                // refresh current tab and previous tab if LoaiVe moved
+                RefreshTab(SelectedTab?.Id ?? 0);
+                // if updated.LoaiVeId different from SelectedTab.Id, also refresh that tab
+                if (vm.LoaiVeId.HasValue && vm.LoaiVeId.Value != (SelectedTab?.Id ?? 0))
+                    RefreshTab(vm.LoaiVeId.Value);
             }
         }
 
@@ -222,7 +312,8 @@ namespace QuanLyGiuXe.ViewModels
                 System.Windows.MessageBox.Show("Xoá thất bại", "Lỗi", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             }
 
-            Load();
+            // refresh only the current tab
+            RefreshTab(SelectedTab?.Id ?? 0);
             Clear();
         }
 
