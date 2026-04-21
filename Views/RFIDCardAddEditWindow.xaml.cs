@@ -33,8 +33,44 @@ namespace QuanLyGiuXe.Views
                 vm.TrangThai = model.TrangThai;
                 this.DataContext = vm;
             }
-            // If model is null, caller (Update flow) should set DataContext to a preloaded ViewModel.
         }
+        private void TxtCardUID_PreviewTextInput(object sender, TextCompositionEventArgs e)
+        {
+            // block any manual text input
+            e.Handled = true;
+        }
+
+        private void TxtCardUID_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            try
+            {
+                // block paste via Ctrl+V or Shift+Insert
+                if ((Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control && e.Key == Key.V)
+                {
+                    e.Handled = true;
+                    return;
+                }
+                if ((Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift && e.Key == Key.Insert)
+                {
+                    e.Handled = true;
+                    return;
+                }
+                // allow navigation keys (Tab, arrows) so focus can move
+                if (e.Key == Key.Tab || e.Key == Key.Left || e.Key == Key.Right || e.Key == Key.Up || e.Key == Key.Down)
+                    return;
+
+                // otherwise block key input
+                e.Handled = true;
+            }
+            catch { e.Handled = true; }
+        }
+
+        private void TxtCardUID_ContextMenuOpening(object sender, ContextMenuEventArgs e)
+        {
+            // disable context menu to prevent paste
+            e.Handled = true;
+        }
+            // If model is null, caller (Update flow) should set DataContext to a preloaded ViewModel.
 
         private void RFIDCardAddEditWindow_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
@@ -98,13 +134,7 @@ namespace QuanLyGiuXe.Views
             // Forward selection change to ViewModel if available
             var vm = this.DataContext as ViewModels.RFIDCardWizardViewModel;
             if (vm == null) return;
-            // lists are bound; ViewModel handles step behavior via its properties; here we trigger step recalculation
-            if (vm.LoaiVeId.HasValue)
-            {
-                var item = _loaiVeService.GetAll().FirstOrDefault(x => x.Id == vm.LoaiVeId.Value);
-                bool isMonthly = item != null && ((item.TenLoai ?? string.Empty).ToLower().Contains("tháng") || (item.TenLoai ?? string.Empty).ToLower().Contains("thang"));
-                vm.CurrentStep = isMonthly ? 4 : 5;
-            }
+            // Keep method intentionally minimal for single-page layout. ViewModel should handle any business logic when LoaiVeId changes via binding.
         }
 
         // NgayDangKy -> NgayHetHan handled by ViewModel (binding)
@@ -114,27 +144,41 @@ namespace QuanLyGiuXe.Views
             // show message box for now
             MessageBox.Show(message, "Lỗi", MessageBoxButton.OK, MessageBoxImage.Warning);
         }
+
+        private void TxtCardUID_Loaded(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (sender is TextBox tb)
+                {
+                    // If in Add mode focus the textbox to allow fast scanner input
+                    var vm = this.DataContext as ViewModels.RFIDCardWizardViewModel;
+                    if (vm != null && vm.IsAddMode)
+                    {
+                        Dispatcher.BeginInvoke(new Action(() =>
+                        {
+                            tb.Focus();
+                            Keyboard.Focus(tb);
+                            tb.SelectAll();
+                        }));
+                    }
+                }
+            }
+            catch { }
+        }
         private void OnNext(object sender, RoutedEventArgs e)
         {
-            var vm = this.DataContext as ViewModels.RFIDCardWizardViewModel;
-            if (vm == null) { ShowInlineError("Internal error: ViewModel missing"); return; }
-            if (!vm.ValidateCurrentStep(out string err)) { ShowInlineError(err); return; }
-            if (vm.CurrentStep < vm.MaxStep) vm.CurrentStep++;
+            // No-op in single-page layout. Navigation handled by showing all sections.
         }
 
         private void OnBack(object sender, RoutedEventArgs e)
         {
-            var vm = this.DataContext as ViewModels.RFIDCardWizardViewModel;
-            if (vm == null) { ShowInlineError("Internal error: ViewModel missing"); return; }
-            if (vm.CurrentStep > 1) vm.CurrentStep--;
+            // No-op in single-page layout.
         }
 
         private void OnSave(object sender, RoutedEventArgs e)
         {
-            var vm = this.DataContext as ViewModels.RFIDCardWizardViewModel;
-            if (vm == null) { ShowInlineError("Internal error: ViewModel missing"); return; }
-            if (!vm.ValidateCurrentStep(out string err)) { ShowInlineError(err); return; }
-            // All validation passed; close dialog with success. Caller will persist.
+            // Prefer ViewModel SaveCommand. If caller wired button to this handler, close dialog positively.
             this.DialogResult = true;
             this.Close();
         }
@@ -147,12 +191,6 @@ namespace QuanLyGiuXe.Views
         private void Save_Click(object sender, RoutedEventArgs e)
         {
             // Save uses ViewModel data; no direct UI access
-            var vm = this.DataContext as ViewModels.RFIDCardWizardViewModel;
-            if (vm == null) { ShowInlineError("Internal error: ViewModel missing"); return; }
-            if (!vm.ValidateCurrentStep(out string err)) { ShowInlineError(err); return; }
-
-            // Map ViewModel back to model for caller
-            // Caller expects DialogResult == true and will read ViewModel to persist
             this.DialogResult = true;
             this.Close();
         }

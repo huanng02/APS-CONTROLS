@@ -11,104 +11,95 @@
 
     <Grid Margin="12">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- Step indicator -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="8,6" HorizontalAlignment="Center">
-            <TextBlock Text="Step:" FontWeight="Bold" Margin="0,0,6,0" />
-            <TextBlock Text="{Binding CurrentStep}" FontWeight="Bold" />
-            <TextBlock Text=" / " FontWeight="Bold" />
-            <TextBlock Text="{Binding MaxStep}" FontWeight="Bold" />
-        </StackPanel>
+        <!-- Single-page form: show all sections at once -->
+        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+            <StackPanel Orientation="Vertical" Margin="4">
+                <!-- Card / RFID section -->
+                <Border BorderBrush="#DDD" BorderThickness="1" Padding="10" CornerRadius="6">
+                    <StackPanel>
+                        <TextBlock Text="RFID / Card" FontWeight="Bold" Margin="0,0,0,8" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="12" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Card UID:" Grid.Column="0" VerticalAlignment="Center" />
+                            <TextBox x:Name="TxtCardUID" Grid.Column="2"
+                                     MinHeight="32"
+                                     Text="{Binding CardUID, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     IsReadOnly="True"
+                                     Loaded="TxtCardUID_Loaded"
+                                     PreviewKeyDown="TxtCardUID_PreviewKeyDown"
+                                     PreviewTextInput="TxtCardUID_PreviewTextInput"
+                                     ContextMenuOpening="TxtCardUID_ContextMenuOpening" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
 
-        <!-- Steps area: only one step visible at a time -->
-        <Grid Grid.Row="1" Margin="8">
-            <!-- STEP 1 -->
-            <Grid Visibility="{Binding IsStep1, Converter={StaticResource BoolToVisibility}}">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="12" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <TextBlock Text="Card UID:" Grid.Column="0" VerticalAlignment="Center" />
-                <TextBox x:Name="TxtCardUID" Grid.Column="2"
-                         MinHeight="32"
-                         Text="{Binding CardUID, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                         IsReadOnly="{Binding IsEditMode}" />
-            </Grid>
+                <!-- Vehicle type and Ticket type in one row for compact layout -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Stretch">
+                    <Border BorderBrush="#DDD" BorderThickness="1" Padding="10" CornerRadius="6" Width="280">
+                        <StackPanel>
+                            <TextBlock Text="Loại xe" FontWeight="Bold" Margin="0,0,0,8" />
+                            <ComboBox MinHeight="32" ItemsSource="{Binding LoaiXeList}" DisplayMemberPath="TenLoai" SelectedValuePath="Id" SelectedValue="{Binding LoaiXeId, Mode=TwoWay}" />
+                        </StackPanel>
+                    </Border>
 
-            <!-- STEP 2 -->
-            <Grid Visibility="{Binding IsStep2, Converter={StaticResource BoolToVisibility}}">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="12" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <TextBlock Text="Loại xe:" Grid.Column="0" VerticalAlignment="Center" />
-                <ComboBox Grid.Column="2" MinHeight="32" ItemsSource="{Binding LoaiXeList}" DisplayMemberPath="TenLoai" SelectedValuePath="Id" SelectedValue="{Binding LoaiXeId, Mode=TwoWay}" />
-            </Grid>
-
-            <!-- STEP 3 -->
-            <Grid Visibility="{Binding IsStep3, Converter={StaticResource BoolToVisibility}}">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="12" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <TextBlock Text="Loại vé:" Grid.Column="0" VerticalAlignment="Center" />
-                <ComboBox Grid.Column="2" MinHeight="32" ItemsSource="{Binding LoaiVeList}" DisplayMemberPath="TenLoai" SelectedValuePath="Id" SelectedValue="{Binding LoaiVeId, Mode=TwoWay}" />
-            </Grid>
-
-            <!-- STEP 4 -->
-            <Grid Visibility="{Binding ShowStep4, Converter={StaticResource BoolToVisibility}}">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="12" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-
-                <StackPanel Grid.Column="0" Grid.ColumnSpan="3" Orientation="Vertical">
-                    <Grid Margin="0,0,0,8">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="12" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="Biển số:" Grid.Column="0" VerticalAlignment="Center" />
-                        <TextBox Grid.Column="2" MinHeight="32" Text="{Binding BienSo, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                    </Grid>
-
-                    <Grid Margin="0,0,0,8">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="12" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="Ngày đăng ký:" Grid.Column="0" VerticalAlignment="Center" />
-                        <DatePicker Grid.Column="2" SelectedDate="{Binding NgayDangKy, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                    </Grid>
-
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="12" />
-                            <ColumnDefinition Width="*" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="Ngày hết hạn:" Grid.Column="0" VerticalAlignment="Center" />
-                        <DatePicker Grid.Column="2" SelectedDate="{Binding NgayHetHan}" IsEnabled="False" />
-                    </Grid>
+                    <Border BorderBrush="#DDD" BorderThickness="1" Padding="10" CornerRadius="6" Width="280">
+                        <StackPanel>
+                            <TextBlock Text="Loại vé" FontWeight="Bold" Margin="0,0,0,8" />
+                            <ComboBox MinHeight="32" ItemsSource="{Binding LoaiVeFiltered}" DisplayMemberPath="TenLoai" SelectedValuePath="Id" SelectedValue="{Binding LoaiVeId, Mode=TwoWay}" IsEnabled="{Binding CanChangeLoaiVe}" />
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
-            </Grid>
-        </Grid>
+
+                <!-- Details section (plate, dates) -->
+                <Border BorderBrush="#DDD" BorderThickness="1" Padding="10" CornerRadius="6" Visibility="{Binding IsMonthlyTicket, Converter={StaticResource BoolToVisibility}}">
+                    <StackPanel>
+                        <TextBlock Text="Chi tiết vé" FontWeight="Bold" Margin="0,0,0,8" />
+
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="12" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Biển số:" Grid.Column="0" VerticalAlignment="Center" />
+                            <TextBox Grid.Column="2" MinHeight="32" Text="{Binding BienSo, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        </Grid>
+
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="12" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Ngày đăng ký:" Grid.Column="0" VerticalAlignment="Center" />
+                            <DatePicker Grid.Column="2" SelectedDate="{Binding NgayDangKy, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        </Grid>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="12" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Ngày hết hạn:" Grid.Column="0" VerticalAlignment="Center" />
+                            <DatePicker Grid.Column="2" SelectedDate="{Binding NgayHetHan}" IsEnabled="False" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
 
         <!-- Action buttons fixed at bottom -->
-        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
-            <Button Content="Back" Width="90" Margin="0,0,8,0" Command="{Binding BackCommand}" Visibility="{Binding CanGoBack, Converter={StaticResource BoolToVisibility}}" />
-            <Button Content="Next" Width="90" Margin="0,0,8,0" Command="{Binding NextCommand}" Visibility="{Binding IsLastStep, Converter={StaticResource InverseBoolToVisibility}}" />
-            <Button Content="Save" Width="100" Margin="0,0,8,0" Command="{Binding SaveCommand}" Visibility="{Binding IsLastStep, Converter={StaticResource BoolToVisibility}}" />
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+            <Button Content="Save" Width="100" Margin="0,0,8,0" Command="{Binding SaveCommand}" />
             <Button Content="Cancel" Width="100" Command="{Binding CancelCommand}" />
         </StackPanel>
     </Grid>

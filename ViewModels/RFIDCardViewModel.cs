@@ -26,6 +26,7 @@ namespace QuanLyGiuXe.ViewModels
                 OnPropertyChanged(nameof(SelectedTab));
                 // inform convenience properties
                 OnPropertyChanged(nameof(IsAllTabSelected));
+                OnPropertyChanged(nameof(CanAdd));
                 OnPropertyChanged(nameof(IsLoaiVeSelectable));
                 // load tab data into Items without reinitializing ViewModel
                 if (_selectedTab != null)
@@ -43,6 +44,9 @@ namespace QuanLyGiuXe.ViewModels
 
         // LoaiVe is selectable only when on 'Tất cả' tab
         public bool IsLoaiVeSelectable => IsAllTabSelected;
+
+        // Whether Add button should be enabled. Disable when current tab is 'Tất cả'.
+        public bool CanAdd => !IsAllTabSelected;
 
         // When opening add form, provide DefaultLoaiVeId to form VM
         private int? _defaultLoaiVeId;

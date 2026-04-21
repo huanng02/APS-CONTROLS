@@ -5,6 +5,9 @@
 
     <UserControl.Resources>
 
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+
+
         <!-- Button style -->
         <Style TargetType="Button">
             <Setter Property="Height" Value="34"/>
@@ -87,7 +90,8 @@
                             <!-- Toolbar -->
                             <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Margin="0,0,0,10">
                                 <Button Content="➕ Thêm"
-                                        Command="{Binding DataContext.AddCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                        Command="{Binding DataContext.AddCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        Visibility="{Binding DataContext.CanAdd, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVis}}"/>
 
                                 <Button Content="🗑 Selected"
                                         Background="#EF4444"
