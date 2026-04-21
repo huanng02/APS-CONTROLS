@@ -86,7 +86,10 @@ namespace QuanLyGiuXe.Services
         }
 
         // Preview excel rows and return list of ImportPreviewRow
-        public List<ImportPreviewRow> PreviewFromExcel(string path)
+        // activeLoaiVeId: when provided (>0) means the import UI was opened from a specific LoaiVe tab
+        // - if activeLoaiVeId > 0: all preview rows will be assigned this LoaiVe and any file LoaiVe that differs will be treated as Error
+        // - if activeLoaiVeId == 0 (All tab): file must contain LoaiVe; rows without LoaiVe will be marked Error
+        public List<ImportPreviewRow> PreviewFromExcel(string path, int? activeLoaiVeId = null)
         {
             var result = new List<ImportPreviewRow>();
             if (!File.Exists(path)) return result;
@@ -177,13 +180,13 @@ namespace QuanLyGiuXe.Services
                             }
                         }
 
-                        // map LoaiVe
+                        // map LoaiVe (file-provided)
                         var nv = ImportNormalization.Normalize(ipr.LoaiVe);
-                        if (dictVe.TryGetValue(nv, out var lvid))
+                        if (!string.IsNullOrWhiteSpace(nv) && dictVe.TryGetValue(nv, out var lvid))
                         {
                             ipr.MappedLoaiVeId = lvid;
                         }
-                        else
+                        else if (!string.IsNullOrWhiteSpace(nv))
                         {
                             int best = int.MaxValue; string bestKey = null; int bestId = 0;
                             foreach (var kv in dictVe)
@@ -199,8 +202,8 @@ namespace QuanLyGiuXe.Services
                             }
                             else
                             {
-                                ipr.Status = "Error"; ipr.Message = (string.IsNullOrEmpty(ipr.Message) ? "" : ipr.Message + "; ") + "LoaiVe not recognized";
-                                result.Add(ipr); continue;
+                                // keep as unrecognized for now; will be handled below depending on activeLoaiVeId
+                                ipr.MappedLoaiVeId = null;
                             }
                         }
 
@@ -225,6 +228,34 @@ namespace QuanLyGiuXe.Services
                             }
                         }
                         catch { }
+
+                        // If import window was opened from a specific LoaiVe tab, enforce business rule:
+                        if (activeLoaiVeId.HasValue && activeLoaiVeId.Value > 0)
+                        {
+                            // If file provided a LoaiVe different from the active tab -> mark Error
+                            if (ipr.MappedLoaiVeId.HasValue && ipr.MappedLoaiVeId.Value != activeLoaiVeId.Value)
+                            {
+                                ipr.Status = "Error";
+                                ipr.Message = "File LoaiVe does not match selected tab" + (string.IsNullOrEmpty(ipr.Message) ? "" : "; " + ipr.Message);
+                                result.Add(ipr); continue;
+                            }
+
+                            // assign active tab LoaiVe to all rows
+                            ipr.MappedLoaiVeId = activeLoaiVeId.Value;
+                            // if previously unrecognized, mark AutoFix/Note
+                            if (string.IsNullOrEmpty(ipr.Message)) ipr.Message = $"Assigned LoaiVe from selected tab (Id={activeLoaiVeId.Value})";
+                            else ipr.Message = $"Assigned LoaiVe from selected tab (Id={activeLoaiVeId.Value}); " + ipr.Message;
+                        }
+                        else
+                        {
+                            // active tab is ALL: require file to specify a recognizable LoaiVe
+                            if (!ipr.MappedLoaiVeId.HasValue)
+                            {
+                                ipr.Status = "Error";
+                                ipr.Message = "Missing or unrecognized LoaiVe and importing from 'All' tab requires LoaiVe in file" + (string.IsNullOrEmpty(ipr.Message) ? "" : "; " + ipr.Message);
+                                result.Add(ipr); continue;
+                            }
+                        }
 
                         // duplicate in DB
                         var exists = _db.IsRFIDUidExists(ipr.CardUID);
@@ -320,7 +351,8 @@ namespace QuanLyGiuXe.Services
         }
 
         // Export DB to Excel (formatting)
-        public void ExportToExcel(string path)
+        // ExportToExcel: if activeLoaiVeId has a value (>0) export only cards with that LoaiVeId
+        public void ExportToExcel(string path, int? activeLoaiVeId = null)
         {
             // Column mapping (fixed schema)
             const int COL_UID = 1;
@@ -333,6 +365,11 @@ namespace QuanLyGiuXe.Services
 
             // Get raw RFIDCard records from DB and resolve display names for LoaiXe/LoaiVe
             var raw = _db.GetRFIDCards();
+            // If a specific LoaiVe tab is active, filter to that LoaiVeId
+            if (activeLoaiVeId.HasValue && activeLoaiVeId.Value > 0)
+            {
+                raw = raw.Where(x => x.LoaiVeId == activeLoaiVeId.Value).ToList();
+            }
             var loaiXeLookup = _db.GetLoaiXe().ToDictionary(x => x.Id, x => x.TenLoai ?? string.Empty);
             var loaiVeLookup = _db.GetLoaiVe().ToDictionary(x => x.Id, x => x.TenLoai ?? string.Empty);
             // Project to an export-friendly anonymous type with consistent fields

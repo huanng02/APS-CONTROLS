@@ -14,6 +14,8 @@ namespace QuanLyGiuXe.Views
         private string _path;
         private readonly ImportExportService _svc = new ImportExportService();
         private List<ImportPreviewRow> _preview = new List<ImportPreviewRow>();
+        // If set (>0), import will be treated as coming from a specific LoaiVe tab
+        public int? ActiveLoaiVeId { get; set; }
 
         public RFIDImportWindow()
         {
@@ -51,7 +53,7 @@ namespace QuanLyGiuXe.Views
             ProgressBar.Value = 0;
             TxtStats.Text = "Loading...";
 
-            await Task.Run(() => { _preview = _svc.PreviewFromExcel(_path); });
+            await Task.Run(() => { _preview = _svc.PreviewFromExcel(_path, ActiveLoaiVeId); });
 
             PreviewGrid.ItemsSource = _preview;
             int total = _preview.Count;

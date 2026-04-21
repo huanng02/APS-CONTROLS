@@ -136,7 +136,8 @@ namespace QuanLyGiuXe.ViewModels
                 if (dlg.ShowDialog() == true)
                 {
                     var svc = new ImportExportService();
-                    svc.ExportToExcel(dlg.FileName);
+                    int? selectedLoaiVe = SelectedTab != null && SelectedTab.Id > 0 ? SelectedTab.Id : (int?)null;
+                    svc.ExportToExcel(dlg.FileName, selectedLoaiVe);
                     System.Windows.MessageBox.Show("Export hoàn tất", "Thông báo", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
                 }
             }
