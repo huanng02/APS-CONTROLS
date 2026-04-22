@@ -21,8 +21,8 @@ namespace QuanLyGiuXe.Services
             using (var sql = new SqlConnection(conn))
             {
                 sql.Open();
-                //string dayExpr = _db.GetBangGiaDaySelectExpression();
-                string q = $"SELECT Id, LoaiXeId, LoaiVeId, GiaBanNgay, GiaQuaDem, GiaThang, TrangThai FROM dbo.BangGia ORDER BY Id";
+                string dayExpr = _db.GetBangGiaDaySelectExpression();
+                string q = $"SELECT Id, LoaiXeId, LoaiVeId, {dayExpr}, GiaQuaDem, GiaThang, TrangThai FROM dbo.BangGia ORDER BY Id";
                 using (var cmd = new SqlCommand(q, sql))
                 using (var r = cmd.ExecuteReader())
                 {
