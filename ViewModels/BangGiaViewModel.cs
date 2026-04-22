@@ -40,15 +40,15 @@ namespace QuanLyGiuXe.ViewModels
             else if (Selected != null) target = Selected;
             if (target == null) return;
 
-            var model = new BangGia { Id = target.Id, LoaiXeId = target.LoaiXeId, GiaTheoGio = target.GiaTheoGio, GiaQuaDem = target.GiaQuaDem, TrangThai = target.TrangThai };
+            var model = new BangGia { Id = target.Id, LoaiXeId = target.LoaiXeId, GiaBanNgay = target.GiaBanNgay, GiaQuaDem = target.GiaQuaDem, TrangThai = target.TrangThai };
             var dlg = new Views.GenericAddEditWindow(model) { Owner = System.Windows.Application.Current.MainWindow };
             var result = dlg.ShowDialog();
             if (result == true)
             {
                 // validate
-                if (!model.GiaTheoGio.HasValue || model.GiaTheoGio.Value <= 0)
+                if (!model.GiaBanNgay.HasValue || model.GiaBanNgay.Value <= 0)
                 {
-                    System.Windows.MessageBox.Show("GiaTheoGio phải > 0", "Lỗi", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                    System.Windows.MessageBox.Show("Giá ban ngày phải > 0", "Lỗi", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
                     return;
                 }
                 if (!model.GiaQuaDem.HasValue || model.GiaQuaDem.Value < 0)
@@ -59,7 +59,7 @@ namespace QuanLyGiuXe.ViewModels
 
                 try
                 {
-                    service.UpdateGia(model.Id, model.GiaTheoGio.Value, model.GiaQuaDem.Value);
+                    service.UpdateGia(model.Id, model.GiaBanNgay.Value, model.GiaQuaDem.Value);
                     System.Windows.MessageBox.Show("Cập nhật giá thành công", "Thông báo", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
                 }
                 catch (Exception ex)

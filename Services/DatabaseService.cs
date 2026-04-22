@@ -97,8 +97,8 @@ namespace QuanLyGiuXe.Services
         /// <summary>
         /// Calculate parking fee based on vehicle type, ticket type and duration.
         /// - If LoaiVe indicates a monthly/subscription type => returns 0.
-        /// - Otherwise uses BangGia.GiaTheoGio for the given LoaiXeId. Falls back to 5000/hour if not configured.
-        /// Duration rounding: Math.Ceiling(totalHours)
+        /// - Otherwise uses BangGia.GiaBanNgay for the given LoaiXeId. Falls back to 5000/hour if not configured.
+        /// Duration rounding: Math.Ceiling(totalHours)F
         /// </summary>
         public double TinhTien(int? loaiXeId, int? loaiVeId, TimeSpan duration)
         {
@@ -135,8 +135,8 @@ namespace QuanLyGiuXe.Services
                     // fallback to a default entry (LoaiXeId == 0) or first available
                     selected = rates.FirstOrDefault(r => r.LoaiXeId == 0) ?? rates.FirstOrDefault();
                 }
-                if (selected != null && selected.GiaTheoGio.HasValue)
-                    rate = Convert.ToDouble(selected.GiaTheoGio.Value);
+                if (selected != null && selected.GiaBanNgay.HasValue)
+                    rate = Convert.ToDouble(selected.GiaBanNgay.Value);
 
                 double hours = Math.Ceiling(duration.TotalHours <= 0 ? 1 : duration.TotalHours);
                 return rate * hours;
@@ -151,6 +151,69 @@ namespace QuanLyGiuXe.Services
 
         // Expose working connection string for UI components
         public string GetConnectionString() => GetWorkingConnection();
+
+        // Cache for column existence checks to avoid repeated metadata queries
+        private readonly Dictionary<string, bool> _columnExistsCache = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+
+        // Check whether a column exists in a table. tableName may be 'BangGia' or 'dbo.BangGia'.
+        public bool ColumnExistsInTable(string tableName, string columnName)
+        {
+            if (string.IsNullOrWhiteSpace(tableName) || string.IsNullOrWhiteSpace(columnName)) return false;
+
+            // normalize
+            string schema = "dbo";
+            string table = tableName;
+            if (tableName.Contains('.'))
+            {
+                var parts = tableName.Split(new[] {'.'}, 2);
+                schema = parts[0].Trim('[', ']');
+                table = parts[1].Trim('[', ']');
+            }
+
+            string cacheKey = $"{schema}.{table}.{columnName}";
+            lock (_columnExistsCache)
+            {
+                if (_columnExistsCache.TryGetValue(cacheKey, out var cached)) return cached;
+            }
+
+            bool exists = false;
+            string conn = GetWorkingConnection();
+            using (var sql = new SqlConnection(conn))
+            {
+                sql.Open();
+                const string q = @"SELECT COUNT(1) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = @table AND COLUMN_NAME = @col";
+                using (var cmd = new SqlCommand(q, sql))
+                {
+                    cmd.Parameters.AddWithValue("@schema", schema);
+                    cmd.Parameters.AddWithValue("@table", table);
+                    cmd.Parameters.AddWithValue("@col", columnName);
+                    var v = cmd.ExecuteScalar();
+                    exists = Convert.ToInt32(v) > 0;
+                }
+            }
+
+            lock (_columnExistsCache)
+            {
+                _columnExistsCache[cacheKey] = exists;
+            }
+
+            return exists;
+        }
+
+        // Helpers specific to BangGia daylight column. Returns actual column name in DB (GiaBanNgay or legacy GiaBanNgay).
+        public string GetBangGiaDayColumnName()
+        {
+            if (ColumnExistsInTable("BangGia", "GiaBanNgay")) return "GiaBanNgay";
+            // not found; throw to make caller handle explicit error
+            throw new InvalidOperationException("Neither 'GiaBanNgay' nor legacy 'GiaBanNgay' column exists in table dbo.BangGia.");
+        }
+
+        // Returns SQL select expression for the daytime price, always aliased to GiaBanNgay so callers can read r["GiaBanNgay"] reliably.
+        public string GetBangGiaDaySelectExpression()
+        {
+            if (ColumnExistsInTable("BangGia", "GiaBanNgay")) return "[GiaBanNgay]";
+            throw new InvalidOperationException("Neither 'GiaBanNgay' nor legacy 'GiaBanNgay' column exists in table dbo.BangGia.");
+        }
 
         public RFIDCard GetRFIDCardByUid(string uid)
         {
@@ -288,7 +351,8 @@ namespace QuanLyGiuXe.Services
             using (SqlConnection conn = new SqlConnection(conn_string))
             {
                 conn.Open();
-                string sql = "SELECT Id, LoaiXeId, LoaiVeId, GiaTheoGio, GiaQuaDem, GiaThang, TrangThai FROM dbo.BangGia";
+                string dayExpr = GetBangGiaDaySelectExpression();
+                string sql = $"SELECT Id, LoaiXeId, LoaiVeId, {dayExpr}, GiaQuaDem, GiaThang, TrangThai FROM dbo.BangGia";
                 using (SqlCommand cmd = new SqlCommand(sql, conn))
                 using (SqlDataReader r = cmd.ExecuteReader())
                 {
@@ -299,7 +363,7 @@ namespace QuanLyGiuXe.Services
                             Id = r["Id"] != DBNull.Value ? Convert.ToInt32(r["Id"]) : 0,
                             LoaiXeId = r["LoaiXeId"] != DBNull.Value ? Convert.ToInt32(r["LoaiXeId"]) : 0,
                             LoaiVeId = r["LoaiVeId"] != DBNull.Value ? Convert.ToInt32(r["LoaiVeId"]) : 0,
-                            GiaTheoGio = r["GiaTheoGio"] != DBNull.Value ? (decimal?)Convert.ToDecimal(r["GiaTheoGio"]) : null,
+                            GiaBanNgay = r["GiaBanNgay"] != DBNull.Value ? (decimal?)Convert.ToDecimal(r["GiaBanNgay"]) : null,
                             GiaQuaDem = r["GiaQuaDem"] != DBNull.Value ? (decimal?)Convert.ToDecimal(r["GiaQuaDem"]) : null,
                             GiaThang = r["GiaThang"] != DBNull.Value ? (decimal?)Convert.ToDecimal(r["GiaThang"]) : null,
                             TrangThai = r["TrangThai"]?.ToString() ?? string.Empty
@@ -311,16 +375,17 @@ namespace QuanLyGiuXe.Services
             return list;
         }
 
-        public void UpdateBangGia(int id, decimal? giaTheoGio, decimal? giaQuaDem, decimal? giaThang = null)
+        public void UpdateBangGia(int id, decimal? giaBanNgay, decimal? giaQuaDem, decimal? giaThang = null)
         {
             string conn_string = GetWorkingConnection();
             using (SqlConnection conn = new SqlConnection(conn_string))
             {
                 conn.Open();
-                string sql = "UPDATE dbo.BangGia SET GiaTheoGio=@g1, GiaQuaDem=@g2, GiaThang=@gt WHERE Id=@id";
+                string dayCol = GetBangGiaDayColumnName();
+                string sql = $"UPDATE dbo.BangGia SET {dayCol}=@g1, GiaQuaDem=@g2, GiaThang=@gt WHERE Id=@id";
                 using (SqlCommand cmd = new SqlCommand(sql, conn))
                 {
-                    cmd.Parameters.AddWithValue("@g1", (object?)giaTheoGio ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@g1", (object?)giaBanNgay ?? DBNull.Value);
                     cmd.Parameters.AddWithValue("@g2", (object?)giaQuaDem ?? DBNull.Value);
                     cmd.Parameters.AddWithValue("@gt", (object?)giaThang ?? DBNull.Value);
                     cmd.Parameters.AddWithValue("@id", id);

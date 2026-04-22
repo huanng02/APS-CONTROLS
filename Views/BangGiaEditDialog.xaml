@@ -19,8 +19,8 @@
 
         <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,8,0,0">
             <StackPanel Orientation="Vertical" Width="200">
-                <TextBlock Text="Giá theo giờ" />
-                <TextBox x:Name="tbGiaTheoGio" />
+                <TextBlock Text="Giá ban ngày" />
+                <TextBox x:Name="tbGiaBanNgay" />
             </StackPanel>
             <StackPanel Orientation="Vertical" Width="180" Margin="12,0,0,0">
                 <TextBlock Text="Giá qua đêm" />

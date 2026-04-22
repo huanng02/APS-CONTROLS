@@ -13,13 +13,14 @@ namespace QuanLyGiuXe.Models
         public int LoaiVeId { get; set; }
 
         // Use decimal for money
-        public decimal? GiaTheoGio { get; set; }
+        // Renamed: giaBanNgay -> GiaBanNgay (represents daytime price 06:00-20:00)
+        public decimal? GiaBanNgay { get; set; }
         public decimal? GiaQuaDem { get; set; }
         public decimal? GiaThang { get; set; }
 
-        public string TrangThai { get; set; }
+        public string TrangThai { get; set; } = string.Empty;
         // UI helpers
-        public string LoaiXe { get; set; }
-        public string LoaiVe { get; set; }
+        public string LoaiXe { get; set; } = string.Empty;
+        public string LoaiVe { get; set; } = string.Empty;
     }
 }

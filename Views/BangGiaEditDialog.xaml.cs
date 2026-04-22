@@ -17,14 +17,14 @@ namespace QuanLyGiuXe.Views
             {
                 Id = model.Id,
                 LoaiXeId = model.LoaiXeId,
-                GiaTheoGio = model.GiaTheoGio,
+                GiaBanNgay = model.GiaBanNgay,
                 GiaQuaDem = model.GiaQuaDem,
                 TrangThai = model.TrangThai,
                 LoaiXe = model.LoaiXe
             };
 
             tbLoaiXe.Text = _model.LoaiXe;
-            tbGiaTheoGio.Text = _model.GiaTheoGio?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
+            tbGiaBanNgay.Text = _model.GiaBanNgay?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
             tbGiaQuaDem.Text = _model.GiaQuaDem?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
 
             this.Owner = Application.Current.MainWindow;
@@ -33,9 +33,9 @@ namespace QuanLyGiuXe.Views
 
         private void Save_Click(object sender, RoutedEventArgs e)
         {
-            if (!decimal.TryParse(tbGiaTheoGio.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out var g1) || g1 <= 0)
+            if (!decimal.TryParse(tbGiaBanNgay.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out var g1) || g1 <= 0)
             {
-                MessageBox.Show("Giá theo giờ phải lớn hơn 0", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Giá ban ngày phải lớn hơn 0", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
             if (!decimal.TryParse(tbGiaQuaDem.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out var g2) || g2 < 0)
@@ -44,7 +44,7 @@ namespace QuanLyGiuXe.Views
                 return;
             }
 
-            _model.GiaTheoGio = g1;
+            _model.GiaBanNgay = g1;
             _model.GiaQuaDem = g2;
 
             try

@@ -21,7 +21,8 @@ namespace QuanLyGiuXe.Services
             using (var sql = new SqlConnection(conn))
             {
                 sql.Open();
-                const string q = "SELECT Id, LoaiXeId, LoaiVeId, GiaTheoGio, GiaQuaDem, GiaThang, TrangThai FROM dbo.BangGia ORDER BY Id";
+                //string dayExpr = _db.GetBangGiaDaySelectExpression();
+                string q = $"SELECT Id, LoaiXeId, LoaiVeId, GiaBanNgay, GiaQuaDem, GiaThang, TrangThai FROM dbo.BangGia ORDER BY Id";
                 using (var cmd = new SqlCommand(q, sql))
                 using (var r = cmd.ExecuteReader())
                 {
@@ -32,7 +33,7 @@ namespace QuanLyGiuXe.Services
                             Id = r["Id"] != DBNull.Value ? Convert.ToInt32(r["Id"]) : 0,
                             LoaiXeId = r["LoaiXeId"] != DBNull.Value ? Convert.ToInt32(r["LoaiXeId"]) : 0,
                             LoaiVeId = r["LoaiVeId"] != DBNull.Value ? Convert.ToInt32(r["LoaiVeId"]) : 0,
-                            GiaTheoGio = r["GiaTheoGio"] != DBNull.Value ? (decimal?)Convert.ToDecimal(r["GiaTheoGio"]) : null,
+                            GiaBanNgay = r["GiaBanNgay"] != DBNull.Value ? (decimal?)Convert.ToDecimal(r["GiaBanNgay"]) : null,
                             GiaQuaDem = r["GiaQuaDem"] != DBNull.Value ? (decimal?)Convert.ToDecimal(r["GiaQuaDem"]) : null,
                             GiaThang = r["GiaThang"] != DBNull.Value ? (decimal?)Convert.ToDecimal(r["GiaThang"]) : null,
                             TrangThai = r["TrangThai"]?.ToString() ?? string.Empty
@@ -53,7 +54,8 @@ namespace QuanLyGiuXe.Services
             using (var sql = new SqlConnection(conn))
             {
                 sql.Open();
-                const string q = "SELECT Id, LoaiXeId, LoaiVeId, GiaTheoGio, GiaQuaDem, GiaThang, TrangThai FROM dbo.BangGia WHERE Id = @id";
+                string dayExpr = _db.GetBangGiaDaySelectExpression();
+                string q = $"SELECT Id, LoaiXeId, LoaiVeId, {dayExpr}, GiaQuaDem, GiaThang, TrangThai FROM dbo.BangGia WHERE Id = @id";
                 using (var cmd = new SqlCommand(q, sql))
                 {
                     cmd.Parameters.AddWithValue("@id", id);
@@ -66,7 +68,7 @@ namespace QuanLyGiuXe.Services
                                 Id = r["Id"] != DBNull.Value ? Convert.ToInt32(r["Id"]) : 0,
                                 LoaiXeId = r["LoaiXeId"] != DBNull.Value ? Convert.ToInt32(r["LoaiXeId"]) : 0,
                                 LoaiVeId = r["LoaiVeId"] != DBNull.Value ? Convert.ToInt32(r["LoaiVeId"]) : 0,
-                                GiaTheoGio = r["GiaTheoGio"] != DBNull.Value ? (decimal?)Convert.ToDecimal(r["GiaTheoGio"]) : null,
+                                GiaBanNgay = r["GiaBanNgay"] != DBNull.Value ? (decimal?)Convert.ToDecimal(r["GiaBanNgay"]) : null,
                                 GiaQuaDem = r["GiaQuaDem"] != DBNull.Value ? (decimal?)Convert.ToDecimal(r["GiaQuaDem"]) : null,
                                 GiaThang = r["GiaThang"] != DBNull.Value ? (decimal?)Convert.ToDecimal(r["GiaThang"]) : null,
                                 TrangThai = r["TrangThai"]?.ToString() ?? string.Empty
@@ -88,7 +90,8 @@ namespace QuanLyGiuXe.Services
             using (var sql = new SqlConnection(conn))
             {
                 sql.Open();
-                const string q = "SELECT TOP(1) Id, LoaiXeId, LoaiVeId, GiaTheoGio, GiaQuaDem, GiaThang, TrangThai FROM dbo.BangGia WHERE LoaiXeId = @lx AND LoaiVeId = @lv ORDER BY Id DESC";
+                string dayExpr = _db.GetBangGiaDaySelectExpression();
+                string q = $"SELECT TOP(1) Id, LoaiXeId, LoaiVeId, {dayExpr}, GiaQuaDem, GiaThang, TrangThai FROM dbo.BangGia WHERE LoaiXeId = @lx AND LoaiVeId = @lv ORDER BY Id DESC";
                 using (var cmd = new SqlCommand(q, sql))
                 {
                     cmd.Parameters.AddWithValue("@lx", loaiXeId);
@@ -102,7 +105,7 @@ namespace QuanLyGiuXe.Services
                                 Id = r["Id"] != DBNull.Value ? Convert.ToInt32(r["Id"]) : 0,
                                 LoaiXeId = r["LoaiXeId"] != DBNull.Value ? Convert.ToInt32(r["LoaiXeId"]) : 0,
                                 LoaiVeId = r["LoaiVeId"] != DBNull.Value ? Convert.ToInt32(r["LoaiVeId"]) : 0,
-                                GiaTheoGio = r["GiaTheoGio"] != DBNull.Value ? (decimal?)Convert.ToDecimal(r["GiaTheoGio"]) : null,
+                                GiaBanNgay = r["GiaBanNgay"] != DBNull.Value ? (decimal?)Convert.ToDecimal(r["GiaBanNgay"]) : null,
                                 GiaQuaDem = r["GiaQuaDem"] != DBNull.Value ? (decimal?)Convert.ToDecimal(r["GiaQuaDem"]) : null,
                                 GiaThang = r["GiaThang"] != DBNull.Value ? (decimal?)Convert.ToDecimal(r["GiaThang"]) : null,
                                 TrangThai = r["TrangThai"]?.ToString() ?? string.Empty
@@ -129,13 +132,15 @@ namespace QuanLyGiuXe.Services
             using (var sql = new SqlConnection(conn))
             {
                 sql.Open();
-                const string q = @"INSERT INTO dbo.BangGia (LoaiXeId, LoaiVeId, GiaTheoGio, GiaQuaDem, GiaThang, TrangThai)
+                // insert into the correct daytime column (GiaBanNgay or legacy GiaBanNgay)
+                string dayCol = _db.GetBangGiaDayColumnName();
+                string q = $@"INSERT INTO dbo.BangGia (LoaiXeId, LoaiVeId, {dayCol}, GiaQuaDem, GiaThang, TrangThai)
                                      VALUES (@lx,@lv,@g1,@g2,@gt,@tt)";
                 using (var cmd = new SqlCommand(q, sql))
                 {
                     cmd.Parameters.AddWithValue("@lx", entity.LoaiXeId);
                     cmd.Parameters.AddWithValue("@lv", entity.LoaiVeId);
-                    AddDecimalParameter(cmd, "@g1", entity.GiaTheoGio);
+                    AddDecimalParameter(cmd, "@g1", entity.GiaBanNgay);
                     AddDecimalParameter(cmd, "@g2", entity.GiaQuaDem);
                     AddDecimalParameter(cmd, "@gt", entity.GiaThang);
                     cmd.Parameters.AddWithValue("@tt", (object?)entity.TrangThai ?? string.Empty);
@@ -162,12 +167,14 @@ namespace QuanLyGiuXe.Services
             using (var sql = new SqlConnection(conn))
             {
                 sql.Open();
-                const string q = @"UPDATE dbo.BangGia SET LoaiXeId=@lx, LoaiVeId=@lv, GiaTheoGio=@g1, GiaQuaDem=@g2, GiaThang=@gt, TrangThai=@tt WHERE Id=@id";
+                // update using the correct daytime column name
+                string dayCol = _db.GetBangGiaDayColumnName();
+                string q = $@"UPDATE dbo.BangGia SET LoaiXeId=@lx, LoaiVeId=@lv, {dayCol}=@g1, GiaQuaDem=@g2, GiaThang=@gt, TrangThai=@tt WHERE Id=@id";
                 using (var cmd = new SqlCommand(q, sql))
                 {
                     cmd.Parameters.AddWithValue("@lx", entity.LoaiXeId);
                     cmd.Parameters.AddWithValue("@lv", entity.LoaiVeId);
-                    AddDecimalParameter(cmd, "@g1", entity.GiaTheoGio);
+                    AddDecimalParameter(cmd, "@g1", entity.GiaBanNgay);
                     AddDecimalParameter(cmd, "@g2", entity.GiaQuaDem);
                     AddDecimalParameter(cmd, "@gt", entity.GiaThang);
                     cmd.Parameters.AddWithValue("@tt", (object?)entity.TrangThai ?? string.Empty);
@@ -232,7 +239,7 @@ namespace QuanLyGiuXe.Services
             if (entity.LoaiVeId <= 0) throw new ArgumentException("LoaiVeId is required and must be > 0", nameof(entity.LoaiVeId));
 
             // Price values must be non-negative when provided
-            if (entity.GiaTheoGio.HasValue && entity.GiaTheoGio.Value < 0) throw new ArgumentException("GiaTheoGio must be >= 0");
+            if (entity.GiaBanNgay.HasValue && entity.GiaBanNgay.Value < 0) throw new ArgumentException("GiaBanNgay must be >= 0");
             if (entity.GiaQuaDem.HasValue && entity.GiaQuaDem.Value < 0) throw new ArgumentException("GiaQuaDem must be >= 0");
             if (entity.GiaThang.HasValue && entity.GiaThang.Value < 0) throw new ArgumentException("GiaThang must be >= 0");
 
@@ -241,26 +248,26 @@ namespace QuanLyGiuXe.Services
             var tenLoai = (lv?.TenLoai ?? string.Empty).ToLowerInvariant();
 
             bool isThang = tenLoai.Contains("thang") || tenLoai.Contains("tháng");
-            bool isVangLai = tenLoai.Contains("vang") || tenLoai.Contains("v angl") || tenLoai.Contains("v ang");
+            bool isVangLai = tenLoai.Contains("vang") || tenLoai.Contains("v angl") || tenLoai.Contains("v ang");
 
             // Business rules
             if (isThang)
             {
                 // monthly: GiaThang required, others null
                 if (!entity.GiaThang.HasValue) throw new ArgumentException("GiaThang is required for monthly (Thang) ticket types.");
-                if (entity.GiaTheoGio.HasValue || entity.GiaQuaDem.HasValue) throw new ArgumentException("GiaTheoGio and GiaQuaDem must be NULL for monthly (Thang) ticket types.");
+                if (entity.GiaBanNgay.HasValue || entity.GiaQuaDem.HasValue) throw new ArgumentException("GiaBanNgay and GiaQuaDem must be NULL for monthly (Thang) ticket types.");
             }
             else if (isVangLai)
             {
-                // transient: GiaTheoGio and GiaQuaDem required, GiaThang null
-                if (!entity.GiaTheoGio.HasValue) throw new ArgumentException("GiaTheoGio is required for VangLai ticket types.");
+                // transient: GiaBanNgay and GiaQuaDem required, GiaThang null
+                if (!entity.GiaBanNgay.HasValue) throw new ArgumentException("GiaBanNgay is required for VangLai ticket types.");
                 if (!entity.GiaQuaDem.HasValue) throw new ArgumentException("GiaQuaDem is required for VangLai ticket types.");
                 if (entity.GiaThang.HasValue) throw new ArgumentException("GiaThang must be NULL for VangLai ticket types.");
             }
             else
             {
                 // unknown type: at least one price provided
-                if (!entity.GiaThang.HasValue && !entity.GiaTheoGio.HasValue && !entity.GiaQuaDem.HasValue)
+                if (!entity.GiaThang.HasValue && !entity.GiaBanNgay.HasValue && !entity.GiaQuaDem.HasValue)
                     throw new ArgumentException("At least one price field must be provided.");
             }
         }

@@ -27,7 +27,7 @@
                     <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="80" IsReadOnly="True" />
                     <DataGridTextColumn Header="Loại Xe" Binding="{Binding LoaiXe}" Width="*" IsReadOnly="True" />
                     <DataGridTextColumn Header="Loại Vé" Binding="{Binding LoaiVe}" Width="120" IsReadOnly="True" />
-                    <DataGridTextColumn Header="Giá theo giờ" Binding="{Binding GiaTheoGio, StringFormat=N2}" Width="120" />
+                    <DataGridTextColumn Header="Giá ban ngày" Binding="{Binding GiaBanNgay, StringFormat=N2}" Width="120" />
                     <DataGridTextColumn Header="Giá qua đêm" Binding="{Binding GiaQuaDem, StringFormat=N2}" Width="120" />
                     <DataGridTextColumn Header="Giá tháng" Binding="{Binding GiaThang, StringFormat=N2}" Width="120" />
                     <DataGridTextColumn Header="Trạng thái" Binding="{Binding TrangThai}" Width="100" />
@@ -47,8 +47,8 @@
                               SelectedValuePath="Id"
                               SelectedValue="{Binding SelectedLoaiVeId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
 
-                    <TextBlock Text="Giá theo giờ" Margin="0,8,0,0" />
-                    <TextBox Text="{Binding GiaTheoGioText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsVangLai}" />
+                    <TextBlock Text="Giá ban ngày" Margin="0,8,0,0" />
+                    <TextBox Text="{Binding GiaBanNgayText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsVangLai}" />
 
                     <TextBlock Text="Giá qua đêm" Margin="0,8,0,0" />
                     <TextBox Text="{Binding GiaQuaDemText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsVangLai}" />

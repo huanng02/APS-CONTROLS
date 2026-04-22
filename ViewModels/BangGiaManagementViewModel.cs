@@ -35,7 +35,7 @@ namespace QuanLyGiuXe.ViewModels
         }
 
 
-        // Compute duration and cost helper (uses GiaTheoGio when available)
+        // Compute duration and cost helper (uses GiaBanNgay when available)
         private void ComputeDuration()
         {
             // For demo: prompt user to enter start/end times via InputBox style prompts are not available in WPF by default
@@ -97,15 +97,15 @@ namespace QuanLyGiuXe.ViewModels
                 return;
             }
 
-            // Vãng lai (or other non-monthly) must have hourly and overnight prices
-            if (!bangGia.GiaTheoGio.HasValue || !bangGia.GiaQuaDem.HasValue)
+            // Vãng lai (or other non-monthly) must have daytime and overnight prices
+            if (!bangGia.GiaBanNgay.HasValue || !bangGia.GiaQuaDem.HasValue)
             {
                 ResultText = "Chưa cấu hình bảng giá";
                 OnPropertyChanged(nameof(ResultText));
                 return;
             }
 
-            var dayPrice = bangGia.GiaTheoGio.Value;
+            var dayPrice = bangGia.GiaBanNgay.Value;
             var nightPrice = bangGia.GiaQuaDem.Value;
 
             bool IsCrossingBoundary(DateTime s, DateTime e)
@@ -247,8 +247,8 @@ namespace QuanLyGiuXe.ViewModels
         public string ResultText { get => _resultText; set { _resultText = value; OnPropertyChanged(nameof(ResultText)); } }
 
         // Text backing properties for price inputs to avoid direct decimal binding issues
-        private string _giaTheoGioText = string.Empty;
-        public string GiaTheoGioText { get => _giaTheoGioText; set { _giaTheoGioText = value; OnPropertyChanged(nameof(GiaTheoGioText)); } }
+        private string _giaBanNgayText = string.Empty;
+        public string GiaBanNgayText { get => _giaBanNgayText; set { _giaBanNgayText = value; OnPropertyChanged(nameof(GiaBanNgayText)); } }
 
         private string _giaQuaDemText = string.Empty;
         public string GiaQuaDemText { get => _giaQuaDemText; set { _giaQuaDemText = value; OnPropertyChanged(nameof(GiaQuaDemText)); } }
@@ -269,7 +269,7 @@ namespace QuanLyGiuXe.ViewModels
                 OnPropertyChanged(nameof(IsThang));
                 OnPropertyChanged(nameof(IsVangLai));
             // populate text fields
-            GiaTheoGioText = EditingItem.GiaTheoGio?.ToString() ?? string.Empty;
+            GiaBanNgayText = EditingItem.GiaBanNgay?.ToString() ?? string.Empty;
             GiaQuaDemText = EditingItem.GiaQuaDem?.ToString() ?? string.Empty;
             GiaThangText = EditingItem.GiaThang?.ToString() ?? string.Empty;
             }
@@ -296,9 +296,9 @@ namespace QuanLyGiuXe.ViewModels
                 {
                     if (EditingItem != null)
                     {
-                        EditingItem.GiaTheoGio = null;
+                        EditingItem.GiaBanNgay = null;
                         EditingItem.GiaQuaDem = null;
-                        GiaTheoGioText = string.Empty;
+                        GiaBanNgayText = string.Empty;
                         GiaQuaDemText = string.Empty;
                         OnPropertyChanged(nameof(EditingItem));
                     }
@@ -335,9 +335,9 @@ namespace QuanLyGiuXe.ViewModels
                 {
                     if (EditingItem != null)
                     {
-                        EditingItem.GiaTheoGio = null;
+                        EditingItem.GiaBanNgay = null;
                         EditingItem.GiaQuaDem = null;
-                        GiaTheoGioText = string.Empty;
+                        GiaBanNgayText = string.Empty;
                         GiaQuaDemText = string.Empty;
                         OnPropertyChanged(nameof(EditingItem));
                     }
@@ -423,7 +423,7 @@ namespace QuanLyGiuXe.ViewModels
                 Id = SelectedItem.Id,
                 LoaiXeId = SelectedItem.LoaiXeId,
                 LoaiVeId = SelectedItem.LoaiVeId,
-                GiaTheoGio = SelectedItem.GiaTheoGio,
+                GiaBanNgay = SelectedItem.GiaBanNgay,
                 GiaQuaDem = SelectedItem.GiaQuaDem,
                 GiaThang = SelectedItem.GiaThang,
                 TrangThai = SelectedItem.TrangThai
@@ -519,7 +519,7 @@ namespace QuanLyGiuXe.ViewModels
             SelectedItem = null;
             OnPropertyChanged(nameof(IsThang));
             OnPropertyChanged(nameof(IsVangLai));
-            GiaTheoGioText = string.Empty;
+            GiaBanNgayText = string.Empty;
             GiaQuaDemText = string.Empty;
             GiaThangText = string.Empty;
         }
@@ -528,11 +528,11 @@ namespace QuanLyGiuXe.ViewModels
         {
             if (model == null) return;
             // reset all
-            model.GiaTheoGio = null;
+            model.GiaBanNgay = null;
             model.GiaQuaDem = null;
             model.GiaThang = null;
 
-            if (!string.IsNullOrWhiteSpace(GiaTheoGioText) && decimal.TryParse(GiaTheoGioText, out var g1)) model.GiaTheoGio = g1;
+            if (!string.IsNullOrWhiteSpace(GiaBanNgayText) && decimal.TryParse(GiaBanNgayText, out var g1)) model.GiaBanNgay = g1;
             if (!string.IsNullOrWhiteSpace(GiaQuaDemText) && decimal.TryParse(GiaQuaDemText, out var g2)) model.GiaQuaDem = g2;
             if (!string.IsNullOrWhiteSpace(GiaThangText) && decimal.TryParse(GiaThangText, out var gt)) model.GiaThang = gt;
         }
@@ -553,21 +553,21 @@ namespace QuanLyGiuXe.ViewModels
                 if (!model.GiaThang.HasValue) throw new ArgumentException("GiaThang required for Thang");
                 if (model.GiaThang < 0) throw new ArgumentException("GiaThang must be >= 0");
                 // ensure others null / ignored
-                model.GiaTheoGio = null;
+                model.GiaBanNgay = null;
                 model.GiaQuaDem = null;
             }
             else if (isVang)
             {
-                // GiaTheoGio and GiaQuaDem required
-                if (!model.GiaTheoGio.HasValue) throw new ArgumentException("GiaTheoGio required for VangLai");
+                // GiaBanNgay and GiaQuaDem required
+                if (!model.GiaBanNgay.HasValue) throw new ArgumentException("Giá ban ngày required for VangLai");
                 if (!model.GiaQuaDem.HasValue) throw new ArgumentException("GiaQuaDem required for VangLai");
-                if (model.GiaTheoGio < 0 || model.GiaQuaDem < 0) throw new ArgumentException("Prices must be >= 0");
+                if (model.GiaBanNgay < 0 || model.GiaQuaDem < 0) throw new ArgumentException("Prices must be >= 0");
                 model.GiaThang = null;
             }
             else
             {
                 // for other types require at least one provided
-                if (!model.GiaTheoGio.HasValue && !model.GiaQuaDem.HasValue && !model.GiaThang.HasValue)
+                if (!model.GiaBanNgay.HasValue && !model.GiaQuaDem.HasValue && !model.GiaThang.HasValue)
                     throw new ArgumentException("At least one price must be provided");
             }
 

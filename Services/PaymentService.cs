@@ -62,7 +62,7 @@ namespace QuanLyGiuXe.Services
 
             // Compare durations: if day>night => DAY price, if night>=day => NIGHT price (night wins tie)
             if (daySpan > nightSpan)
-                return bg.GiaTheoGio ?? 0m;
+                return bg.GiaBanNgay ?? 0m;
             return bg.GiaQuaDem ?? 0m;
         }
     }

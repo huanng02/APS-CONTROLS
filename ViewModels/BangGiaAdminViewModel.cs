@@ -19,7 +19,7 @@ namespace QuanLyGiuXe.ViewModels
 
         // dirty tracking
         private readonly System.Collections.Generic.HashSet<int> _modifiedIds = new System.Collections.Generic.HashSet<int>();
-        private readonly System.Collections.Generic.Dictionary<int, (decimal? giaTheoGio, decimal? giaQuaDem)> _originalValues = new System.Collections.Generic.Dictionary<int, (decimal?, decimal?)>();
+        private readonly System.Collections.Generic.Dictionary<int, (decimal? giaBanNgay, decimal? giaQuaDem)> _originalValues = new System.Collections.Generic.Dictionary<int, (decimal?, decimal?)>();
 
         private bool _isDirty;
         public bool IsDirty { get => _isDirty; private set { if (_isDirty != value) { _isDirty = value; OnPropertyChanged(nameof(IsDirty)); System.Windows.Input.CommandManager.InvalidateRequerySuggested(); } } }
@@ -57,7 +57,7 @@ namespace QuanLyGiuXe.ViewModels
                 b.LoaiXe = (b.LoaiXeId > 0) ? loaiXeList.FirstOrDefault(l => l != null && l.Id == b.LoaiXeId)?.TenLoai ?? string.Empty : string.Empty;
                 BangGiaList.Add(b);
                 // store original values for dirty-check / revert
-                _originalValues[b.Id] = (b.GiaTheoGio, b.GiaQuaDem);
+                _originalValues[b.Id] = (b. GiaBanNgay, b.GiaQuaDem);
             }
             IsDirty = false;
         }
@@ -97,7 +97,7 @@ namespace QuanLyGiuXe.ViewModels
             // validate all
             foreach (var model in toSave)
             {
-                if (!model.GiaTheoGio.HasValue || model.GiaTheoGio.Value <= 0)
+                if (!model.GiaBanNgay.HasValue || model.GiaBanNgay.Value <= 0)
                 {
                     System.Windows.MessageBox.Show("Giá theo giờ phải lớn hơn 0", "Lỗi", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
                     return;
@@ -116,7 +116,7 @@ namespace QuanLyGiuXe.ViewModels
                 {
                     _service.UpdateBangGia(model);
                     // update original values snapshot
-                    _originalValues[model.Id] = (model.GiaTheoGio, model.GiaQuaDem);
+                    _originalValues[model.Id] = (model.GiaBanNgay, model.GiaQuaDem);
                     _modifiedIds.Remove(model.Id);
                 }
                 catch
@@ -146,10 +146,10 @@ namespace QuanLyGiuXe.ViewModels
             if (model == null) return;
             if (!_originalValues.TryGetValue(model.Id, out var orig))
             {
-                _originalValues[model.Id] = (model.GiaTheoGio, model.GiaQuaDem);
+                _originalValues[model.Id] = (model.GiaBanNgay, model.GiaQuaDem);
             }
             // if values equal original, remove from modified set
-            var now = (model.GiaTheoGio, model.GiaQuaDem);
+            var now = (model.GiaBanNgay, model.GiaQuaDem);
             if (_originalValues.TryGetValue(model.Id, out var old) && old.Equals(now))
             {
                 _modifiedIds.Remove(model.Id);
