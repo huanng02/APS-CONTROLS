@@ -9,7 +9,6 @@ using System.Collections.Specialized;
 using System.Windows.Media;
 using System.Globalization;
 using QuanLyGiuXe.Converters;
-using System.Windows;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media.Imaging;
 
