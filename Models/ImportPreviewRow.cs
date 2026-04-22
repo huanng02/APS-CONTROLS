@@ -7,6 +7,7 @@ namespace QuanLyGiuXe.Models
         public int RowNumber { get; set; }
         public string CardUID { get; set; }
         public string BienSo { get; set; }
+        public string CardName { get; set; }
         public string LoaiXe { get; set; }
         public string LoaiVe { get; set; }
         public DateTime? NgayDangKy { get; set; }

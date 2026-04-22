@@ -113,6 +113,34 @@ namespace QuanLyGiuXe.Services
                     headers[Normalize(cell)] = c;
                 }
 
+                // detect if file contains LoaiVeId column (ticketTypeId)
+                bool hasLoaiVeIdColumn = headers.ContainsKey("LOAIVEID");
+
+                // If importing from All tab, require numeric LoaiVeId column to be present
+                if ((!activeLoaiVeId.HasValue || activeLoaiVeId.Value == 0) && !hasLoaiVeIdColumn)
+                {
+                    // mark every row as error explaining missing LoaiVeId
+                    for (int r = firstRow + 1; r <= lastRow; r++)
+                    {
+                        var row = ws.Row(r);
+                        var ipr = new ImportPreviewRow { RowNumber = r };
+                        try
+                        {
+                            string card = GetCellString(row, headers, "CARDUID");
+                            ipr.CardUID = string.IsNullOrWhiteSpace(card) ? string.Empty : card.Trim();
+                            ipr.Status = "Error";
+                            ipr.Message = "Missing LoaiVeId column (ticketTypeId) - required when importing from 'All' tab";
+                        }
+                        catch (Exception ex)
+                        {
+                            ipr.Status = "Error"; ipr.Message = ex.Message;
+                        }
+                        result.Add(ipr);
+                    }
+
+                    return result;
+                }
+
                 for (int r = firstRow + 1; r <= lastRow; r++)
                 {
                     var row = ws.Row(r);
@@ -123,14 +151,39 @@ namespace QuanLyGiuXe.Services
                         string bien = GetCellString(row, headers, "BIENSO");
                         string loaixe = GetCellString(row, headers, "LOAIXE");
                         string loaive = GetCellString(row, headers, "LOAIVE");
+                        string cardName = GetCellString(row, headers, "CARDNAME");
+                        string loaiveIdRaw = hasLoaiVeIdColumn ? GetCellString(row, headers, "LOAIVEID") : string.Empty;
                         string ngaydk = GetCellString(row, headers, "NGAYDANGKY");
                         string ngayhh = GetCellString(row, headers, "NGAYHETHAN");
                         string tt = GetCellString(row, headers, "TRANGTHAI");
 
                         ipr.CardUID = string.IsNullOrWhiteSpace(card) ? string.Empty : card.Trim();
                         ipr.BienSo = string.IsNullOrWhiteSpace(bien) ? string.Empty : bien.Trim();
+                        ipr.CardName = string.IsNullOrWhiteSpace(cardName) ? string.Empty : cardName.Trim();
                         ipr.LoaiXe = loaixe ?? string.Empty;
                         ipr.LoaiVe = loaive ?? string.Empty;
+
+                        // if file provides numeric LoaiVeId, prefer it (useful in All tab)
+                        if (!string.IsNullOrWhiteSpace(loaiveIdRaw))
+                        {
+                            if (int.TryParse(loaiveIdRaw, out var parsedId))
+                            {
+                                // check exists in DB
+                                var loaiVeList = _db.GetLoaiVe();
+                                var idToName = new Dictionary<int, string>();
+                                foreach (var lv in loaiVeList) idToName[lv.Id] = lv.TenLoai ?? string.Empty;
+                                if (idToName.TryGetValue(parsedId, out var name))
+                                {
+                                    ipr.MappedLoaiVeId = parsedId;
+                                    // set display name from DB
+                                    ipr.LoaiVe = name;
+                                }
+                                else
+                                {
+                                    ipr.MappedLoaiVeId = null;
+                                }
+                            }
+                        }
 
                         if (DateTime.TryParse(ngaydk, out var ndk)) ipr.NgayDangKy = ndk;
                         else ipr.NgayDangKy = null;
@@ -180,30 +233,33 @@ namespace QuanLyGiuXe.Services
                             }
                         }
 
-                        // map LoaiVe (file-provided)
-                        var nv = ImportNormalization.Normalize(ipr.LoaiVe);
-                        if (!string.IsNullOrWhiteSpace(nv) && dictVe.TryGetValue(nv, out var lvid))
+                        // if LoaiVe not set via numeric id above, try mapping from text
+                        if (!ipr.MappedLoaiVeId.HasValue)
                         {
-                            ipr.MappedLoaiVeId = lvid;
-                        }
-                        else if (!string.IsNullOrWhiteSpace(nv))
-                        {
-                            int best = int.MaxValue; string bestKey = null; int bestId = 0;
-                            foreach (var kv in dictVe)
+                            var nv = ImportNormalization.Normalize(ipr.LoaiVe);
+                            if (!string.IsNullOrWhiteSpace(nv) && dictVe.TryGetValue(nv, out var lvid))
                             {
-                                int d = LevenshteinDistance(nv, kv.Key);
-                                if (d < best) { best = d; bestKey = kv.Key; bestId = kv.Value; }
+                                ipr.MappedLoaiVeId = lvid;
                             }
-                            if (best <= 2 && bestKey != null)
+                            else if (!string.IsNullOrWhiteSpace(nv))
                             {
-                                ipr.MappedLoaiVeId = bestId;
-                                ipr.Status = string.IsNullOrEmpty(ipr.Status) ? "AutoFix" : ipr.Status + ";AutoFix";
-                                ipr.Message = (string.IsNullOrEmpty(ipr.Message) ? "" : ipr.Message + "; ") + $"LoaiVe auto-mapped to '{bestKey}' (dist={best})";
-                            }
-                            else
-                            {
-                                // keep as unrecognized for now; will be handled below depending on activeLoaiVeId
-                                ipr.MappedLoaiVeId = null;
+                                int best = int.MaxValue; string bestKey = null; int bestId = 0;
+                                foreach (var kv in dictVe)
+                                {
+                                    int d = LevenshteinDistance(nv, kv.Key);
+                                    if (d < best) { best = d; bestKey = kv.Key; bestId = kv.Value; }
+                                }
+                                if (best <= 2 && bestKey != null)
+                                {
+                                    ipr.MappedLoaiVeId = bestId;
+                                    ipr.Status = string.IsNullOrEmpty(ipr.Status) ? "AutoFix" : ipr.Status + ";AutoFix";
+                                    ipr.Message = (string.IsNullOrEmpty(ipr.Message) ? "" : ipr.Message + "; ") + $"LoaiVe auto-mapped to '{bestKey}' (dist={best})";
+                                }
+                                else
+                                {
+                                    // keep as unrecognized for now; will be handled below depending on activeLoaiVeId
+                                    ipr.MappedLoaiVeId = null;
+                                }
                             }
                         }
 
@@ -232,17 +288,17 @@ namespace QuanLyGiuXe.Services
                         // If import window was opened from a specific LoaiVe tab, enforce business rule:
                         if (activeLoaiVeId.HasValue && activeLoaiVeId.Value > 0)
                         {
-                            // If file provided a LoaiVe different from the active tab -> mark Error
-                            if (ipr.MappedLoaiVeId.HasValue && ipr.MappedLoaiVeId.Value != activeLoaiVeId.Value)
-                            {
-                                ipr.Status = "Error";
-                                ipr.Message = "File LoaiVe does not match selected tab" + (string.IsNullOrEmpty(ipr.Message) ? "" : "; " + ipr.Message);
-                                result.Add(ipr); continue;
-                            }
-
-                            // assign active tab LoaiVe to all rows
+                            // Ignore any LoaiVe/LoaiVeId provided in file and assign active tab LoaiVe
                             ipr.MappedLoaiVeId = activeLoaiVeId.Value;
-                            // if previously unrecognized, mark AutoFix/Note
+                            try
+                            {
+                                var loaiVeList = _db.GetLoaiVe();
+                                var idToName = new Dictionary<int, string>();
+                                foreach (var lv in loaiVeList) idToName[lv.Id] = lv.TenLoai ?? string.Empty;
+                                if (idToName.TryGetValue(activeLoaiVeId.Value, out var name)) ipr.LoaiVe = name;
+                            }
+                            catch { }
+                            // note the auto assignment
                             if (string.IsNullOrEmpty(ipr.Message)) ipr.Message = $"Assigned LoaiVe from selected tab (Id={activeLoaiVeId.Value})";
                             else ipr.Message = $"Assigned LoaiVe from selected tab (Id={activeLoaiVeId.Value}); " + ipr.Message;
                         }

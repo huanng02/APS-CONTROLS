@@ -13,7 +13,9 @@ namespace QuanLyGiuXe.Services
         /// Create template folder on Desktop containing Template.xlsx, Sample.xlsx and Guide.txt
         /// Returns created folder path or null on failure
         /// </summary>
-        public async Task<string?> CreateTemplateOnDesktopAsync()
+        // activeLoaiVeId: if provided (>0) the template will be for that specific LoaiVe tab
+        // if null or 0 -> generate template for "All" mode which requires LoaiVeId column
+        public async Task<string?> CreateTemplateOnDesktopAsync(int? activeLoaiVeId = null)
         {
             return await Task.Run(() =>
             {
@@ -25,52 +27,16 @@ namespace QuanLyGiuXe.Services
 
                     Directory.CreateDirectory(folderPath);
 
-                    // Template.xlsx
-                    var templatePath = Path.Combine(folderPath, "Template.xlsx");
-                    using (var wb = new XLWorkbook())
-                    {
-                        var ws = wb.Worksheets.Add("Template");
-                        var headers = new[] { "CardUID", "BienSo", "LoaiXe", "LoaiVe", "NgayDangKy", "NgayHetHan", "TrangThai" };
-                        for (int i = 0; i < headers.Length; i++)
-                            ws.Cell(1, i + 1).Value = headers[i];
+                    // Note: Template.xlsx creation removed per request; only sample files and guide will be generated.
 
-                        var headerRange = ws.Range(1, 1, 1, headers.Length);
-                        headerRange.Style.Font.Bold = true;
-                        headerRange.Style.Fill.BackgroundColor = XLColor.FromArgb(31, 73, 125);
-                        headerRange.Style.Font.FontColor = XLColor.White;
-
-                        ws.SheetView.FreezeRows(1);
-                        ws.RangeUsed().SetAutoFilter();
-                        ws.Columns().AdjustToContents();
-
-                        // Add simple data validation dropdown for LoaiVe column (D) and LoaiXe column (C)
-                        try
-                        {
-                            var dvVe = ws.Range("D2:D1000").SetDataValidation();
-                            dvVe.AllowedValues = XLAllowedValues.List;
-                            dvVe.InCellDropdown = true;
-                            dvVe.List("Vé lượt,Vé tháng");
-
-                            var dvXe = ws.Range("C2:C1000").SetDataValidation();
-                            dvXe.AllowedValues = XLAllowedValues.List;
-                            dvXe.InCellDropdown = true;
-                            dvXe.List("Xe máy,Ô tô");
-                        }
-                        catch { }
-
-                        var savedTemplate = FileSaveHelpers.SaveWorkbookSafe(wb, templatePath);
-                        if (!string.Equals(savedTemplate, templatePath, StringComparison.OrdinalIgnoreCase))
-                        {
-                            try { LoggingService.Instance.LogInfo("TemplateExport", "TemplateExportService", $"Template saved to '{savedTemplate}' because destination was locked"); } catch { }
-                        }
-                    }
-
-                    // Sample.xlsx
-                    var samplePath = Path.Combine(folderPath, "Sample.xlsx");
+                    // Sample files: create two versions - single LoaiVe sample and ALL (multiple LoaiVe) sample
+                    var samplePathSingle = Path.Combine(folderPath, "Sample_SingleLoaiVe.xlsx");
                     using (var wb = new XLWorkbook())
                     {
                         var ws = wb.Worksheets.Add("Sample");
-                        var headers = new[] { "CardUID", "BienSo", "LoaiXe", "LoaiVe", "NgayDangKy", "NgayHetHan", "TrangThai" };
+                        // For single-LoaiVe (downloaded from a specific tab) we omit LoaiVe column
+                        // include CardName as column 3
+                        var headers = new[] { "CardUID", "BienSo", "CardName", "LoaiXe", "NgayDangKy", "NgayHetHan", "TrangThai" };
                         for (int i = 0; i < headers.Length; i++)
                             ws.Cell(1, i + 1).Value = headers[i];
 
@@ -79,11 +45,11 @@ namespace QuanLyGiuXe.Services
                         headerRange.Style.Fill.BackgroundColor = XLColor.FromArgb(31, 73, 125);
                         headerRange.Style.Font.FontColor = XLColor.White;
 
-                        // examples
+                        // examples (no LoaiVe column because import will assign LoaiVe from selected tab)
                         ws.Cell(2, 1).Value = "UID001";
                         ws.Cell(2, 2).Value = "59A-12345";
-                        ws.Cell(2, 3).Value = "Xe máy";
-                        ws.Cell(2, 4).Value = "Vé lượt";
+                        ws.Cell(2, 3).Value = "Card A";
+                        ws.Cell(2, 4).Value = "Xe máy";
                         ws.Cell(2, 5).Value = new DateTime(2026, 4, 15);
                         ws.Cell(2, 5).Style.DateFormat.Format = "dd/MM/yyyy";
                         ws.Cell(2, 6).Value = string.Empty;
@@ -91,8 +57,8 @@ namespace QuanLyGiuXe.Services
 
                         ws.Cell(3, 1).Value = "UID002";
                         ws.Cell(3, 2).Value = "51B-67890";
-                        ws.Cell(3, 3).Value = "Ô tô";
-                        ws.Cell(3, 4).Value = "Vé tháng";
+                        ws.Cell(3, 3).Value = "Card B";
+                        ws.Cell(3, 4).Value = "Ô tô";
                         ws.Cell(3, 5).Value = new DateTime(2026, 4, 15);
                         ws.Cell(3, 5).Style.DateFormat.Format = "dd/MM/yyyy";
                         ws.Cell(3, 6).Value = new DateTime(2026, 5, 15);
@@ -105,22 +71,67 @@ namespace QuanLyGiuXe.Services
 
                         try
                         {
-                            var dvVe = ws.Range("D2:D1000").SetDataValidation();
-                            dvVe.AllowedValues = XLAllowedValues.List;
-                            dvVe.InCellDropdown = true;
-                            dvVe.List("Vé lượt,Vé tháng");
-
-                            var dvXe = ws.Range("C2:C1000").SetDataValidation();
-                            dvXe.AllowedValues = XLAllowedValues.List;
-                            dvXe.InCellDropdown = true;
-                            dvXe.List("Xe máy,Ô tô");
+                            int colLoaiXe = Array.IndexOf(headers, "LoaiXe");
+                            if (colLoaiXe >= 0)
+                            {
+                                int c = colLoaiXe + 1;
+                                var dvXe = ws.Range(ws.Cell(2, c), ws.Cell(1000, c)).SetDataValidation();
+                                dvXe.AllowedValues = XLAllowedValues.List;
+                                dvXe.InCellDropdown = true;
+                                dvXe.List("Xe máy,Ô tô");
+                            }
                         }
                         catch { }
 
-                        var savedSample = FileSaveHelpers.SaveWorkbookSafe(wb, samplePath);
-                        if (!string.Equals(savedSample, samplePath, StringComparison.OrdinalIgnoreCase))
+                        var savedSample = FileSaveHelpers.SaveWorkbookSafe(wb, samplePathSingle);
+                        if (!string.Equals(savedSample, samplePathSingle, StringComparison.OrdinalIgnoreCase))
                         {
                             try { LoggingService.Instance.LogInfo("TemplateExport", "TemplateExportService", $"Sample saved to '{savedSample}' because destination was locked"); } catch { }
+                        }
+                    }
+
+                    // Sample for ALL mode that includes LoaiVeId column
+
+                    var samplePathAll = Path.Combine(folderPath, "Sample_AllLoaiVe.xlsx");
+                    using (var wb = new XLWorkbook())
+                    {
+                        var ws = wb.Worksheets.Add("SampleAll");
+                        // include CardName as column 3
+                        var headers = new[] { "CardUID", "BienSo", "CardName", "LoaiXe", "LoaiVe", "LoaiVeId", "NgayDangKy", "NgayHetHan", "TrangThai" };
+                        for (int i = 0; i < headers.Length; i++) ws.Cell(1, i + 1).Value = headers[i];
+
+                        // provide multiple rows each with explicit LoaiVeId (example ids)
+                        ws.Cell(2, 1).Value = "UID001";
+                        ws.Cell(2, 2).Value = "59A-12345";
+                        ws.Cell(2, 3).Value = "Card A";
+                        ws.Cell(2, 4).Value = "Xe máy";
+                        ws.Cell(2, 5).Value = "Vé lượt";
+                        ws.Cell(2, 6).Value = 1; // example LoaiVeId for Vé lượt
+                        ws.Cell(2, 7).Value = new DateTime(2026, 4, 15);
+                        ws.Cell(2, 7).Style.DateFormat.Format = "dd/MM/yyyy";
+                        ws.Cell(2, 8).Value = string.Empty;
+                        ws.Cell(2, 9).Value = "Active";
+
+                        ws.Cell(3, 1).Value = "UID002";
+                        ws.Cell(3, 2).Value = "51B-67890";
+                        ws.Cell(3, 3).Value = "Card B";
+                        ws.Cell(3, 4).Value = "Ô tô";
+                        ws.Cell(3, 5).Value = "Vé tháng";
+                        ws.Cell(3, 6).Value = 2; // example LoaiVeId for Vé tháng
+                        ws.Cell(3, 7).Value = new DateTime(2026, 4, 15);
+                        ws.Cell(3, 7).Style.DateFormat.Format = "dd/MM/yyyy";
+                        ws.Cell(3, 8).Value = new DateTime(2026, 5, 15);
+                        ws.Cell(3, 8).Style.DateFormat.Format = "dd/MM/yyyy";
+                        ws.Cell(3, 9).Value = "Active";
+
+                        ws.SheetView.FreezeRows(1);
+                        ws.RangeUsed().SetAutoFilter();
+                        ws.Columns().AdjustToContents();
+
+                        var savedSampleAll = FileSaveHelpers.SaveWorkbookSafe(wb, samplePathAll);
+                        if (!string.Equals(savedSampleAll, samplePathAll, StringComparison.OrdinalIgnoreCase))
+                        {
+                            try { LoggingService.Instance.LogInfo("TemplateExport", "TemplateExportService", $"SampleAll saved to '{savedSampleAll}' because destination was locked"); } catch { }
                         }
                     }
 

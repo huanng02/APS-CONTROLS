@@ -15,6 +15,7 @@ namespace QuanLyGiuXe.Services
             var dt = new DataTable();
             dt.Columns.Add("CardUID", typeof(string));
             dt.Columns.Add("BienSo", typeof(string));
+            dt.Columns.Add("CardName", typeof(string));
             dt.Columns.Add("LoaiVeId", typeof(int));
             dt.Columns.Add("LoaiXeId", typeof(int));
             dt.Columns.Add("NgayDangKy", typeof(DateTime));
@@ -26,6 +27,7 @@ namespace QuanLyGiuXe.Services
                 var row = dt.NewRow();
                 row["CardUID"] = c.UID ?? string.Empty;
                 row["BienSo"] = c.BienSo ?? string.Empty;
+                row["CardName"] = c.CardName ?? string.Empty;
                 row["LoaiVeId"] = c.LoaiVeId;
                 row["LoaiXeId"] = c.LoaiXeId;
                 row["NgayDangKy"] = c.NgayTao == DateTime.MinValue ? (object)DBNull.Value : c.NgayTao;
@@ -43,6 +45,7 @@ namespace QuanLyGiuXe.Services
                     bulk.DestinationTableName = "RFIDCards";
                     bulk.ColumnMappings.Add("CardUID", "CardUID");
                     bulk.ColumnMappings.Add("BienSo", "BienSo");
+                                bulk.ColumnMappings.Add("CardName", "CardName");
                     bulk.ColumnMappings.Add("LoaiVeId", "LoaiVeId");
                     bulk.ColumnMappings.Add("LoaiXeId", "LoaiXeId");
                     bulk.ColumnMappings.Add("NgayDangKy", "NgayDangKy");
@@ -82,6 +85,7 @@ IF OBJECT_ID('tempdb..#TmpRFID') IS NOT NULL DROP TABLE #TmpRFID;
 CREATE TABLE #TmpRFID (
     CardUID NVARCHAR(200) NOT NULL,
     BienSo NVARCHAR(200) NULL,
+    CardName NVARCHAR(200) NULL,
     LoaiXeId INT NULL,
     LoaiVeId INT NULL,
     NgayDangKy DATETIME NULL,
@@ -101,6 +105,7 @@ CREATE TABLE #TmpRFID (
                             var dt = new DataTable();
                             dt.Columns.Add("CardUID", typeof(string));
                             dt.Columns.Add("BienSo", typeof(string));
+                            dt.Columns.Add("CardName", typeof(string));
                             dt.Columns.Add("LoaiXeId", typeof(int));
                             dt.Columns.Add("LoaiVeId", typeof(int));
                             dt.Columns.Add("NgayDangKy", typeof(DateTime));
@@ -112,6 +117,7 @@ CREATE TABLE #TmpRFID (
                                 var row = dt.NewRow();
                                 row["CardUID"] = c.UID ?? string.Empty;
                                 row["BienSo"] = c.BienSo ?? string.Empty;
+                                row["CardName"] = c.CardName ?? string.Empty;
                                 row["LoaiXeId"] = c.LoaiXeId;
                                 row["LoaiVeId"] = c.LoaiVeId;
                                 row["NgayDangKy"] = c.NgayTao == DateTime.MinValue ? (object)DBNull.Value : c.NgayTao;
@@ -126,6 +132,7 @@ CREATE TABLE #TmpRFID (
                                 bulk.DestinationTableName = "#TmpRFID";
                                 bulk.ColumnMappings.Add("CardUID", "CardUID");
                                 bulk.ColumnMappings.Add("BienSo", "BienSo");
+                                bulk.ColumnMappings.Add("CardName", "CardName");
                                 bulk.ColumnMappings.Add("LoaiXeId", "LoaiXeId");
                                 bulk.ColumnMappings.Add("LoaiVeId", "LoaiVeId");
                                 bulk.ColumnMappings.Add("NgayDangKy", "NgayDangKy");
@@ -152,17 +159,17 @@ CREATE TABLE #TmpRFID (
                             }
                             catch { }
 
-                            // MERGE
+                            // MERGE (include CardName in UPDATE/INSERT)
                             using (var cmd = new SqlCommand(@"
 DECLARE @Output TABLE ([Action] NVARCHAR(20));
 MERGE INTO dbo.RFIDCards AS target
 USING #TmpRFID AS src
 ON target.CardUID = src.CardUID
 WHEN MATCHED AND @updateExisting = 1 THEN
-    UPDATE SET BienSo = src.BienSo, LoaiXeId = src.LoaiXeId, LoaiVeId = src.LoaiVeId, NgayDangKy = src.NgayDangKy, NgayHetHan = src.NgayHetHan, TrangThai = src.TrangThai
+    UPDATE SET BienSo = src.BienSo, CardName = src.CardName, LoaiXeId = src.LoaiXeId, LoaiVeId = src.LoaiVeId, NgayDangKy = src.NgayDangKy, NgayHetHan = src.NgayHetHan, TrangThai = src.TrangThai
 WHEN NOT MATCHED BY TARGET AND src.LoaiXeId IS NOT NULL AND src.LoaiXeId <> 0 AND src.LoaiVeId IS NOT NULL AND src.LoaiVeId <> 0 THEN
-    INSERT (CardUID, BienSo, LoaiXeId, LoaiVeId, NgayDangKy, NgayHetHan, TrangThai)
-    VALUES (src.CardUID, src.BienSo, src.LoaiXeId, src.LoaiVeId, src.NgayDangKy, src.NgayHetHan, src.TrangThai)
+    INSERT (CardUID, BienSo, CardName, LoaiXeId, LoaiVeId, NgayDangKy, NgayHetHan, TrangThai)
+    VALUES (src.CardUID, src.BienSo, src.CardName, src.LoaiXeId, src.LoaiVeId, src.NgayDangKy, src.NgayHetHan, src.TrangThai)
 OUTPUT $action INTO @Output;
 
 SELECT SUM(CASE WHEN [Action] = 'INSERT' THEN 1 ELSE 0 END) AS Inserted, SUM(CASE WHEN [Action] = 'UPDATE' THEN 1 ELSE 0 END) AS Updated FROM @Output;

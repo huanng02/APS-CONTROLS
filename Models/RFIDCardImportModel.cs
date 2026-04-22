@@ -30,6 +30,7 @@ namespace QuanLyGiuXe.Models
         // original text values from Excel
         public string LoaiXeTextRaw { get; set; } = string.Empty;
         public string LoaiVeTextRaw { get; set; } = string.Empty;
+        public string CardName { get; set; } = string.Empty;
         public DateTime? NgayDangKy { get; set; }
         public DateTime? NgayHetHan { get; set; }
         public string TrangThai { get; set; } = string.Empty;

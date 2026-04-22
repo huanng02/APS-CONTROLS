@@ -36,11 +36,14 @@ namespace QuanLyGiuXe.Services
                         // defensively get cells by index; if missing treat as empty
                         model.CardUID = r.Cell(1).GetString().Trim();
                         model.BienSo = r.Cell(2).GetString().Trim();
-                        model.LoaiXeTextRaw = r.Cell(3).GetString().Trim();
-                        model.LoaiVeTextRaw = r.Cell(4).GetString().Trim();
-                        model.NgayDangKy = ParseDateOrNull(r.Cell(5).GetString());
-                        model.NgayHetHan = ParseDateOrNull(r.Cell(6).GetString());
-                        model.TrangThai = r.Cell(7).GetString().Trim();
+                        // added CardName in column 3, shift LoaiXe/LoaiVe to columns 4/5
+                        model.CardName = r.Cell(3).GetString().Trim();
+                        model.LoaiXeTextRaw = r.Cell(4).GetString().Trim();
+                        model.LoaiVeTextRaw = r.Cell(5).GetString().Trim();
+                        // shifted: NgayDangKy at col 6, NgayHetHan col7, TrangThai col8
+                        model.NgayDangKy = ParseDateOrNull(r.Cell(6).GetString());
+                        model.NgayHetHan = ParseDateOrNull(r.Cell(7).GetString());
+                        model.TrangThai = r.Cell(8).GetString().Trim();
 
                         model.Status = ImportStatus.UNKNOWN;
                         // Normalize raw texts for later mapping
