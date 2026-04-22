@@ -13,6 +13,10 @@ namespace QuanLyGiuXe.ViewModels
     {
         private readonly BangGiaRepository _repo = new BangGiaRepository();
         private readonly DatabaseService _db = new DatabaseService();
+        // Named time constants to avoid magic numbers
+        private static readonly TimeSpan BusinessDayStart = TimeSpan.FromHours(6); // 06:00
+        private static readonly TimeSpan BusinessNightStart = TimeSpan.FromHours(20); // 20:00
+        private static readonly TimeSpan GracePeriod = TimeSpan.FromMinutes(30); // 30 minutes
 
         public ObservableCollection<BangGia> Items { get; } = new ObservableCollection<BangGia>();
         public ObservableCollection<LoaiXe> LoaiXeList { get; } = new ObservableCollection<LoaiXe>();
@@ -42,7 +46,7 @@ namespace QuanLyGiuXe.ViewModels
 
         private void Compute()
         {
-            // New hybrid rule with grace at boundaries
+            // Validate times
             if (ThoiGianVao == null || ThoiGianRa == null)
             {
                 ResultText = string.Empty;
@@ -58,67 +62,88 @@ namespace QuanLyGiuXe.ViewModels
             var start = ThoiGianVao.Value;
             var end = ThoiGianRa.Value;
 
-            // Fixed prices per specification
-            const int DAY_PRICE = 10_000;
-            const int NIGHT_PRICE = 50_000;
+            // Determine selected price record by pair (LoaiXeId, LoaiVeId)
+            var loaiXeId = EditingItem?.LoaiXeId ?? 0;
+            var loaiVeId = SelectedLoaiVeId;
 
-            // read live prices if present (but use fixed constants for block pricing)
-            decimal giaThang = EditingItem?.GiaThang ?? 0m;
-            if (giaThang == 0m && !string.IsNullOrWhiteSpace(GiaThangText))
-                decimal.TryParse(GiaThangText, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.CurrentCulture, out giaThang);
-
-            // Monthly ticket
-            if (SelectedLoaiVe?.Id == 2)
+            if (loaiXeId <= 0 || loaiVeId <= 0)
             {
-                ResultText = $"Tiền: {FormatVND(giaThang)}";
+                ResultText = "Chưa cấu hình bảng giá";
                 OnPropertyChanged(nameof(ResultText));
                 return;
             }
 
-            // Helper functions
+            var bangGia = _repo.GetByLoaiXeAndLoaiVe(loaiXeId, loaiVeId);
+            if (bangGia == null)
+            {
+                ResultText = "Chưa cấu hình bảng giá";
+                OnPropertyChanged(nameof(ResultText));
+                return;
+            }
+
+            // Monthly ticket handling
+            var isThang = _thangLoaiVeId.HasValue && loaiVeId == _thangLoaiVeId.Value;
+            if (isThang)
+            {
+                if (!bangGia.GiaThang.HasValue)
+                {
+                    ResultText = "Chưa cấu hình bảng giá";
+                    OnPropertyChanged(nameof(ResultText));
+                    return;
+                }
+
+                ResultText = $"Tiền: {FormatVND(bangGia.GiaThang.Value)}";
+                OnPropertyChanged(nameof(ResultText));
+                return;
+            }
+
+            // Vãng lai (or other non-monthly) must have hourly and overnight prices
+            if (!bangGia.GiaTheoGio.HasValue || !bangGia.GiaQuaDem.HasValue)
+            {
+                ResultText = "Chưa cấu hình bảng giá";
+                OnPropertyChanged(nameof(ResultText));
+                return;
+            }
+
+            var dayPrice = bangGia.GiaTheoGio.Value;
+            var nightPrice = bangGia.GiaQuaDem.Value;
+
             bool IsCrossingBoundary(DateTime s, DateTime e)
             {
-                // boundaries occur at every day at 06:00 and 20:00
                 var from = s.Date.AddDays(-1);
                 var to = e.Date.AddDays(1);
                 for (var d = from; d <= to; d = d.AddDays(1))
                 {
-                    var b1 = d.Date + new TimeSpan(6, 0, 0);
-                    var b2 = d.Date + new TimeSpan(20, 0, 0);
+                    var b1 = d.Date + BusinessDayStart;
+                    var b2 = d.Date + BusinessNightStart;
                     if (s < b1 && b1 <= e) return true;
                     if (s < b2 && b2 <= e) return true;
                 }
                 return false;
             }
 
-            bool IsGracePeriod(DateTime s, DateTime e)
-            {
-                var dur = e - s;
-                return dur <= TimeSpan.FromMinutes(30);
-            }
+            bool IsGracePeriod(DateTime s, DateTime e) => (e - s) <= GracePeriod;
 
-            // If session crosses a boundary and is within grace period -> treat as single zone based on start time
+            // If session crosses a boundary within grace period, charge based on start zone
             if (IsCrossingBoundary(start, end) && IsGracePeriod(start, end))
             {
-                // determine zone by start time
                 var t = start.TimeOfDay;
-                bool startIsNight = (t >= new TimeSpan(20, 0, 0)) || (t < new TimeSpan(6, 0, 0));
-                var total = startIsNight ? NIGHT_PRICE : DAY_PRICE;
+                bool startIsNight = (t >= BusinessNightStart) || (t < BusinessDayStart);
+                var total = startIsNight ? nightPrice : dayPrice;
                 ResultText = $"Tiền: {FormatVND(total)}";
                 OnPropertyChanged(nameof(ResultText));
                 return;
             }
 
-            // Otherwise apply strict business-day splitting and per-day evaluation
-            int grandTotal = 0;
+            // Otherwise split by business-day and apply per-day evaluation
+            decimal grandTotal = 0m;
 
-            // Determine first business day start for the session
-            DateTime currentDayStart = start.Date + new TimeSpan(6, 0, 0);
-            if (start.TimeOfDay < new TimeSpan(6, 0, 0)) currentDayStart = start.Date.AddDays(-1) + new TimeSpan(6, 0, 0);
+            DateTime currentDayStart = start.Date + BusinessDayStart;
+            if (start.TimeOfDay < BusinessDayStart) currentDayStart = start.Date.AddDays(-1) + BusinessDayStart;
 
             while (currentDayStart < end)
             {
-                DateTime businessDayEnd = currentDayStart.AddDays(1); // next day 06:00
+                DateTime businessDayEnd = currentDayStart.AddDays(1); // next day at BusinessDayStart
 
                 var segStart = start > currentDayStart ? start : currentDayStart;
                 var segEnd = end < businessDayEnd ? end : businessDayEnd;
@@ -128,15 +153,14 @@ namespace QuanLyGiuXe.ViewModels
                     continue;
                 }
 
-                // night interval for this business day
-                var nightStart = currentDayStart.Date + new TimeSpan(20, 0, 0);
-                var nightEnd = currentDayStart.Date.AddDays(1) + new TimeSpan(6, 0, 0);
+                var nightStart = currentDayStart.Date + BusinessNightStart;
+                var nightEnd = currentDayStart.Date.AddDays(1) + BusinessDayStart;
 
                 var overlapNightStart = segStart > nightStart ? segStart : nightStart;
                 var overlapNightEnd = segEnd < nightEnd ? segEnd : nightEnd;
 
                 bool hasNight = overlapNightEnd > overlapNightStart;
-                if (hasNight) grandTotal += NIGHT_PRICE; else grandTotal += DAY_PRICE;
+                grandTotal += hasNight ? nightPrice : dayPrice;
 
                 currentDayStart = businessDayEnd;
             }
