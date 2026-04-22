@@ -21,6 +21,7 @@
                 <DataGridTextColumn Header="#" Binding="{Binding RowNumber}" Width="48"/>
                 <DataGridTextColumn Header="CardUID" Binding="{Binding CardUID}" Width="150"/>
                 <DataGridTextColumn Header="Biển số" Binding="{Binding BienSo}" Width="120"/>
+                <DataGridTextColumn Header="Tên thẻ" Binding="{Binding CardName}" Width="150"/>
                 <DataGridTextColumn Header="Loại xe" Binding="{Binding LoaiXe}" Width="120"/>
                 <DataGridTextColumn Header="Loại vé" Binding="{Binding LoaiVe}" Width="120"/>
                 <DataGridTextColumn Header="Ngày đăng ký" Binding="{Binding NgayDangKy, StringFormat=dd/MM/yyyy}" Width="120"/>

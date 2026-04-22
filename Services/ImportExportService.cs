@@ -347,6 +347,7 @@ namespace QuanLyGiuXe.Services
             var dt = new DataTable();
             dt.Columns.Add("CardUID", typeof(string));
             dt.Columns.Add("BienSo", typeof(string));
+            dt.Columns.Add("CardName", typeof(string));
             dt.Columns.Add("LoaiVeId", typeof(int));
             dt.Columns.Add("LoaiXeId", typeof(int));
             dt.Columns.Add("NgayDangKy", typeof(DateTime));
@@ -365,6 +366,7 @@ namespace QuanLyGiuXe.Services
                 var nv = ImportNormalization.Normalize(r.LoaiVe ?? string.Empty);
                 bool isVangLai = !string.IsNullOrEmpty(nv) && (nv.Contains("VANG LAI") || nv.Contains("VE LUOT") || nv.Contains("VELUOT") || nv.Contains("VANGLAI"));
                 row["BienSo"] = (isVangLai) ? (object)DBNull.Value : (string.IsNullOrWhiteSpace(r.BienSo) ? (object)DBNull.Value : r.BienSo);
+                row["CardName"] = string.IsNullOrWhiteSpace(r.CardName) ? (object)DBNull.Value : r.CardName;
                 row["LoaiVeId"] = r.MappedLoaiVeId.HasValue ? (object)r.MappedLoaiVeId.Value : DBNull.Value;
                 row["LoaiXeId"] = r.MappedLoaiXeId.HasValue ? (object)r.MappedLoaiXeId.Value : DBNull.Value;
                 row["NgayDangKy"] = r.NgayDangKy ?? (object)DBNull.Value;
@@ -389,6 +391,7 @@ namespace QuanLyGiuXe.Services
                 {
                     UID = dr.Table.Columns.Contains("CardUID") ? (dr["CardUID"]?.ToString() ?? string.Empty) : string.Empty,
                     BienSo = dr.Table.Columns.Contains("BienSo") ? (dr["BienSo"]?.ToString() ?? string.Empty) : string.Empty,
+                    CardName = dr.Table.Columns.Contains("CardName") ? (dr["CardName"]?.ToString() ?? string.Empty) : string.Empty,
                     LoaiVeId = dr.Table.Columns.Contains("LoaiVeId") ? Convert.ToInt32(dr["LoaiVeId"]) : 0,
                     LoaiXeId = dr.Table.Columns.Contains("LoaiXeId") ? Convert.ToInt32(dr["LoaiXeId"]) : 0,
                     // If source date missing, default to today so DB has a sensible registration date
@@ -413,11 +416,12 @@ namespace QuanLyGiuXe.Services
             // Column mapping (fixed schema)
             const int COL_UID = 1;
             const int COL_BIENSO = 2;
-            const int COL_LOAIXE = 3;
-            const int COL_LOAIVE = 4;
-            const int COL_NGAYDANGKY = 5;
-            const int COL_NGAYHETHAN = 6;
-            const int COL_TRANGTHAI = 7;
+            const int COL_CARDNAME = 3;
+            const int COL_LOAIXE = 4;
+            const int COL_LOAIVE = 5;
+            const int COL_NGAYDANGKY = 6;
+            const int COL_NGAYHETHAN = 7;
+            const int COL_TRANGTHAI = 8;
 
             // Get raw RFIDCard records from DB and resolve display names for LoaiXe/LoaiVe
             var raw = _db.GetRFIDCards();
@@ -433,6 +437,7 @@ namespace QuanLyGiuXe.Services
             {
                 CardUID = it.UID,
                 BienSo = it.BienSo,
+                CardName = it.CardName ?? string.Empty,
                 LoaiXe = it.LoaiXeId > 0 && loaiXeLookup.TryGetValue(it.LoaiXeId, out var lx) ? lx : string.Empty,
                 LoaiVe = it.LoaiVeId > 0 && loaiVeLookup.TryGetValue(it.LoaiVeId, out var lv) ? lv : string.Empty,
                 NgayDangKy = it.NgayTao == DateTime.MinValue ? (DateTime?)null : it.NgayTao,
@@ -465,6 +470,7 @@ namespace QuanLyGiuXe.Services
                         {
                             CardUID = item.CardUID,
                             BienSo = item.BienSo,
+                            CardName = item.CardName,
                             LoaiXe = item.LoaiXe,
                             LoaiVe = item.LoaiVe,
                             NgayDangKy = dk,
@@ -478,17 +484,18 @@ namespace QuanLyGiuXe.Services
             using (var wb = new XLWorkbook())
             {
                 var ws = wb.Worksheets.Add("RFIDCards");
-                var headers = new[] { "CardUID", "BienSo", "LoaiXe", "LoaiVe", "NgayDangKy", "NgayHetHan", "TrangThai" };
+                var headers = new[] { "CardUID", "BienSo", "CardName", "LoaiXe", "LoaiVe", "NgayDangKy", "NgayHetHan", "TrangThai" };
                 for (int i = 0; i < headers.Length; i++) ws.Cell(1, i + 1).Value = headers[i];
 
                 int r = 2;
                 foreach (var it in list)
                 {
                     // Always set each cell to preserve schema. Use empty string for nulls.
-                    ws.Cell(r, COL_UID).Value = it.CardUID ?? string.Empty;
-                    ws.Cell(r, COL_BIENSO).Value = string.IsNullOrWhiteSpace(it.BienSo) ? string.Empty : it.BienSo;
-                    ws.Cell(r, COL_LOAIXE).Value = it.LoaiXe ?? string.Empty;
-                    ws.Cell(r, COL_LOAIVE).Value = it.LoaiVe ?? string.Empty;
+                ws.Cell(r, COL_UID).Value = it.CardUID ?? string.Empty;
+                ws.Cell(r, COL_BIENSO).Value = string.IsNullOrWhiteSpace(it.BienSo) ? string.Empty : it.BienSo;
+                ws.Cell(r, COL_CARDNAME).Value = string.IsNullOrWhiteSpace(it.CardName) ? string.Empty : it.CardName;
+                ws.Cell(r, COL_LOAIXE).Value = it.LoaiXe ?? string.Empty;
+                ws.Cell(r, COL_LOAIVE).Value = it.LoaiVe ?? string.Empty;
 
                     // NgayDangKy
                     var cNgayDK = ws.Cell(r, COL_NGAYDANGKY);

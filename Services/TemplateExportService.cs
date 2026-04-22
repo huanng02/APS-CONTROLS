@@ -138,23 +138,34 @@ namespace QuanLyGiuXe.Services
                     // Guide.txt
                     var guidePath = Path.Combine(folderPath, "Guide.txt");
                     var sb = new StringBuilder();
-                    sb.AppendLine("Hướng dẫn Import RFID Cards");
+                    sb.AppendLine("HƯỚNG DẪN IMPORT RFID CARDS");
                     sb.AppendLine();
-                    sb.AppendLine("CardUID: bắt buộc, không trùng");
-                    sb.AppendLine("BienSo: có thể để trống");
-                    sb.AppendLine("LoaiXe: tên loại xe, ví dụ 'Xe máy' hoặc 'Ô tô'");
-                    sb.AppendLine("LoaiVe: \"Vé lượt\" hoặc \"Vé tháng\"");
-                    sb.AppendLine("NgayDangKy: yyyy-MM-dd (có thể trống)");
-                    sb.AppendLine("NgayHetHan: chỉ dùng cho vé tháng (có thể trống)");
-                    sb.AppendLine("TrangThai: Active / Inactive");
+                    sb.AppendLine("1) Các file có sẵn trong thư mục:");
+                    sb.AppendLine("   - Sample_SingleLoaiVe.xlsx : mẫu dùng khi bạn đang ở 1 tab loại vé cụ thể (không có cột LoaiVe/LoaiVeId)");
+                    sb.AppendLine("   - Sample_AllLoaiVe.xlsx    : mẫu dùng khi import ở tab 'Tất cả' (có cột LoaiVe và LoaiVeId)");
                     sb.AppendLine();
-                    sb.AppendLine("Quy tắc:");
-                    sb.AppendLine("- Không xóa header");
-                    sb.AppendLine("- Không để trống CardUID");
-                    sb.AppendLine("- Không trùng CardUID");
-                    sb.AppendLine("- Format ngày đúng chuẩn (yyyy-MM-dd or dd/MM/yyyy)");
+                    sb.AppendLine("2) Các cột trong file (Single tab):");
+                    sb.AppendLine("   CardUID (bắt buộc), BienSo (tùy chọn), CardName (tên hiển thị thẻ), LoaiXe, NgayDangKy, NgayHetHan, TrangThai");
+                    sb.AppendLine();
+                    sb.AppendLine("3) Các cột trong file (All tab):");
+                    sb.AppendLine("   CardUID (bắt buộc), BienSo, CardName, LoaiXe, LoaiVe, LoaiVeId (bắt buộc), NgayDangKy, NgayHetHan, TrangThai");
+                    sb.AppendLine();
+                    sb.AppendLine("4) Quy tắc theo tab:");
+                    sb.AppendLine("   - Nếu bạn đang ở 1 tab loại vé cụ thể: hệ thống sẽ TỰ GÁN LoaiVe theo tab, bạn KHÔNG CẦN nhập LoaiVe/LoaiVeId trong Excel.");
+                    sb.AppendLine("   - Nếu bạn ở tab 'Tất cả' (All): file phải có cột LoaiVeId (ticketTypeId) chứa giá trị số tương ứng trong DB. Nếu thiếu hoặc không hợp lệ -> file/rows sẽ bị reject.");
+                    sb.AppendLine();
+                    sb.AppendLine("5) Các lưu ý khác:");
+                    sb.AppendLine("   - CardUID: bắt buộc, duy nhất. Không để trống hoặc trùng.");
+                    sb.AppendLine("   - CardName: tên hiển thị của thẻ (có thể để trống). Nếu DB chưa có cột CardName, hệ thống sẽ bỏ qua cột này.");
+                    sb.AppendLine("   - LoaiXe: nhập tên (ví dụ 'Xe máy' hoặc 'Ô tô') hoặc mã tương ứng; hệ thống sẽ cố map tự động.");
+                    sb.AppendLine("   - Ngày: dùng định dạng yyyy-MM-dd hoặc dd/MM/yyyy.");
+                    sb.AppendLine("   - TrangThai: 'Active' để import, các giá trị khác sẽ bị bỏ qua (Skipped).");
+                    sb.AppendLine();
+                    sb.AppendLine("6) Thao tác đề xuất:");
+                    sb.AppendLine("   - Nếu không chắc LoaiVeId, tải Sample_SingleLoaiVe.xlsx khi ở tab LoaiVe cụ thể hoặc Sample_AllLoaiVe.xlsx khi ở All.");
+                    sb.AppendLine("   - Luôn Preview trước khi Import để kiểm tra lỗi.");
 
-                    File.WriteAllText(guidePath, sb.ToString());
+                    File.WriteAllText(guidePath, sb.ToString(), Encoding.UTF8);
 
                     // open folder
                     try

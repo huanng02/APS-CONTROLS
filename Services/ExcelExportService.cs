@@ -25,8 +25,8 @@ namespace QuanLyGiuXe.Services
                 using var wb = new XLWorkbook();
                 var ws = wb.Worksheets.Add("RFIDCards");
 
-                // Define headers (do NOT include internal Id column)
-                var headers = new[] { "CardUID", "BienSo", "LoaiXeId", "LoaiVe", "NgayDangKy", "NgayHetHan", "TrangThai" };
+                // Define headers (do NOT include internal Id column). Include CardName
+                var headers = new[] { "CardUID", "BienSo", "CardName", "LoaiXe", "LoaiVe", "NgayDangKy", "NgayHetHan", "TrangThai" };
                 for (int i = 0; i < headers.Length; i++)
                     ws.Cell(1, i + 1).Value = headers[i];
 
@@ -57,6 +57,9 @@ namespace QuanLyGiuXe.Services
                     // BienSo
                     ws.Cell(r, 2).Value = string.IsNullOrEmpty(c?.BienSo) ? string.Empty : c.BienSo;
 
+                    // CardName
+                    ws.Cell(r, 3).Value = string.IsNullOrEmpty(c?.CardName) ? string.Empty : c.CardName;
+
                     // LoaiXe: try lookup from DB, fallback to numeric id if not found
                     string loaiXeText = string.Empty;
                     if (c != null)
@@ -66,7 +69,7 @@ namespace QuanLyGiuXe.Services
                         else
                             loaiXeText = c.LoaiXeId == 0 ? string.Empty : c.LoaiXeId.ToString();
                     }
-                    ws.Cell(r, 3).Value = loaiXeText;
+                    ws.Cell(r, 4).Value = loaiXeText;
 
                     // LoaiVe mapping (keep simple mapping)
                     string loaiVeText = string.Empty;
@@ -79,24 +82,13 @@ namespace QuanLyGiuXe.Services
                             _ => string.Empty
                         };
                     }
-                    ws.Cell(r, 4).Value = loaiVeText;
+                    ws.Cell(r, 5).Value = loaiVeText;
 
                     // NgayDangKy: if empty or MinValue -> leave blank; else write DateTime value
                     if (c != null && c.NgayTao != DateTime.MinValue)
                     {
-                        ws.Cell(r, 5).Value = c.NgayTao;
+                        ws.Cell(r, 6).Value = c.NgayTao;
                         // include time for NgayDangKy like NgayHetHan
-                        ws.Cell(r, 5).Style.DateFormat.Format = "dd/MM/yyyy HH:mm";
-                    }
-                    else
-                    {
-                        ws.Cell(r, 5).Value = string.Empty;
-                    }
-
-                    // NgayHetHan: nullable
-                    if (c != null && c.NgayHetHan.HasValue)
-                    {
-                        ws.Cell(r, 6).Value = c.NgayHetHan.Value;
                         ws.Cell(r, 6).Style.DateFormat.Format = "dd/MM/yyyy HH:mm";
                     }
                     else
@@ -104,8 +96,19 @@ namespace QuanLyGiuXe.Services
                         ws.Cell(r, 6).Value = string.Empty;
                     }
 
+                    // NgayHetHan: nullable
+                    if (c != null && c.NgayHetHan.HasValue)
+                    {
+                        ws.Cell(r, 7).Value = c.NgayHetHan.Value;
+                        ws.Cell(r, 7).Style.DateFormat.Format = "dd/MM/yyyy HH:mm";
+                    }
+                    else
+                    {
+                        ws.Cell(r, 7).Value = string.Empty;
+                    }
+
                     // TrangThai
-                    ws.Cell(r, 7).Value = c?.TrangThai ?? string.Empty;
+                    ws.Cell(r, 8).Value = c?.TrangThai ?? string.Empty;
 
                     r++;
                 }
