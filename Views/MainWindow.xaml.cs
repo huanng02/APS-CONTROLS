@@ -9,8 +9,6 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using System.Windows.Input;
-using AForge.Video;
-using AForge.Video.DirectShow;
 using QuanLyGiuXe.Models;
 using QuanLyGiuXe.Services;
 using QuanLyGiuXe.ViewModels;
@@ -20,12 +18,15 @@ namespace QuanLyGiuXe
 {
     public partial class MainWindow : Window
     {
-        private Bitmap? frameVao1, frameVao2, frameRa1, frameRa2;
-        private FilterInfoCollection? cameras;
-        private VideoCaptureDevice? camVao1, camVao2, camRa1, camRa2;
         private readonly object _manualOpenLock = new();
         private readonly System.Collections.Generic.Dictionary<int, DateTime> _lastManualOpen = new();
         private readonly Dictionary<string, DateTime> _lastScanByUid = new();
+
+        private CameraService _cameraService = new CameraService();
+        private Dictionary<string, Bitmap> _currentFrames = new();
+        private bool _isProcessingAuto = false;
+        private DateTime _lastAutoScanTime = DateTime.MinValue;
+        private readonly GateControlService _gateControlService = new GateControlService();
 
         public MainWindow()
         {
@@ -39,7 +40,6 @@ namespace QuanLyGiuXe
             // subscribe to full RT events to record button presses
             C3200Service.Instance.OnEvent += OnC3200Event;
             this.Closing += (s, e) => C3200Service.Instance.OnEvent -= OnC3200Event;
-
             // UI: logs menu is defined in XAML (TopPanel) — no dynamic button needed here
         }
 
@@ -114,193 +114,17 @@ namespace QuanLyGiuXe
 
         private void OnC3200Event(Services.C3200Event evt)
         {
-            // debounce: ignore RTLog events that arrive immediately after a manual open command
-            try
-            {
-                // If any manual open happened very recently, skip RTLog processing to avoid duplicate/misaligned records.
-                bool recentManual = false;
-                lock (_manualOpenLock)
-                {
-                    foreach (var kv in _lastManualOpen)
-                    {
-                        if ((DateTime.UtcNow - kv.Value).TotalSeconds < 5)
-                        {
-                            recentManual = true; break;
-                        }
-                    }
-                }
-                if (recentManual)
-                {
-                    try { File.AppendAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ButtonPressDebug.txt"), $"{DateTime.Now:O}\tSKIP_RTLOG\tdoor={evt.Door}\trecent_manual_any\n"); } catch { }
-                    return;
-                }
-            }
-            catch { }
-            // detect physical button press: either raw contains BUTTON_PRESS or event type 202 (device-specific)
             if (evt == null) return;
-            var raw = (evt.RawData ?? string.Empty).ToUpperInvariant();
-            bool isButton = raw.Contains("BUTTON") || raw.Contains("BUTTON_PRESS") || evt.EventType == 202;
-            if (!isButton) return;
 
-            // capture current frames for the door and save images + try open barrier and insert DB record
-            Task.Run(async () =>
+            // Kiểm tra nếu là sự kiện nhấn nút
+            var raw = (evt.RawData ?? "").ToUpper();
+            bool isButton = raw.Contains("BUTTON") || evt.EventType == 202;
+
+            if (isButton)
             {
-                try
-                {
-                    Bitmap? plate = null;
-                    Bitmap? full = null;
-                    // capture clones on UI thread
-                    Dispatcher.Invoke(() =>
-                    {
-                        if (evt.Door == 1)
-                        {
-                            if (frameVao2 != null) plate = (Bitmap)frameVao2.Clone();
-                            if (frameVao1 != null) full = (Bitmap)frameVao1.Clone();
-                        }
-                        else
-                        {
-                            if (frameRa2 != null) plate = (Bitmap)frameRa2.Clone();
-                            if (frameRa1 != null) full = (Bitmap)frameRa1.Clone();
-                        }
-                    });
-
-                    string imagesDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ButtonPressImages");
-                    Directory.CreateDirectory(imagesDir);
-                    string stamp = DateTime.Now.ToString("yyyyMMdd_HHmmss_fff");
-                    string platePath = null;
-                    string fullPath = null;
-
-                    if (full != null)
-                    {
-                        fullPath = Path.Combine(imagesDir, $"{stamp}_door{evt.Door}_full.jpg");
-                        full.Save(fullPath, System.Drawing.Imaging.ImageFormat.Jpeg);
-                        full.Dispose();
-                    }
-                    if (plate != null)
-                    {
-                        platePath = Path.Combine(imagesDir, $"{stamp}_door{evt.Door}_plate.jpg");
-                        plate.Save(platePath, System.Drawing.Imaging.ImageFormat.Jpeg);
-                        plate.Dispose();
-                    }
-
-                    // determine logical mapping for this button press (IN/OUT) using current config
-                    var cfg = AppConfig.Load();
-                    int logicalDoor = cfg.ZKTeco.MapPhysicalToLogical(evt.Door);
-                    evt.InOutState = logicalDoor;
-
-                    // try open barrier and record result
-                    byte? barrierResult = null;
-                    try
-                    {
-                        // determine button action from config (Button1 maps to evt.Door==1, Button2 to evt.Door==2)
-                        bool opened = false;
-                        string action = evt.Door == 1 ? cfg.ZKTeco.Button1Action : cfg.ZKTeco.Button2Action;
-                        switch (action)
-                        {
-                            case "OpenThisDoor":
-                                opened = await C3200Service.Instance.OpenBarrierAsync(evt.Door);
-                                break;
-                            case "OpenGroupIn":
-                                var inSet = cfg.ZKTeco.GetInSet();
-                                foreach (var d in inSet) await C3200Service.Instance.OpenBarrierAsync(d);
-                                opened = true;
-                                break;
-                            case "OpenGroupOut":
-                                var outSet = cfg.ZKTeco.GetOutSet();
-                                foreach (var d in outSet) await C3200Service.Instance.OpenBarrierAsync(d);
-                                opened = true;
-                                break;
-                            default:
-                                opened = false; // Disabled or unknown
-                                break;
-                        }
-                        barrierResult = opened ? (byte)1 : (byte)0;
-                    }
-                    catch { barrierResult = null; }
-
-                    // If no images captured initially, retry a few times (small delay) to allow cameras to update.
-                    string notes = null;
-                    if (string.IsNullOrEmpty(platePath) && string.IsNullOrEmpty(fullPath))
-                    {
-                        for (int i = 0; i < 3; i++)
-                        {
-                            await Task.Delay(200);
-                            Bitmap? plate2 = null;
-                            Bitmap? full2 = null;
-                            Dispatcher.Invoke(() =>
-                            {
-                                if (evt.Door == 1)
-                                {
-                                    if (frameVao2 != null) plate2 = (Bitmap)frameVao2.Clone();
-                                    if (frameVao1 != null) full2 = (Bitmap)frameVao1.Clone();
-                                }
-                                else if (evt.Door == 2)
-                                {
-                                    if (frameRa2 != null) plate2 = (Bitmap)frameRa2.Clone();
-                                    if (frameRa1 != null) full2 = (Bitmap)frameRa1.Clone();
-                                }
-                            });
-
-                            if (full2 != null)
-                            {
-                                fullPath = Path.Combine(imagesDir, $"{stamp}_door{evt.Door}_full_retry{i}.jpg");
-                                full2.Save(fullPath, System.Drawing.Imaging.ImageFormat.Jpeg);
-                                full2.Dispose();
-                            }
-                            if (plate2 != null)
-                            {
-                                platePath = Path.Combine(imagesDir, $"{stamp}_door{evt.Door}_plate_retry{i}.jpg");
-                                plate2.Save(platePath, System.Drawing.Imaging.ImageFormat.Jpeg);
-                                plate2.Dispose();
-                            }
-
-                            if (!string.IsNullOrEmpty(platePath) || !string.IsNullOrEmpty(fullPath)) break;
-                        }
-
-                        if (string.IsNullOrEmpty(platePath) && string.IsNullOrEmpty(fullPath))
-                        {
-                            // no images after retries -> mark note; do not assume barrier failed just because images missing
-                            notes = "no_images";
-                            // leave barrierResult as null so we don't record '0' (interpreted as explicit failure)
-                            barrierResult = null;
-                        }
-                    }
-
-                    // insert to DB (with debug logging)
-                    try
-                    {
-                        var db = new DatabaseService();
-                        DateTime ts = DateTime.Now;
-                        if (!string.IsNullOrEmpty(evt.Time) && DateTime.TryParse(evt.Time, out var parsed)) ts = parsed;
-                        db.InsertButtonPressLog(ts, (byte?)evt.Door, evt.EventType, evt.InOutState,
-                            evt.CardNo, evt.Pin, evt.RawData, "BUTTON_PRESS",
-                            barrierResult, platePath, fullPath, null, null, notes);
-
-                        // try reconcile any recent manual-open records for same door
-                        try
-                        {
-                            if (barrierResult.HasValue)
-                            {
-                                db.ReconcileManualOpen(ts, (byte)evt.Door, barrierResult.Value, 5, $" (reconciled by RT opened={barrierResult})");
-                            }
-                        }
-                        catch { }
-
-                        // debug trace
-                        try
-                        {
-                            string logLine = $"{DateTime.Now:O}\tRT\tdoor={evt.Door}\tevt={evt.EventType}\topened={barrierResult}\tplateExists={(File.Exists(platePath) ? 1 : 0)}\tfullExists={(File.Exists(fullPath) ? 1 : 0)}\tplate={platePath}\tfull={fullPath}\traw={evt.RawData}\tnotes={notes}\n";
-                            File.AppendAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ButtonPressDebug.txt"), logLine);
-                        }
-                        catch { }
-                    }
-                    catch (Exception ex)
-                    {
-                        try { File.AppendAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ButtonPressDebug.txt"), $"{DateTime.Now:O}\tRT\tINsertError\t{ex.Message}\n"); } catch { }
-                    }
-                }
-                catch { }
-            });
+                // Đẩy sang Service xử lý ngầm, không làm treo UI
+                Task.Run(() => _gateControlService.ProcessGateActionAsync(evt.Door, _currentFrames, "BUTTON_PRESS"));
+            }
         }
 
         private void OnRfidScanned(string uid) => XuLyQuetThe(uid);
@@ -437,195 +261,217 @@ namespace QuanLyGiuXe
 
         private async Task OpenGateAsync(int doorNumber)
         {
-            string tenCong = doorNumber == 1 ? "Cổng Vào" : "Cổng Ra";
-            // debug: record requested manual open
-            try
+            // Gọi Service xử lý trọn gói: Chụp ảnh -> Mở cổng -> Ghi Log
+            await _gateControlService.ProcessGateActionAsync(doorNumber, _currentFrames, "MANUAL_OPEN", "Mở từ giao diện phần mềm");
+
+            // (Tùy chọn) Cập nhật trạng thái lên UI để người dùng biết
+            if (DataContext is MainViewModel vm)
             {
-                File.AppendAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ButtonPressDebug.txt"),
-                    $"{DateTime.Now:O}\tMANUAL_REQUEST\tdoor={doorNumber}\n");
+                string status = $"✅ Đã gửi lệnh mở cổng {doorNumber}";
+                if (doorNumber == 1) vm.LanVaoTrangThai = status;
+                else vm.LanRaTrangThai = status;
             }
-            catch { }
-
-            // record manual open time so RTLog processing can ignore the corresponding RT log
-            try
-            {
-                lock (_manualOpenLock)
-                {
-                    _lastManualOpen[doorNumber] = DateTime.UtcNow;
-                }
-            }
-            catch { }
-
-            bool opened = await C3200Service.Instance.OpenBarrierAsync(doorNumber);
-
-            try
-            {
-                File.AppendAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ButtonPressDebug.txt"),
-                    $"{DateTime.Now:O}\tMANUAL_RESULT\tdoor={doorNumber}\topened={opened}\n");
-            }
-            catch { }
-
-            if (!opened)
-            {
-                MessageBox.Show($"❌ Không mở được {tenCong}\n\n{C3200Service.Instance.LastError}",
-                    "C3-200 Error", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-
-            // update UI status briefly to reflect manual open
-            try
-            {
-                Dispatcher.Invoke(() =>
-                {
-                    if (DataContext is MainViewModel vm)
-                    {
-                        if (doorNumber == 1) vm.LanVaoTrangThai = opened ? $"✅ {tenCong} đã mở (thủ công)" : $"❌ Mở {tenCong} thất bại";
-                        else vm.LanRaTrangThai = opened ? $"✅ {tenCong} đã mở (thủ công)" : $"❌ Mở {tenCong} thất bại";
-                    }
-                });
-            }
-            catch { }
-
-            // Capture current frames and save a manual-open log entry
-            try
-            {
-                Bitmap? plate = null;
-                Bitmap? full = null;
-                Dispatcher.Invoke(() =>
-                {
-                    if (doorNumber == 1)
-                    {
-                        if (frameVao2 != null) plate = (Bitmap)frameVao2.Clone();
-                        if (frameVao1 != null) full = (Bitmap)frameVao1.Clone();
-                    }
-                    else if (doorNumber == 2)
-                    {
-                        if (frameRa2 != null) plate = (Bitmap)frameRa2.Clone();
-                        if (frameRa1 != null) full = (Bitmap)frameRa1.Clone();
-                    }
-                });
-
-                string imagesDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ButtonPressImages");
-                Directory.CreateDirectory(imagesDir);
-                string stamp = DateTime.Now.ToString("yyyyMMdd_HHmmss_fff");
-                string platePath = null; string fullPath = null;
-                if (full != null)
-                {
-                    fullPath = Path.Combine(imagesDir, $"{stamp}_manual_door{doorNumber}_full.jpg");
-                    full.Save(fullPath, System.Drawing.Imaging.ImageFormat.Jpeg);
-                    full.Dispose();
-                }
-                if (plate != null)
-                {
-                    platePath = Path.Combine(imagesDir, $"{stamp}_manual_door{doorNumber}_plate.jpg");
-                    plate.Save(platePath, System.Drawing.Imaging.ImageFormat.Jpeg);
-                    plate.Dispose();
-                }
-
-                try
-                {
-                    // record manual open timestamp for debounce
-                    lock (_manualOpenLock)
-                    {
-                        _lastManualOpen[doorNumber] = DateTime.UtcNow;
-                    }
-
-                    var db = new DatabaseService();
-                    // record diagnostic info with manual insert; do not force 0 if uncertain
-                    string manualNotes = $"Manual open via UI; sdkLastError={C3200Service.Instance.LastError}; diag={C3200Service.Instance.GetDiagnosticText()}";
-                    db.InsertButtonPressLog(DateTime.Now, (byte?)doorNumber, null, null,
-                        "MANUAL", null, null, "MANUAL_OPEN",
-                        opened ? (byte)1 : (byte?)null, platePath, fullPath, Environment.UserName, null, manualNotes);
-                }
-                catch (Exception ex)
-                {
-                    try { File.AppendAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ButtonPressDebug.txt"), $"{DateTime.Now:O}\tMANUAL_INSERT_ERROR\t{ex.Message}\n"); } catch { }
-                }
-            }
-            catch { }
         }
 
         // ── Camera (4 cam: 2 per gate) ───────────────────────────────────────
 
         private void MoCameras()
         {
-            cameras = new FilterInfoCollection(FilterCategory.VideoInputDevice);
-            if (cameras.Count == 0) return;
-
             var cfg = AppConfig.Load().Cameras;
+            _cameraService.Initialize();
 
-            StartCam(ref camVao1, cfg.VaoToanCanh, 0, CamVao1_NewFrame);
-            StartCam(ref camVao2, cfg.VaoBienSo, 1, CamVao2_NewFrame);
-            StartCam(ref camRa1, cfg.RaToanCanh, 2, CamRa1_NewFrame);
-            StartCam(ref camRa2, cfg.RaBienSo, 3, CamRa2_NewFrame);
+            // Đăng ký sự kiện xử lý ảnh
+            _cameraService.NewFrameReceived += (s, data) =>
+            {
+                Bitmap bmpForUI = null;
+                lock (data.Frame)
+                {
+                    bmpForUI = data.Frame.Clone(new Rectangle(0, 0, data.Frame.Width, data.Frame.Height),
+                                     System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
+                }
+
+                lock (_currentFrames)
+                {
+                    if (_currentFrames.TryGetValue(data.CamKey, out var old)) old.Dispose();
+                    _currentFrames[data.CamKey] = (Bitmap)bmpForUI.Clone();
+                }
+
+                // 3. Chuyển đổi ảnh (vẫn ở luồng phụ của Camera)
+                var uiImage = ConvertBitmap(bmpForUI);
+                bmpForUI.Dispose(); // Dùng xong bản cho UI thì hủy ngay
+
+                // 4. Chỉ đẩy kết quả cuối cùng lên màn hình
+                if (uiImage != null)
+                {
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        switch (data.CamKey)
+                        {
+                            case "Vao1": CameraVao1.Source = uiImage; break;
+                            case "Vao2": CameraVao2.Source = uiImage; break;
+                            case "Ra1": CameraRa1.Source = uiImage; break;
+                            case "Ra2": CameraRa2.Source = uiImage; break;
+                        }
+                    }));
+                }
+                if (data.CamKey == "Vao1")
+                {
+                    RunAutoDetection(data.Frame);
+                }
+            };
+
+            string rtspUrl = "rtsp://192.168.1.121:554/user=admin&password=tlJwpbo6&channel=0&stream=0.sdp";
+            _cameraService.StartIpCamera("Vao1", rtspUrl);
+        }
+        private async void RunAutoDetection(Bitmap originalBitmap)
+        {
+            if (_isProcessingAuto) return;
+
+            // Chặn 1 giây 1 lần
+            if ((DateTime.Now - _lastAutoScanTime).TotalMilliseconds < 1000) return;
+
+            _isProcessingAuto = true;
+            try
+            {
+                Bitmap bmpToProcess = null;
+                lock (originalBitmap)
+                {
+                    bmpToProcess = new Bitmap(originalBitmap.Width, originalBitmap.Height);
+                    using (Graphics g = Graphics.FromImage(bmpToProcess))
+                    {
+                        g.DrawImage(originalBitmap, 0, 0);
+                    }
+                }
+
+                // 1. Gửi ảnh lên server lấy biển số
+                string plate = await ApiService.SendImageAsync(bmpToProcess);
+                bmpToProcess.Dispose();
+
+                _lastAutoScanTime = DateTime.Now;
+
+                // 2. Kiểm tra nếu có biển số trả về hợp lệ
+                if (!string.IsNullOrEmpty(plate) && plate.Length > 4 && !plate.Contains("Lỗi"))
+                {
+                    // 3. Đẩy dữ liệu về UI Thread
+                    this.Dispatcher.Invoke(() =>
+                    {
+                        if (this.DataContext is MainViewModel vm)
+                        {
+                            // Gán vào ô "Biển số nhập"
+                            vm.BienSoNhap = plate.Trim().ToUpper();
+
+                            // (Tùy chọn) Thông báo trạng thái để người dùng biết đã nhận diện xong
+                            vm.LanVaoTrangThai = "Đã nhận diện: " + vm.BienSoNhap;
+                        }
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Lỗi quét tự động: " + ex.Message);
+            }
+            finally
+            {
+                _isProcessingAuto = false;
+            }
         }
 
-        private void StartCam(ref VideoCaptureDevice? cam, string cfgName, int fallbackIdx,
-            NewFrameEventHandler handler)
+        private static BitmapSource ConvertBitmap(Bitmap bitmap)
         {
-            cam = FindCamera(cfgName);
-            if (cam == null && cameras != null && fallbackIdx < cameras.Count)
-                cam = new VideoCaptureDevice(cameras[fallbackIdx].MonikerString);
-            if (cam == null) return;
-            cam.NewFrame += handler;
-            cam.Start();
-        }
+            if (bitmap == null) return null;
 
-        private VideoCaptureDevice? FindCamera(string name)
-        {
-            if (string.IsNullOrEmpty(name) || cameras == null) return null;
-            foreach (FilterInfo c in cameras)
-                if (c.Name.Contains(name, StringComparison.OrdinalIgnoreCase))
-                    return new VideoCaptureDevice(c.MonikerString);
-            return null;
-        }
+            try
+            {
+                var bitmapData = bitmap.LockBits(
+                    new Rectangle(0, 0, bitmap.Width, bitmap.Height),
+                    System.Drawing.Imaging.ImageLockMode.ReadOnly,
+                    bitmap.PixelFormat);
 
-        private void CamVao1_NewFrame(object sender, NewFrameEventArgs e)
-        {
-            frameVao1 = (Bitmap)e.Frame.Clone();
-            Dispatcher.Invoke(() => CameraVao1.Source = ConvertBitmap(frameVao1));
-        }
+                // Tự động chọn định dạng WPF tương ứng với Bitmap gốc
+                System.Windows.Media.PixelFormat wpfFormat;
+                switch (bitmap.PixelFormat)
+                {
+                    case System.Drawing.Imaging.PixelFormat.Format24bppRgb:
+                        wpfFormat = PixelFormats.Bgr24;
+                        break;
+                    case System.Drawing.Imaging.PixelFormat.Format32bppArgb:
+                    case System.Drawing.Imaging.PixelFormat.Format32bppPArgb:
+                    case System.Drawing.Imaging.PixelFormat.Format32bppRgb:
+                        wpfFormat = PixelFormats.Bgr32;
+                        break;
+                    case System.Drawing.Imaging.PixelFormat.Format8bppIndexed:
+                        wpfFormat = PixelFormats.Gray8;
+                        break;
+                    default:
+                        // Nếu là định dạng lạ, ta ép về Bgr24 nhưng có thể gây sọc
+                        wpfFormat = PixelFormats.Bgr24;
+                        break;
+                }
 
-        private void CamVao2_NewFrame(object sender, NewFrameEventArgs e)
-        {
-            frameVao2 = (Bitmap)e.Frame.Clone();
-            Dispatcher.Invoke(() => CameraVao2.Source = ConvertBitmap(frameVao2));
-        }
+                var bitmapSource = BitmapSource.Create(
+                    bitmapData.Width, bitmapData.Height,
+                    bitmap.HorizontalResolution, bitmap.VerticalResolution,
+                    wpfFormat,
+                    null,
+                    bitmapData.Scan0,
+                    bitmapData.Stride * bitmapData.Height,
+                    bitmapData.Stride);
 
-        private void CamRa1_NewFrame(object sender, NewFrameEventArgs e)
-        {
-            frameRa1 = (Bitmap)e.Frame.Clone();
-            Dispatcher.Invoke(() => CameraRa1.Source = ConvertBitmap(frameRa1));
-        }
+                bitmap.UnlockBits(bitmapData);
 
-        private void CamRa2_NewFrame(object sender, NewFrameEventArgs e)
-        {
-            frameRa2 = (Bitmap)e.Frame.Clone();
-            Dispatcher.Invoke(() => CameraRa2.Source = ConvertBitmap(frameRa2));
-        }
-
-        private static BitmapImage ConvertBitmap(Bitmap bitmap)
-        {
-            using var ms = new MemoryStream();
-            bitmap.Save(ms, System.Drawing.Imaging.ImageFormat.Bmp);
-            ms.Position = 0;
-
-            var image = new BitmapImage();
-            image.BeginInit();
-            image.StreamSource = ms;
-            image.CacheOption = BitmapCacheOption.OnLoad;
-            image.EndInit();
-            return image;
+                bitmapSource.Freeze();
+                return bitmapSource;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Lỗi Convert: " + ex.Message);
+                return null;
+            }
         }
 
         private async void Capture_Click(object sender, RoutedEventArgs e)
         {
-            if (frameVao1 == null) return;
-
-            string plate = await ApiService.SendImageAsync(frameVao1);
-            if (DataContext is MainViewModel vm)
+            try
             {
-                vm.BienSoNhap = plate.Trim();
-                vm.XeVaoCommand.Execute(null);
+                if (_currentFrames.TryGetValue("Vao1", out var bitmapToProcess) && bitmapToProcess != null)
+                {
+                    // BƯỚC 1: TẠO DEEP COPY (Quan trọng nhất cho x64)
+                    // Việc tạo mới Bitmap(width, height) này đảm bảo tách rời hoàn toàn khỏi Camera
+                    Bitmap finalBitmap = new Bitmap(bitmapToProcess.Width, bitmapToProcess.Height);
+                    using (Graphics g = Graphics.FromImage(finalBitmap))
+                    {
+                        g.DrawImage(bitmapToProcess, 0, 0);
+                    }
+
+                    // BƯỚC 2: GỌI API (Vẫn dùng await)
+                    // Trong lúc API chạy, finalBitmap này sẽ an toàn, không bị camera ghi đè
+                    string plate = await ApiService.SendImageAsync(finalBitmap);
+
+                    // BƯỚC 3: CẬP NHẬT GIAO DIỆN
+                    if (DataContext is MainViewModel vm)
+                    {
+                        // Dùng Dispatcher để đảm bảo UI nhận được giá trị mới ngay lập tức
+                        this.Dispatcher.Invoke(() =>
+                        {
+                            vm.BienSoNhap = plate?.Trim() ?? "";
+                            if (vm.XeVaoCommand.CanExecute(null))
+                            {
+                                vm.XeVaoCommand.Execute(null);
+                            }
+                        });
+                    }
+
+                    // Giải phóng ảnh tạm sau khi đã gửi xong
+                    finalBitmap.Dispose();
+                }
+                else
+                {
+                    MessageBox.Show("Không tìm thấy dữ liệu hình ảnh từ Camera Vao1!");
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Lỗi thực thi: {ex.Message}");
             }
         }
 

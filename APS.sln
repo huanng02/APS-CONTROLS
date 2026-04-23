@@ -1,20 +1,26 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.37012.4 d17.14
+VisualStudioVersion = 17.14.37012.4
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuanLyGiuXe", "QuanLyGiuXe.csproj", "{C1A70289-AFBE-45FB-BFAD-2B578345843E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QuanLyGiuXe", "QuanLyGiuXe.csproj", "{83B58783-032E-C46C-DF2A-D43444AE30CF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Debug|x86 = Debug|x86
-		Release|x86 = Release|x86
+		Debug|Any CPU = Debug|Any CPU
+		Debug|x64 = Debug|x64
+		Release|Any CPU = Release|Any CPU
+		Release|x64 = Release|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{C1A70289-AFBE-45FB-BFAD-2B578345843E}.Debug|x86.ActiveCfg = Debug|x86
-		{C1A70289-AFBE-45FB-BFAD-2B578345843E}.Debug|x86.Build.0 = Debug|x86
-		{C1A70289-AFBE-45FB-BFAD-2B578345843E}.Release|x86.ActiveCfg = Release|x86
-		{C1A70289-AFBE-45FB-BFAD-2B578345843E}.Release|x86.Build.0 = Release|x86
+		{83B58783-032E-C46C-DF2A-D43444AE30CF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{83B58783-032E-C46C-DF2A-D43444AE30CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{83B58783-032E-C46C-DF2A-D43444AE30CF}.Debug|x64.ActiveCfg = Debug|x64
+		{83B58783-032E-C46C-DF2A-D43444AE30CF}.Debug|x64.Build.0 = Debug|x64
+		{83B58783-032E-C46C-DF2A-D43444AE30CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{83B58783-032E-C46C-DF2A-D43444AE30CF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{83B58783-032E-C46C-DF2A-D43444AE30CF}.Release|x64.ActiveCfg = Release|x64
+		{83B58783-032E-C46C-DF2A-D43444AE30CF}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -23,4 +29,3 @@ Global
 		SolutionGuid = {831A4A3E-F349-4CE0-9C8E-48B5A6C396D0}
 	EndGlobalSection
 EndGlobal
-
