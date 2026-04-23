@@ -32,20 +32,20 @@ namespace QuanLyGiuXe.Services
 
         [DllImport("plcommpro.dll", EntryPoint = "Connect",
             CharSet = CharSet.Ansi, CallingConvention = CallingConvention.StdCall)]
-        private static extern int PLConnect(string parameters);
+        private static extern IntPtr PLConnect(string parameters);
 
         [DllImport("plcommpro.dll", EntryPoint = "Disconnect",
             CallingConvention = CallingConvention.StdCall)]
-        private static extern int PLDisconnect(int handle);
+        private static extern int PLDisconnect(IntPtr handle);
 
         [DllImport("plcommpro.dll", EntryPoint = "GetRTLog",
             CharSet = CharSet.Ansi, CallingConvention = CallingConvention.StdCall)]
-        private static extern int PLGetRTLog(int handle, StringBuilder buffer, int bufferSize);
+        private static extern int PLGetRTLog(IntPtr handle, StringBuilder buffer, int bufferSize);
 
         // ControlDevice(handle, operationID, param1, param2, param3, param4, options)
         [DllImport("plcommpro.dll", EntryPoint = "ControlDevice",
             CharSet = CharSet.Ansi, CallingConvention = CallingConvention.StdCall)]
-        private static extern int PLControlDevice(int handle, int operationID,
+        private static extern int PLControlDevice(IntPtr handle, int operationID,
             int param1, int param2, int param3, int param4, string options);
 
         [DllImport("plcommpro.dll", EntryPoint = "PullLastError",
@@ -54,7 +54,7 @@ namespace QuanLyGiuXe.Services
 
         // ──────────────────────────────────────────────────────────────────────────
 
-        private int _handle;
+        private IntPtr _handle;
         private CancellationTokenSource? _cts;
         private readonly object _sdkLock = new();
 
@@ -64,7 +64,7 @@ namespace QuanLyGiuXe.Services
         private int _timeoutMs = 4000;
         private int _barrierDuration = 5;
 
-        public bool IsConnected => _handle > 0;
+        public bool IsConnected => _handle != IntPtr.Zero;
         public string LastError { get; private set; } = "";
 
         /// <summary>Sự kiện quẹt thẻ: (cardNo, doorNumber).</summary>
@@ -101,13 +101,13 @@ namespace QuanLyGiuXe.Services
                 foreach (var parameters in BuildConnectCandidates())
                 {
                     _handle = PLConnect(parameters);
-                    if (_handle > 0) break;
+                    if (_handle != IntPtr.Zero) break;
                 }
 
-                if (_handle <= 0)
+                if (_handle == IntPtr.Zero)
                 {
                     LastError = $"Kết nối thất bại (sdkError={GetSdkError()})";
-                    _handle = 0;
+                    _handle = IntPtr.Zero;
                     OnConnectionChanged?.Invoke(false);
                     return Task.FromResult(false);
                 }
@@ -128,10 +128,10 @@ namespace QuanLyGiuXe.Services
         public void Disconnect()
         {
             StopPolling();
-            if (_handle > 0)
+            if (_handle != IntPtr.Zero)
             {
                 try { PLDisconnect(_handle); } catch { }
-                _handle = 0;
+                _handle = IntPtr.Zero;
             }
         }
 
@@ -165,7 +165,7 @@ namespace QuanLyGiuXe.Services
                 int r;
                 lock (_sdkLock)
                 {
-                    r = PLControlDevice(_handle, 1, doorNumber, 1, _barrierDuration, 0, "");
+                    r = PLControlDevice(_handle, 1, doorNumber, 1, _barrierDuration, 0, ""); 
                 }
 
                 // Nếu thất bại → reconnect rồi thử lại 1 lần
@@ -263,9 +263,9 @@ namespace QuanLyGiuXe.Services
                         result = PLGetRTLog(_handle, buffer, buffer.Capacity);
                     }
 
-                    if (result < 0)
+                if (result < 0)
                     {
-                        _handle = 0;
+                        _handle = IntPtr.Zero;
                         OnConnectionChanged?.Invoke(false);
                         break;
                     }
@@ -398,8 +398,8 @@ namespace QuanLyGiuXe.Services
                     tried.Add(p);
                     try
                     {
-                        int handle = PLConnect(p);
-                        if (handle > 0)
+                        IntPtr handle = PLConnect(p);
+                        if (handle != IntPtr.Zero)
                         {
                             // immediate disconnect
                             try { PLDisconnect(handle); } catch { }

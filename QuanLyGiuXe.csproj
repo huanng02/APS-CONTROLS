@@ -6,9 +6,9 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-    <PlatformTarget>x86</PlatformTarget>
-    <Platforms>x86</Platforms>
-    <Prefer32Bit>true</Prefer32Bit>
+    <PlatformTarget>x64</PlatformTarget>
+    <Platforms>x64;AnyCPU</Platforms>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
 
   <ItemGroup>
@@ -48,30 +48,50 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
 
-    <None Include="Libs\C3SDK\plcommpro.dll">
+    <None Include="Libs\C3SDK\x64\plcommpro.dll" Condition="Exists('Libs\C3SDK\x64\plcommpro.dll')">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <TargetPath>plcommpro.dll</TargetPath>
     </None>
-    <None Include="Libs\C3SDK\plcomms.dll">
+    <None Include="Libs\C3SDK\x64\plcomms.dll" Condition="Exists('Libs\C3SDK\x64\plcomms.dll')">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <TargetPath>plcomms.dll</TargetPath>
     </None>
-    <None Include="Libs\C3SDK\plrscagent.dll">
+    <None Include="Libs\C3SDK\x64\plrscagent.dll" Condition="Exists('Libs\C3SDK\x64\plrscagent.dll')">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <TargetPath>plrscagent.dll</TargetPath>
     </None>
-    <None Include="Libs\C3SDK\plrscomm.dll">
+    <None Include="Libs\C3SDK\x64\plrscomm.dll" Condition="Exists('Libs\C3SDK\x64\plrscomm.dll')">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <TargetPath>plrscomm.dll</TargetPath>
     </None>
-    <None Include="Libs\C3SDK\pltcpcomm.dll">
+    <None Include="Libs\C3SDK\x64\pltcpcomm.dll" Condition="Exists('Libs\C3SDK\x64\pltcpcomm.dll')">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <TargetPath>pltcpcomm.dll</TargetPath>
     </None>
-    <None Include="Libs\C3SDK\plusbcomm.dll">
+    <None Include="Libs\C3SDK\x64\plusbcomm.dll" Condition="Exists('Libs\C3SDK\x64\plusbcomm.dll')">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <TargetPath>plusbcomm.dll</TargetPath>
     </None>
+
+    <!-- Also include runtime-specific native assets for publishing/runtimes (only if present) -->
+    <Content Include="runtimes\win-x64\native\plcommpro.dll" Condition="Exists('runtimes\win-x64\native\plcommpro.dll')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="runtimes\win-x64\native\plcomms.dll" Condition="Exists('runtimes\win-x64\native\plcomms.dll')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="runtimes\win-x64\native\plrscagent.dll" Condition="Exists('runtimes\win-x64\native\plrscagent.dll')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="runtimes\win-x64\native\plrscomm.dll" Condition="Exists('runtimes\win-x64\native\plrscomm.dll')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="runtimes\win-x64\native\pltcpcomm.dll" Condition="Exists('runtimes\win-x64\native\pltcpcomm.dll')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="runtimes\win-x64\native\plusbcomm.dll" Condition="Exists('runtimes\win-x64\native\plusbcomm.dll')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>
