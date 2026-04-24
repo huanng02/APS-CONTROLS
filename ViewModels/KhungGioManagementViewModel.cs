@@ -64,22 +64,48 @@ namespace QuanLyGiuXe.ViewModels
 
         private void Add()
         {
-            var vm = new KhungGioItemVM { TenKhungGio = "New", GioBatDau = TimeSpan.Zero, GioKetThuc = TimeSpan.FromHours(1), TrangThai = true };
-            try
-            {
-                // validate
-                if (vm.GioBatDau == vm.GioKetThuc) throw new ArgumentException("GioBatDau cannot equal GioKetThuc");
-                if (CheckOverlap(vm)) throw new ArgumentException("Time range overlaps existing slot");
+            var dialog = new QuanLyGiuXe.Views.KhungGioAddDialog();
+            
+            // Lấy danh sách các khung giờ hiện có để truyền vào Dialog
+            var defs = _repo.GetAll();
+            dialog.ExistingSlots = defs.Select(x => (x.TenKhungGio, x.GioBatDau, x.GioKetThuc)).ToList();
 
-                var entity = new KhungGio { TenKhungGio = vm.TenKhungGio, GioBatDau = vm.GioBatDau, GioKetThuc = vm.GioKetThuc, QuaDem = vm.QuaDem, TrangThai = vm.TrangThai };
-                _repo.Insert(entity);
-                Load();
-                StatusMessage = "Thêm khung giờ thành công.";
-                try { MessageBox.Show("Thêm khung giờ thành công.", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information); } catch { }
-            }
-            catch(Exception ex)
+            // Hàm callback truyền vào Dialog để kiểm tra trùng lặp
+            dialog.CheckOverlapFunc = (start, end) =>
             {
-                MessageBox.Show("Thêm khung giờ thất bại: " + ex.Message, "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                var candidate = new KhungGioItemVM { GioBatDau = start, GioKetThuc = end };
+                return CheckOverlap(candidate);
+            };
+
+            // Mở Dialog (chặn tương tác với UI chính cho đến khi đóng)
+            bool? result = dialog.ShowDialog();
+
+            // Nếu người dùng nhấn Lưu và hợp lệ (DialogResult = true)
+            if (result == true)
+            {
+                try
+                {
+                    // QuaDem (nếu end < start thì là qua đêm)
+                    bool isQuaDem = dialog.GioKetThuc < dialog.GioBatDau;
+
+                    var entity = new KhungGio 
+                    { 
+                        TenKhungGio = dialog.TenKhungGio, 
+                        GioBatDau = dialog.GioBatDau, 
+                        GioKetThuc = dialog.GioKetThuc, 
+                        QuaDem = isQuaDem, 
+                        TrangThai = true 
+                    };
+                    
+                    _repo.Insert(entity);
+                    Load();
+                    StatusMessage = "Thêm khung giờ thành công.";
+                    try { MessageBox.Show("Thêm khung giờ thành công.", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information); } catch { }
+                }
+                catch(Exception ex)
+                {
+                    MessageBox.Show("Thêm khung giờ thất bại: " + ex.Message, "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             }
         }
 
