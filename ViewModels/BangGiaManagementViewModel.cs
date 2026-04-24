@@ -68,8 +68,8 @@ namespace QuanLyGiuXe.ViewModels
 
             if (ThoiGianRa < ThoiGianVao)
             {
-                ResultText = "Thời gian không hợp lệ";
-                return;
+                // interpret as overnight: TimeSlotCalculator will handle by normalizing checkout
+                // but for display we accept it and let calculator handle
             }
 
             var start = ThoiGianVao.Value;
@@ -87,13 +87,63 @@ namespace QuanLyGiuXe.ViewModels
 
             try
             {
-                var paymentService = new PaymentService();
-                var total = paymentService.CalculateFee(loaiXeId, loaiVeId, start, end);
-                ResultText = $"Tiền: {FormatVND(total)}";
+                // If monthly ticket, just show GiaThang
+                if (loaiVeId == 2) // Tháng
+                {
+                    if (EditingItem?.GiaThang.HasValue ?? false)
+                    {
+                        ResultText = $"Tiền: {FormatVND(EditingItem.GiaThang.Value)} (Vé tháng)";
+                    }
+                    else
+                    {
+                        ResultText = "Chưa cấu hình giá tháng cho loại vé này.";
+                    }
+                    OnPropertyChanged(nameof(ResultText));
+                    return;
+                }
+
+                // For Vãng lai, use TimeSlotCalculator with KhungGio defs and KhungGiaItems prices
+                var defs = KhungGioList.Select(k => new KhungGioDef
+                {
+                    Id = k.Id,
+                    TenKhungGio = k.TenKhungGio,
+                    GioBatDau = k.GioBatDau,
+                    GioKetThuc = k.GioKetThuc,
+                    QuaDem = k.QuaDem
+                }).ToList();
+
+                var priceList = KhungGiaItems.Select(k => new KhungPrice
+                {
+                    KhungGioId = k.KhungGioId,
+                    GiaTien = k.GiaTien,
+                    Unit = PriceUnit.PerHour
+                }).ToList();
+
+                var calc = TimeSlotCalculator.Calculate(start, end, defs, priceList);
+
+                // Build result string
+                var sb = new System.Text.StringBuilder();
+                sb.AppendLine($"Tổng thời gian: {calc.TotalDuration} ({(long)calc.TotalDuration.TotalSeconds} giây)");
+                if (calc.IsCaseA)
+                {
+                    sb.AppendLine("CASE A (<1h): Chọn khung chiếm ưu thế");
+                    sb.AppendLine($"Khung chọn: {calc.DominantKhungName} (Id={calc.DominantKhungId})");
+                    sb.AppendLine($"Tổng tiền: {FormatVND(calc.FinalPrice)}");
+                }
+                else
+                {
+                    sb.AppendLine("CASE B (>=1h): Phân bổ theo khung và cộng tiền");
+                    foreach (var s in calc.Segments)
+                    {
+                        sb.AppendLine($" - {s.TenKhungGio}: {s.DurationSeconds} giây -> {FormatVND(s.PriceForSegment)}");
+                    }
+                    sb.AppendLine($"Tổng tiền: {FormatVND(calc.FinalPrice)}");
+                }
+
+                ResultText = sb.ToString();
             }
             catch (Exception ex)
             {
-                // Log error and show generic message
                 ResultText = "Lỗi khi tính tiền: kiểm tra cấu hình bảng giá";
                 LoggingService.Instance.LogError("ComputePriceFailed", "BangGiaManagementViewModel", "Failed to compute price", ex);
             }
