@@ -102,44 +102,49 @@ namespace QuanLyGiuXe.ViewModels
                     return;
                 }
 
-                // For Vãng lai, use TimeSlotCalculator with KhungGio defs and KhungGiaItems prices
-                var defs = KhungGioList.Select(k => new KhungGioDef
-                {
-                    Id = k.Id,
-                    TenKhungGio = k.TenKhungGio,
-                    GioBatDau = k.GioBatDau,
-                    GioKetThuc = k.GioKetThuc,
-                    QuaDem = k.QuaDem
-                }).ToList();
+                // --- ÁP DỤNG LOGIC NGÀY/ĐÊM ---
+                var dayKhung = KhungGioList.FirstOrDefault(k => !k.QuaDem);
+                var nightKhung = KhungGioList.FirstOrDefault(k => k.QuaDem);
 
-                var priceList = KhungGiaItems.Select(k => new KhungPrice
-                {
-                    KhungGioId = k.KhungGioId,
-                    GiaTien = k.GiaTien,
-                    Unit = PriceUnit.PerHour
-                }).ToList();
+                var dayGia = dayKhung != null ? KhungGiaItems.FirstOrDefault(x => x.KhungGioId == dayKhung.Id) : null;
+                var nightGia = nightKhung != null ? KhungGiaItems.FirstOrDefault(x => x.KhungGioId == nightKhung.Id) : null;
 
-                var calc = TimeSlotCalculator.Calculate(start, end, defs, priceList);
+                decimal dayFee = dayGia?.GiaTien ?? 0m;
+                decimal nightFee = nightGia?.GiaTien ?? 0m;
 
-                // Build result string
+                TimeSpan dayStart = dayKhung != null ? dayKhung.GioBatDau : new TimeSpan(6, 0, 0);
+                TimeSpan dayEnd = dayKhung != null ? dayKhung.GioKetThuc : new TimeSpan(22, 0, 0);
+
+                decimal finalPrice = 0m;
                 var sb = new System.Text.StringBuilder();
-                sb.AppendLine($"Tổng thời gian: {calc.TotalDuration} ({(long)calc.TotalDuration.TotalSeconds} giây)");
-                if (calc.IsCaseA)
+                sb.AppendLine($"Tổng thời gian: {(long)(end - start).TotalSeconds} giây");
+
+                if (start.Date != end.Date)
                 {
-                    sb.AppendLine("CASE A (<1h): Chọn khung chiếm ưu thế");
-                    sb.AppendLine($"Khung chọn: {calc.DominantKhungName} (Id={calc.DominantKhungId})");
-                    sb.AppendLine($"Tổng tiền: {FormatVND(calc.FinalPrice)}");
+                    finalPrice = dayFee + nightFee;
+                    sb.AppendLine("RULE 4: Qua ngày -> Tính tổng giá ban đêm hôm trước + ban ngày hôm sau");
                 }
                 else
                 {
-                    sb.AppendLine("CASE B (>=1h): Phân bổ theo khung và cộng tiền");
-                    foreach (var s in calc.Segments)
+                    TimeSpan startTime = start.TimeOfDay;
+                    TimeSpan endTime = end.TimeOfDay;
+
+                    bool hasDay = startTime < dayEnd && endTime > dayStart;
+                    bool hasNight = startTime < dayStart || endTime > dayEnd;
+
+                    if (hasDay && !hasNight)
                     {
-                        sb.AppendLine($" - {s.TenKhungGio}: {s.DurationSeconds} giây -> {FormatVND(s.PriceForSegment)}");
+                        finalPrice = dayFee;
+                        sb.AppendLine("RULE 1: Chỉ trong khung ban ngày -> Tính giá ban ngày");
                     }
-                    sb.AppendLine($"Tổng tiền: {FormatVND(calc.FinalPrice)}");
+                    else
+                    {
+                        finalPrice = nightFee;
+                        sb.AppendLine("RULE 2 & 3: Có dính ban đêm (hoặc cả ngày + đêm) -> Tính giá ban đêm");
+                    }
                 }
 
+                sb.AppendLine($"Tổng tiền: {FormatVND(finalPrice)}");
                 ResultText = sb.ToString();
             }
             catch (Exception ex)

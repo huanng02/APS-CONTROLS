@@ -36,57 +36,41 @@ namespace QuanLyGiuXe.Services
 
             if (!slots.Any()) return 0m;
 
-            decimal total = 0m;
-            TimeSpan businessStart = TimeSpan.FromHours(6); // 06:00 boundary
+            // Trích xuất cấu hình từ Database
+            var daySlot = slots.FirstOrDefault(s => !s.Khung.QuaDem);
+            var nightSlot = slots.FirstOrDefault(s => s.Khung.QuaDem);
 
-            DateTime cur = timeIn;
-            while (cur < timeOut)
+            decimal dayFee = daySlot?.Price ?? 0m;
+            decimal nightFee = nightSlot?.Price ?? 0m;
+
+            // Lấy mốc thời gian từ db, mặc định 6h-22h nếu không tồn tại
+            TimeSpan dayStart = daySlot != null ? daySlot.Khung.GioBatDau : new TimeSpan(6, 0, 0);
+            TimeSpan dayEnd = daySlot != null ? daySlot.Khung.GioKetThuc : new TimeSpan(22, 0, 0);
+
+            // RULE 4: Qua ngày -> luôn = giá ngày hôm sau + giá đêm hôm trước
+            if (timeIn.Date != timeOut.Date)
             {
-                // next 06:00 after cur
-                var nextBoundary = cur.Date + businessStart;
-                if (nextBoundary <= cur) nextBoundary = nextBoundary.AddDays(1);
-                var segmentEnd = timeOut < nextBoundary ? timeOut : nextBoundary;
-
-                bool anyNight = false;
-                decimal nightPrice = 0m;
-                decimal dayPrice = 0m;
-
-                foreach (var s in slots)
-                {
-                    var kh = s.Khung;
-                    // iterate possible occurrence dates that could overlap the segment
-                    for (var d = cur.Date.AddDays(-1); d <= segmentEnd.Date; d = d.AddDays(1))
-                    {
-                        DateTime occStart = d + kh.GioBatDau;
-                        DateTime occEnd = kh.QuaDem ? d.AddDays(1) + kh.GioKetThuc : d + kh.GioKetThuc;
-
-                        var ovStart = occStart > cur ? occStart : cur;
-                        var ovEnd = occEnd < segmentEnd ? occEnd : segmentEnd;
-                        if (ovEnd > ovStart)
-                        {
-                            if (kh.QuaDem)
-                            {
-                                anyNight = true;
-                                if (s.Price > nightPrice) nightPrice = s.Price;
-                            }
-                            else
-                            {
-                                if (s.Price > dayPrice) dayPrice = s.Price;
-                            }
-                            break;
-                        }
-                    }
-                }
-
-                if (anyNight)
-                    total += nightPrice;
-                else
-                    total += dayPrice;
-
-                cur = segmentEnd;
+                return Math.Round(dayFee + nightFee, 2);
             }
 
-            return Math.Round(total, 2);
+            // --- XỬ LÝ TRONG CÙNG 1 NGÀY ---
+            TimeSpan startTime = timeIn.TimeOfDay;
+            TimeSpan endTime = timeOut.TimeOfDay;
+
+            // Kiểm tra xem có dính khung giờ ban ngày không?
+            bool hasDay = startTime < dayEnd && endTime > dayStart;
+
+            // Kiểm tra xem có dính khung giờ ban đêm không?
+            bool hasNight = startTime < dayStart || endTime > dayEnd;
+
+            // RULE 1: Chỉ trong ban ngày
+            if (hasDay && !hasNight)
+            {
+                return Math.Round(dayFee, 2);
+            }
+
+            // RULE 2 & RULE 3: Chỉ có đêm HOẶC có cả ngày và đêm
+            return Math.Round(nightFee, 2);
         }
 
     }
