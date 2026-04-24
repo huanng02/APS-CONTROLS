@@ -219,7 +219,7 @@ namespace QuanLyGiuXe.ViewModels
         }
 
         // Helper for View to show/hide monthly-only section
-        public bool IsMonthlyTicket => ActiveTabIndex == 1;
+        public bool IsMonthlyTicket => LoaiVeId == 2;
 
         // Whether LoaiVe can be changed by the user. Only allowed in 'All' tab (index 2).
         public bool CanChangeLoaiVe => ActiveTabIndex == 2;
@@ -280,30 +280,47 @@ namespace QuanLyGiuXe.ViewModels
                 {
                     // determine whether selected LoaiVe is monthly and update ActiveTabIndex
                     bool monthly = false;
-                    try
+                    if (_loaiVeId == 2) monthly = true;
+                    else if (_loaiVeId == 1) monthly = false;
+                    else
                     {
-                        var list = LoaiVeList;
-                        if (list == null || list.Count == 0)
+                        try
                         {
-                            list = new LoaiVeService().GetAll();
-                            LoaiVeList = list;
-                        }
-
-                        if (list != null && _loaiVeId.HasValue)
-                        {
-                            var item = list.Find(x => x.Id == _loaiVeId.Value);
-                            if (item != null)
+                            var list = LoaiVeList;
+                            if (list == null || list.Count == 0)
                             {
-                                var ten = (item.TenLoai ?? string.Empty).ToLowerInvariant();
-                                monthly = ten.Contains("tháng") || ten.Contains("thang");
+                                list = new LoaiVeService().GetAll();
+                                LoaiVeList = list;
+                            }
+
+                            if (list != null && _loaiVeId.HasValue)
+                            {
+                                var item = list.Find(x => x.Id == _loaiVeId.Value);
+                                if (item != null)
+                                {
+                                    var ten = (item.TenLoai ?? string.Empty).ToLowerInvariant();
+                                    monthly = ten.Contains("tháng") || ten.Contains("thang");
+                                }
                             }
                         }
+                        catch { }
                     }
-                    catch { }
 
                     ActiveTabIndex = monthly ? 1 : 0;
                 }
 
+                // Nếu là vé vãng lai (LoaiVeId != 2), xóa thông tin biển số và ngày tháng
+                if (!IsMonthlyTicket)
+                {
+                    _bienSo = string.Empty;
+                    _ngayDangKy = null;
+                    _ngayHetHan = null;
+                    OnPropertyChanged(nameof(BienSo));
+                    OnPropertyChanged(nameof(NgayDangKy));
+                    OnPropertyChanged(nameof(NgayHetHan));
+                }
+
+                OnPropertyChanged(nameof(IsMonthlyTicket));
                 // recalc expiration when ticket type changes
                 UpdateNgayHetHan();
             }

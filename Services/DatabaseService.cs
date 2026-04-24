@@ -601,7 +601,12 @@ namespace QuanLyGiuXe.Services
             using (SqlConnection conn = new SqlConnection(GetConnectionString()))
             {
                 conn.Open();
-                string sql = @"SELECT Id, CardUID, BienSo, CardName, LoaiVeId, LoaiXeId, TrangThai, NgayDangKy, NgayHetHan FROM RFIDCards";
+                string sql = @"SELECT Id, CardUID, 
+                               CASE WHEN LoaiVeId = 2 THEN BienSo ELSE NULL END as BienSo, 
+                               CardName, LoaiVeId, LoaiXeId, TrangThai, 
+                               CASE WHEN LoaiVeId = 2 THEN NgayDangKy ELSE NULL END as NgayDangKy, 
+                               CASE WHEN LoaiVeId = 2 THEN NgayHetHan ELSE NULL END as NgayHetHan 
+                               FROM RFIDCards";
 
                 using (SqlCommand cmd = new SqlCommand(sql, conn))
                 using (SqlDataReader r = cmd.ExecuteReader())
@@ -683,6 +688,31 @@ namespace QuanLyGiuXe.Services
                 using (SqlCommand cmd = new SqlCommand(sql, conn))
                 {
                     cmd.Parameters.AddWithValue("@id", id);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gia hạn thẻ RFID theo số tháng.
+        /// Cập nhật NgayHetHan = DATEADD(MONTH, SoThang, CurrentNgayHetHan)
+        /// Set TrangThai = 'Active'
+        /// </summary>
+        public void GiaHanRFIDCard(int id, int soThang)
+        {
+            using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+                // Nếu thẻ đã hết hạn thì cộng từ ngày hiện tại, nếu chưa thì cộng dồn từ ngày hết hạn cũ
+                string sql = @"UPDATE RFIDCards 
+                               SET NgayHetHan = DATEADD(MONTH, @months, CASE WHEN NgayHetHan < GETDATE() OR NgayHetHan IS NULL THEN GETDATE() ELSE NgayHetHan END),
+                                   TrangThai = 'Active'
+                               WHERE Id = @id AND LoaiVeId = 2";
+
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@id", id);
+                    cmd.Parameters.AddWithValue("@months", soThang);
                     cmd.ExecuteNonQuery();
                 }
             }
