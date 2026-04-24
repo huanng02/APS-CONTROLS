@@ -3,92 +3,193 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:QuanLyGiuXe.ViewModels"
              xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
     <UserControl.DataContext>
         <vm:BangGiaManagementViewModel />
     </UserControl.DataContext>
 
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+    </UserControl.Resources>
+    
     <Grid Margin="12">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Text="Bảng giá - Quản lý" FontSize="18" FontWeight="Bold" />
+        <!-- TITLE -->
+        <TextBlock Text="Bảng giá - Quản lý"
+                   FontSize="18"
+                   FontWeight="Bold"/>
 
-        <Grid Grid.Row="1" Margin="0,8,0,8">
+        <Grid Grid.Row="1" Margin="0,8,0,0">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="2*" />
-                <ColumnDefinition Width="1*" />
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="1*"/>
             </Grid.ColumnDefinitions>
 
-            <DataGrid x:Name="dgBangGia" ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem, Mode=TwoWay}" AutoGenerateColumns="False" CanUserAddRows="False" RowHeight="36" Margin="0,0,8,0">
+            <!-- ================= TABLE ================= -->
+            <DataGrid ItemsSource="{Binding Items}"
+                      SelectedItem="{Binding SelectedItem}"
+                      AutoGenerateColumns="False"
+                      CanUserAddRows="False"
+                      RowHeight="36"
+                      Margin="0,0,8,0">
+
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="80" IsReadOnly="True" />
-                    <DataGridTextColumn Header="Loại Xe" Binding="{Binding LoaiXe}" Width="*" IsReadOnly="True" />
-                    <DataGridTextColumn Header="Loại Vé" Binding="{Binding LoaiVe}" Width="120" IsReadOnly="True" />
-                    <DataGridTextColumn Header="Giá ban ngày" Binding="{Binding GiaBanNgay, StringFormat=N2}" Width="120" />
-                    <DataGridTextColumn Header="Giá qua đêm" Binding="{Binding GiaQuaDem, StringFormat=N2}" Width="120" />
-                    <DataGridTextColumn Header="Giá tháng" Binding="{Binding GiaThang, StringFormat=N2}" Width="120" />
-                    <DataGridTextColumn Header="Trạng thái" Binding="{Binding TrangThai}" Width="100" />
+                    <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="60"/>
+                    <DataGridTextColumn Header="Loại Xe" Binding="{Binding LoaiXe}" Width="*"/>
+                    <DataGridTextColumn Header="Loại Vé" Binding="{Binding LoaiVe}" Width="120"/>
+                    <DataGridTextColumn Header="Số khung" Binding="{Binding KhungGiaCount}" Width="90"/>
+                    <DataGridTextColumn Header="Giá tháng" Binding="{Binding GiaThang, StringFormat=N0}" Width="120"/>
+                    <DataGridTextColumn Header="Giá theo khung" Binding="{Binding GiaTheoKhungDisplay}" Width="220"/>
                 </DataGrid.Columns>
             </DataGrid>
 
-            <Border Grid.Column="1" BorderBrush="LightGray" BorderThickness="1" Padding="8">
+            <!-- ================= FORM ================= -->
+            <Border Grid.Column="1" BorderBrush="LightGray" BorderThickness="1" Padding="10">
                 <StackPanel>
-                    <TextBlock Text="Thao tác" FontWeight="Bold" Margin="0,0,0,8" />
 
-                    <TextBlock Text="Loại Xe" />
-                    <ComboBox ItemsSource="{Binding LoaiXeList}" DisplayMemberPath="TenLoai" SelectedValuePath="Id" SelectedValue="{Binding EditingItem.LoaiXeId, Mode=TwoWay}" />
+                    <TextBlock Text="Thông tin" FontWeight="Bold"/>
 
-                    <TextBlock Text="Loại Vé" Margin="0,8,0,0" />
-                    <!-- Bind SelectedValue to SelectedLoaiVeId (int) to avoid object identity issues -->
-                    <ComboBox ItemsSource="{Binding LoaiVeList}" DisplayMemberPath="TenLoai"
+                    <!-- Loại xe -->
+                    <TextBlock Text="Loại Xe"/>
+                    <ComboBox ItemsSource="{Binding LoaiXeList}"
+                              DisplayMemberPath="TenLoai"
                               SelectedValuePath="Id"
-                              SelectedValue="{Binding SelectedLoaiVeId, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                              SelectedValue="{Binding EditingItem.LoaiXeId}"/>
 
-                    <TextBlock Text="Giá ban ngày" Margin="0,8,0,0" />
-                    <TextBox Text="{Binding GiaBanNgayText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsVangLai}" />
+                    <!-- Loại vé -->
+                    <TextBlock Text="Loại Vé" Margin="0,8,0,0"/>
+                    <ComboBox ItemsSource="{Binding LoaiVeList}"
+                              DisplayMemberPath="TenLoai"
+                              SelectedValuePath="Id"
+                              SelectedValue="{Binding SelectedLoaiVeId}"/>
 
-                    <TextBlock Text="Giá qua đêm" Margin="0,8,0,0" />
-                    <TextBox Text="{Binding GiaQuaDemText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsVangLai}" />
+                    <!-- Giá tháng -->
+                    <TextBlock Text="Giá tháng" Margin="0,8,0,0"/>
+                    <TextBox Text="{Binding GiaThangText}"
+                             IsEnabled="{Binding IsThang}"/>
 
-                    <TextBlock Text="Giá tháng" Margin="0,8,0,0" />
-                    <TextBox Text="{Binding GiaThangText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" IsEnabled="{Binding IsThang}" />
+                    <!-- ================= KHUNG GIỜ ================= -->
+                    <TextBlock Text="Giá theo khung giờ"
+                               FontWeight="Bold"
+                               Margin="0,10,0,4"/>
 
-                    <TextBlock Text="Trạng thái" Margin="0,8,0,0" />
-                    <ComboBox SelectedValue="{Binding EditingItem.TrangThai, Mode=TwoWay}" SelectedValuePath="." >
-                        <sys:String>Active</sys:String>
-                        <sys:String>Inactive</sys:String>
-                        <sys:String>Disabled</sys:String>
-                    </ComboBox>
+                    <StackPanel Orientation="Horizontal" Margin="0,4,0,4" HorizontalAlignment="Right">
+                        <Button x:Name="BtnManageKhungGio" Content="Quản lý khung giờ" Width="140" Margin="4" Visibility="{Binding IsVangLai, Converter={StaticResource BoolToVis}}" />
+                    </StackPanel>
 
-                    <Separator Margin="0,8,0,8" />
-                    <TextBlock Text="Tính thời gian và chi phí" FontWeight="Bold" Margin="0,8,0,8" />
-                    <TextBlock Text="Thời gian vào" />
+                    <!-- Pricing grid: visible only for Vãng lai -->
+                    <DataGrid ItemsSource="{Binding KhungGiaItems}"
+                              AutoGenerateColumns="False"
+                              CanUserAddRows="False"
+                              SelectionUnit="FullRow"
+                              HeadersVisibility="Column"
+                              IsReadOnly="False"
+                              RowHeight="32"
+                              AlternationCount="2"
+                              GridLinesVisibility="All"
+                              Visibility="{Binding IsVangLai, Converter={StaticResource BoolToVis}}">
+
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Khung" Binding="{Binding TenKhungGio}" IsReadOnly="True" Width="2*">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="VerticalAlignment" Value="Center" />
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Header="Thời gian" Binding="{Binding DisplayTime}" IsReadOnly="True" Width="2*">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="VerticalAlignment" Value="Center" />
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Header="Giá" Binding="{Binding GiaTien, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, StringFormat=N0}" Width="120">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="HorizontalAlignment" Value="Right" />
+                                        <Setter Property="VerticalAlignment" Value="Center" />
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                                <DataGridTextColumn.EditingElementStyle>
+                                    <Style TargetType="TextBox">
+                                        <Setter Property="HorizontalContentAlignment" Value="Right" />
+                                    </Style>
+                                </DataGridTextColumn.EditingElementStyle>
+                            </DataGridTextColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <TextBlock Text="(Vé tháng không dùng giá theo khung)"
+                               FontStyle="Italic"
+                               FontSize="12"
+                               Foreground="Gray"
+                               Visibility="{Binding IsThang, Converter={StaticResource BoolToVis}}"/>
+
+                    <!-- ================= BUTTON ================= -->
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Right"
+                                Margin="0,10,0,0">
+                        <Button Content="Add" Width="70" Margin="4" Command="{Binding AddCommand}"/>
+                        <Button Content="Update" Width="70" Margin="4" Command="{Binding UpdateCommand}"/>
+                        <Button Content="Delete" Width="70" Margin="4" Command="{Binding DeleteCommand}"/>
+                        <Button Content="Clear" Width="70" Margin="4" Command="{Binding ClearCommand}"/>
+                    </StackPanel>
+
+                    <!-- ================= TEST GIÁ ================= -->
+                    <Separator Margin="0,10,0,10"/>
+
+                    <TextBlock Text="Tính thời gian và chi phí"
+                               FontWeight="Bold"
+                               FontSize="14"/>
+
+                    <!-- vào -->
+                    <TextBlock Text="Thời gian vào"/>
                     <StackPanel Orientation="Horizontal">
-                        <DatePicker SelectedDate="{Binding ThoiGianVaoDate, Mode=TwoWay}" />
-                        <ComboBox ItemsSource="{Binding Hours}" SelectedItem="{Binding ThoiGianVaoHour, Mode=TwoWay}" Width="60" Margin="6,0,0,0" />
-                        <TextBlock Text=":" VerticalAlignment="Center" Margin="4,0" />
-                        <ComboBox ItemsSource="{Binding Minutes}" SelectedItem="{Binding ThoiGianVaoMinute, Mode=TwoWay}" Width="60" />
+                        <DatePicker SelectedDate="{Binding ThoiGianVaoDate}"/>
+                        <ComboBox ItemsSource="{Binding Hours}"
+                                  SelectedItem="{Binding ThoiGianVaoHour}"
+                                  Width="60" Margin="6,0,0,0"/>
+                        <TextBlock Text=":" Margin="4,0"/>
+                        <ComboBox ItemsSource="{Binding Minutes}"
+                                  SelectedItem="{Binding ThoiGianVaoMinute}"
+                                  Width="60"/>
+                        <TextBlock Text=":" Margin="4,0"/>
+                        <ComboBox ItemsSource="{Binding Seconds}"
+                                  SelectedItem="{Binding ThoiGianVaoSecond}"
+                                  Width="60"/>
                     </StackPanel>
-                    <TextBlock Text="Thời gian ra" Margin="0,8,0,0" />
+
+                    <!-- ra -->
+                    <TextBlock Text="Thời gian ra" Margin="0,8,0,0"/>
                     <StackPanel Orientation="Horizontal">
-                        <DatePicker SelectedDate="{Binding ThoiGianRaDate, Mode=TwoWay}" />
-                        <ComboBox ItemsSource="{Binding Hours}" SelectedItem="{Binding ThoiGianRaHour, Mode=TwoWay}" Width="60" Margin="6,0,0,0" />
-                        <TextBlock Text=":" VerticalAlignment="Center" Margin="4,0" />
-                        <ComboBox ItemsSource="{Binding Minutes}" SelectedItem="{Binding ThoiGianRaMinute, Mode=TwoWay}" Width="60" />
+                        <DatePicker SelectedDate="{Binding ThoiGianRaDate}"/>
+                        <ComboBox ItemsSource="{Binding Hours}"
+                                  SelectedItem="{Binding ThoiGianRaHour}"
+                                  Width="60" Margin="6,0,0,0"/>
+                        <TextBlock Text=":" Margin="4,0"/>
+                        <ComboBox ItemsSource="{Binding Minutes}"
+                                  SelectedItem="{Binding ThoiGianRaMinute}"
+                                  Width="60"/>
+                        <TextBlock Text=":" Margin="4,0"/>
+                        <ComboBox ItemsSource="{Binding Seconds}"
+                                  SelectedItem="{Binding ThoiGianRaSecond}"
+                                  Width="60"/>
                     </StackPanel>
 
-                    <TextBlock Text="Kết quả" FontWeight="Bold" Margin="0,8,0,4" />
-                    <TextBlock Text="{Binding ResultText}" FontWeight="Bold" FontSize="14" TextWrapping="Wrap" />
+                    <!-- kết quả -->
+                    <TextBlock Text="Kết quả" Margin="0,10,0,4" FontWeight="Bold"/>
+                    <TextBlock Text="{Binding ResultText}"
+                               FontSize="16"
+                               FontWeight="Bold"
+                               Foreground="Green"/>
 
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
-                        <Button Content="Add" Width="80" Margin="4" Command="{Binding AddCommand}" />
-                        <Button Content="Update" Width="80" Margin="4" Command="{Binding UpdateCommand}" />
-                        <Button Content="Delete" Width="80" Margin="4" Command="{Binding DeleteCommand}" />
-                        <Button Content="Clear" Width="80" Margin="4" Command="{Binding ClearCommand}" />
-                    </StackPanel>
                 </StackPanel>
             </Border>
         </Grid>

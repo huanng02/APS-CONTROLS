@@ -122,24 +122,10 @@ namespace QuanLyGiuXe.Services
                     }
                 }
 
-                // Determine hourly rate from BangGia for the given LoaiXeId
-                double rate = defaultRate;
-                var rates = LayBangGia();
-                BangGia selected = null;
-                if (loaiXeId.HasValue && loaiXeId.Value > 0)
-                {
-                    selected = rates.FirstOrDefault(r => r.LoaiXeId > 0 && r.LoaiXeId == loaiXeId.Value);
-                }
-                if (selected == null)
-                {
-                    // fallback to a default entry (LoaiXeId == 0) or first available
-                    selected = rates.FirstOrDefault(r => r.LoaiXeId == 0) ?? rates.FirstOrDefault();
-                }
-                if (selected != null && selected.GiaBanNgay.HasValue)
-                    rate = Convert.ToDouble(selected.GiaBanNgay.Value);
-
+                // Pricing is now DB-driven via KhungGio + BangGiaKhungGio.
+                // TinhTien is a simple helper without exact timestamps; return defaultRate * hours for transient.
                 double hours = Math.Ceiling(duration.TotalHours <= 0 ? 1 : duration.TotalHours);
-                return rate * hours;
+                return defaultRate * hours;
             }
             catch
             {
@@ -147,6 +133,20 @@ namespace QuanLyGiuXe.Services
                 double hours = Math.Ceiling(duration.TotalHours <= 0 ? 1 : duration.TotalHours);
                 return 5000.0 * hours;
             }
+        }
+
+        // Return active KhungGio entries
+        public List<QuanLyGiuXe.Models.KhungGio> GetKhungGio()
+        {
+            var repo = new KhungGioRepository();
+            return repo.GetAll();
+        }
+
+        // Return BangGiaKhungGio entries for a BangGia id
+        public List<QuanLyGiuXe.Models.BangGiaKhungGio> GetBangGiaKhungGioByBangGiaId(int bangGiaId)
+        {
+            var repo = new BangGiaKhungGioRepository();
+            return repo.GetByBangGiaId(bangGiaId);
         }
 
         // Expose working connection string for UI components
@@ -200,20 +200,7 @@ namespace QuanLyGiuXe.Services
             return exists;
         }
 
-        // Helpers specific to BangGia daylight column. Returns actual column name in DB (GiaBanNgay or legacy GiaBanNgay).
-        public string GetBangGiaDayColumnName()
-        {
-            if (ColumnExistsInTable("BangGia", "GiaBanNgay")) return "GiaBanNgay";
-            // not found; throw to make caller handle explicit error
-            throw new InvalidOperationException("Neither 'GiaBanNgay' nor legacy 'GiaBanNgay' column exists in table dbo.BangGia.");
-        }
-
-        // Returns SQL select expression for the daytime price, always aliased to GiaBanNgay so callers can read r["GiaBanNgay"] reliably.
-        public string GetBangGiaDaySelectExpression()
-        {
-            if (ColumnExistsInTable("BangGia", "GiaBanNgay")) return "[GiaBanNgay]";
-            throw new InvalidOperationException("Neither 'GiaBanNgay' nor legacy 'GiaBanNgay' column exists in table dbo.BangGia.");
-        }
+        // Legacy helpers removed: pricing is fully driven by KhungGio + BangGiaKhungGio.
 
         public RFIDCard GetRFIDCardByUid(string uid)
         {
@@ -351,8 +338,8 @@ namespace QuanLyGiuXe.Services
             using (SqlConnection conn = new SqlConnection(conn_string))
             {
                 conn.Open();
-                string dayExpr = GetBangGiaDaySelectExpression();
-                string sql = $"SELECT Id, LoaiXeId, LoaiVeId, {dayExpr}, GiaQuaDem, GiaThang, TrangThai FROM dbo.BangGia";
+                // New schema: pricing per KhungGio. Keep legacy columns for compatibility but avoid using them.
+                string sql = "SELECT Id, LoaiXeId, LoaiVeId, GiaThang FROM dbo.BangGia";
                 using (SqlCommand cmd = new SqlCommand(sql, conn))
                 using (SqlDataReader r = cmd.ExecuteReader())
                 {
@@ -363,8 +350,6 @@ namespace QuanLyGiuXe.Services
                             Id = r["Id"] != DBNull.Value ? Convert.ToInt32(r["Id"]) : 0,
                             LoaiXeId = r["LoaiXeId"] != DBNull.Value ? Convert.ToInt32(r["LoaiXeId"]) : 0,
                             LoaiVeId = r["LoaiVeId"] != DBNull.Value ? Convert.ToInt32(r["LoaiVeId"]) : 0,
-                            GiaBanNgay = r["GiaBanNgay"] != DBNull.Value ? (decimal?)Convert.ToDecimal(r["GiaBanNgay"]) : null,
-                            GiaQuaDem = r["GiaQuaDem"] != DBNull.Value ? (decimal?)Convert.ToDecimal(r["GiaQuaDem"]) : null,
                             GiaThang = r["GiaThang"] != DBNull.Value ? (decimal?)Convert.ToDecimal(r["GiaThang"]) : null,
                             TrangThai = r["TrangThai"]?.ToString() ?? string.Empty
                         });
@@ -375,19 +360,19 @@ namespace QuanLyGiuXe.Services
             return list;
         }
 
-        public void UpdateBangGia(int id, decimal? giaBanNgay, decimal? giaQuaDem, decimal? giaThang = null)
+        // Update BangGia: only update GiaThang and TrangThai in the new model. Legacy per-slot prices are managed
+        // via BangGiaKhungGio and should not be written here.
+        public void UpdateBangGia(int id, decimal? giaThang = null, string trangThai = null)
         {
             string conn_string = GetWorkingConnection();
             using (SqlConnection conn = new SqlConnection(conn_string))
             {
                 conn.Open();
-                string dayCol = GetBangGiaDayColumnName();
-                string sql = $"UPDATE dbo.BangGia SET {dayCol}=@g1, GiaQuaDem=@g2, GiaThang=@gt WHERE Id=@id";
+                string sql = "UPDATE dbo.BangGia SET GiaThang=@gt, TrangThai=@tt WHERE Id=@id";
                 using (SqlCommand cmd = new SqlCommand(sql, conn))
                 {
-                    cmd.Parameters.AddWithValue("@g1", (object?)giaBanNgay ?? DBNull.Value);
-                    cmd.Parameters.AddWithValue("@g2", (object?)giaQuaDem ?? DBNull.Value);
                     cmd.Parameters.AddWithValue("@gt", (object?)giaThang ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@tt", (object?)trangThai ?? DBNull.Value);
                     cmd.Parameters.AddWithValue("@id", id);
                     cmd.ExecuteNonQuery();
                 }

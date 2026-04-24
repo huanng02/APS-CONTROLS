@@ -9,61 +9,85 @@ namespace QuanLyGiuXe.Services
         private readonly DatabaseService _db = new DatabaseService();
         private readonly BangGiaRepository _bgRepo = new BangGiaRepository();
 
+
         /// <summary>
         /// Calculate parking fee according to business rules using BangGia as source of pricing.
         /// </summary>
-        public decimal CalculateFee(int? loaiVeId, int? loaiXeId, DateTime timeIn, DateTime timeOut)
+        public decimal CalculateFee(int loaiXeId, int loaiVeId, DateTime timeIn, DateTime timeOut)
         {
-            if (timeOut < timeIn) timeOut = timeIn;
-
             // basic validation
-            if (!loaiXeId.HasValue || loaiXeId.Value <= 0 || !loaiVeId.HasValue || loaiVeId.Value <= 0)
-                return 0m;
+            if (loaiXeId <= 0 || loaiVeId <= 0) return 0m;
+            if (timeOut <= timeIn) return 0m;
 
-            var bg = _bgRepo.GetByLoaiXeAndLoaiVe(loaiXeId.Value, loaiVeId.Value);
-            if (bg == null)
-                return 0m;
+            var bg = _bgRepo.GetByLoaiXeAndLoaiVe(loaiXeId, loaiVeId);
+            if (bg == null) return 0m;
 
-            // Monthly ticket
-            if (bg.GiaThang.HasValue && bg.GiaThang.Value > 0)
-                return bg.GiaThang.Value;
+            // Rule 1: monthly ticket
+            if (bg.GiaThang.HasValue && bg.GiaThang.Value > 0) return bg.GiaThang.Value;
 
-            // Pricing zones
-            // DAY: 06:00 -> 19:59 (we treat end as 20:00 exclusive)
-            // NIGHT: 20:00 -> 05:59 (spans midnight)
+            var dbSvc = new DatabaseService();
+            var khungGioList = dbSvc.GetKhungGio(); // all slot definitions
+            var bangGiaKhungList = dbSvc.GetBangGiaKhungGioByBangGiaId(bg.Id);
 
-            var total = timeOut - timeIn;
+            // join khung + price (price defaults to 0 if missing)
+            var slots = (from k in khungGioList
+                         let p = bangGiaKhungList.FirstOrDefault(x => x.KhungGioId == k.Id)
+                         select new { Khung = k, Price = p != null ? p.GiaTien : 0m }).ToList();
 
-            // If duration > 30 minutes -> AUTO NIGHT price
-            if (total > TimeSpan.FromMinutes(30))
+            if (!slots.Any()) return 0m;
+
+            decimal total = 0m;
+            TimeSpan businessStart = TimeSpan.FromHours(6); // 06:00 boundary
+
+            DateTime cur = timeIn;
+            while (cur < timeOut)
             {
-                return bg.GiaQuaDem ?? 0m;
-            }
+                // next 06:00 after cur
+                var nextBoundary = cur.Date + businessStart;
+                if (nextBoundary <= cur) nextBoundary = nextBoundary.AddDays(1);
+                var segmentEnd = timeOut < nextBoundary ? timeOut : nextBoundary;
 
-            // duration <= 30 minutes -> split into day/night portions across covered dates
-            long dayTicks = 0;
-            var firstDate = timeIn.Date;
-            var lastDate = timeOut.Date;
-            for (var d = firstDate; d <= lastDate; d = d.AddDays(1))
-            {
-                var dayStart = d + new TimeSpan(6, 0, 0);
-                var dayEnd = d + new TimeSpan(20, 0, 0); // exclusive
+                bool anyNight = false;
+                decimal nightPrice = 0m;
+                decimal dayPrice = 0m;
 
-                var overlapStart = timeIn > dayStart ? timeIn : dayStart;
-                var overlapEnd = timeOut < dayEnd ? timeOut : dayEnd;
-                if (overlapEnd > overlapStart)
+                foreach (var s in slots)
                 {
-                    dayTicks += (overlapEnd - overlapStart).Ticks;
+                    var kh = s.Khung;
+                    // iterate possible occurrence dates that could overlap the segment
+                    for (var d = cur.Date.AddDays(-1); d <= segmentEnd.Date; d = d.AddDays(1))
+                    {
+                        DateTime occStart = d + kh.GioBatDau;
+                        DateTime occEnd = kh.QuaDem ? d.AddDays(1) + kh.GioKetThuc : d + kh.GioKetThuc;
+
+                        var ovStart = occStart > cur ? occStart : cur;
+                        var ovEnd = occEnd < segmentEnd ? occEnd : segmentEnd;
+                        if (ovEnd > ovStart)
+                        {
+                            if (kh.QuaDem)
+                            {
+                                anyNight = true;
+                                if (s.Price > nightPrice) nightPrice = s.Price;
+                            }
+                            else
+                            {
+                                if (s.Price > dayPrice) dayPrice = s.Price;
+                            }
+                            break;
+                        }
+                    }
                 }
+
+                if (anyNight)
+                    total += nightPrice;
+                else
+                    total += dayPrice;
+
+                cur = segmentEnd;
             }
 
-            var daySpan = TimeSpan.FromTicks(dayTicks);
-            var nightSpan = total - daySpan;
-
-            // Compare durations: if day>night => DAY price, if night>=day => NIGHT price (night wins tie)
-            if (daySpan > nightSpan)
-                return bg.GiaBanNgay ?? 0m;
-            return bg.GiaQuaDem ?? 0m;
+            return Math.Round(total, 2);
         }
+
     }
 }
