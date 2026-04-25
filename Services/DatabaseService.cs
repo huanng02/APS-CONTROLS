@@ -1403,5 +1403,36 @@ namespace QuanLyGiuXe.Services
 
             return list;
         }
+        /// <summary>
+        /// Executes a SELECT query and returns a DataTable.
+        /// </summary>
+        public System.Data.DataTable ExecuteQuery(string sql)
+        {
+            var dt = new System.Data.DataTable();
+            using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+                using (SqlDataAdapter adapter = new SqlDataAdapter(sql, conn))
+                {
+                    adapter.Fill(dt);
+                }
+            }
+            return dt;
+        }
+
+        /// <summary>
+        /// Executes INSERT, UPDATE, DELETE and returns the number of rows affected.
+        /// </summary>
+        public int ExecuteNonQuery(string sql)
+        {
+            using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                {
+                    return cmd.ExecuteNonQuery();
+                }
+            }
+        }
     }
 }

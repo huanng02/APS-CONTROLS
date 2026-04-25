@@ -483,6 +483,9 @@ namespace QuanLyGiuXe
         private void MoLichSuGiaHan_Click(object sender, RoutedEventArgs e) =>
             new RFIDGiaHanHistoryWindow().Show();
 
+        private void MoSQLTool_Click(object sender, RoutedEventArgs e) =>
+            new SQLQueryToolWindow().Show();
+
         private void MoCameraSettings_Click(object sender, RoutedEventArgs e) =>
             new CameraSettingsWindow { Owner = this }.ShowDialog();
 

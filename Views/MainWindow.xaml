@@ -203,6 +203,10 @@
                             Content="⚙ Cấu hình nâng cao"
                             Click="MoAdvancedSettings_Click" />
 
+                    <Button Style="{StaticResource SidebarButtonStyle}"
+                            Content="🛠 SQL Query Tool"
+                            Click="MoSQLTool_Click" />
+
                 </StackPanel>
             </Border>
 
