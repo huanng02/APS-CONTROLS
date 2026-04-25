@@ -703,19 +703,112 @@ namespace QuanLyGiuXe.Services
             using (SqlConnection conn = new SqlConnection(GetConnectionString()))
             {
                 conn.Open();
-                // Nếu thẻ đã hết hạn thì cộng từ ngày hiện tại, nếu chưa thì cộng dồn từ ngày hết hạn cũ
-                string sql = @"UPDATE RFIDCards 
-                               SET NgayHetHan = DATEADD(MONTH, @months, CASE WHEN NgayHetHan < GETDATE() OR NgayHetHan IS NULL THEN GETDATE() ELSE NgayHetHan END),
-                                   TrangThai = 'Active'
-                               WHERE Id = @id AND LoaiVeId = 2";
+                // 1. Update expiry and get the new date
+                string sql = @"
+                    UPDATE RFIDCards 
+                    SET NgayHetHan = DATEADD(MONTH, @months, CASE WHEN NgayHetHan < GETDATE() OR NgayHetHan IS NULL THEN GETDATE() ELSE NgayHetHan END),
+                        TrangThai = 'Active'
+                    OUTPUT INSERTED.NgayHetHan
+                    WHERE Id = @id AND LoaiVeId = 2";
 
+                DateTime newExpiry;
                 using (SqlCommand cmd = new SqlCommand(sql, conn))
                 {
                     cmd.Parameters.AddWithValue("@id", id);
                     cmd.Parameters.AddWithValue("@months", soThang);
+                    var result = cmd.ExecuteScalar();
+                    if (result == null || result == DBNull.Value) return; 
+                    newExpiry = (DateTime)result;
+                }
+
+                // 2. Log to GiaHanRFIDLog
+                string logSql = @"
+                    IF OBJECT_ID('dbo.GiaHanRFIDLog') IS NULL
+                    BEGIN
+                        CREATE TABLE dbo.GiaHanRFIDLog (
+                            Id INT IDENTITY(1,1) PRIMARY KEY,
+                            CardId INT,
+                            SoThang INT,
+                            NgayGiaHan DATETIME DEFAULT GETDATE(),
+                            NgayHetHanMoi DATETIME
+                        )
+                    END
+                    INSERT INTO GiaHanRFIDLog (CardId, SoThang, NgayGiaHan, NgayHetHanMoi)
+                    VALUES (@cardId, @soThang, GETDATE(), @newExpiry)";
+
+                using (SqlCommand cmd = new SqlCommand(logSql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@cardId", id);
+                    cmd.Parameters.AddWithValue("@soThang", soThang);
+                    cmd.Parameters.AddWithValue("@newExpiry", newExpiry);
                     cmd.ExecuteNonQuery();
                 }
             }
+        }
+
+        public List<GiaHanRFIDLog> GetGiaHanHistory(string searchTerm = null, DateTime? fromDate = null, DateTime? toDate = null)
+        {
+            var list = new List<GiaHanRFIDLog>();
+            using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+                
+                // Ensure table exists
+                string checkTableSql = @"
+                    IF OBJECT_ID('dbo.GiaHanRFIDLog') IS NULL
+                    BEGIN
+                        CREATE TABLE dbo.GiaHanRFIDLog (
+                            Id INT IDENTITY(1,1) PRIMARY KEY,
+                            CardId INT,
+                            SoThang INT,
+                            NgayGiaHan DATETIME DEFAULT GETDATE(),
+                            NgayHetHanMoi DATETIME
+                        )
+                    END";
+                using (SqlCommand checkCmd = new SqlCommand(checkTableSql, conn)) checkCmd.ExecuteNonQuery();
+
+                string sql = @"
+                    SELECT l.Id, l.CardId, l.SoThang, l.NgayGiaHan, l.NgayHetHanMoi,
+                           c.CardUID, c.CardName, c.BienSo
+                    FROM GiaHanRFIDLog l
+                    JOIN RFIDCards c ON l.CardId = c.Id
+                    WHERE (@searchTerm IS NULL OR c.CardUID LIKE @searchTerm OR c.BienSo LIKE @searchTerm OR CAST(l.CardId AS NVARCHAR) LIKE @searchTerm)
+                      AND (@fromDate IS NULL OR l.NgayGiaHan >= @fromDate)
+                      AND (@toDate IS NULL OR l.NgayGiaHan <= @toDate)
+                    ORDER BY l.NgayGiaHan DESC";
+
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@searchTerm", string.IsNullOrEmpty(searchTerm) ? DBNull.Value : $"%{searchTerm}%");
+                    cmd.Parameters.AddWithValue("@fromDate", (object?)fromDate ?? DBNull.Value);
+                    
+                    // ToDate should include the whole day if only date is provided
+                    if (toDate.HasValue && toDate.Value.TimeOfDay == TimeSpan.Zero)
+                    {
+                        toDate = toDate.Value.AddDays(1).AddSeconds(-1);
+                    }
+                    cmd.Parameters.AddWithValue("@toDate", (object?)toDate ?? DBNull.Value);
+
+                    using (SqlDataReader r = cmd.ExecuteReader())
+                    {
+                        while (r.Read())
+                        {
+                            list.Add(new GiaHanRFIDLog
+                            {
+                                Id = (int)r["Id"],
+                                CardId = (int)r["CardId"],
+                                SoThang = (int)r["SoThang"],
+                                NgayGiaHan = (DateTime)r["NgayGiaHan"],
+                                NgayHetHanMoi = (DateTime)r["NgayHetHanMoi"],
+                                CardUID = r["CardUID"]?.ToString(),
+                                CardName = r["CardName"]?.ToString(),
+                                BienSo = r["BienSo"]?.ToString()
+                            });
+                        }
+                    }
+                }
+            }
+            return list;
         }
 
         public bool IsRFIDUidExists(string uid)

@@ -1,4 +1,4 @@
-﻿<Window x:Class="QuanLyGiuXe.MainWindow"
+<Window x:Class="QuanLyGiuXe.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="APS - Quản Lý Xe Ra/Vào"
@@ -148,6 +148,10 @@
                     <Button Style="{StaticResource SidebarButtonStyle}"
                             Content="💳 Quản lý thẻ RFID"
                             Click="MoQuanLyThe" />
+
+                    <Button Style="{StaticResource SidebarButtonStyle}"
+                            Content="📜 Lịch sử gia hạn"
+                            Click="MoLichSuGiaHan_Click" />
 
                     <Separator Margin="6"/>
 

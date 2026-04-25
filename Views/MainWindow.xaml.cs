@@ -480,6 +480,9 @@ namespace QuanLyGiuXe
         private void MoLichSu(object sender, RoutedEventArgs e) =>
             new HistoryWindow().ShowDialog();
 
+        private void MoLichSuGiaHan_Click(object sender, RoutedEventArgs e) =>
+            new RFIDGiaHanHistoryWindow().Show();
+
         private void MoCameraSettings_Click(object sender, RoutedEventArgs e) =>
             new CameraSettingsWindow { Owner = this }.ShowDialog();
 
