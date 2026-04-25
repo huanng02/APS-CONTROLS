@@ -1,0 +1,202 @@
+<UserControl x:Class="QuanLyGiuXe.Views.RFIDCardView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:QuanLyGiuXe.ViewModels"
+             xmlns:svc="clr-namespace:QuanLyGiuXe.Services">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        <svc:RFIDColumnVisibilityConverter x:Key="ColVisConv"/>
+        <svc:ExpirationToColorConverter x:Key="ExpColorConv"/>
+        <svc:LoaiVeToVisibilityConverter x:Key="LoaiVeToVis"/>
+
+        <!-- Button style -->
+        <Style TargetType="Button">
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="Margin" Value="4,0"/>
+            <Setter Property="Padding" Value="12,4"/>
+            <Setter Property="Background" Value="#3B82F6"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#2563EB"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- DataGrid Style -->
+        <Style TargetType="DataGrid">
+            <Setter Property="RowBackground" Value="White"/>
+            <Setter Property="AlternatingRowBackground" Value="#F9FAFB"/>
+            <Setter Property="GridLinesVisibility" Value="None"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="RowHeight" Value="42"/>
+            <Setter Property="FontSize" Value="13"/>
+        </Style>
+
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#F3F4F6"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+            <Setter Property="BorderBrush" Value="#E5E7EB"/>
+        </Style>
+    </UserControl.Resources>
+
+    <UserControl.DataContext>
+        <vm:RFIDCardViewModel />
+    </UserControl.DataContext>
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Search Bar -->
+        <Border Grid.Row="0" Background="White" CornerRadius="8" Padding="12" Margin="0,0,0,16" BorderBrush="#E5E7EB" BorderThickness="1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <DockPanel>
+                    <TextBlock Text="🔍" VerticalAlignment="Center" Margin="5,0,10,0" Foreground="#94A3B8"/>
+                    <TextBox x:Name="txtSearch" 
+                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                             Height="36" VerticalContentAlignment="Center" 
+                             BorderThickness="1" BorderBrush="#CBD5E1"
+                             Padding="10,0" FontSize="14">
+                        <TextBox.Resources>
+                            <Style TargetType="{x:Type Border}">
+                                <Setter Property="CornerRadius" Value="6"/>
+                            </Style>
+                        </TextBox.Resources>
+                    </TextBox>
+                </DockPanel>
+                <TextBlock IsHitTestVisible="False" Text="Tìm kiếm theo Card UID hoặc Biển số..." VerticalAlignment="Center" HorizontalAlignment="Left" Margin="35,0,0,0" Foreground="#94A3B8">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Text, ElementName=txtSearch}" Value="">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="1" Background="White" CornerRadius="10" Padding="12" BorderBrush="#E5E7EB" BorderThickness="1">
+            <TabControl ItemsSource="{Binding Tabs}" SelectedItem="{Binding SelectedTab, Mode=TwoWay}" BorderThickness="0,1,0,0">
+                <TabControl.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding Title}" Padding="15,8" FontWeight="SemiBold"/>
+                    </DataTemplate>
+                </TabControl.ItemTemplate>
+
+                <TabControl.ContentTemplate>
+                    <DataTemplate>
+                        <DockPanel Margin="0,15,0,0">
+                            <!-- Toolbar -->
+                            <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Margin="0,0,0,15">
+                                <Button Content="➕ Thêm mới" Command="{Binding DataContext.AddCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        Visibility="{Binding DataContext.CanAdd, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVis}}"/>
+                                <Button Content="🗑 Xóa đã chọn" Background="#EF4444" Command="{Binding DataContext.DeleteSelectedCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                <Button Content="🔄 Tải lại" Background="#10B981" Command="{Binding DataContext.LoadCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}" Margin="10,0"/>
+                                <Button Content="📤 Xuất Excel" Background="#6366F1" Command="{Binding DataContext.ExportCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                <Button Content="📥 Nhập Excel" Background="#F59E0B" Click="OpenImportExport_Click"/>
+                                <Button Content="📄 Template" Background="#6B7280" Command="{Binding DataContext.DownloadTemplateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                            </StackPanel>
+
+                            <!-- DataGrid -->
+                            <DataGrid ItemsSource="{Binding Items}" SelectedItem="{Binding DataContext.SelectedItem, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay}"
+                                      AutoGenerateColumns="False" CanUserAddRows="False" SelectionMode="Single">
+                                <DataGrid.RowStyle>
+                                    <Style TargetType="DataGridRow">
+                                        <Setter Property="Background" Value="{Binding NgayHetHan, Converter={StaticResource ExpColorConv}}"/>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter Property="Background" Value="#DBEAFE"/>
+                                                <Setter Property="BorderBrush" Value="#3B82F6"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </DataGrid.RowStyle>
+
+                                <DataGrid.Columns>
+                                    <DataGridTemplateColumn Width="45">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+
+                                    <DataGridTextColumn Header="Card UID" Binding="{Binding CardUID}" Width="150" FontWeight="SemiBold"/>
+                                    
+                                    <DataGridTextColumn Header="Biển số" Binding="{Binding BienSo}" Width="120"
+                                                        Visibility="{Binding DataContext.SelectedTab.Id, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource ColVisConv}, ConverterParameter=MonthlyOnly}"/>
+                                    
+                                    <DataGridTextColumn Header="Chủ xe/Tên xe" Binding="{Binding CardName}" Width="180"/>
+                                    
+                                    <DataGridTextColumn Header="Loại xe" Binding="{Binding LoaiXe}" Width="120"
+                                                        Visibility="{Binding DataContext.SelectedTab.Id, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource ColVisConv}, ConverterParameter=TransientOnly}"/>
+                                    
+                                    <DataGridTextColumn Header="Ngày hết hạn" Binding="{Binding NgayHetHan, StringFormat=dd/MM/yyyy}" Width="130"
+                                                        Visibility="{Binding DataContext.SelectedTab.Id, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource ColVisConv}, ConverterParameter=MonthlyOnly}"/>
+                                    
+                                    <DataGridTemplateColumn Header="Trạng thái" Width="120">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Border CornerRadius="12" Padding="8,2" HorizontalAlignment="Left" Background="#F1F5F9">
+                                                    <TextBlock Text="{Binding TrangThai}" FontSize="11" FontWeight="Bold" Foreground="#475569"/>
+                                                </Border>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+
+                                    <DataGridTemplateColumn Header="Thao tác" Width="220">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                    <Button Content="Gia hạn" Background="#10B981" 
+                                                            Command="{Binding DataContext.GiaHanCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding}"
+                                                            Visibility="{Binding LoaiVeId, Converter={StaticResource LoaiVeToVis}}"/>
+
+                                                    <Button Content="Sửa" Background="#3B82F6" 
+                                                            Command="{Binding DataContext.UpdateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding}" />
+
+                                                    <Button Content="Xóa" Background="#EF4444" 
+                                                            Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding}" />
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </DockPanel>
+                    </DataTemplate>
+                </TabControl.ContentTemplate>
+            </TabControl>
+        </Border>
+    </Grid>
+</UserControl>

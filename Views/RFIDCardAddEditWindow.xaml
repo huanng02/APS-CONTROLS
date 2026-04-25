@@ -1,0 +1,115 @@
+<Window x:Class="QuanLyGiuXe.Views.RFIDCardAddEditWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:converters="clr-namespace:QuanLyGiuXe.Converters"
+        Title="RFID Card" Width="600" SizeToContent="Height" WindowStartupLocation="CenterOwner" ResizeMode="NoResize">
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+        <converters:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVisibility" />
+    </Window.Resources>
+
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Single-page form: show all sections at once -->
+        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+            <StackPanel Orientation="Vertical" Margin="4">
+                <!-- Card / RFID section -->
+                <Border BorderBrush="#DDD" BorderThickness="1" Padding="10" CornerRadius="6">
+                    <StackPanel>
+                        <TextBlock Text="RFID / Card" FontWeight="Bold" Margin="0,0,0,8" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="12" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Card UID:" Grid.Column="0" VerticalAlignment="Center" />
+                            <TextBox x:Name="TxtCardUID" Grid.Column="2"
+                                     MinHeight="32"
+                                     Text="{Binding CardUID, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     IsReadOnly="True"
+                                     Loaded="TxtCardUID_Loaded"
+                                     PreviewKeyDown="TxtCardUID_PreviewKeyDown"
+                                     PreviewTextInput="TxtCardUID_PreviewTextInput"
+                                     ContextMenuOpening="TxtCardUID_ContextMenuOpening" />
+                        </Grid>
+                        <Grid Margin="0,8,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="12" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Tên xe:" Grid.Column="0" VerticalAlignment="Center" />
+                            <TextBox Grid.Column="2" MinHeight="32" Text="{Binding CardName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Vehicle type and Ticket type in one row for compact layout -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Stretch">
+                    <Border BorderBrush="#DDD" BorderThickness="1" Padding="10" CornerRadius="6" Width="280">
+                        <StackPanel>
+                            <TextBlock Text="Loại xe" FontWeight="Bold" Margin="0,0,0,8" />
+                            <ComboBox MinHeight="32" ItemsSource="{Binding LoaiXeList}" DisplayMemberPath="TenLoai" SelectedValuePath="Id" SelectedValue="{Binding LoaiXeId, Mode=TwoWay}" />
+                        </StackPanel>
+                    </Border>
+
+                    <Border BorderBrush="#DDD" BorderThickness="1" Padding="10" CornerRadius="6" Width="280">
+                        <StackPanel>
+                            <TextBlock Text="Loại vé" FontWeight="Bold" Margin="0,0,0,8" />
+                            <ComboBox MinHeight="32" ItemsSource="{Binding LoaiVeFiltered}" DisplayMemberPath="TenLoai" SelectedValuePath="Id" SelectedValue="{Binding LoaiVeId, Mode=TwoWay}" IsEnabled="{Binding CanChangeLoaiVe}" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- Details section (plate, dates) -->
+                <Border BorderBrush="#DDD" BorderThickness="1" Padding="10" CornerRadius="6" Visibility="{Binding IsMonthlyTicket, Converter={StaticResource BoolToVisibility}}">
+                    <StackPanel>
+                        <TextBlock Text="Chi tiết vé" FontWeight="Bold" Margin="0,0,0,8" />
+
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="12" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Biển số:" Grid.Column="0" VerticalAlignment="Center" />
+                            <TextBox Grid.Column="2" MinHeight="32" Text="{Binding BienSo, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        </Grid>
+
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="12" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Ngày đăng ký:" Grid.Column="0" VerticalAlignment="Center" />
+                            <DatePicker Grid.Column="2" SelectedDate="{Binding NgayDangKy, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        </Grid>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="12" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Ngày hết hạn:" Grid.Column="0" VerticalAlignment="Center" />
+                            <DatePicker Grid.Column="2" SelectedDate="{Binding NgayHetHan}" IsEnabled="False" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Action buttons fixed at bottom -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+            <Button Content="Save" Width="100" Margin="0,0,8,0" Command="{Binding SaveCommand}" />
+            <Button Content="Cancel" Width="100" Command="{Binding CancelCommand}" />
+        </StackPanel>
+    </Grid>
+</Window>
