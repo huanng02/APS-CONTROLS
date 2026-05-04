@@ -515,6 +515,21 @@ namespace QuanLyGiuXe
         }
 
         // ===== SIDEBAR HANDLERS =====
+        private void MoDashboard_Click(object sender, RoutedEventArgs e)
+        {
+            var content = new QuanLyGiuXe.Views.DashboardView();
+            var win = new Window
+            {
+                Title = "Hệ thống Dashboard Thống kê",
+                Content = content,
+                Owner = this,
+                Width = 1200,
+                Height = 850,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner
+            };
+            win.Show();
+        }
+
         private void MoRealtimeLog_Click(object sender, RoutedEventArgs e)
         {
             new RealtimeLogWindow { Owner = this }.Show();
