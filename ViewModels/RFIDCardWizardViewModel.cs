@@ -218,8 +218,30 @@ namespace QuanLyGiuXe.ViewModels
             }
         }
 
-        // Helper for View to show/hide monthly-only section
-        public bool IsMonthlyTicket => LoaiVeId == 2;
+        // Helper for View to show/hide monthly-only section (name-based)
+        public bool IsMonthlyTicket
+        {
+            get
+            {
+                if (!LoaiVeId.HasValue || LoaiVeId.Value <= 0) return false;
+                try
+                {
+                    var list = LoaiVeList;
+                    if (list == null || list.Count == 0)
+                    {
+                        list = new LoaiVeService().GetAll();
+                        LoaiVeList = list;
+                    }
+                    var item = list?.Find(x => x.Id == LoaiVeId.Value);
+                    if (item != null)
+                    {
+                        return item.CoTheGiaHan;
+                    }
+                }
+                catch { }
+                return false;
+            }
+        }
 
         // Whether LoaiVe can be changed by the user. Only allowed in 'All' tab (index 2).
         public bool CanChangeLoaiVe => ActiveTabIndex == 2;
@@ -237,8 +259,7 @@ namespace QuanLyGiuXe.ViewModels
                     var isMonthly = ActiveTabIndex == 1;
                     var res = LoaiVeList.FindAll(x =>
                     {
-                        var ten = (x.TenLoai ?? string.Empty).ToLowerInvariant();
-                        var monthly = ten.Contains("tháng") || ten.Contains("thang");
+                        var monthly = x.CoTheGiaHan;
                         return isMonthly ? monthly : !monthly;
                     });
                     return res;
@@ -278,33 +299,27 @@ namespace QuanLyGiuXe.ViewModels
 
                 if (!_suppressActiveTabUpdate)
                 {
-                    // determine whether selected LoaiVe is monthly and update ActiveTabIndex
+                    // Name-based monthly detection for all LoaiVe IDs
                     bool monthly = false;
-                    if (_loaiVeId == 2) monthly = true;
-                    else if (_loaiVeId == 1) monthly = false;
-                    else
+                    try
                     {
-                        try
+                        var list = LoaiVeList;
+                        if (list == null || list.Count == 0)
                         {
-                            var list = LoaiVeList;
-                            if (list == null || list.Count == 0)
-                            {
-                                list = new LoaiVeService().GetAll();
-                                LoaiVeList = list;
-                            }
+                            list = new LoaiVeService().GetAll();
+                            LoaiVeList = list;
+                        }
 
-                            if (list != null && _loaiVeId.HasValue)
+                        if (list != null && _loaiVeId.HasValue)
+                        {
+                            var item = list.Find(x => x.Id == _loaiVeId.Value);
+                            if (item != null)
                             {
-                                var item = list.Find(x => x.Id == _loaiVeId.Value);
-                                if (item != null)
-                                {
-                                    var ten = (item.TenLoai ?? string.Empty).ToLowerInvariant();
-                                    monthly = ten.Contains("tháng") || ten.Contains("thang");
-                                }
+                                monthly = item.CoTheGiaHan;
                             }
                         }
-                        catch { }
                     }
+                    catch { }
 
                     ActiveTabIndex = monthly ? 1 : 0;
                 }
@@ -366,8 +381,7 @@ namespace QuanLyGiuXe.ViewModels
                 var item = LoaiVeList.Find(x => x.Id == LoaiVeId.Value);
                 if (item != null)
                 {
-                    var ten = (item.TenLoai ?? string.Empty).ToLowerInvariant();
-                    monthly = ten.Contains("tháng") || ten.Contains("thang");
+                    monthly = item.CoTheGiaHan;
                 }
             }
 
@@ -418,14 +432,14 @@ namespace QuanLyGiuXe.ViewModels
             if (LoaiVeList == null || LoaiVeList.Count == 0) return 0;
             if (ActiveTabIndex == 1)
             {
-                var item = LoaiVeList.Find(x => (x.TenLoai ?? string.Empty).ToLowerInvariant().Contains("tháng") || (x.TenLoai ?? string.Empty).ToLowerInvariant().Contains("thang"));
+                var item = LoaiVeList.Find(x => x.CoTheGiaHan);
                 if (item != null) return item.Id;
                 return LoaiVeList[0].Id;
             }
             else
             {
                 // guest: prefer non-monthly entries
-                var item = LoaiVeList.Find(x => !((x.TenLoai ?? string.Empty).ToLowerInvariant().Contains("tháng") || (x.TenLoai ?? string.Empty).ToLowerInvariant().Contains("thang")));
+                var item = LoaiVeList.Find(x => !x.CoTheGiaHan);
                 if (item != null) return item.Id;
                 return LoaiVeList[0].Id;
             }

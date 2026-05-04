@@ -17,7 +17,7 @@ namespace QuanLyGiuXe.Services
             using (var sql = new SqlConnection(conn))
             {
                 sql.Open();
-                string q = "SELECT Id, TenLoai, TrangThai, Detail FROM LoaiVe";
+                string q = "SELECT Id, TenLoai, TrangThai, Detail, CoTheGiaHan FROM LoaiVe";
                 using (var cmd = new SqlCommand(q, sql))
                 using (var rdr = cmd.ExecuteReader())
                 {
@@ -28,7 +28,8 @@ namespace QuanLyGiuXe.Services
                             Id = rdr["Id"] != DBNull.Value ? Convert.ToInt32(rdr["Id"]) : 0,
                             TenLoai = rdr["TenLoai"]?.ToString() ?? string.Empty,
                             TrangThai = rdr["TrangThai"]?.ToString() ?? string.Empty,
-                            Detail = rdr.IsDBNull(rdr.GetOrdinal("Detail")) ? string.Empty : rdr.GetString(rdr.GetOrdinal("Detail"))
+                            Detail = rdr.IsDBNull(rdr.GetOrdinal("Detail")) ? string.Empty : rdr.GetString(rdr.GetOrdinal("Detail")),
+                            CoTheGiaHan = rdr["CoTheGiaHan"] != DBNull.Value && Convert.ToBoolean(rdr["CoTheGiaHan"])
                         };
                         list.Add(lv);
                     }

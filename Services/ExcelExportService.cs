@@ -35,17 +35,20 @@ namespace QuanLyGiuXe.Services
                 headerRange.Style.Fill.BackgroundColor = XLColor.FromArgb(31, 73, 125); // blue
                 headerRange.Style.Font.FontColor = XLColor.White;
 
-                // load LoaiXe lookup from DB to avoid hardcoding
+                // load LoaiXe and LoaiVe lookups from DB to avoid hardcoding
                 var loaiXeMap = new Dictionary<int, string>();
+                var loaiVeMap = new Dictionary<int, string>();
                 try
                 {
                     var db = new DatabaseService();
                     var listLoaiXe = db.GetLoaiXe();
                     loaiXeMap = listLoaiXe.Where(x => x != null).ToDictionary(x => x.Id, x => x.TenLoai ?? string.Empty);
+                    var listLoaiVe = db.GetLoaiVe();
+                    loaiVeMap = listLoaiVe.Where(x => x != null).ToDictionary(x => x.Id, x => x.TenLoai ?? string.Empty);
                 }
                 catch
                 {
-                    // fallback: empty map
+                    // fallback: empty maps
                 }
 
                 int r = 2;
@@ -71,16 +74,14 @@ namespace QuanLyGiuXe.Services
                     }
                     ws.Cell(r, 4).Value = loaiXeText;
 
-                    // LoaiVe mapping (keep simple mapping)
+                    // LoaiVe mapping: use pre-built DB lookup
                     string loaiVeText = string.Empty;
-                    if (c != null)
+                    if (c != null && c.LoaiVeId > 0)
                     {
-                        loaiVeText = c.LoaiVeId switch
-                        {
-                            1 => "Vé lượt",
-                            2 => "Vé tháng",
-                            _ => string.Empty
-                        };
+                        if (loaiVeMap.TryGetValue(c.LoaiVeId, out var lvName) && !string.IsNullOrEmpty(lvName))
+                            loaiVeText = lvName;
+                        else
+                            loaiVeText = c.LoaiVeId.ToString();
                     }
                     ws.Cell(r, 5).Value = loaiVeText;
 

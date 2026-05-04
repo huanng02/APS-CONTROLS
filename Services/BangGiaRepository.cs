@@ -226,15 +226,9 @@ namespace QuanLyGiuXe.Services
             // Price values must be non-negative when provided
             if (entity.GiaThang.HasValue && entity.GiaThang.Value < 0) throw new ArgumentException("GiaThang must be >= 0");
 
-            // Determine ticket type using static ID mapping
-            // Assumption: LoaiVeId == 1 => Vãng lai, LoaiVeId == 2 => Tháng
-            bool isThang = entity.LoaiVeId == 2;
-            bool isVangLai = entity.LoaiVeId == 1;
-
-            if (!isThang && !isVangLai)
-            {
-                throw new ArgumentException("LoaiVeId không hợp lệ. Expect 1 (Vãng lai) or 2 (Tháng)");
-            }
+            // Determine ticket type using name-based detection (not hardcoded IDs)
+            bool isThang = IsMonthlyTicket(entity.LoaiVeId);
+            bool isVangLai = !isThang;
 
             if (isThang)
             {
@@ -244,9 +238,24 @@ namespace QuanLyGiuXe.Services
             }
             else if (isVangLai)
             {
-                // transient: pricing is driven by BangGiaKhungGio; ensure GiaThang is cleared
+                // transient (vé lượt, vãng lai, etc.): pricing is driven by BangGiaKhungGio; ensure GiaThang is cleared
                 entity.GiaThang = null;
             }
+        }
+
+        /// Check using DB CoTheGiaHan column
+        /// </summary>
+        private bool IsMonthlyTicket(int loaiVeId)
+        {
+            if (loaiVeId <= 0) return false;
+            try
+            {
+                var loaiVeList = _db.GetLoaiVe();
+                var lv = loaiVeList.FirstOrDefault(x => x.Id == loaiVeId);
+                if (lv == null) return false;
+                return lv.CoTheGiaHan;
+            }
+            catch { return false; }
         }
     }
 }

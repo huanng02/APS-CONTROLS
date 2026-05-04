@@ -12,7 +12,7 @@ namespace QuanLyGiuXe.Services
 {
     public partial class DatabaseService
     {
-        private string primaryConnection = "Server=.;Database=BaiXe;Trusted_Connection=True;";
+        private string primaryConnection = "Server=DESKTOP-BFOEO42\\SQLEXPRESS02;Database=BaiXe;Trusted_Connection=True;TrustServerCertificate=True;";
         private string backupConnection = "Server=BACKUP_SERVER;Database=Baixe;Trusted_Connection=True;";
 
         private string GetWorkingConnection()
@@ -94,13 +94,11 @@ namespace QuanLyGiuXe.Services
             }
         }
 
-        /// <summary>
         /// Calculate parking fee based on vehicle type, ticket type and duration.
         /// - If LoaiVe indicates a monthly/subscription type => returns 0.
-        /// - Otherwise uses BangGia.GiaBanNgay for the given LoaiXeId. Falls back to 5000/hour if not configured.
-        /// Duration rounding: Math.Ceiling(totalHours)F
+        /// - Uses BangGia and KhungGio rules (Day/Night logic). Falls back to 5000/hour if not configured.
         /// </summary>
-        public double TinhTien(int? loaiXeId, int? loaiVeId, TimeSpan duration)
+        public double TinhTien(int? loaiXeId, int? loaiVeId, DateTime checkIn, DateTime checkOut)
         {
             try
             {
@@ -123,13 +121,59 @@ namespace QuanLyGiuXe.Services
                 }
 
                 // Pricing is now DB-driven via KhungGio + BangGiaKhungGio.
-                // TinhTien is a simple helper without exact timestamps; return defaultRate * hours for transient.
+                var bangGia = LayBangGia().FirstOrDefault(x => x.LoaiXeId == loaiXeId && x.LoaiVeId == loaiVeId);
+                if (bangGia != null)
+                {
+                    var khungs = GetKhungGio();
+                    var prices = GetBangGiaKhungGioByBangGiaId(bangGia.Id);
+
+                    var dayKhung = khungs.FirstOrDefault(k => !k.QuaDem);
+                    var nightKhung = khungs.FirstOrDefault(k => k.QuaDem);
+
+                    var dayGia = dayKhung != null ? prices.FirstOrDefault(x => x.KhungGioId == dayKhung.Id) : null;
+                    var nightGia = nightKhung != null ? prices.FirstOrDefault(x => x.KhungGioId == nightKhung.Id) : null;
+
+                    decimal dayFee = dayGia != null ? dayGia.GiaTien : 0m;
+                    decimal nightFee = nightGia != null ? nightGia.GiaTien : 0m;
+
+                    TimeSpan dayStart = dayKhung != null ? dayKhung.GioBatDau : new TimeSpan(6, 0, 0);
+                    TimeSpan dayEnd = dayKhung != null ? dayKhung.GioKetThuc : new TimeSpan(22, 0, 0);
+
+                    decimal finalPrice = 0m;
+
+                    if (checkIn.Date != checkOut.Date)
+                    {
+                        finalPrice = dayFee + nightFee;
+                    }
+                    else
+                    {
+                        TimeSpan startTime = checkIn.TimeOfDay;
+                        TimeSpan endTime = checkOut.TimeOfDay;
+
+                        bool hasDay = startTime < dayEnd && endTime > dayStart;
+                        bool hasNight = startTime < dayStart || endTime > dayEnd;
+
+                        if (hasDay && !hasNight)
+                        {
+                            finalPrice = dayFee;
+                        }
+                        else
+                        {
+                            finalPrice = nightFee;
+                        }
+                    }
+                    return (double)finalPrice;
+                }
+
+                // Fallback if no BangGia configured
+                var duration = checkOut - checkIn;
                 double hours = Math.Ceiling(duration.TotalHours <= 0 ? 1 : duration.TotalHours);
                 return defaultRate * hours;
             }
             catch
             {
                 // On any failure, fallback to simple rule to preserve compatibility
+                var duration = checkOut - checkIn;
                 double hours = Math.Ceiling(duration.TotalHours <= 0 ? 1 : duration.TotalHours);
                 return 5000.0 * hours;
             }
@@ -522,7 +566,7 @@ namespace QuanLyGiuXe.Services
             using (SqlConnection conn = new SqlConnection(GetConnectionString()))
             {
                 conn.Open();
-                string sql = "SELECT Id, TenLoai, TrangThai, Detail FROM LoaiVe";
+                string sql = "SELECT Id, TenLoai, TrangThai, Detail, CoTheGiaHan FROM LoaiVe";
 
                 using (SqlCommand cmd = new SqlCommand(sql, conn))
                 using (SqlDataReader r = cmd.ExecuteReader())
@@ -534,7 +578,8 @@ namespace QuanLyGiuXe.Services
                             Id = r["Id"] != DBNull.Value ? Convert.ToInt32(r["Id"]) : 0,
                             TenLoai = r["TenLoai"]?.ToString() ?? string.Empty,
                             TrangThai = r["TrangThai"]?.ToString() ?? string.Empty,
-                            Detail = r["Detail"]?.ToString() ?? string.Empty
+                            Detail = r["Detail"]?.ToString() ?? string.Empty,
+                            CoTheGiaHan = r["CoTheGiaHan"] != DBNull.Value && Convert.ToBoolean(r["CoTheGiaHan"])
                         });
                     }
                 }
@@ -601,11 +646,9 @@ namespace QuanLyGiuXe.Services
             using (SqlConnection conn = new SqlConnection(GetConnectionString()))
             {
                 conn.Open();
-                string sql = @"SELECT Id, CardUID, 
-                               CASE WHEN LoaiVeId = 2 THEN BienSo ELSE NULL END as BienSo, 
+                string sql = @"SELECT Id, CardUID, BienSo, 
                                CardName, LoaiVeId, LoaiXeId, TrangThai, 
-                               CASE WHEN LoaiVeId = 2 THEN NgayDangKy ELSE NULL END as NgayDangKy, 
-                               CASE WHEN LoaiVeId = 2 THEN NgayHetHan ELSE NULL END as NgayHetHan 
+                               NgayDangKy, NgayHetHan 
                                FROM RFIDCards";
 
                 using (SqlCommand cmd = new SqlCommand(sql, conn))
@@ -704,12 +747,15 @@ namespace QuanLyGiuXe.Services
             {
                 conn.Open();
                 // 1. Update expiry and get the new date
+                // CoTheGiaHan-based check: only renew cards whose ticket type allows renewal (CoTheGiaHan = 1)
                 string sql = @"
-                    UPDATE RFIDCards 
-                    SET NgayHetHan = DATEADD(MONTH, @months, CASE WHEN NgayHetHan < GETDATE() OR NgayHetHan IS NULL THEN GETDATE() ELSE NgayHetHan END),
-                        TrangThai = 'Active'
+                    UPDATE r 
+                    SET r.NgayHetHan = DATEADD(MONTH, @months, CASE WHEN r.NgayHetHan < GETDATE() OR r.NgayHetHan IS NULL THEN GETDATE() ELSE r.NgayHetHan END),
+                        r.TrangThai = 'Active'
                     OUTPUT INSERTED.NgayHetHan
-                    WHERE Id = @id AND LoaiVeId = 2";
+                    FROM RFIDCards r
+                    INNER JOIN LoaiVe lv ON r.LoaiVeId = lv.Id
+                    WHERE r.Id = @id AND lv.CoTheGiaHan = 1";
 
                 DateTime newExpiry;
                 using (SqlCommand cmd = new SqlCommand(sql, conn))

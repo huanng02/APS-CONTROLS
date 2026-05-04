@@ -44,8 +44,8 @@ namespace QuanLyGiuXe.ViewModels
         }
 
         // Determines whether per-slot prices can be edited (false for monthly tickets)
-        // Static rule: LoaiVe.Id == 2 => Tháng (monthly) -> cannot edit khung; others can
-        public bool CanEditKhungGia => EditingItem != null && EditingItem.LoaiVeId != 2;
+        // Name-based: if ticket name contains "tháng/thang/month" -> monthly -> cannot edit khung; others can
+        public bool CanEditKhungGia => EditingItem != null && !IsMonthlyTicketById(EditingItem.LoaiVeId);
 
 
         // Compute duration and cost helper (uses GiaBanNgay when available)
@@ -87,8 +87,8 @@ namespace QuanLyGiuXe.ViewModels
 
             try
             {
-                // If monthly ticket, just show GiaThang
-                if (loaiVeId == 2) // Tháng
+                // If monthly ticket, just show GiaThang (name-based detection)
+                if (IsMonthlyTicketById(loaiVeId))
                 {
                     if (EditingItem?.GiaThang.HasValue ?? false)
                     {
@@ -338,10 +338,22 @@ namespace QuanLyGiuXe.ViewModels
             }
         }
 
-        // Static ID-based ticket type identification
-        // Assumption: LoaiVe.Id == 1 => Vãng lai; LoaiVe.Id == 2 => Tháng
-        public bool IsThang => SelectedLoaiVeId == 2;
-        public bool IsVangLai => SelectedLoaiVeId == 1;
+        // Name-based ticket type identification (no longer hardcoded to specific IDs)
+        // IsThang: ticket name contains "tháng/thang/month" => monthly
+        // IsVangLai: everything else (vé lượt, vãng lai, etc.) => per-slot pricing
+        public bool IsThang => IsMonthlyTicketById(SelectedLoaiVeId);
+        public bool IsVangLai => SelectedLoaiVeId > 0 && !IsMonthlyTicketById(SelectedLoaiVeId);
+
+        /// Check if a LoaiVe is monthly by looking up its CoTheGiaHan flag.
+        /// Returns true if CoTheGiaHan == true (vé tháng), false if false (vé lượt).
+        /// </summary>
+        private bool IsMonthlyTicketById(int loaiVeId)
+        {
+            if (loaiVeId <= 0) return false;
+            var lv = LoaiVeList.FirstOrDefault(x => x.Id == loaiVeId);
+            if (lv == null) return false;
+            return lv.CoTheGiaHan;
+        }
 
         public ICommand LoadCommand { get; }
         public ICommand AddCommand { get; }
@@ -384,7 +396,7 @@ namespace QuanLyGiuXe.ViewModels
             foreach (var lx in _db.GetLoaiXe()) LoaiXeList.Add(lx);
             foreach (var lv in _db.GetLoaiVe()) LoaiVeList.Add(lv);
 
-            // Using static ID mapping for LoaiVe: 1 = Vãng lai, 2 = Tháng
+            // LoaiVe type detection is now name-based (not ID-based)
 
             var list = _repo.GetAll();
             foreach (var b in list)
@@ -426,8 +438,8 @@ namespace QuanLyGiuXe.ViewModels
                     entries.AddRange(missingForItem);
                     item.KhungGiaList = new System.Collections.ObjectModel.ObservableCollection<BangGiaKhungGio>(entries);
                     // build display for DataGrid (show only if not monthly)
-                    // Static rule: LoaiVeId == 2 is monthly (Tháng)
-                    bool isItemThang = item.LoaiVeId == 2;
+                    // Name-based check: monthly tickets don't show per-slot pricing
+                    bool isItemThang = IsMonthlyTicketById(item.LoaiVeId);
                     if (isItemThang)
                         item.GiaTheoKhungDisplay = string.Empty;
                     else
@@ -828,14 +840,14 @@ namespace QuanLyGiuXe.ViewModels
             // Ensure model.LoaiVeId is synced with current selection
             if ((model.LoaiVeId <= 0) && SelectedLoaiVeId > 0) model.LoaiVeId = SelectedLoaiVeId;
 
-            // Static ID-based determination (1 = VangLai, 2 = Thang)
-            bool isThang = (model.LoaiVeId == 2) || (SelectedLoaiVeId == 2);
-            bool isVang = (model.LoaiVeId == 1) || (SelectedLoaiVeId == 1);
+            // Name-based determination: monthly vs per-slot (vé lượt / vãng lai)
+            bool isThang = IsMonthlyTicketById(model.LoaiVeId) || IsMonthlyTicketById(SelectedLoaiVeId);
+            bool isVang = !isThang && (model.LoaiVeId > 0 || SelectedLoaiVeId > 0);
 
             if (!isThang && !isVang)
             {
                 // If still ambiguous, fail explicitly
-                throw new ArgumentException("LoaiVeId không hợp lệ. Expect 1 (Vãng lai) or 2 (Tháng)");
+                throw new ArgumentException("LoaiVeId không hợp lệ. Vui lòng chọn loại vé.");
             }
 
             if (isThang)

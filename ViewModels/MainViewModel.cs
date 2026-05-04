@@ -488,7 +488,7 @@ namespace QuanLyGiuXe.ViewModels
                 int? loaiXeId = (card.LoaiXeId > 0) ? card.LoaiXeId : (int?)null;
                 int? loaiVeId = (card.LoaiVeId > 0) ? card.LoaiVeId : (int?)null;
 
-                double tien = db.TinhTien(loaiXeId, loaiVeId, thoiGian);
+                double tien = db.TinhTien(loaiXeId, loaiVeId, timeIn, DateTime.Now);
 
                 LanRaTien = $"💰 {tien:N0} VNĐ";
                 TienHienThi = $"Tiền: {tien:N0} VNĐ";

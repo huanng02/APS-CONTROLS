@@ -131,9 +131,23 @@ namespace QuanLyGiuXe.ViewModels
             // 'Tất cả' tab id=0
             Tabs.Add(new LoaiVeTabViewModel { Id = 0, Title = "Tất cả" });
             
-            // Theo yêu cầu: LoaiVeId = 2 là Vé tháng, LoaiVeId = 1 là Vãng lai
-            Tabs.Add(new LoaiVeTabViewModel { Id = 2, Title = "Vé tháng" });
-            Tabs.Add(new LoaiVeTabViewModel { Id = 1, Title = "Vãng lai" });
+            // Dynamically load tabs from LoaiVe DB table
+            try
+            {
+                var db = new DatabaseService();
+                var loaiVeList = db.GetLoaiVe();
+                foreach (var lv in loaiVeList)
+                {
+                    if (lv.Id > 0 && !string.IsNullOrEmpty(lv.TenLoai))
+                    {
+                        Tabs.Add(new LoaiVeTabViewModel { Id = lv.Id, Title = lv.TenLoai });
+                    }
+                }
+            }
+            catch
+            {
+                // fallback: no extra tabs if DB unavailable
+            }
 
             // default select first
             SelectedTab = Tabs.Count > 0 ? Tabs[0] : null;

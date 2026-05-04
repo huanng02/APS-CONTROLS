@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Drawing;
@@ -92,7 +92,7 @@ namespace QuanLyGiuXe.Services
                     int? loaiVeId = card.LoaiVeId > 0 ? card.LoaiVeId : (int?)null;
                     int? loaiXeId = card.LoaiXeId > 0 ? card.LoaiXeId : (int?)null;
 
-                    double fee = db.TinhTien(loaiXeId, loaiVeId, timeOut - timeIn);
+                    double fee = db.TinhTien(loaiXeId, loaiVeId, timeIn, timeOut);
 
                     // persist exit
                     try
