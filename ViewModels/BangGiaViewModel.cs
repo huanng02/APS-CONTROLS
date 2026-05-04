@@ -40,26 +40,23 @@ namespace QuanLyGiuXe.ViewModels
             else if (Selected != null) target = Selected;
             if (target == null) return;
 
-            var model = new BangGia { Id = target.Id, LoaiXeId = target.LoaiXeId, GiaBanNgay = target.GiaBanNgay, GiaQuaDem = target.GiaQuaDem, TrangThai = target.TrangThai };
+            var model = new BangGia { Id = target.Id, LoaiXeId = target.LoaiXeId, GiaThang = target.GiaThang, TrangThai = target.TrangThai };
             var dlg = new Views.GenericAddEditWindow(model) { Owner = System.Windows.Application.Current.MainWindow };
             var result = dlg.ShowDialog();
             if (result == true)
             {
                 // validate
-                if (!model.GiaBanNgay.HasValue || model.GiaBanNgay.Value <= 0)
+                // In the new pricing model, per-slot prices are managed via KhungGio / BangGiaKhungGio.
+                // This editor now only updates GiaThang on BangGia (monthly price).
+                if (!model.GiaThang.HasValue || model.GiaThang.Value <= 0)
                 {
-                    System.Windows.MessageBox.Show("Giá ban ngày phải > 0", "Lỗi", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
-                    return;
-                }
-                if (!model.GiaQuaDem.HasValue || model.GiaQuaDem.Value < 0)
-                {
-                    System.Windows.MessageBox.Show("GiaQuaDem phải >= 0", "Lỗi", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                    System.Windows.MessageBox.Show("Giá tháng phải > 0", "Lỗi", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
                     return;
                 }
 
                 try
                 {
-                    service.UpdateGia(model.Id, model.GiaBanNgay.Value, model.GiaQuaDem.Value);
+                    service.UpdateGia(model.Id, model.GiaThang.Value);
                     System.Windows.MessageBox.Show("Cập nhật giá thành công", "Thông báo", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
                 }
                 catch (Exception ex)

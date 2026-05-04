@@ -6,14 +6,39 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
 using QuanLyGiuXe.Models;
 
 namespace QuanLyGiuXe.Services
 {
     public partial class DatabaseService
     {
-        private string primaryConnection = "Server=.;Database=BaiXe;Trusted_Connection=True;";
+        private static IConfiguration? _config;
+        private string primaryConnection 
+        {
+            get 
+            {
+                EnsureConfigLoaded();
+                return _config?.GetConnectionString("Default") ?? "Server=DESKTOP-BFOEO42\\SQLEXPRESS02;Database=BaiXe;Trusted_Connection=True;TrustServerCertificate=True;";
+            }
+        }
         private string backupConnection = "Server=BACKUP_SERVER;Database=Baixe;Trusted_Connection=True;";
+
+        private static void EnsureConfigLoaded()
+        {
+            if (_config != null) return;
+            try
+            {
+                _config = new ConfigurationBuilder()
+                    .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
+                    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+                    .Build();
+            }
+            catch
+            {
+                // Fail silently to use hardcoded defaults if config is missing or corrupt
+            }
+        }
 
         private string GetWorkingConnection()
         {
@@ -94,13 +119,11 @@ namespace QuanLyGiuXe.Services
             }
         }
 
-        /// <summary>
         /// Calculate parking fee based on vehicle type, ticket type and duration.
         /// - If LoaiVe indicates a monthly/subscription type => returns 0.
-        /// - Otherwise uses BangGia.GiaBanNgay for the given LoaiXeId. Falls back to 5000/hour if not configured.
-        /// Duration rounding: Math.Ceiling(totalHours)F
+        /// - Uses BangGia and KhungGio rules (Day/Night logic). Falls back to 5000/hour if not configured.
         /// </summary>
-        public double TinhTien(int? loaiXeId, int? loaiVeId, TimeSpan duration)
+        public double TinhTien(int? loaiXeId, int? loaiVeId, DateTime checkIn, DateTime checkOut)
         {
             try
             {
@@ -122,31 +145,77 @@ namespace QuanLyGiuXe.Services
                     }
                 }
 
-                // Determine hourly rate from BangGia for the given LoaiXeId
-                double rate = defaultRate;
-                var rates = LayBangGia();
-                BangGia selected = null;
-                if (loaiXeId.HasValue && loaiXeId.Value > 0)
+                // Pricing is now DB-driven via KhungGio + BangGiaKhungGio.
+                var bangGia = LayBangGia().FirstOrDefault(x => x.LoaiXeId == loaiXeId && x.LoaiVeId == loaiVeId);
+                if (bangGia != null)
                 {
-                    selected = rates.FirstOrDefault(r => r.LoaiXeId > 0 && r.LoaiXeId == loaiXeId.Value);
-                }
-                if (selected == null)
-                {
-                    // fallback to a default entry (LoaiXeId == 0) or first available
-                    selected = rates.FirstOrDefault(r => r.LoaiXeId == 0) ?? rates.FirstOrDefault();
-                }
-                if (selected != null && selected.GiaBanNgay.HasValue)
-                    rate = Convert.ToDouble(selected.GiaBanNgay.Value);
+                    var khungs = GetKhungGio();
+                    var prices = GetBangGiaKhungGioByBangGiaId(bangGia.Id);
 
+                    var dayKhung = khungs.FirstOrDefault(k => !k.QuaDem);
+                    var nightKhung = khungs.FirstOrDefault(k => k.QuaDem);
+
+                    var dayGia = dayKhung != null ? prices.FirstOrDefault(x => x.KhungGioId == dayKhung.Id) : null;
+                    var nightGia = nightKhung != null ? prices.FirstOrDefault(x => x.KhungGioId == nightKhung.Id) : null;
+
+                    decimal dayFee = dayGia != null ? dayGia.GiaTien : 0m;
+                    decimal nightFee = nightGia != null ? nightGia.GiaTien : 0m;
+
+                    TimeSpan dayStart = dayKhung != null ? dayKhung.GioBatDau : new TimeSpan(6, 0, 0);
+                    TimeSpan dayEnd = dayKhung != null ? dayKhung.GioKetThuc : new TimeSpan(22, 0, 0);
+
+                    decimal finalPrice = 0m;
+
+                    if (checkIn.Date != checkOut.Date)
+                    {
+                        finalPrice = dayFee + nightFee;
+                    }
+                    else
+                    {
+                        TimeSpan startTime = checkIn.TimeOfDay;
+                        TimeSpan endTime = checkOut.TimeOfDay;
+
+                        bool hasDay = startTime < dayEnd && endTime > dayStart;
+                        bool hasNight = startTime < dayStart || endTime > dayEnd;
+
+                        if (hasDay && !hasNight)
+                        {
+                            finalPrice = dayFee;
+                        }
+                        else
+                        {
+                            finalPrice = nightFee;
+                        }
+                    }
+                    return (double)finalPrice;
+                }
+
+                // Fallback if no BangGia configured
+                var duration = checkOut - checkIn;
                 double hours = Math.Ceiling(duration.TotalHours <= 0 ? 1 : duration.TotalHours);
-                return rate * hours;
+                return defaultRate * hours;
             }
             catch
             {
                 // On any failure, fallback to simple rule to preserve compatibility
+                var duration = checkOut - checkIn;
                 double hours = Math.Ceiling(duration.TotalHours <= 0 ? 1 : duration.TotalHours);
                 return 5000.0 * hours;
             }
+        }
+
+        // Return active KhungGio entries
+        public List<QuanLyGiuXe.Models.KhungGio> GetKhungGio()
+        {
+            var repo = new KhungGioRepository();
+            return repo.GetAll();
+        }
+
+        // Return BangGiaKhungGio entries for a BangGia id
+        public List<QuanLyGiuXe.Models.BangGiaKhungGio> GetBangGiaKhungGioByBangGiaId(int bangGiaId)
+        {
+            var repo = new BangGiaKhungGioRepository();
+            return repo.GetByBangGiaId(bangGiaId);
         }
 
         // Expose working connection string for UI components
@@ -200,20 +269,7 @@ namespace QuanLyGiuXe.Services
             return exists;
         }
 
-        // Helpers specific to BangGia daylight column. Returns actual column name in DB (GiaBanNgay or legacy GiaBanNgay).
-        public string GetBangGiaDayColumnName()
-        {
-            if (ColumnExistsInTable("BangGia", "GiaBanNgay")) return "GiaBanNgay";
-            // not found; throw to make caller handle explicit error
-            throw new InvalidOperationException("Neither 'GiaBanNgay' nor legacy 'GiaBanNgay' column exists in table dbo.BangGia.");
-        }
-
-        // Returns SQL select expression for the daytime price, always aliased to GiaBanNgay so callers can read r["GiaBanNgay"] reliably.
-        public string GetBangGiaDaySelectExpression()
-        {
-            if (ColumnExistsInTable("BangGia", "GiaBanNgay")) return "[GiaBanNgay]";
-            throw new InvalidOperationException("Neither 'GiaBanNgay' nor legacy 'GiaBanNgay' column exists in table dbo.BangGia.");
-        }
+        // Legacy helpers removed: pricing is fully driven by KhungGio + BangGiaKhungGio.
 
         public RFIDCard GetRFIDCardByUid(string uid)
         {
@@ -351,8 +407,8 @@ namespace QuanLyGiuXe.Services
             using (SqlConnection conn = new SqlConnection(conn_string))
             {
                 conn.Open();
-                string dayExpr = GetBangGiaDaySelectExpression();
-                string sql = $"SELECT Id, LoaiXeId, LoaiVeId, {dayExpr}, GiaQuaDem, GiaThang, TrangThai FROM dbo.BangGia";
+                // New schema: pricing per KhungGio. Keep legacy columns for compatibility but avoid using them.
+                string sql = "SELECT Id, LoaiXeId, LoaiVeId, GiaThang FROM dbo.BangGia";
                 using (SqlCommand cmd = new SqlCommand(sql, conn))
                 using (SqlDataReader r = cmd.ExecuteReader())
                 {
@@ -363,8 +419,6 @@ namespace QuanLyGiuXe.Services
                             Id = r["Id"] != DBNull.Value ? Convert.ToInt32(r["Id"]) : 0,
                             LoaiXeId = r["LoaiXeId"] != DBNull.Value ? Convert.ToInt32(r["LoaiXeId"]) : 0,
                             LoaiVeId = r["LoaiVeId"] != DBNull.Value ? Convert.ToInt32(r["LoaiVeId"]) : 0,
-                            GiaBanNgay = r["GiaBanNgay"] != DBNull.Value ? (decimal?)Convert.ToDecimal(r["GiaBanNgay"]) : null,
-                            GiaQuaDem = r["GiaQuaDem"] != DBNull.Value ? (decimal?)Convert.ToDecimal(r["GiaQuaDem"]) : null,
                             GiaThang = r["GiaThang"] != DBNull.Value ? (decimal?)Convert.ToDecimal(r["GiaThang"]) : null,
                             TrangThai = r["TrangThai"]?.ToString() ?? string.Empty
                         });
@@ -375,19 +429,19 @@ namespace QuanLyGiuXe.Services
             return list;
         }
 
-        public void UpdateBangGia(int id, decimal? giaBanNgay, decimal? giaQuaDem, decimal? giaThang = null)
+        // Update BangGia: only update GiaThang and TrangThai in the new model. Legacy per-slot prices are managed
+        // via BangGiaKhungGio and should not be written here.
+        public void UpdateBangGia(int id, decimal? giaThang = null, string trangThai = null)
         {
             string conn_string = GetWorkingConnection();
             using (SqlConnection conn = new SqlConnection(conn_string))
             {
                 conn.Open();
-                string dayCol = GetBangGiaDayColumnName();
-                string sql = $"UPDATE dbo.BangGia SET {dayCol}=@g1, GiaQuaDem=@g2, GiaThang=@gt WHERE Id=@id";
+                string sql = "UPDATE dbo.BangGia SET GiaThang=@gt, TrangThai=@tt WHERE Id=@id";
                 using (SqlCommand cmd = new SqlCommand(sql, conn))
                 {
-                    cmd.Parameters.AddWithValue("@g1", (object?)giaBanNgay ?? DBNull.Value);
-                    cmd.Parameters.AddWithValue("@g2", (object?)giaQuaDem ?? DBNull.Value);
                     cmd.Parameters.AddWithValue("@gt", (object?)giaThang ?? DBNull.Value);
+                    cmd.Parameters.AddWithValue("@tt", (object?)trangThai ?? DBNull.Value);
                     cmd.Parameters.AddWithValue("@id", id);
                     cmd.ExecuteNonQuery();
                 }
@@ -537,7 +591,7 @@ namespace QuanLyGiuXe.Services
             using (SqlConnection conn = new SqlConnection(GetConnectionString()))
             {
                 conn.Open();
-                string sql = "SELECT Id, TenLoai, TrangThai, Detail FROM LoaiVe";
+                string sql = "SELECT Id, TenLoai, TrangThai, Detail, CoTheGiaHan FROM LoaiVe";
 
                 using (SqlCommand cmd = new SqlCommand(sql, conn))
                 using (SqlDataReader r = cmd.ExecuteReader())
@@ -549,7 +603,8 @@ namespace QuanLyGiuXe.Services
                             Id = r["Id"] != DBNull.Value ? Convert.ToInt32(r["Id"]) : 0,
                             TenLoai = r["TenLoai"]?.ToString() ?? string.Empty,
                             TrangThai = r["TrangThai"]?.ToString() ?? string.Empty,
-                            Detail = r["Detail"]?.ToString() ?? string.Empty
+                            Detail = r["Detail"]?.ToString() ?? string.Empty,
+                            CoTheGiaHan = r["CoTheGiaHan"] != DBNull.Value && Convert.ToBoolean(r["CoTheGiaHan"])
                         });
                     }
                 }
@@ -616,7 +671,10 @@ namespace QuanLyGiuXe.Services
             using (SqlConnection conn = new SqlConnection(GetConnectionString()))
             {
                 conn.Open();
-                string sql = @"SELECT Id, CardUID, BienSo, CardName, LoaiVeId, LoaiXeId, TrangThai, NgayDangKy, NgayHetHan FROM RFIDCards";
+                string sql = @"SELECT Id, CardUID, BienSo, 
+                               CardName, LoaiVeId, LoaiXeId, TrangThai, 
+                               NgayDangKy, NgayHetHan 
+                               FROM RFIDCards";
 
                 using (SqlCommand cmd = new SqlCommand(sql, conn))
                 using (SqlDataReader r = cmd.ExecuteReader())
@@ -701,6 +759,127 @@ namespace QuanLyGiuXe.Services
                     cmd.ExecuteNonQuery();
                 }
             }
+        }
+
+        /// <summary>
+        /// Gia hạn thẻ RFID theo số tháng.
+        /// Cập nhật NgayHetHan = DATEADD(MONTH, SoThang, CurrentNgayHetHan)
+        /// Set TrangThai = 'Active'
+        /// </summary>
+        public void GiaHanRFIDCard(int id, int soThang)
+        {
+            using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+                // 1. Update expiry and get the new date
+                // CoTheGiaHan-based check: only renew cards whose ticket type allows renewal (CoTheGiaHan = 1)
+                string sql = @"
+                    UPDATE r 
+                    SET r.NgayHetHan = DATEADD(MONTH, @months, CASE WHEN r.NgayHetHan < GETDATE() OR r.NgayHetHan IS NULL THEN GETDATE() ELSE r.NgayHetHan END),
+                        r.TrangThai = 'Active'
+                    OUTPUT INSERTED.NgayHetHan
+                    FROM RFIDCards r
+                    INNER JOIN LoaiVe lv ON r.LoaiVeId = lv.Id
+                    WHERE r.Id = @id AND lv.CoTheGiaHan = 1";
+
+                DateTime newExpiry;
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@id", id);
+                    cmd.Parameters.AddWithValue("@months", soThang);
+                    var result = cmd.ExecuteScalar();
+                    if (result == null || result == DBNull.Value) return; 
+                    newExpiry = (DateTime)result;
+                }
+
+                // 2. Log to GiaHanRFIDLog
+                string logSql = @"
+                    IF OBJECT_ID('dbo.GiaHanRFIDLog') IS NULL
+                    BEGIN
+                        CREATE TABLE dbo.GiaHanRFIDLog (
+                            Id INT IDENTITY(1,1) PRIMARY KEY,
+                            CardId INT,
+                            SoThang INT,
+                            NgayGiaHan DATETIME DEFAULT GETDATE(),
+                            NgayHetHanMoi DATETIME
+                        )
+                    END
+                    INSERT INTO GiaHanRFIDLog (CardId, SoThang, NgayGiaHan, NgayHetHanMoi)
+                    VALUES (@cardId, @soThang, GETDATE(), @newExpiry)";
+
+                using (SqlCommand cmd = new SqlCommand(logSql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@cardId", id);
+                    cmd.Parameters.AddWithValue("@soThang", soThang);
+                    cmd.Parameters.AddWithValue("@newExpiry", newExpiry);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        public List<GiaHanRFIDLog> GetGiaHanHistory(string searchTerm = null, DateTime? fromDate = null, DateTime? toDate = null)
+        {
+            var list = new List<GiaHanRFIDLog>();
+            using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+                
+                // Ensure table exists
+                string checkTableSql = @"
+                    IF OBJECT_ID('dbo.GiaHanRFIDLog') IS NULL
+                    BEGIN
+                        CREATE TABLE dbo.GiaHanRFIDLog (
+                            Id INT IDENTITY(1,1) PRIMARY KEY,
+                            CardId INT,
+                            SoThang INT,
+                            NgayGiaHan DATETIME DEFAULT GETDATE(),
+                            NgayHetHanMoi DATETIME
+                        )
+                    END";
+                using (SqlCommand checkCmd = new SqlCommand(checkTableSql, conn)) checkCmd.ExecuteNonQuery();
+
+                string sql = @"
+                    SELECT l.Id, l.CardId, l.SoThang, l.NgayGiaHan, l.NgayHetHanMoi,
+                           c.CardUID, c.CardName, c.BienSo
+                    FROM GiaHanRFIDLog l
+                    JOIN RFIDCards c ON l.CardId = c.Id
+                    WHERE (@searchTerm IS NULL OR c.CardUID LIKE @searchTerm OR c.BienSo LIKE @searchTerm OR CAST(l.CardId AS NVARCHAR) LIKE @searchTerm)
+                      AND (@fromDate IS NULL OR l.NgayGiaHan >= @fromDate)
+                      AND (@toDate IS NULL OR l.NgayGiaHan <= @toDate)
+                    ORDER BY l.NgayGiaHan DESC";
+
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@searchTerm", string.IsNullOrEmpty(searchTerm) ? DBNull.Value : $"%{searchTerm}%");
+                    cmd.Parameters.AddWithValue("@fromDate", (object?)fromDate ?? DBNull.Value);
+                    
+                    // ToDate should include the whole day if only date is provided
+                    if (toDate.HasValue && toDate.Value.TimeOfDay == TimeSpan.Zero)
+                    {
+                        toDate = toDate.Value.AddDays(1).AddSeconds(-1);
+                    }
+                    cmd.Parameters.AddWithValue("@toDate", (object?)toDate ?? DBNull.Value);
+
+                    using (SqlDataReader r = cmd.ExecuteReader())
+                    {
+                        while (r.Read())
+                        {
+                            list.Add(new GiaHanRFIDLog
+                            {
+                                Id = (int)r["Id"],
+                                CardId = (int)r["CardId"],
+                                SoThang = (int)r["SoThang"],
+                                NgayGiaHan = (DateTime)r["NgayGiaHan"],
+                                NgayHetHanMoi = (DateTime)r["NgayHetHanMoi"],
+                                CardUID = r["CardUID"]?.ToString(),
+                                CardName = r["CardName"]?.ToString(),
+                                BienSo = r["BienSo"]?.ToString()
+                            });
+                        }
+                    }
+                }
+            }
+            return list;
         }
 
         public bool IsRFIDUidExists(string uid)
@@ -1327,6 +1506,37 @@ namespace QuanLyGiuXe.Services
             catch { }
 
             return list;
+        }
+        /// <summary>
+        /// Executes a SELECT query and returns a DataTable.
+        /// </summary>
+        public System.Data.DataTable ExecuteQuery(string sql)
+        {
+            var dt = new System.Data.DataTable();
+            using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+                using (SqlDataAdapter adapter = new SqlDataAdapter(sql, conn))
+                {
+                    adapter.Fill(dt);
+                }
+            }
+            return dt;
+        }
+
+        /// <summary>
+        /// Executes INSERT, UPDATE, DELETE and returns the number of rows affected.
+        /// </summary>
+        public int ExecuteNonQuery(string sql)
+        {
+            using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+            {
+                conn.Open();
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                {
+                    return cmd.ExecuteNonQuery();
+                }
+            }
         }
     }
 }

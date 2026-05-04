@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
 namespace QuanLyGiuXe.Models
@@ -22,6 +22,9 @@ namespace QuanLyGiuXe.Models
 
         // New column in DB: Detail (nullable)
         public string Detail { get => _detail; set => SetField(ref _detail, value); }
+
+        private bool _coTheGiaHan;
+        public bool CoTheGiaHan { get => _coTheGiaHan; set => SetField(ref _coTheGiaHan, value); }
 
         // UI-only selection flag for DataGrid bulk actions
         public bool IsSelected { get => _isSelected; set => SetField(ref _isSelected, value); }

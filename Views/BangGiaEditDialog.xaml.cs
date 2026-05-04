@@ -17,15 +17,13 @@ namespace QuanLyGiuXe.Views
             {
                 Id = model.Id,
                 LoaiXeId = model.LoaiXeId,
-                GiaBanNgay = model.GiaBanNgay,
-                GiaQuaDem = model.GiaQuaDem,
+                GiaThang = model.GiaThang,
                 TrangThai = model.TrangThai,
                 LoaiXe = model.LoaiXe
             };
 
             tbLoaiXe.Text = _model.LoaiXe;
-            tbGiaBanNgay.Text = _model.GiaBanNgay?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
-            tbGiaQuaDem.Text = _model.GiaQuaDem?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
+            tbGiaThang.Text = _model.GiaThang?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
 
             this.Owner = Application.Current.MainWindow;
             this.WindowStartupLocation = WindowStartupLocation.CenterOwner;
@@ -33,19 +31,13 @@ namespace QuanLyGiuXe.Views
 
         private void Save_Click(object sender, RoutedEventArgs e)
         {
-            if (!decimal.TryParse(tbGiaBanNgay.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out var g1) || g1 <= 0)
+            if (!decimal.TryParse(tbGiaThang.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out var gt) || gt <= 0)
             {
-                MessageBox.Show("Giá ban ngày phải lớn hơn 0", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-            if (!decimal.TryParse(tbGiaQuaDem.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out var g2) || g2 < 0)
-            {
-                MessageBox.Show("Giá qua đêm không hợp lệ", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Giá tháng phải lớn hơn 0", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
-            _model.GiaBanNgay = g1;
-            _model.GiaQuaDem = g2;
+            _model.GiaThang = gt;
 
             try
             {

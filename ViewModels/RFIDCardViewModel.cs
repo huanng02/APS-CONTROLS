@@ -85,6 +85,18 @@ namespace QuanLyGiuXe.ViewModels
         private string _trangThai;
         public string TrangThai { get => _trangThai; set { _trangThai = value; OnPropertyChanged(nameof(TrangThai)); } }
 
+        private string _searchText;
+        public string SearchText 
+        { 
+            get => _searchText; 
+            set 
+            { 
+                _searchText = value; 
+                OnPropertyChanged(nameof(SearchText)); 
+                Load(); // Real-time search
+            } 
+        }
+
         public ICommand LoadCommand { get; }
         public ICommand AddCommand { get; }
         public ICommand UpdateCommand { get; }
@@ -94,6 +106,7 @@ namespace QuanLyGiuXe.ViewModels
         public ICommand DeleteAllCommand { get; }
         public ICommand DownloadTemplateCommand { get; }
         public ICommand ExportCommand { get; }
+        public ICommand GiaHanCommand { get; }
 
         public RFIDCardViewModel()
         {
@@ -108,6 +121,7 @@ namespace QuanLyGiuXe.ViewModels
             ClearCommand = new RelayCommand(_ => Clear());
             DownloadTemplateCommand = new RelayCommand(async _ => await DownloadTemplate());
             ExportCommand = new RelayCommand(_ => Export());
+            GiaHanCommand = new RelayCommand(param => GiaHan(param));
             Load();
         }
 
@@ -116,11 +130,25 @@ namespace QuanLyGiuXe.ViewModels
             Tabs.Clear();
             // 'Tất cả' tab id=0
             Tabs.Add(new LoaiVeTabViewModel { Id = 0, Title = "Tất cả" });
-            var lvs = new LoaiVeService().GetAll();
-            foreach (var lv in lvs)
+            
+            // Dynamically load tabs from LoaiVe DB table
+            try
             {
-                Tabs.Add(new LoaiVeTabViewModel { Id = lv.Id, Title = lv.TenLoai });
+                var db = new DatabaseService();
+                var loaiVeList = db.GetLoaiVe();
+                foreach (var lv in loaiVeList)
+                {
+                    if (lv.Id > 0 && !string.IsNullOrEmpty(lv.TenLoai))
+                    {
+                        Tabs.Add(new LoaiVeTabViewModel { Id = lv.Id, Title = lv.TenLoai });
+                    }
+                }
             }
+            catch
+            {
+                // fallback: no extra tabs if DB unavailable
+            }
+
             // default select first
             SelectedTab = Tabs.Count > 0 ? Tabs[0] : null;
         }
@@ -170,18 +198,27 @@ namespace QuanLyGiuXe.ViewModels
 
         private void Load()
         {
-            Items.Clear();
-            // populate tabs data cache only if empty
+            // Populate tabs data cache only if empty
             foreach (var tab in Tabs)
             {
                 if (tab.Items.Count == 0) tab.Load(service);
             }
 
-            // set selected tab items into Items
+            // Set selected tab items into Items with Search Filter
             if (SelectedTab != null)
             {
                 Items.Clear();
-                foreach (var it in SelectedTab.Items) Items.Add(it);
+                var rawItems = SelectedTab.Items;
+                
+                foreach (var it in rawItems)
+                {
+                    if (string.IsNullOrWhiteSpace(SearchText) || 
+                        (it.CardUID != null && it.CardUID.IndexOf(SearchText, StringComparison.OrdinalIgnoreCase) >= 0) ||
+                        (it.BienSo != null && it.BienSo.IndexOf(SearchText, StringComparison.OrdinalIgnoreCase) >= 0))
+                    {
+                        Items.Add(it);
+                    }
+                }
             }
         }
 
@@ -322,6 +359,35 @@ namespace QuanLyGiuXe.ViewModels
             // refresh only the current tab
             RefreshTab(SelectedTab?.Id ?? 0);
             Clear();
+        }
+
+        private void GiaHan(object parameter)
+        {
+            QuanLyGiuXe.Models.RFIDCards target = null;
+            if (parameter is QuanLyGiuXe.Models.RFIDCards rc) target = rc;
+            else if (SelectedItem != null) target = SelectedItem;
+            if (target == null) return;
+
+            var dialog = new Views.RFIDGiaHanDialog(target.CardUID, target.BienSo) 
+            { 
+                Owner = System.Windows.Application.Current.MainWindow 
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                try
+                {
+                    service.GiaHan(target.Id, dialog.SelectedMonths);
+                    System.Windows.MessageBox.Show($"Gia hạn thẻ {target.CardUID} thành công thêm {dialog.SelectedMonths} tháng.", "Thông báo", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                    
+                    // Reload data
+                    RefreshTab(SelectedTab?.Id ?? 0);
+                }
+                catch (Exception ex)
+                {
+                    System.Windows.MessageBox.Show($"Gia hạn thất bại: {ex.Message}", "Lỗi", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                }
+            }
         }
 
         private void Clear()

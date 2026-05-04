@@ -19,12 +19,12 @@
 
         <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,8,0,0">
             <StackPanel Orientation="Vertical" Width="200">
-                <TextBlock Text="Giá ban ngày" />
-                <TextBox x:Name="tbGiaBanNgay" />
+                <TextBlock Text="Giá tháng" />
+                <TextBox x:Name="tbGiaThang" />
             </StackPanel>
+            <!-- Per-slot prices are managed via KhungGio/BangGiaKhungGio admin screens -->
             <StackPanel Orientation="Vertical" Width="180" Margin="12,0,0,0">
-                <TextBlock Text="Giá qua đêm" />
-                <TextBox x:Name="tbGiaQuaDem" />
+                <TextBlock Text="(Giá theo khung giờ được quản lý riêng)" FontStyle="Italic" FontSize="11" />
             </StackPanel>
         </StackPanel>
 

@@ -171,6 +171,7 @@ namespace QuanLyGiuXe.ViewModels
         public ICommand TrangChuCommand { get; }
         public ICommand TimKiemCommand { get; }
         public ICommand LichSuCommand { get; }
+        public ICommand DatabaseExplorerCommand { get; }
 
         // ── Constructor ───────────────────────────────────────────────────────────
 
@@ -229,6 +230,7 @@ namespace QuanLyGiuXe.ViewModels
             TrangChuCommand = new RelayCommand(_ => SetView(new TrangChuViewModel()));
             TimKiemCommand = new RelayCommand(_ => SetView(new TimKiemViewModel()));
             LichSuCommand = new RelayCommand(_ => SetView(new LichSuViewModel()));
+            DatabaseExplorerCommand = new RelayCommand(_ => SetView(new DatabaseExplorerViewModel()));
 
             try { LoggingService.Instance.LogEmitted += OnLogEmitted; } catch { }
         }
@@ -371,49 +373,256 @@ namespace QuanLyGiuXe.ViewModels
             DanhSachXe.Clear();
             foreach (DataRow row in db.LayXeTrongBai().Rows)
             {
+                var xe = new Xe
+                {
+                    BienSo = row["BienSo"].ToString()!,
+                    ThoiGianVao = Convert.ToDateTime(row["ThoiGianVao"])
+                };
+                DanhSachXe.Add(xe);
+            }
+        }
+
+        // ── Xe Vào / Ra ──────────────────────────────────────────────────────────
+
+        public async Task XeVaoAsync()
+        {
+            // ENTRY must be by RFID only. Plate is optional and not required for validation.
+            string uid = string.IsNullOrEmpty(LastScannedUID) ? string.Empty : LastScannedUID;
+
+            if (string.IsNullOrEmpty(uid))
+            {
+                LanVaoTrangThai = "❌ Vui lòng quét thẻ RFID!";
+                return;
+            }
+
+            try
+            {
+                LoggingService.Instance.LogInfo("XeVaoScan", "MainViewModel", $"Scan in UID={uid}");
+
+                // verify card exists
+                var card = db.GetRFIDCardByUid(uid);
+                if (card == null || card.Id == 0)
+                {
+                    LanVaoTrangThai = $"❌ Thẻ {uid} chưa đăng ký!";
+                    LoggingService.Instance.LogInfo("XeVao", "MainViewModel", $"Unregistered UID={uid}");
+                    return;
+                }
+
+                string plate = string.IsNullOrEmpty(card.BienSo) ? string.Empty : card.BienSo;
+
+                if (!Directory.Exists("Images"))
+                    Directory.CreateDirectory("Images");
+
+                // insert into DB (CardId-first - FIXED)
+                try
+                {
+                    db.ThemXe(card.Id, string.IsNullOrEmpty(plate) ? null : plate, "");
+                }
+                catch (Exception ex)
+                {
+                    LanVaoTrangThai = $"❌ Lỗi ghi DB: {ex.Message}";
+                    LoggingService.Instance.LogError("XeVaoInsertFailed", "MainViewModel", $"CardId={card.Id}", ex);
+                    return;
+                }
+
+                // verify insert (FIXED: CardId)
+                int count = db.GetXeTrongBaiCountByCardId(card.Id);
+
+                LoggingService.Instance.LogInfo(
+                    "XeVao",
+                    "MainViewModel",
+                    $"After insert CardId={card.Id} activeCount={count}"
+                );
+
+                if (count == 0)
+                {
+                    LanVaoTrangThai = "⚠ Insert DB không thành công (không tìm thấy bản ghi sau insert). Kiểm tra logs.";
+                    return;
+                }
+
+                // reflect in UI list
+                var xe = new Xe
+                {
+                    BienSo = plate ?? string.Empty,
+                    ThoiGianVao = DateTime.Now
+                };
+
+                DanhSachXe.Add(xe);
+
+                LanVaoBienSo = plate;
+                LanVaoUID = uid;
+
+                bool opened = await C3200Service.Instance.OpenBarrierAsync(1);
+
+                LanVaoTrangThai = opened
+                    ? $"✅ Xe vào lúc {DateTime.Now:HH:mm} – barrier đã mở"
+                    : "⚠ Xe vào – barrier lỗi";
+
+                LoggingService.Instance.LogInfo(
+                    "XeVao",
+                    "MainViewModel",
+                    $"CardId={card.Id}; Plate={plate}; opened={opened}"
+                );
+
+                ThemLog("VÀO", plate, opened ? "✅ Barrier đã mở" : "⚠ Barrier lỗi");
+
+                BienSoNhap = "";
+                LastScannedUID = string.Empty;
+            }
+            catch (Exception ex)
+            {
+                LanVaoTrangThai = $"❌ Lỗi xử lý vào: {ex.Message}";
+                LoggingService.Instance.LogError(
+                    "XeVaoUnhandled",
+                    "MainViewModel",
+                    $"UID={LastScannedUID}",
+                    ex
+                );
+            }
+        }
+
+        private async Task XeRaAsync()
+        {
+            // EXIT must be by RFID only.
+            string cardUid = string.IsNullOrEmpty(LastScannedUID) ? string.Empty : LastScannedUID;
+
+            if (string.IsNullOrEmpty(cardUid))
+            {
+                LanRaTrangThai = "❌ Vui lòng quét thẻ RFID!";
+                return;
+            }
+
+            try
+            {
+                LoggingService.Instance.LogInfo("XeRaScan", "MainViewModel", $"Scan out UID={cardUid}");
+
+                var card = db.GetRFIDCardByUid(cardUid);
+                if (card == null || card.Id == 0)
+                {
+                    LanRaTrangThai = $"❌ Thẻ {cardUid} chưa đăng ký!";
+                    return;
+                }
+
+                int cardId = card.Id;
+
+                // debug count (CARD ID)
+                int activeCount = db.GetXeTrongBaiCountByCardId(cardId);
+                LoggingService.Instance.LogInfo("XeRaDebug", "MainViewModel",
+                    $"Active XeTrongBai rows for CardId={cardId}: {activeCount}");
+
+                var rec = db.GetXeTrongBaiRecordByCardId(cardId);
+                if (rec == null)
+                {
+                    LanRaTrangThai = "⚠ Không tìm thấy xe trong bãi cho thẻ này";
+                    LoggingService.Instance.LogInfo("XeRaNotFound", "MainViewModel",
+                        $"No active XeTrongBai for CardId={cardId}. ActiveCount={activeCount}");
+                    return;
+                }
+
+                var (id, plate, timeIn) = rec.Value;
+
+                LanRaBienSo = plate;
+
+                var thoiGian = DateTime.Now - timeIn;
+
+                LanRaThoiGianVao =
+                    $"Vào: {timeIn:HH:mm} │ {thoiGian.Hours}h{thoiGian.Minutes:D2}m";
+
+                LanRaThoiGianTrongBai =
+                    $"Thời gian trong bãi: {thoiGian.Days}d {thoiGian.Hours}h{thoiGian.Minutes:D2}m";
+
+                int? loaiXeId = (card.LoaiXeId > 0) ? card.LoaiXeId : (int?)null;
+                int? loaiVeId = (card.LoaiVeId > 0) ? card.LoaiVeId : (int?)null;
+
+                double tien = db.TinhTien(loaiXeId, loaiVeId, timeIn, DateTime.Now);
+
+                LanRaTien = $"💰 {tien:N0} VNĐ";
+                TienHienThi = $"Tiền: {tien:N0} VNĐ";
+
+                // DB update
+                try
+                {
+                    db.UpdateXeRaById(id, DateTime.Now);
+                    db.LuuLichSu(   
+                        string.IsNullOrEmpty(plate) ? null : plate,
+                        timeIn,
+                        DateTime.Now,
+                        tien,
+                        string.Empty,
+                        cardUid
+                    );
+
+                    db.XoaXeByCardId(cardId);
+
+                    LoggingService.Instance.LogInfo(
+                        "XeRa",
+                        "MainViewModel",
+                        $"Processed exit CardId={cardId}, Id={id}, Fee={tien}"
+                    );
+                }
+                catch (Exception ex)
+                {
+                    LoggingService.Instance.LogError(
+                        "XeRaDbFail",
+                        "MainViewModel",
+                        $"CardId={cardId}, Id={id}",
+                        ex
+                    );
+
+                    LanRaTrangThai = $"❌ Lỗi ghi DB khi xử lý ra: {ex.Message}";
+                    return;
+                }
+
+                // remove from UI list
+                if (!string.IsNullOrEmpty(plate))
+                {
+                    var xeInList = DanhSachXe.FirstOrDefault(x => x.BienSo == plate);
+                    if (xeInList != null) DanhSachXe.Remove(xeInList);
+                }
+
+                BienSoNhap = string.Empty;
+                LastScannedUID = string.Empty;
+
+                await C3200Service.Instance.OpenBarrierAsync(2);
+
+                LanRaTrangThai = $"✅ Xe ra lúc {DateTime.Now:HH:mm} – barrier đã mở";
+
+                LoggingService.Instance.LogInfo(
+                    "XeRaComplete",
+                    "MainViewModel",
+                    $"CardId={cardId}, Fee={tien}"
+                );
+
+                ThemLog("RA", plate, $"💰 {tien:N0} VNĐ");
+            }
+            catch (Exception ex)
+            {
+                LanRaTrangThai = $"❌ Lỗi xử lý ra: {ex.Message}";
+                LoggingService.Instance.LogError(
+                    "XeRaUnhandled",
+                    "MainViewModel",
+                    $"UID={LastScannedUID}",
+                    ex
+                );
+            }
+        }
+
+        // ── Tìm kiếm / Chi tiết ──────────────────────────────────────────────────
+
+        private void TimKiemXe()
+        {
+            DanhSachXe.Clear();
+            var source = string.IsNullOrWhiteSpace(TuKhoaTimKiem)
+                ? db.LayXeTrongBai().AsEnumerable()
+                : db.LayXeTrongBai().AsEnumerable()
+                    .Where(r => r["BienSo"].ToString()!.Contains(TuKhoaTimKiem));
+
+            foreach (var row in source)
                 DanhSachXe.Add(new Xe
                 {
                     BienSo = row["BienSo"].ToString()!,
                     ThoiGianVao = Convert.ToDateTime(row["ThoiGianVao"])
                 });
-            }
-        }
-
-        public async Task XeVaoAsync() {
-            if (string.IsNullOrEmpty(CurrentCardUID)) return;
-            if (string.IsNullOrEmpty(BienSoNhap)) return;
-
-            await Task.Run(() => {
-                var card = db.GetRFIDCardByUid(CurrentCardUID);
-                if (card != null)
-                {
-                    bool success = db.InsertXeVao(BienSoNhap, CurrentCardUID, card.LoaiXeId, card.LoaiVeId, PathAnhVao);
-
-                    LanVaoTrangThai = success ? "✅ THÀNH CÔNG" : "❌ LỖI LƯU DB";
-
-                    if (success)
-                    {
-                        CurrentCardUID = string.Empty;
-                    }
-                }
-                else
-                {
-                    LanVaoTrangThai = "❌ THẺ CHƯA ĐĂNG KÝ";
-                }
-            });
-        }
-        public async Task XeRaAsync() {}
-
-        private void TimKiemXe()
-        {
-            var filtered = db.LayXeTrongBai().AsEnumerable()
-                .Where(r => string.IsNullOrEmpty(TuKhoaTimKiem) || r["BienSo"].ToString()!.Contains(TuKhoaTimKiem));
-
-            DanhSachXe.Clear();
-            foreach (var row in filtered)
-            {
-                DanhSachXe.Add(new Xe { BienSo = row["BienSo"].ToString()!, ThoiGianVao = Convert.ToDateTime(row["ThoiGianVao"]) });
-            }
         }
 
         public void XeChiTiet(Xe xe)

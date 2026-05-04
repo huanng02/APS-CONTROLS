@@ -14,13 +14,12 @@ namespace QuanLyGiuXe.Services
             return _db.LayBangGia();
         }
 
-        public void UpdateGia(int id, decimal giaBanNgay, decimal giaQuaDem)
+        public void UpdateGia(int id, decimal giaThang)
         {
             if (id <= 0) throw new ArgumentException("ID không hợp lệ", nameof(id));
-            if (giaBanNgay <= 0) throw new ArgumentException("Giá ban ngày phải > 0", nameof(giaBanNgay));
-            if (giaQuaDem < 0) throw new ArgumentException("GiaQuaDem phải >= 0", nameof(giaQuaDem));
+            if (giaThang <= 0) throw new ArgumentException("Giá tháng phải > 0", nameof(giaThang));
 
-            _db.UpdateBangGia(id, giaBanNgay, giaQuaDem);
+            _db.UpdateBangGia(id, giaThang, "Active");
         }
     }
 }

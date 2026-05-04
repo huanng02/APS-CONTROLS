@@ -18,10 +18,10 @@ namespace QuanLyGiuXe.Services
         {
             if (model == null) throw new ArgumentNullException(nameof(model));
             if (model.Id <= 0) throw new ArgumentException("Invalid Id", nameof(model.Id));
-            if (!model.GiaBanNgay.HasValue || model.GiaBanNgay.Value <= 0) throw new ArgumentException("Giá ban ngày phải > 0");
-            if (!model.GiaQuaDem.HasValue || model.GiaQuaDem.Value < 0) throw new ArgumentException("GiaQuaDem must be >= 0");
+            // For admin updates in the new model, only GiaThang is editable here.
+            if (!model.GiaThang.HasValue || model.GiaThang.Value <= 0) throw new ArgumentException("GiaThang phải > 0");
 
-            _db.UpdateBangGia(model.Id, model.GiaBanNgay.Value, model.GiaQuaDem.Value);
+            _db.UpdateBangGia(model.Id, model.GiaThang, model.TrangThai);
         }
     }
 }

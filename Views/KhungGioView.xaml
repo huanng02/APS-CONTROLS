@@ -1,0 +1,101 @@
+<UserControl x:Class="QuanLyGiuXe.Views.KhungGioView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Background="White">
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border BorderBrush="#EEEEEE" BorderThickness="0,0,0,1" Padding="0,0,0,10" Margin="0,0,0,15">
+            <TextBlock Text="CẤU HÌNH KHUNG GIỜ" FontSize="20" FontWeight="SemiBold" Foreground="#333333" />
+        </Border>
+
+        <!-- DataGrid -->
+        <DataGrid Grid.Row="1" ItemsSource="{Binding Items}" SelectedItem="{Binding Selected}" 
+                  AutoGenerateColumns="False" CanUserAddRows="False" 
+                  RowHeight="35" ColumnHeaderHeight="40"
+                  HeadersVisibility="Column" GridLinesVisibility="Horizontal"
+                  HorizontalGridLinesBrush="#E0E0E0" Background="White"
+                  BorderBrush="#DDDDDD" BorderThickness="1"
+                  AlternatingRowBackground="#FAFAFA" SelectionMode="Single">
+            
+            <DataGrid.Resources>
+                <Style TargetType="DataGridColumnHeader">
+                    <Setter Property="FontWeight" Value="SemiBold" />
+                    <Setter Property="Background" Value="#F5F5F5" />
+                    <Setter Property="Padding" Value="10,0" />
+                    <Setter Property="Foreground" Value="#444444" />
+                </Style>
+                <Style TargetType="DataGridCell">
+                    <Setter Property="Padding" Value="10,0" />
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="DataGridCell">
+                                <Border Background="{TemplateBinding Background}" 
+                                        BorderBrush="{TemplateBinding BorderBrush}" 
+                                        BorderThickness="{TemplateBinding BorderThickness}"
+                                        Padding="{TemplateBinding Padding}">
+                                    <ContentPresenter VerticalAlignment="Center" />
+                                </Border>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                    <Style.Triggers>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter Property="Background" Value="#E3F2FD" />
+                            <Setter Property="Foreground" Value="#000000" />
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.Resources>
+
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Tên khung giờ" Binding="{Binding TenKhungGio, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                
+                <DataGridTemplateColumn Header="Giờ bắt đầu" Width="130">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding GioBatDauText}" VerticalAlignment="Center" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                    <DataGridTemplateColumn.CellEditingTemplate>
+                        <DataTemplate>
+                            <TextBox Text="{Binding GioBatDauText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" Margin="0,2"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellEditingTemplate>
+                </DataGridTemplateColumn>
+
+                <DataGridTemplateColumn Header="Giờ kết thúc" Width="130">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding GioKetThucText}" VerticalAlignment="Center" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                    <DataGridTemplateColumn.CellEditingTemplate>
+                        <DataTemplate>
+                            <TextBox Text="{Binding GioKetThucText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" VerticalAlignment="Center" Margin="0,2"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellEditingTemplate>
+                </DataGridTemplateColumn>
+
+                <DataGridCheckBoxColumn Header="Qua đêm" Binding="{Binding QuaDem, Mode=OneWay}" IsReadOnly="True" Width="100" />
+                <DataGridCheckBoxColumn Header="Hoạt động" Binding="{Binding TrangThai, Mode=TwoWay}" Width="100" />
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- Actions -->
+        <Grid Grid.Row="2" Margin="0,15,0,0">
+            <TextBlock Text="{Binding StatusMessage}" Foreground="#2E7D32" FontWeight="Medium" VerticalAlignment="Center" HorizontalAlignment="Left" />
+            
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="➕ Thêm mới" Command="{Binding AddCommand}" Width="100" Height="32" Margin="0,0,10,0" Background="#4CAF50" Foreground="White" BorderThickness="0" FontWeight="SemiBold" Cursor="Hand" />
+                <Button Content="💾 Lưu thay đổi" Command="{Binding UpdateCommand}" Width="120" Height="32" Margin="0,0,10,0" Background="#2196F3" Foreground="White" BorderThickness="0" FontWeight="SemiBold" Cursor="Hand" />
+                <Button Content="🗑️ Xóa" Command="{Binding DeleteCommand}" Width="80" Height="32" Background="#F44336" Foreground="White" BorderThickness="0" FontWeight="SemiBold" Cursor="Hand" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</UserControl>

@@ -154,5 +154,13 @@ namespace QuanLyGiuXe.Services
                 NgayHetHan = found.NgayHetHan
             };
         }
+
+        public void GiaHan(int id, int soThang)
+        {
+            if (id <= 0) throw new ArgumentException("ID không hợp lệ");
+            if (soThang <= 0) throw new ArgumentException("Số tháng gia hạn phải lớn hơn 0");
+
+            db.GiaHanRFIDCard(id, soThang);
+        }
     }
 }

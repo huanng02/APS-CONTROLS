@@ -9,61 +9,69 @@ namespace QuanLyGiuXe.Services
         private readonly DatabaseService _db = new DatabaseService();
         private readonly BangGiaRepository _bgRepo = new BangGiaRepository();
 
+
         /// <summary>
         /// Calculate parking fee according to business rules using BangGia as source of pricing.
         /// </summary>
-        public decimal CalculateFee(int? loaiVeId, int? loaiXeId, DateTime timeIn, DateTime timeOut)
+        public decimal CalculateFee(int loaiXeId, int loaiVeId, DateTime timeIn, DateTime timeOut)
         {
-            if (timeOut < timeIn) timeOut = timeIn;
-
             // basic validation
-            if (!loaiXeId.HasValue || loaiXeId.Value <= 0 || !loaiVeId.HasValue || loaiVeId.Value <= 0)
-                return 0m;
+            if (loaiXeId <= 0 || loaiVeId <= 0) return 0m;
+            if (timeOut <= timeIn) return 0m;
 
-            var bg = _bgRepo.GetByLoaiXeAndLoaiVe(loaiXeId.Value, loaiVeId.Value);
-            if (bg == null)
-                return 0m;
+            var bg = _bgRepo.GetByLoaiXeAndLoaiVe(loaiXeId, loaiVeId);
+            if (bg == null) return 0m;
 
-            // Monthly ticket
-            if (bg.GiaThang.HasValue && bg.GiaThang.Value > 0)
-                return bg.GiaThang.Value;
+            // Rule 1: monthly ticket
+            if (bg.GiaThang.HasValue && bg.GiaThang.Value > 0) return bg.GiaThang.Value;
 
-            // Pricing zones
-            // DAY: 06:00 -> 19:59 (we treat end as 20:00 exclusive)
-            // NIGHT: 20:00 -> 05:59 (spans midnight)
+            var dbSvc = new DatabaseService();
+            var khungGioList = dbSvc.GetKhungGio(); // all slot definitions
+            var bangGiaKhungList = dbSvc.GetBangGiaKhungGioByBangGiaId(bg.Id);
 
-            var total = timeOut - timeIn;
+            // join khung + price (price defaults to 0 if missing)
+            var slots = (from k in khungGioList
+                         let p = bangGiaKhungList.FirstOrDefault(x => x.KhungGioId == k.Id)
+                         select new { Khung = k, Price = p != null ? p.GiaTien : 0m }).ToList();
 
-            // If duration > 30 minutes -> AUTO NIGHT price
-            if (total > TimeSpan.FromMinutes(30))
+            if (!slots.Any()) return 0m;
+
+            // Trích xuất cấu hình từ Database
+            var daySlot = slots.FirstOrDefault(s => !s.Khung.QuaDem);
+            var nightSlot = slots.FirstOrDefault(s => s.Khung.QuaDem);
+
+            decimal dayFee = daySlot?.Price ?? 0m;
+            decimal nightFee = nightSlot?.Price ?? 0m;
+
+            // Lấy mốc thời gian từ db, mặc định 6h-22h nếu không tồn tại
+            TimeSpan dayStart = daySlot != null ? daySlot.Khung.GioBatDau : new TimeSpan(6, 0, 0);
+            TimeSpan dayEnd = daySlot != null ? daySlot.Khung.GioKetThuc : new TimeSpan(22, 0, 0);
+
+            // RULE 4: Qua ngày -> luôn = giá ngày hôm sau + giá đêm hôm trước
+            if (timeIn.Date != timeOut.Date)
             {
-                return bg.GiaQuaDem ?? 0m;
+                return Math.Round(dayFee + nightFee, 2);
             }
 
-            // duration <= 30 minutes -> split into day/night portions across covered dates
-            long dayTicks = 0;
-            var firstDate = timeIn.Date;
-            var lastDate = timeOut.Date;
-            for (var d = firstDate; d <= lastDate; d = d.AddDays(1))
-            {
-                var dayStart = d + new TimeSpan(6, 0, 0);
-                var dayEnd = d + new TimeSpan(20, 0, 0); // exclusive
+            // --- XỬ LÝ TRONG CÙNG 1 NGÀY ---
+            TimeSpan startTime = timeIn.TimeOfDay;
+            TimeSpan endTime = timeOut.TimeOfDay;
 
-                var overlapStart = timeIn > dayStart ? timeIn : dayStart;
-                var overlapEnd = timeOut < dayEnd ? timeOut : dayEnd;
-                if (overlapEnd > overlapStart)
-                {
-                    dayTicks += (overlapEnd - overlapStart).Ticks;
-                }
+            // Kiểm tra xem có dính khung giờ ban ngày không?
+            bool hasDay = startTime < dayEnd && endTime > dayStart;
+
+            // Kiểm tra xem có dính khung giờ ban đêm không?
+            bool hasNight = startTime < dayStart || endTime > dayEnd;
+
+            // RULE 1: Chỉ trong ban ngày
+            if (hasDay && !hasNight)
+            {
+                return Math.Round(dayFee, 2);
             }
 
-            var daySpan = TimeSpan.FromTicks(dayTicks);
-            var nightSpan = total - daySpan;
-
-            // Compare durations: if day>night => DAY price, if night>=day => NIGHT price (night wins tie)
-            if (daySpan > nightSpan)
-                return bg.GiaBanNgay ?? 0m;
-            return bg.GiaQuaDem ?? 0m;
+            // RULE 2 & RULE 3: Chỉ có đêm HOẶC có cả ngày và đêm
+            return Math.Round(nightFee, 2);
         }
+
     }
 }
