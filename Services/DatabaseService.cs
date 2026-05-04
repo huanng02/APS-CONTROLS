@@ -6,14 +6,39 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
 using QuanLyGiuXe.Models;
 
 namespace QuanLyGiuXe.Services
 {
     public partial class DatabaseService
     {
-        private string primaryConnection = "Server=DESKTOP-BFOEO42\\SQLEXPRESS02;Database=BaiXe;Trusted_Connection=True;TrustServerCertificate=True;";
+        private static IConfiguration? _config;
+        private string primaryConnection 
+        {
+            get 
+            {
+                EnsureConfigLoaded();
+                return _config?.GetConnectionString("Default") ?? "Server=DESKTOP-BFOEO42\\SQLEXPRESS02;Database=BaiXe;Trusted_Connection=True;TrustServerCertificate=True;";
+            }
+        }
         private string backupConnection = "Server=BACKUP_SERVER;Database=Baixe;Trusted_Connection=True;";
+
+        private static void EnsureConfigLoaded()
+        {
+            if (_config != null) return;
+            try
+            {
+                _config = new ConfigurationBuilder()
+                    .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
+                    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+                    .Build();
+            }
+            catch
+            {
+                // Fail silently to use hardcoded defaults if config is missing or corrupt
+            }
+        }
 
         private string GetWorkingConnection()
         {
