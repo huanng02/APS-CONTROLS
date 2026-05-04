@@ -250,6 +250,7 @@ namespace QuanLyGiuXe.ViewModels
         public ICommand TrangChuCommand { get; }
         public ICommand TimKiemCommand { get; }
         public ICommand LichSuCommand { get; }
+        public ICommand DatabaseExplorerCommand { get; }
 
         // ── Constructor ───────────────────────────────────────────────────────────
 
@@ -281,6 +282,7 @@ namespace QuanLyGiuXe.ViewModels
             TrangChuCommand = new RelayCommand(_ => SetView(new TrangChuViewModel()));
             TimKiemCommand = new RelayCommand(_ => SetView(new TimKiemViewModel()));
             LichSuCommand = new RelayCommand(_ => SetView(new LichSuViewModel()));
+            DatabaseExplorerCommand = new RelayCommand(_ => SetView(new DatabaseExplorerViewModel()));
 
             LoadXeTrongBai();
 

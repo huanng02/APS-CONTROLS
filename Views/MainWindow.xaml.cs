@@ -483,8 +483,20 @@ namespace QuanLyGiuXe
         private void MoLichSuGiaHan_Click(object sender, RoutedEventArgs e) =>
             new RFIDGiaHanHistoryWindow().Show();
 
-        private void MoSQLTool_Click(object sender, RoutedEventArgs e) =>
-            new SQLQueryToolWindow().Show();
+        private void MoSQLTool_Click(object sender, RoutedEventArgs e) 
+        {
+            var content = new QuanLyGiuXe.Views.DatabaseExplorerView();
+            var win = new Window
+            {
+                Title = "Mini Database Explorer",
+                Content = content,
+                Owner = this,
+                Width = 1000,
+                Height = 600,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner
+            };
+            win.Show();
+        }
 
         private void MoCameraSettings_Click(object sender, RoutedEventArgs e) =>
             new CameraSettingsWindow { Owner = this }.ShowDialog();
