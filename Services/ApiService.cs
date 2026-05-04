@@ -6,6 +6,7 @@ using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
+using System.Windows.Media.Imaging;
 using Newtonsoft.Json;
 using QuanLyGiuXe.Services;
 
@@ -68,6 +69,31 @@ public class ApiService
         catch (Exception ex)
         {
             return $"Lỗi: {ex.Message}";
+        }
+    }
+    public static async Task<BitmapSource> DownloadRoiImageAsync()
+    {
+        try
+        {
+            string url = "http://127.0.0.1:5000/static/debug/last_roi.jpg"; // Thay bằng URL thực tế của bạn
+            using (HttpClient client = new HttpClient())
+            {
+                byte[] imageBytes = await client.GetByteArrayAsync(url);
+                using (MemoryStream ms = new MemoryStream(imageBytes))
+                {
+                    BitmapImage bitmap = new BitmapImage();
+                    bitmap.BeginInit();
+                    bitmap.StreamSource = ms;
+                    bitmap.CacheOption = BitmapCacheOption.OnLoad; // Đọc xong nhả bộ nhớ ngay
+                    bitmap.EndInit();
+                    bitmap.Freeze(); // Cho phép dùng ở nhiều Thread
+                    return bitmap;
+                }
+            }
+        }
+        catch
+        {
+            return null;
         }
     }
     // Cấu trúc Class để hứng dữ liệu từ Flask

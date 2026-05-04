@@ -303,35 +303,52 @@
                     </Border>
 
                     <!-- Info Card -->
-                    <Border Grid.Row="6" Background="#F8F9FA" CornerRadius="6"
-                Padding="10" Margin="0,0,0,4"
-                BorderBrush="#E2E8F0" BorderThickness="1">
+                    <Border Grid.Row="6" Background="#F8F9FA" CornerRadius="6" 
+        Padding="10" Margin="0,0,0,4" 
+        BorderBrush="#E2E8F0" BorderThickness="1">
                         <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="70"/>
-                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="120" />
                             </Grid.ColumnDefinitions>
 
-                            <TextBlock Text="Biển số:" Foreground="#666" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="1" Text="{Binding LanVaoBienSo}"
-                           FontSize="18" FontWeight="Bold" Foreground="#2C3E50"/>
+                            <Grid Grid.Column="0">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="65"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
 
-                            <TextBlock Grid.Row="1" Text="Mã thẻ:" Foreground="#666"
-                           VerticalAlignment="Center" Margin="0,3,0,0"/>
-                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding LanVaoUID}"
-                           FontSize="12" Foreground="#555" FontFamily="Consolas"
-                           Margin="0,3,0,0"/>
+                                <TextBlock Text="Biển số:" Foreground="#666" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="1" Text="{Binding LanVaoBienSo, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                       FontSize="18" FontWeight="Bold" Foreground="#2C3E50"/>
 
-                            <TextBlock Grid.Row="2" Grid.ColumnSpan="2"
-                           Text="{Binding LanVaoTrangThai}"
-                           FontSize="12" Foreground="#27AE60" FontWeight="SemiBold"
-                           Margin="0,4,0,0"/>
+                                <TextBlock Grid.Row="1" Text="Mã thẻ:" Foreground="#666" 
+                       VerticalAlignment="Center" Margin="0,3,0,0"/>
+                                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding LanVaoUID}" 
+                       FontSize="12" Foreground="#555" FontFamily="Consolas" 
+                       Margin="0,3,0,0"/>
 
+                                <TextBlock Grid.Row="2" Grid.ColumnSpan="2" 
+                       Text="{Binding LanVaoTrangThai}" 
+                       FontSize="12" Foreground="#27AE60" FontWeight="SemiBold" 
+                       Margin="0,4,0,0"/>
+                            </Grid>
+
+                            <Border Grid.Column="1" Margin="5,0,0,0" Background="#EDF2F7" CornerRadius="4" BorderBrush="#CBD5E0" BorderThickness="1">
+                                <Image Source="{Binding LanVaoRoiImage}" 
+                   Stretch="Uniform" 
+                   HorizontalAlignment="Center" 
+                   VerticalAlignment="Center">
+                                    <Image.ToolTip>
+                                        <ToolTip Content="Ảnh biển số cắt từ API"/>
+                                    </Image.ToolTip>
+                                </Image>
+                            </Border>
                         </Grid>
                     </Border>
 
@@ -491,43 +508,63 @@
 
                     <!-- Info Card -->
                     <Border Grid.Row="6" Background="#F8F9FA" CornerRadius="6"
-                Padding="10" Margin="0,0,0,6"
-                BorderBrush="#E2E8F0" BorderThickness="1">
+        Padding="10" Margin="0,0,0,6"
+        BorderBrush="#E2E8F0" BorderThickness="1">
                         <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="70"/>
-                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="130" />
                             </Grid.ColumnDefinitions>
 
-                            <TextBlock Text="Biển số:" Foreground="#666" VerticalAlignment="Center"/>
-                            <TextBlock Grid.Column="1" Text="{Binding LanRaBienSo}"
-                           FontSize="18" FontWeight="Bold" Foreground="#2C3E50"/>
+                            <Grid Grid.Column="0">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="70"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
 
-                            <TextBlock Grid.Row="1" Text="Thời gian:" Foreground="#666"
-                           VerticalAlignment="Center" Margin="0,3,0,0"/>
-                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding LanRaThoiGianVao}"
-                           FontSize="12" Foreground="#555" Margin="0,3,0,0"/>
+                                <TextBlock Text="Biển số:" Foreground="#666" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="1" Text="{Binding LanRaBienSo}"
+                       FontSize="18" FontWeight="Bold" Foreground="#2C3E50"/>
 
-                            <TextBlock Grid.Row="2" Grid.ColumnSpan="2"
-                           Text="{Binding LanRaTien}"
-                           FontSize="22" FontWeight="Bold" Foreground="#E74C3C"
-                           Margin="0,4,0,2"/>
+                                <TextBlock Grid.Row="1" Text="Thời gian:" Foreground="#666"
+                       VerticalAlignment="Center" Margin="0,3,0,0"/>
+                                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding LanRaThoiGianVao}"
+                       FontSize="12" Foreground="#555" Margin="0,3,0,0"/>
 
-                            <TextBlock Grid.Row="3" Grid.ColumnSpan="2"
-                           Text="{Binding LanRaTrangThai}"
-                           FontSize="12" Foreground="#E74C3C" FontWeight="SemiBold"/>
-                            <TextBlock Grid.Row="4" Grid.ColumnSpan="2"
-                           Text="{Binding LanRaThoiGianTrongBai}"
-                           FontSize="12" Foreground="#2C3E50"/>
+                                <TextBlock Grid.Row="2" Grid.ColumnSpan="2"
+                       Text="{Binding LanRaTien}"
+                       FontSize="22" FontWeight="Bold" Foreground="#E74C3C"
+                       Margin="0,4,0,2"/>
 
+                                <TextBlock Grid.Row="3" Grid.ColumnSpan="2"
+                       Text="{Binding LanRaTrangThai}"
+                       FontSize="12" Foreground="#E74C3C" FontWeight="SemiBold"/>
 
+                                <TextBlock Grid.Row="4" Grid.ColumnSpan="2"
+                       Text="{Binding LanRaThoiGianTrongBai}"
+                       FontSize="12" Foreground="#2C3E50"/>
+                            </Grid>
+
+                            <Border Grid.Column="1" Margin="8,0,0,0" 
+                Background="#EBEDF0" CornerRadius="4" 
+                BorderBrush="#CBD5E0" BorderThickness="1"
+                VerticalAlignment="Top" Height="80">
+                                <Image Source="{Binding LanRaRoiImage}" 
+                   Stretch="Uniform"
+                   HorizontalAlignment="Center" 
+                   VerticalAlignment="Center">
+                                    <Image.ToolTip>
+                                        <ToolTip Content="Ảnh biển số quét lúc ra"/>
+                                    </Image.ToolTip>
+                                </Image>
+                            </Border>
                         </Grid>
                     </Border>
 

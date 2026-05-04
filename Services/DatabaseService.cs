@@ -1147,6 +1147,39 @@ namespace QuanLyGiuXe.Services
             }
         }
 
+        public bool InsertXeVao(string bienSo, string cardUid, int loaiXeId, int loaiVeId, string anhVaoPath)
+        {
+            try
+            {
+                string connString = GetWorkingConnection();
+                using (SqlConnection conn = new SqlConnection(connString))
+                {
+                    conn.Open();
+                    // Tên bảng và cột dựa trên các hàm GetXeVaoTimeByBienSo bạn đã có
+                    string sql = @"INSERT INTO XeTrongBai (BienSo, CardUID, LoaiXeId, LoaiVeId, ThoiGianVao, AnhVao, TrangThai) 
+                           VALUES (@bs, @uid, @lxid, @lvid, @tg, @anh, @tt)";
+
+                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@bs", bienSo ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@uid", cardUid ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@lxid", loaiXeId);
+                        cmd.Parameters.AddWithValue("@lvid", loaiVeId);
+                        cmd.Parameters.AddWithValue("@tg", DateTime.Now);
+                        cmd.Parameters.AddWithValue("@anh", anhVaoPath ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@tt", "TrongBai"); // Trạng thái mặc định
+
+                        return cmd.ExecuteNonQuery() > 0;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log lỗi nếu cần
+                return false;
+            }
+        }
+
         public List<RFIDCards> LayDanhSachRFIDCards()
         {
             var list = new List<RFIDCards>();

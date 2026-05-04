@@ -13,6 +13,7 @@ using QuanLyGiuXe.Models;
 using QuanLyGiuXe.Services;
 using QuanLyGiuXe.ViewModels;
 using QuanLyGiuXe.Views;
+using System.Net.Http;
 
 namespace QuanLyGiuXe
 {
@@ -21,20 +22,34 @@ namespace QuanLyGiuXe
         private readonly object _manualOpenLock = new();
         private readonly System.Collections.Generic.Dictionary<int, DateTime> _lastManualOpen = new();
         private readonly Dictionary<string, DateTime> _lastScanByUid = new();
-
+        private MainViewModel _viewModel;
         private CameraService _cameraService = new CameraService();
+        private AnprService _anprService = new AnprService();
         private Dictionary<string, Bitmap> _currentFrames = new();
         private bool _isProcessingAuto = false;
         private DateTime _lastAutoScanTime = DateTime.MinValue;
         private readonly GateControlService _gateControlService = new GateControlService();
-
+        private bool _isProcessing = false;
+        private readonly HttpClient _httpClient = new HttpClient();
+        private DateTime _lastProcessingTime = DateTime.MinValue;
         public MainWindow()
         {
             InitializeComponent();
-            DataContext = new MainViewModel();
+            _viewModel = new MainViewModel(); // Khởi tạo 1 lần
+            this.DataContext = _viewModel;
+            _anprService.OnDetectionCompleted += (result) =>
+            {
+                this.Dispatcher.Invoke(() =>
+                {
+                    _viewModel.LanVaoBienSo = result.Plate;
+                    _viewModel.LanVaoRoiImage = result.RoiImage;
+                    _viewModel.PathAnhVao = result.SavedPath; // Lưu đường dẫn để Insert DB
+                    _viewModel.LanVaoTrangThai = "✅ Nhận diện: " + result.Plate;
+                });
+            };
             MoCameras();
 
-            RFIDService.Instance.OnCardScanned += OnRfidScanned;
+            RFIDService.Instance.OnCardScanned += OnRfidCardScanned;
             RFIDService.Instance.Start();
             C3200Service.Instance.OnCardScanned += OnC3200Scanned;
             // subscribe to full RT events to record button presses
@@ -127,7 +142,11 @@ namespace QuanLyGiuXe
             }
         }
 
-        private void OnRfidScanned(string uid) => XuLyQuetThe(uid);
+        private async void OnRfidCardScanned(string uid)
+        {
+            var vm = (MainViewModel)this.DataContext;
+            vm.CurrentCardUID = uid; // Khi gán thế này, UI sẽ tự nhảy số
+        }
         private void OnC3200Scanned(string uid, int door) => XuLyQuetThe(uid, door);
 
         // ── Xử lý quẹt thẻ (dùng chung cho RFID USB + C3-200) ───────────────────
@@ -239,12 +258,12 @@ namespace QuanLyGiuXe
 
         private void MoQuanLyThe(object sender, RoutedEventArgs e)
         {
-            RFIDService.Instance.OnCardScanned -= OnRfidScanned;
+            RFIDService.Instance.OnCardScanned -= OnRfidCardScanned;
             C3200Service.Instance.OnCardScanned -= OnC3200Scanned;
 
             new QuanLyThe().ShowDialog();
 
-            RFIDService.Instance.OnCardScanned += OnRfidScanned;
+            RFIDService.Instance.OnCardScanned += OnRfidCardScanned;
             C3200Service.Instance.OnCardScanned += OnC3200Scanned;
         }
 
@@ -275,203 +294,112 @@ namespace QuanLyGiuXe
 
         // ── Camera (4 cam: 2 per gate) ───────────────────────────────────────
 
-        private void MoCameras()
+        private System.Windows.Media.ImageSource Base64ToImageSource(string base64String)
         {
-            var cfg = AppConfig.Load().Cameras;
-            _cameraService.Initialize();
-
-            // Đăng ký sự kiện xử lý ảnh
-            _cameraService.NewFrameReceived += (s, data) =>
-            {
-                Bitmap bmpForUI = null;
-                lock (data.Frame)
-                {
-                    bmpForUI = data.Frame.Clone(new Rectangle(0, 0, data.Frame.Width, data.Frame.Height),
-                                     System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
-                }
-
-                lock (_currentFrames)
-                {
-                    if (_currentFrames.TryGetValue(data.CamKey, out var old)) old.Dispose();
-                    _currentFrames[data.CamKey] = (Bitmap)bmpForUI.Clone();
-                }
-
-                // 3. Chuyển đổi ảnh (vẫn ở luồng phụ của Camera)
-                var uiImage = ConvertBitmap(bmpForUI);
-                bmpForUI.Dispose(); // Dùng xong bản cho UI thì hủy ngay
-
-                // 4. Chỉ đẩy kết quả cuối cùng lên màn hình
-                if (uiImage != null)
-                {
-                    Dispatcher.BeginInvoke(new Action(() =>
-                    {
-                        switch (data.CamKey)
-                        {
-                            case "Vao1": CameraVao1.Source = uiImage; break;
-                            case "Vao2": CameraVao2.Source = uiImage; break;
-                            case "Ra1": CameraRa1.Source = uiImage; break;
-                            case "Ra2": CameraRa2.Source = uiImage; break;
-                        }
-                    }));
-                }
-                if (data.CamKey == "Vao1")
-                {
-                    RunAutoDetection(data.Frame);
-                }
-            };
-
-            string rtspUrl = "rtsp://192.168.1.121:554/user=admin&password=tlJwpbo6&channel=0&stream=0.sdp";
-            _cameraService.StartIpCamera("Vao1", rtspUrl);
-        }
-        private async void RunAutoDetection(Bitmap originalBitmap)
-        {
-            if (_isProcessingAuto) return;
-
-            // Chặn 1 giây 1 lần
-            if ((DateTime.Now - _lastAutoScanTime).TotalMilliseconds < 1000) return;
-
-            _isProcessingAuto = true;
             try
             {
-                Bitmap bmpToProcess = null;
-                lock (originalBitmap)
+                byte[] imageBytes = Convert.FromBase64String(base64String);
+                using (var ms = new System.IO.MemoryStream(imageBytes))
                 {
-                    bmpToProcess = new Bitmap(originalBitmap.Width, originalBitmap.Height);
-                    using (Graphics g = Graphics.FromImage(bmpToProcess))
-                    {
-                        g.DrawImage(originalBitmap, 0, 0);
-                    }
+                    var imageSource = new System.Windows.Media.Imaging.BitmapImage();
+                    imageSource.BeginInit();
+                    imageSource.StreamSource = ms;
+                    imageSource.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+                    imageSource.EndInit();
+                    imageSource.Freeze();
+                    return imageSource;
                 }
+            }
+            catch { return null; }
+        }
+        private async Task XuLyNhanDienBienSo(Bitmap bmp)
+        {
+            try
+            {
+                // 1. RESIZE: Đưa ảnh về chuẩn 800px để nét vẽ AI to và rõ hơn
+                int targetWidth = 800;
+                int targetHeight = (bmp.Height * targetWidth) / bmp.Width;
+                using var resizedBmp = new Bitmap(bmp, new System.Drawing.Size(targetWidth, targetHeight));
 
-                // 1. Gửi ảnh lên server lấy biển số
-                string plate = await ApiService.SendImageAsync(bmpToProcess);
-                bmpToProcess.Dispose();
+                using var ms = new System.IO.MemoryStream();
+                // 2. CHẤT LƯỢNG: Lưu ở định dạng Jpeg với chất lượng cao nhất
+                resizedBmp.Save(ms, System.Drawing.Imaging.ImageFormat.Jpeg);
+                var byteData = ms.ToArray();
 
-                _lastAutoScanTime = DateTime.Now;
+                var content = new MultipartFormDataContent();
+                content.Add(new ByteArrayContent(byteData), "image", "frame.jpg");
 
-                // 2. Kiểm tra nếu có biển số trả về hợp lệ
-                if (!string.IsNullOrEmpty(plate) && plate.Length > 4 && !plate.Contains("Lỗi"))
+                var response = await _httpClient.PostAsync("http://127.0.0.1:5000/process_plate", content);
+                if (response.IsSuccessStatusCode)
                 {
-                    // 3. Đẩy dữ liệu về UI Thread
-                    this.Dispatcher.Invoke(() =>
-                    {
-                        if (this.DataContext is MainViewModel vm)
-                        {
-                            // Gán vào ô "Biển số nhập"
-                            vm.BienSoNhap = plate.Trim().ToUpper();
+                    string jsonResponse = await response.Content.ReadAsStringAsync();
+                    dynamic result = Newtonsoft.Json.JsonConvert.DeserializeObject(jsonResponse);
 
-                            // (Tùy chọn) Thông báo trạng thái để người dùng biết đã nhận diện xong
-                            vm.LanVaoTrangThai = "Đã nhận diện: " + vm.BienSoNhap;
+                    Dispatcher.Invoke(() => {
+                        if (this.DataContext is MainViewModel viewModel)
+                        {
+                            // 1. XỬ LÝ CHỮ BIỂN SỐ (OCR)
+                            if (result.results != null && result.results.Count > 0)
+                            {
+                                // Lấy kết quả biển số từ API
+                                string plateText = result.results[0].plate ?? "Không có text";
+                                viewModel.LanVaoBienSo = plateText.ToString().ToUpper();
+                            }
+                            else
+                            {
+                                // Nếu API trả về results trống hoặc no_plate
+                                viewModel.LanVaoBienSo = "Chưa đọc được biển số";
+                            }
+
+                            // 2. XỬ LÝ ẢNH ROI (Đọc từ ổ cứng máy khách như bạn muốn)
+                            string roiPath = @"D:\APS\AI_Plate_Recognition\static\debug\last_roi.jpg";
+
+                            // Gọi hàm LoadImageFromFile đã viết ở bước trước
+                            var anhRoi = LoadImageFromFile(roiPath);
+                            if (anhRoi != null)
+                            {
+                                viewModel.LanVaoRoiImage = anhRoi;
+                            }
                         }
                     });
                 }
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine("Lỗi quét tự động: " + ex.Message);
-            }
-            finally
-            {
-                _isProcessingAuto = false;
+                System.Diagnostics.Debug.WriteLine("Lỗi API: " + ex.Message);
             }
         }
-
-        private static BitmapSource ConvertBitmap(Bitmap bitmap)
+        private void MoCameras()
         {
-            if (bitmap == null) return null;
+            _cameraService.CamKey = "Vao1";
 
-            try
+            _cameraService.NewFrameReceived += (s, data) =>
             {
-                var bitmapData = bitmap.LockBits(
-                    new Rectangle(0, 0, bitmap.Width, bitmap.Height),
-                    System.Drawing.Imaging.ImageLockMode.ReadOnly,
-                    bitmap.PixelFormat);
-
-                // Tự động chọn định dạng WPF tương ứng với Bitmap gốc
-                System.Windows.Media.PixelFormat wpfFormat;
-                switch (bitmap.PixelFormat)
+                // Lúc này data.CamKey sẽ mang giá trị "Vao1"
+                Dispatcher.BeginInvoke(new Action(() => {
+                    if (data.CamKey == "Vao1") CameraVao1.Source = data.FrameForUI;
+                    else if (data.CamKey == "Ra1") CameraRa1.Source = data.FrameForUI;
+                }));
+                if (data.CamKey == "Vao1" && !_isProcessing && (DateTime.Now - _lastProcessingTime).TotalSeconds >= 1)
                 {
-                    case System.Drawing.Imaging.PixelFormat.Format24bppRgb:
-                        wpfFormat = PixelFormats.Bgr24;
-                        break;
-                    case System.Drawing.Imaging.PixelFormat.Format32bppArgb:
-                    case System.Drawing.Imaging.PixelFormat.Format32bppPArgb:
-                    case System.Drawing.Imaging.PixelFormat.Format32bppRgb:
-                        wpfFormat = PixelFormats.Bgr32;
-                        break;
-                    case System.Drawing.Imaging.PixelFormat.Format8bppIndexed:
-                        wpfFormat = PixelFormats.Gray8;
-                        break;
-                    default:
-                        // Nếu là định dạng lạ, ta ép về Bgr24 nhưng có thể gây sọc
-                        wpfFormat = PixelFormats.Bgr24;
-                        break;
+                    _isProcessing = true;
+                    _lastProcessingTime = DateTime.Now;
+                    Task.Run(async () => {
+                        await XuLyNhanDienBienSo(data.Frame);
+                        _isProcessing = false;
+                    });
                 }
+            };
 
-                var bitmapSource = BitmapSource.Create(
-                    bitmapData.Width, bitmapData.Height,
-                    bitmap.HorizontalResolution, bitmap.VerticalResolution,
-                    wpfFormat,
-                    null,
-                    bitmapData.Scan0,
-                    bitmapData.Stride * bitmapData.Height,
-                    bitmapData.Stride);
-
-                bitmap.UnlockBits(bitmapData);
-
-                bitmapSource.Freeze();
-                return bitmapSource;
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine("Lỗi Convert: " + ex.Message);
-                return null;
-            }
+            string rtspUrl = "rtsp://192.168.1.121:554/user=admin&password=tlJwpbo6&channel=0&stream=0.sdp";
+            _cameraService.StartIpCamera("Vao1", rtspUrl);
         }
 
         private async void Capture_Click(object sender, RoutedEventArgs e)
         {
-            try
+            if (_currentFrames.TryGetValue("Vao1", out var bitmapToProcess))
             {
-                if (_currentFrames.TryGetValue("Vao1", out var bitmapToProcess) && bitmapToProcess != null)
-                {
-                    // BƯỚC 1: TẠO DEEP COPY (Quan trọng nhất cho x64)
-                    // Việc tạo mới Bitmap(width, height) này đảm bảo tách rời hoàn toàn khỏi Camera
-                    Bitmap finalBitmap = new Bitmap(bitmapToProcess.Width, bitmapToProcess.Height);
-                    using (Graphics g = Graphics.FromImage(finalBitmap))
-                    {
-                        g.DrawImage(bitmapToProcess, 0, 0);
-                    }
-
-                    // BƯỚC 2: GỌI API (Vẫn dùng await)
-                    // Trong lúc API chạy, finalBitmap này sẽ an toàn, không bị camera ghi đè
-                    string plate = await ApiService.SendImageAsync(finalBitmap);
-
-                    // BƯỚC 3: CẬP NHẬT GIAO DIỆN
-                    if (DataContext is MainViewModel vm)
-                    {
-                        // Dùng Dispatcher để đảm bảo UI nhận được giá trị mới ngay lập tức
-                        this.Dispatcher.Invoke(() =>
-                        {
-                            vm.BienSoNhap = plate?.Trim() ?? "";
-                            if (vm.XeVaoCommand.CanExecute(null))
-                            {
-                                vm.XeVaoCommand.Execute(null);
-                            }
-                        });
-                    }
-
-                    // Giải phóng ảnh tạm sau khi đã gửi xong
-                    finalBitmap.Dispose();
-                }
-                else
-                {
-                    MessageBox.Show("Không tìm thấy dữ liệu hình ảnh từ Camera Vao1!");
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Lỗi thực thi: {ex.Message}");
+                await _anprService.ProcessAutoDetectionAsync(bitmapToProcess);
             }
         }
 
@@ -560,34 +488,28 @@ namespace QuanLyGiuXe
                 MessageBox.Show(ex.ToString(), "Lỗi khi mở module", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+        private System.Windows.Media.ImageSource LoadImageFromFile(string filePath)
+        {
+            try
+            {
+                if (!System.IO.File.Exists(filePath)) return null;
 
-        //private DatabaseService db = new DatabaseService();
-
-        //private void ThemLoaiXe_Click(object sender, RoutedEventArgs e)
-        //{
-        //    if (string.IsNullOrWhiteSpace(txtTenLoai.Text))
-        //        return;
-
-        //    db.ThemLoaiXe(txtTenLoai.Text);
-        //    txtTenLoai.Text = "";
-
-        //    LoadLoaiXe();
-        //}
-
-        //private void LoadLoaiXe()
-        //{
-        //    dgLoaiXe.ItemsSource = db.GetLoaiXe().DefaultView;
-        //}
-
-        //private void OpenModule_Click(object sender, RoutedEventArgs e)
-        //{
-        //    var btn = sender as Button;
-        //    string tag = btn.Tag.ToString();
-
-        //    if (tag == "LoaiXe")
-        //    //{
-        //        MainContent.Content = new Views.LoaiXeView();
-        //    }
-        //}
+                var image = new System.Windows.Media.Imaging.BitmapImage();
+                using (var stream = new System.IO.FileStream(filePath, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.ReadWrite))
+                {
+                    image.BeginInit();
+                    image.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+                    image.StreamSource = stream;
+                    image.EndInit();
+                }
+                image.Freeze();
+                return image;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Lỗi load ảnh ROI: " + ex.Message);
+                return null;
+            }
+        }
     }
 }
