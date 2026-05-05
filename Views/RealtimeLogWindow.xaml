@@ -1,0 +1,153 @@
+<Window x:Class="QuanLyGiuXe.Views.RealtimeLogWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:QuanLyGiuXe.Converters"
+        Title="Realtime Log" Height="500" Width="900" Background="#F0F2F5">
+
+    <Window.Resources>
+        <!-- Theme brushes -->
+        <SolidColorBrush x:Key="AccentBrush" Color="#FF2B6EA3" />
+        <SolidColorBrush x:Key="AltRowBrush" Color="#FFF7F9FB" />
+        <SolidColorBrush x:Key="RowHoverBrush" Color="#FFF0F7FF" />
+        <SolidColorBrush x:Key="SelectedRowBrush" Color="#FFCCE5FF" />
+        <SolidColorBrush x:Key="HeaderBackground" Color="#FFF0F4F7" />
+        <Style x:Key="DataGridHeaderStyle" TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="{StaticResource HeaderBackground}" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Padding" Value="6,4" />
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Background="{StaticResource HeaderBackground}" Padding="8" CornerRadius="6">
+            <TextBlock Text="📋 REAL-TIME LOG" FontSize="16" FontWeight="Bold" Margin="4" Foreground="{StaticResource AccentBrush}" />
+        </Border>
+
+        <!-- Filter / Search toolbar -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="4" VerticalAlignment="Center" HorizontalAlignment="Left">
+            <TextBlock Text="Level:" VerticalAlignment="Center" Margin="4,0"/>
+            <ComboBox x:Name="LevelFilter" Width="120" SelectedIndex="0" VerticalAlignment="Center">
+                <ComboBoxItem Content="All" />
+                <ComboBoxItem Content="Info" />
+                <ComboBoxItem Content="Warning" />
+                <ComboBoxItem Content="Error" />
+            </ComboBox>
+
+            <!-- Sort removed: newest-first is automatic -->
+
+            <TextBlock Text="Search:" VerticalAlignment="Center" Margin="8,0,4,0"/>
+            <TextBox x:Name="SearchBox" Width="260" VerticalAlignment="Center" />
+
+            <TextBlock Text="From:" VerticalAlignment="Center" Margin="8,0,4,0"/>
+            <DatePicker x:Name="StartDate" Width="130" />
+            <TextBlock Text="To:" VerticalAlignment="Center" Margin="8,0,4,0"/>
+            <DatePicker x:Name="EndDate" Width="130" />
+
+            <Button x:Name="ClearFilters" Content="Clear" Margin="8,0,0,0" Padding="6,2" />
+            <TextBlock Text="View:" VerticalAlignment="Center" Margin="12,0,4,0" />
+            <ComboBox x:Name="ViewOrder" Width="120" SelectedIndex="0" VerticalAlignment="Center">
+                <ComboBoxItem Content="Newest first" />
+                <ComboBoxItem Content="Oldest first" />
+            </ComboBox>
+        </StackPanel>
+
+        <DataGrid x:Name="LogGrid" Grid.Row="2" Margin="0,0,0,6" ItemsSource="{Binding LogEntries}" AutoGenerateColumns="False"
+                  Background="White" Foreground="#333" HeadersVisibility="Column"
+                  BorderThickness="1" FontFamily="Consolas" FontSize="12" IsReadOnly="True"
+                  EnableRowVirtualization="True" AlternatingRowBackground="{StaticResource AltRowBrush}" AlternationCount="2"
+                  ColumnHeaderStyle="{StaticResource DataGridHeaderStyle}">
+
+            <DataGrid.Resources>
+                <local:EventToBrushConverter x:Key="EventToBrush" />
+                <local:ItemToGlobalIndexConverter x:Key="ItemToGlobalIndex" />
+            </DataGrid.Resources>
+
+            <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow">
+                    <Setter Property="Background">
+                        <Setter.Value>
+                            <Binding Path="EventType" Converter="{StaticResource EventToBrush}" />
+                        </Setter.Value>
+                    </Setter>
+                    <Setter Property="Foreground" Value="#333"/>
+                    <Setter Property="Padding" Value="2" />
+                    <Setter Property="ToolTip" Value="{Binding Details}" />
+                    <Style.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Background" Value="{StaticResource RowHoverBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter Property="Background" Value="{StaticResource SelectedRowBrush}" />
+                            <Setter Property="Foreground" Value="#000" />
+                        </Trigger>
+                        <DataTrigger Binding="{Binding Level}" Value="Error">
+                            <Setter Property="Foreground" Value="#7F1D1D"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding Level}" Value="Warning">
+                            <Setter Property="Foreground" Value="#7A5F00"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding Level}" Value="Info">
+                            <Setter Property="Foreground" Value="#333"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.RowStyle>
+
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="STT" Binding="{Binding STT}" IsReadOnly="True" Width="60" />
+                <DataGridTextColumn Header="Time" Binding="{Binding Timestamp, StringFormat=HH:mm:ss}" Width="140" />
+                <DataGridTemplateColumn Header="Level" Width="110">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Ellipse Width="12" Height="12" VerticalAlignment="Center" x:Name="lvlEllipse" Fill="#FFF" Stroke="#888" StrokeThickness="0" Margin="0,0,6,0"/>
+                                <TextBlock Text="{Binding Level}" VerticalAlignment="Center" FontWeight="SemiBold" />
+                            </StackPanel>
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding Level}" Value="Error">
+                                    <Setter TargetName="lvlEllipse" Property="Fill" Value="#FFF5DADA" />
+                                    <Setter TargetName="lvlEllipse" Property="Stroke" Value="#FFB33A3A" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Level}" Value="Warning">
+                                    <Setter TargetName="lvlEllipse" Property="Fill" Value="#FFFFF7E6" />
+                                    <Setter TargetName="lvlEllipse" Property="Stroke" Value="#FFB08600" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Level}" Value="Info">
+                                    <Setter TargetName="lvlEllipse" Property="Fill" Value="#FFEFF8FF" />
+                                    <Setter TargetName="lvlEllipse" Property="Stroke" Value="#FF2B6EA3" />
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="Event" Binding="{Binding EventType}" Width="220" />
+                <DataGridTemplateColumn Header="Details" Width="*">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Details}" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" MaxHeight="72" ToolTip="{Binding Details}" />
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+        <!-- Pager controls below -->
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Center" Margin="4">
+            <Button x:Name="PrevPage" Content="◀" Width="32" Height="24" Margin="8,0,4,0" />
+            <TextBlock x:Name="PageInfo" Text="Page 0/0" VerticalAlignment="Center" Margin="6,0" />
+            <Button x:Name="NextPage" Content="▶" Width="32" Height="24" Margin="4,0,8,0" />
+            <TextBlock Text="Page size:" VerticalAlignment="Center" Margin="12,0,4,0"/>
+            <ComboBox x:Name="PageSize" Width="80" SelectedIndex="1" VerticalAlignment="Center">
+                <ComboBoxItem Content="25" />
+                <ComboBoxItem Content="50" />
+                <ComboBoxItem Content="100" />
+            </ComboBox>
+        </StackPanel>
+    </Grid>
+</Window>

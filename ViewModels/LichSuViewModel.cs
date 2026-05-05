@@ -1,8 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Data;
 using System.Linq;
 using QuanLyGiuXe.Models;
 using QuanLyGiuXe.Services;
@@ -13,52 +12,184 @@ namespace QuanLyGiuXe.ViewModels
     {
         DatabaseService db = new DatabaseService();
 
-        public ObservableCollection<LichSuXe> DanhSachLichSu { get; set; }
-
         private List<LichSuXe> TatCaLichSu = new List<LichSuXe>();
+
+        public ObservableCollection<LichSuXe> DanhSachLichSu { get; set; }
 
         public LichSuViewModel()
         {
             DanhSachLichSu = new ObservableCollection<LichSuXe>();
-
-            var list = db.LayLichSu();
-
-            foreach (var xe in list)
-            {
-                DanhSachLichSu.Add(xe);
-                TatCaLichSu.Add(xe);
-            }
+            TatCaLichSu = db.LayLichSu().ToList();
+            LoadTrang();
         }
 
-        private string _tuKhoaTimKiem;
+        // ======================
+        // FILTER
+        // ======================
 
+        private string _tuKhoaTimKiem;
         public string TuKhoaTimKiem
         {
-            get { return _tuKhoaTimKiem; }
+            get => _tuKhoaTimKiem;
             set
             {
                 _tuKhoaTimKiem = value;
-                OnPropertyChanged(nameof(TuKhoaTimKiem));
-                TimKiem();
+                TrangHienTai = 1;
+                LoadTrang();
             }
         }
 
-        private void TimKiem()
+        public DateTime? TuNgay { get; set; }
+        public DateTime? DenNgay { get; set; }
+        public decimal? TienMin { get; set; }
+        public decimal? TienMax { get; set; }
+
+        // ======================
+        // PAGING (FIXED)
+        // ======================
+
+        private int _pageSize = 10;
+        public int PageSize
+        {
+            get => _pageSize;
+            set
+            {
+                if (_pageSize != value)
+                {
+                    _pageSize = value;
+
+                    TrangHienTai = 1;
+
+                    OnPropertyChanged(nameof(PageSize));
+                    OnPropertyChanged(nameof(TongTrang));
+
+                    LoadTrang(); // 🔥 APPLY NGAY
+                }
+            }
+        }
+
+        private int _trangHienTai = 1;
+        public int TrangHienTai
+        {
+            get => _trangHienTai;
+            set
+            {
+                _trangHienTai = value;
+                OnPropertyChanged(nameof(TrangHienTai));
+                OnPropertyChanged(nameof(TongTrang));
+            }
+        }
+
+        public int TongTrang
+        {
+            get
+            {
+                int total = GetFilteredData().Count();
+                return total == 0 ? 1 : (int)Math.Ceiling((double)total / PageSize);
+            }
+        }
+
+        // ======================
+        // FILTER DATA
+        // ======================
+
+        private IEnumerable<LichSuXe> GetFilteredData()
+        {
+            var query = TatCaLichSu.AsEnumerable();
+
+            if (!string.IsNullOrEmpty(TuKhoaTimKiem))
+                query = query.Where(x =>
+                    !string.IsNullOrEmpty(x.BienSo) &&
+                    x.BienSo.ToLower().Contains(TuKhoaTimKiem.ToLower()));
+
+            if (TuNgay.HasValue)
+                query = query.Where(x => x.ThoiGianVao.Date >= TuNgay.Value.Date);
+
+            if (DenNgay.HasValue)
+                query = query.Where(x => x.ThoiGianVao.Date <= DenNgay.Value.Date);
+
+            if (TienMin.HasValue)
+                query = query.Where(x => x.Tien >= (double)TienMin.Value);
+
+            if (TienMax.HasValue)
+                query = query.Where(x => x.Tien <= (double)TienMax.Value);
+
+            return query;
+        }
+
+        // ======================
+        // LOAD PAGE
+        // ======================
+
+        public void LoadTrang()
         {
             DanhSachLichSu.Clear();
 
-            var ketQua = TatCaLichSu
-                .Where(x => x.BienSo.ToLower().Contains(_tuKhoaTimKiem.ToLower()))
+            var data = GetFilteredData()
+                .Skip((TrangHienTai - 1) * PageSize)
+                .Take(PageSize)
                 .ToList();
 
-            foreach (var xe in ketQua)
+            foreach (var item in data)
+                DanhSachLichSu.Add(item);
+
+            OnPropertyChanged(nameof(TongTrang));
+        }
+
+        // ======================
+        // PAGING ACTIONS
+        // ======================
+
+        public void TrangTruoc()
+        {
+            if (TrangHienTai > 1)
             {
-                DanhSachLichSu.Add(xe);
+                TrangHienTai--;
+                LoadTrang();
             }
         }
 
-        public event PropertyChangedEventHandler PropertyChanged;
+        public void TrangSau()
+        {
+            if (TrangHienTai < TongTrang)
+            {
+                TrangHienTai++;
+                LoadTrang();
+            }
+        }
 
+        public void TrangDau()
+        {
+            TrangHienTai = 1;
+            LoadTrang();
+        }
+
+        public void TrangCuoi()
+        {
+            TrangHienTai = TongTrang;
+            LoadTrang();
+        }
+
+        // ======================
+        // RESET
+        // ======================
+
+        public void ResetFilter()
+        {
+            TuKhoaTimKiem = "";
+            TuNgay = null;
+            DenNgay = null;
+            TienMin = null;
+            TienMax = null;
+
+            TrangDau();
+        }
+
+        // ======================
+        // PROPERTY CHANGED
+        // ======================
+
+        public event PropertyChangedEventHandler PropertyChanged;
         private void OnPropertyChanged(string name)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));

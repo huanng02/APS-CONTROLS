@@ -1,0 +1,76 @@
+<Window x:Class="QuanLyGiuXe.Views.AdvancedSettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Cấu hình nâng cao" Height="560" Width="900" WindowStartupLocation="CenterOwner">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border Background="#E9EEF3" Padding="8" CornerRadius="6">
+            <TextBlock Text="Cấu hình nâng cao — Luồng RA" FontWeight="Bold" FontSize="14"/>
+        </Border>
+
+        <Grid Grid.Row="1" Margin="0,8,0,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="8" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel>
+                <TextBlock Text="Ảnh chụp 2 cam (xe vừa ra)" FontWeight="SemiBold" Margin="4"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="4" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Border Background="#0D1117" CornerRadius="4" Height="180">
+                        <Image Source="{Binding AnhChupRa1}" Stretch="Uniform" Margin="4"/>
+                    </Border>
+                    <Border Grid.Column="2" Background="#0D1117" CornerRadius="4" Height="180">
+                        <Image Source="{Binding AnhChupRa2}" Stretch="Uniform" Margin="4"/>
+                    </Border>
+                </Grid>
+
+                <TextBlock Text="Ảnh biển số nhận diện" FontWeight="SemiBold" Margin="8,12,4,4" />
+                <Border Background="#0D1117" CornerRadius="4" Height="120">
+                    <Grid>
+                        <Image Source="{Binding AnhBienSoRaRa}" Stretch="Uniform" Margin="4"/>
+                        <Button Width="36" Height="24" Padding="2" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,4,4,0" Background="#E74C3C" Foreground="White" BorderThickness="0" Click="OpenGateOut_Click">🔓</Button>
+                    </Grid>
+                </Border>
+            </StackPanel>
+
+            <Border Grid.Column="2" Background="#F8F9FA" CornerRadius="6" Padding="12" BorderBrush="#E2E8F0" BorderThickness="1">
+                <StackPanel>
+                    <TextBlock Text="Thông tin xe RA" FontWeight="Bold" Margin="0,0,0,8" />
+
+                    <TextBlock Text="Biển số:" Foreground="#666" />
+                    <TextBlock Text="{Binding LanRaBienSo}" FontSize="18" FontWeight="Bold" Foreground="#2C3E50" />
+
+                    <TextBlock Text="Trạng thái:" Margin="0,8,0,0" Foreground="#666" />
+                    <TextBlock Text="{Binding LanRaTrangThai}" FontSize="12" Foreground="#E74C3C" />
+
+                    <TextBlock Text="Tiền:" Margin="0,8,0,0" Foreground="#666" />
+                    <TextBlock Text="{Binding LanRaTien}" FontSize="12" Foreground="#2C3E50" />
+
+                    <TextBlock Text="Thời gian vào:" Margin="0,8,0,0" Foreground="#666" />
+                    <TextBlock Text="{Binding LanRaThoiGianVao}" FontSize="12" Foreground="#555" />
+
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+                        <TextBox Width="180" Height="28" VerticalContentAlignment="Center" Text="{Binding BienSoNhap, UpdateSourceTrigger=PropertyChanged}" />
+                        <Button Width="100" Height="28" Margin="8,0,0,0" Command="{Binding XeRaCommand}">✅ Xe RA</Button>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Width="100" Margin="6" Click="Close_Click">Đóng</Button>
+        </StackPanel>
+    </Grid>
+</Window>
