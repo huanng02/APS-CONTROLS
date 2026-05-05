@@ -147,6 +147,22 @@ namespace QuanLyGiuXe.ViewModels
 
         public ObservableCollection<Services.LogEntry> LogEntries { get; } = new();
 
+        // ── Connection status indicators ──────────────────────────────────────────
+
+        private string _dbStatusLabel = "🟡 Database";
+        public string DbStatusLabel
+        {
+            get => _dbStatusLabel;
+            set { _dbStatusLabel = value; OnPropertyChanged(nameof(DbStatusLabel)); }
+        }
+
+        private string _c3StatusLabel = "🟡 C3-200";
+        public string C3StatusLabel
+        {
+            get => _c3StatusLabel;
+            set { _c3StatusLabel = value; OnPropertyChanged(nameof(C3StatusLabel)); }
+        }
+
         private bool _newestOnTop = true;
         public bool NewestOnTop
         {
@@ -286,12 +302,56 @@ namespace QuanLyGiuXe.ViewModels
 
             LoadXeTrongBai();
 
-            // subscribe to emitted log events so UI shows realtime app logs
+            // ── Subscribe realtime log ─────────────────────────────────────────────
             try
             {
                 QuanLyGiuXe.Services.LoggingService.Instance.LogEmitted += OnLogEmitted;
             }
             catch { }
+
+            // ── Start Connection Monitor ───────────────────────────────────────────
+            try
+            {
+                ConnectionMonitorService.Instance.StatusChanged += OnConnectionStatusChanged;
+                ConnectionMonitorService.Instance.Start();
+            }
+            catch { }
+        }
+
+        // ── Connection Monitor handler ─────────────────────────────────────────
+
+        private void OnConnectionStatusChanged(ConnectionStatus status)
+        {
+            Application.Current?.Dispatcher?.Invoke(() =>
+            {
+                // Cập nhật label trạng thái
+                if (status.DatabaseChanged)
+                    DbStatusLabel = status.IsDatabaseConnected ? "🟢 Database" : "🔴 Database";
+
+                if (status.C3Changed)
+                    C3StatusLabel = status.IsC3Connected ? "🟢 C3-200" : "🔴 C3-200";
+            });
+
+            // Toast notification (có thể gọi từ bất kỳ thread, service tự marshal)
+            if (status.DatabaseChanged)
+            {
+                ToastNotificationService.Instance.ShowToast(
+                    status.IsDatabaseConnected
+                        ? "Database connected successfully"
+                        : "Database connection lost",
+                    status.IsDatabaseConnected ? ToastType.Success : ToastType.Error
+                );
+            }
+
+            if (status.C3Changed)
+            {
+                ToastNotificationService.Instance.ShowToast(
+                    status.IsC3Connected
+                        ? "C3-200 connected successfully"
+                        : "C3-200 disconnected",
+                    status.IsC3Connected ? ToastType.Success : ToastType.Error
+                );
+            }
         }
 
         private void OnLogEmitted(Services.LogEntry entry)
