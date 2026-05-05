@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.Data;
 using System.Windows;
 using System.Windows.Input;
+using QuanLyGiuXe.Models;
 using QuanLyGiuXe.Services;
 
 namespace QuanLyGiuXe.ViewModels
@@ -10,6 +11,13 @@ namespace QuanLyGiuXe.ViewModels
     public class DatabaseExplorerViewModel : BaseViewModel
     {
         private readonly DatabaseExplorerService _dbService;
+
+        private string _connectedServerInfo;
+        public string ConnectedServerInfo
+        {
+            get => _connectedServerInfo;
+            set { _connectedServerInfo = value; OnPropertyChanged(nameof(ConnectedServerInfo)); }
+        }
 
         public ObservableCollection<string> Tables { get; } = new ObservableCollection<string>();
 
@@ -66,6 +74,10 @@ namespace QuanLyGiuXe.ViewModels
         public DatabaseExplorerViewModel()
         {
             _dbService = new DatabaseExplorerService();
+            
+            var config = DbConnectionConfig.LoadFromFile();
+            ConnectedServerInfo = $"Connected to: {config.ServerIP}:{config.Port}";
+
             RefreshCommand = new RelayCommand(_ => LoadTables());
             ExecuteQueryCommand = new RelayCommand(_ => ExecuteQuery());
             GenerateSelectCommand = new RelayCommand(_ => GenerateSelect());
@@ -103,7 +115,7 @@ namespace QuanLyGiuXe.ViewModels
                 CurrentSchema = _dbService.GetTableSchema(SelectedTable);
 
                 // 2. Get Data (Top 100)
-                string query = $"SELECT TOP 100 * FROM [{SelectedTable}]";
+                string query = $"SELECT * FROM [{SelectedTable}]";
                 CurrentData = _dbService.ExecuteQuery(query, out string _);
             }
             catch (Exception ex)

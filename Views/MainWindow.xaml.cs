@@ -483,19 +483,48 @@ namespace QuanLyGiuXe
         private void MoLichSuGiaHan_Click(object sender, RoutedEventArgs e) =>
             new RFIDGiaHanHistoryWindow().Show();
 
-        private void MoSQLTool_Click(object sender, RoutedEventArgs e) 
+        private async void MoSQLTool_Click(object sender, RoutedEventArgs e) 
         {
-            var content = new QuanLyGiuXe.Views.DatabaseExplorerView();
-            var win = new Window
+            try
             {
-                Title = "Mini Database Explorer",
-                Content = content,
-                Owner = this,
-                Width = 1000,
-                Height = 600,
-                WindowStartupLocation = WindowStartupLocation.CenterOwner
-            };
-            win.Show();
+                var config = Models.DbConnectionConfig.LoadFromFile();
+                var vm = new ConnectDatabaseViewModel();
+                
+                string connStr = config.BuildConnectionString(timeout: 3);
+                bool isConnected = await vm.CheckConnectionAsync(connStr);
+
+                if (!isConnected)
+                {
+                    LoggingService.Instance.LogInfo("SQLTool", "CheckConnection", "Không thể kết nối với cấu hình hiện tại. Mở form cấu hình.");
+                    var connectWindow = new ConnectDatabaseWindow { Owner = this };
+                    bool? result = connectWindow.ShowDialog();
+                    if (result != true)
+                    {
+                        return; // User cancelled
+                    }
+                }
+                else
+                {
+                    LoggingService.Instance.LogInfo("SQLTool", "CheckConnection", "Kết nối tự động thành công. Mở SQL Tool.");
+                }
+
+                var content = new QuanLyGiuXe.Views.DatabaseExplorerView();
+                var win = new Window
+                {
+                    Title = "Mini Database Explorer",
+                    Content = content,
+                    Owner = this,
+                    Width = 1000,
+                    Height = 600,
+                    WindowStartupLocation = WindowStartupLocation.CenterOwner
+                };
+                win.Show();
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("SQLTool", "MoSQLTool_Click", "Lỗi khi mở SQL Tool", ex);
+                MessageBox.Show($"Lỗi: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private void MoCameraSettings_Click(object sender, RoutedEventArgs e) =>

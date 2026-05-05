@@ -196,6 +196,7 @@
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="15" />
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
@@ -213,10 +214,12 @@
                         <TextBlock Text="↻ Refresh" FontSize="12" FontWeight="SemiBold"/>
                     </Button>
                 </Grid>
+
+                <TextBlock Grid.Row="1" Text="{Binding ConnectedServerInfo}" Foreground="{StaticResource AccentColor}" FontSize="12" FontWeight="SemiBold" Margin="0,5,0,0" />
                 
-                <Border Grid.Row="1" BorderBrush="{StaticResource BorderColor}" BorderThickness="0,0,0,1" Margin="0,0,0,5"/>
+                <Border Grid.Row="2" BorderBrush="{StaticResource BorderColor}" BorderThickness="0,0,0,1" Margin="0,0,0,5"/>
                 
-                <ListBox Grid.Row="2" ItemsSource="{Binding Tables}" SelectedItem="{Binding SelectedTable}">
+                <ListBox Grid.Row="3" ItemsSource="{Binding Tables}" SelectedItem="{Binding SelectedTable}">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <StackPanel Orientation="Horizontal">
@@ -247,7 +250,7 @@
                         </Grid.RowDefinitions>
                         
                         <Border Grid.Row="0" Background="#F8FAFC" BorderBrush="{StaticResource BorderColor}" BorderThickness="1" CornerRadius="4" Padding="12,10" Margin="0,0,0,10">
-                            <TextBlock Text="{Binding SelectedTable, StringFormat='Hiển thị dữ liệu mẫu của bảng: {0}'}" FontSize="14" Foreground="{StaticResource PrimaryColor}" FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding SelectedTable, StringFormat='Hiển thị dữ liệu của bảng: {0}'}" FontSize="14" Foreground="{StaticResource PrimaryColor}" FontWeight="SemiBold" />
                         </Border>
                         
                         <DataGrid Grid.Row="1" ItemsSource="{Binding CurrentData.DefaultView}" IsReadOnly="True" />

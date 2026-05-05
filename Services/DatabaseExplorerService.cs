@@ -7,11 +7,11 @@ namespace QuanLyGiuXe.Services
 {
     public class DatabaseExplorerService
     {
-        private readonly DatabaseService _dbService;
+        private readonly string _connectionString;
 
         public DatabaseExplorerService()
         {
-            _dbService = new DatabaseService();
+            _connectionString = Models.DbConnectionConfig.LoadFromFile().BuildConnectionString();
         }
 
         public List<string> GetTables()
@@ -21,7 +21,7 @@ namespace QuanLyGiuXe.Services
             
             try
             {
-                using (var conn = new SqlConnection(_dbService.GetConnectionString()))
+                using (var conn = new SqlConnection(_connectionString))
                 {
                     conn.Open();
                     using (var cmd = new SqlCommand(sql, conn))
@@ -62,7 +62,7 @@ namespace QuanLyGiuXe.Services
             var dataTable = new DataTable();
             try
             {
-                using (var conn = new SqlConnection(_dbService.GetConnectionString()))
+                using (var conn = new SqlConnection(_connectionString))
                 {
                     conn.Open();
                     using (var cmd = new SqlCommand(sql, conn))
@@ -103,7 +103,7 @@ namespace QuanLyGiuXe.Services
 
             try
             {
-                using (var conn = new SqlConnection(_dbService.GetConnectionString()))
+                using (var conn = new SqlConnection(_connectionString))
                 {
                     conn.Open();
                     using (var cmd = new SqlCommand(query, conn))
