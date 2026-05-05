@@ -26,13 +26,9 @@ namespace QuanLyGiuXe.Services
     {
         private readonly DatabaseService _db = new DatabaseService();
 
-        public DashboardKpi GetKpi(DateTime startDate, DateTime endDate)
+        public async System.Threading.Tasks.Task<DashboardKpi> GetKpiAsync(DateTime startDate, DateTime endDate)
         {
             var kpi = new DashboardKpi();
-            
-            // NOTE: RFIDCards schema: Id, Uid, BienSo, LoaiVeId, LoaiXeId, NgayHetHan, ChuXe, Sdt, Email, Cccd, GhiChu, C3200DoorMask, TheId, TrangThai, AvatarPath, CreatedAt
-            // Correct history table: LichSuXe
-            // Correct money column: Tien
             string sql = @"
                 SELECT 
                     (SELECT COUNT(*) FROM XeTrongBai) AS XeTrongBai,
@@ -45,15 +41,15 @@ namespace QuanLyGiuXe.Services
             {
                 using (var conn = new SqlConnection(_db.GetConnectionString()))
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     using (var cmd = new SqlCommand(sql, conn))
                     {
                         cmd.Parameters.AddWithValue("@Start", startDate);
                         cmd.Parameters.AddWithValue("@End", endDate);
 
-                        using (var reader = cmd.ExecuteReader())
+                        using (var reader = await cmd.ExecuteReaderAsync())
                         {
-                            if (reader.Read())
+                            if (await reader.ReadAsync())
                             {
                                 kpi.XeTrongBai = reader["XeTrongBai"] != DBNull.Value ? Convert.ToInt32(reader["XeTrongBai"]) : 0;
                                 kpi.LuotXeVao = reader["LuotXeVao"] != DBNull.Value ? Convert.ToInt32(reader["LuotXeVao"]) : 0;
@@ -66,13 +62,13 @@ namespace QuanLyGiuXe.Services
             }
             catch (Exception ex)
             {
-                LoggingService.Instance.LogError("DashboardService", "GetKpi", "Lỗi lấy KPI", ex);
+                LoggingService.Instance.LogError("DashboardService", "GetKpiAsync", "Lỗi lấy KPI", ex);
             }
 
             return kpi;
         }
 
-        public DataTable GetRevenueByDay(DateTime startDate, DateTime endDate)
+        public async System.Threading.Tasks.Task<DataTable> GetRevenueByDayAsync(DateTime startDate, DateTime endDate)
         {
             var dt = new DataTable();
             string sql = @"
@@ -87,28 +83,28 @@ namespace QuanLyGiuXe.Services
             {
                 using (var conn = new SqlConnection(_db.GetConnectionString()))
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     using (var cmd = new SqlCommand(sql, conn))
                     {
                         cmd.Parameters.AddWithValue("@Start", startDate);
                         cmd.Parameters.AddWithValue("@End", endDate);
 
-                        using (var adapter = new SqlDataAdapter(cmd))
+                        using (var reader = await cmd.ExecuteReaderAsync())
                         {
-                            adapter.Fill(dt);
+                            dt.Load(reader);
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                LoggingService.Instance.LogError("DashboardService", "GetRevenueByDay", "Lỗi lấy biểu đồ doanh thu", ex);
+                LoggingService.Instance.LogError("DashboardService", "GetRevenueByDayAsync", "Lỗi lấy biểu đồ doanh thu", ex);
             }
 
             return dt;
         }
 
-        public DataTable GetEntriesByHour(DateTime startDate, DateTime endDate)
+        public async System.Threading.Tasks.Task<DataTable> GetEntriesByHourAsync(DateTime startDate, DateTime endDate)
         {
             var dt = new DataTable();
             string sql = @"
@@ -123,22 +119,22 @@ namespace QuanLyGiuXe.Services
             {
                 using (var conn = new SqlConnection(_db.GetConnectionString()))
                 {
-                    conn.Open();
+                    await conn.OpenAsync();
                     using (var cmd = new SqlCommand(sql, conn))
                     {
                         cmd.Parameters.AddWithValue("@Start", startDate);
                         cmd.Parameters.AddWithValue("@End", endDate);
 
-                        using (var adapter = new SqlDataAdapter(cmd))
+                        using (var reader = await cmd.ExecuteReaderAsync())
                         {
-                            adapter.Fill(dt);
+                            dt.Load(reader);
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                LoggingService.Instance.LogError("DashboardService", "GetEntriesByHour", "Lỗi lấy biểu đồ lượt xe theo giờ", ex);
+                LoggingService.Instance.LogError("DashboardService", "GetEntriesByHourAsync", "Lỗi lấy biểu đồ lượt xe theo giờ", ex);
             }
 
             return dt;
@@ -147,7 +143,6 @@ namespace QuanLyGiuXe.Services
         public List<HoatDongGhiNhan> GetRecentActivities()
         {
             var result = new List<HoatDongGhiNhan>();
-            // Lấy 10 dòng mới nhất từ LichSuXe
             string sql = @"
                 SELECT TOP 10 BienSo, ThoiGianVao, ThoiGianRa, Tien
                 FROM LichSuXe
@@ -171,7 +166,6 @@ namespace QuanLyGiuXe.Services
                                     GiaTien = reader["Tien"] != DBNull.Value ? Convert.ToDouble(reader["Tien"]) : 0
                                 };
 
-                                // Determine whether it was an entry or exit based on if ThoiGianRa is null/min value
                                 if (reader["ThoiGianRa"] != DBNull.Value)
                                 {
                                     hd.HanhDong = "RA";
@@ -197,6 +191,47 @@ namespace QuanLyGiuXe.Services
             }
 
             return result;
+        }
+
+        public async System.Threading.Tasks.Task<DataTable> GetTransactionsAsync(DateTime startDate, DateTime endDate)
+        {
+            var dt = new DataTable();
+            string sql = @"
+                SELECT 
+                    ThoiGianVao AS [Giờ Vào],
+                    ThoiGianRa AS [Giờ Ra],
+                    BienSo AS [Biển Số],
+                    Tien AS [Số Tiền],
+                    TrangThai AS [Trạng Thái]
+                FROM LichSuXe
+                WHERE (ThoiGianVao >= @Start AND ThoiGianVao <= @End)
+                   OR (ThoiGianRa >= @Start AND ThoiGianRa <= @End)
+                ORDER BY Id DESC;
+            ";
+
+            try
+            {
+                using (var conn = new SqlConnection(_db.GetConnectionString()))
+                {
+                    await conn.OpenAsync();
+                    using (var cmd = new SqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@Start", startDate);
+                        cmd.Parameters.AddWithValue("@End", endDate);
+
+                        using (var reader = await cmd.ExecuteReaderAsync())
+                        {
+                            dt.Load(reader);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("DashboardService", "GetTransactionsAsync", "Lỗi lấy dữ liệu giao dịch", ex);
+            }
+
+            return dt;
         }
     }
 }

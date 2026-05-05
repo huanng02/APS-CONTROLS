@@ -9,6 +9,7 @@
              Background="#F4F7F6" FontFamily="Segoe UI">
 
     <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
         <!-- Color Palette -->
         <SolidColorBrush x:Key="PrimaryColor" Color="#2B3A4A"/>
         <SolidColorBrush x:Key="SecondaryColor" Color="#4A90E2"/>
@@ -99,18 +100,64 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                 <TextBlock Text="📊" FontSize="24" Margin="0,0,10,0" VerticalAlignment="Center"/>
                 <TextBlock Text="DASHBOARD TỔNG QUAN" FontWeight="Bold" FontSize="22" Foreground="{StaticResource PrimaryColor}" VerticalAlignment="Center"/>
+                <Border Background="#E6F4EA" CornerRadius="15" Padding="12,5" Margin="20,0,0,0" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding SelectedDateRangeDisplay}" Foreground="{StaticResource AccentColor}" FontWeight="SemiBold" FontSize="14"/>
+                </Border>
+                <ProgressBar IsIndeterminate="True" Width="100" Height="4" Margin="20,0,0,0" VerticalAlignment="Center" 
+                             Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}"/>
             </StackPanel>
 
-            <TextBlock Grid.Column="1" Text="Lọc theo:" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="{StaticResource MutedTextColor}" FontWeight="SemiBold"/>
-            <ComboBox Grid.Column="2" Width="150" Height="35" VerticalContentAlignment="Center" 
-                      ItemsSource="{Binding FilterOptions}" SelectedItem="{Binding SelectedFilter}"
-                      FontSize="14" Padding="10,0"/>
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <StackPanel Orientation="Horizontal" Visibility="{Binding IsCustomDateVisible, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="0,0,20,0">
+                    <TextBlock Text="Từ:" VerticalAlignment="Center" Margin="0,0,5,0" Foreground="{StaticResource MutedTextColor}"/>
+                    <DatePicker SelectedDate="{Binding FromDate}" Width="120" Height="30" VerticalContentAlignment="Center"/>
+                    <TextBlock Text="Đến:" VerticalAlignment="Center" Margin="10,0,5,0" Foreground="{StaticResource MutedTextColor}"/>
+                    <DatePicker SelectedDate="{Binding ToDate}" Width="120" Height="30" VerticalContentAlignment="Center"/>
+                </StackPanel>
+
+                <TextBlock Text="Lọc theo:" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="{StaticResource MutedTextColor}" FontWeight="SemiBold"/>
+                <ComboBox Width="150" Height="35" VerticalContentAlignment="Center" 
+                          ItemsSource="{Binding FilterOptions}" SelectedItem="{Binding SelectedFilter}"
+                          FontSize="14" Padding="10,0"/>
+
+                <Button Command="{Binding ExportCommand}" Margin="10,0,0,0" Width="120" Height="35" 
+                        Background="{StaticResource AccentColor}" Foreground="White" BorderThickness="0">
+                    <Button.Style>
+                        <Style TargetType="Button">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border Background="{TemplateBinding Background}" CornerRadius="4">
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                <TextBlock Text="📥" Margin="0,0,5,0"/>
+                                                <TextBlock x:Name="btnText" Text="Export Excel"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <DataTrigger Binding="{Binding IsExporting}" Value="True">
+                                                <Setter TargetName="btnText" Property="Text" Value="Đang xuất..."/>
+                                            </DataTrigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                            <Style.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Opacity" Value="0.8"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Background" Value="{StaticResource MutedTextColor}"/>
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+            </StackPanel>
         </Grid>
 
         <!-- KPI Cards Row -->
