@@ -87,13 +87,23 @@ namespace QuanLyGiuXe.ViewModels
 
         public ConnectDatabaseViewModel()
         {
-            _config = DbConnectionConfig.LoadFromFile();
-            StatusMessage = "Nhập thông tin và kiểm tra kết nối";
+            // Đọc config hiện tại từ ConnectionManager (không đọc file lại)
+            var current = ConnectionManager.Instance.CurrentConfig;
+            _config = new DbConnectionConfig
+            {
+                ServerIP = current.ServerIP,
+                Port     = current.Port,
+                Database = current.Database,
+                Username = current.Username,
+                Password = current.Password,
+            };
+
+            StatusMessage  = "Nhập thông tin và kiểm tra kết nối";
             IsSuccessStatus = true;
 
-            PingServerCommand = new RelayCommand(async _ => await PingServerAsync(), _ => !IsProcessing);
+            PingServerCommand     = new RelayCommand(async _ => await PingServerAsync(), _ => !IsProcessing);
             TestConnectionCommand = new RelayCommand(async _ => await TestConnectionAsync(), _ => !IsProcessing);
-            ConnectCommand = new RelayCommand(_ => Connect(), _ => !IsProcessing && IsTestSuccessful);
+            ConnectCommand        = new RelayCommand(_ => Connect(), _ => !IsProcessing && IsTestSuccessful);
         }
 
         private async Task PingServerAsync()
@@ -192,10 +202,12 @@ namespace QuanLyGiuXe.ViewModels
 
         private void Connect()
         {
-            // Luôn save lại file trước khi close
-            DbConnectionConfig.SaveToFile(_config);
+            // UpdateConnection = save file + cập nhật ConnectionManager + raise ConnectionChanged event
+            // → DatabaseExplorerViewModel sẽ tự reload qua event handler
+            ConnectionManager.Instance.UpdateConnection(_config);
             DialogResult = true;
-            LoggingService.Instance.LogInfo("ConnectDB", "Connect", "Người dùng nhấn Connect, lưu cấu hình và đóng Dialog");
+            LoggingService.Instance.LogInfo("ConnectDB", "Connect",
+                $"Đã đổi connection sang {_config.ServerIP}:{_config.Port}/{_config.Database}");
             CloseAction?.Invoke();
         }
 

@@ -7,12 +7,9 @@ namespace QuanLyGiuXe.Services
 {
     public class DatabaseExplorerService
     {
-        private readonly string _connectionString;
-
-        public DatabaseExplorerService()
-        {
-            _connectionString = Models.DbConnectionConfig.LoadFromFile().BuildConnectionString();
-        }
+        // Không lưu connection string trong field.
+        // Mỗi lần cần đều lấy từ ConnectionManager để phản ánh đúng khi đổi connection.
+        private string ConnectionString => ConnectionManager.Instance.CurrentConnectionString;
 
         public List<string> GetTables()
         {
@@ -21,7 +18,7 @@ namespace QuanLyGiuXe.Services
             
             try
             {
-                using (var conn = new SqlConnection(_connectionString))
+                using (var conn = new SqlConnection(ConnectionString))
                 {
                     conn.Open();
                     using (var cmd = new SqlCommand(sql, conn))
@@ -62,7 +59,7 @@ namespace QuanLyGiuXe.Services
             var dataTable = new DataTable();
             try
             {
-                using (var conn = new SqlConnection(_connectionString))
+                using (var conn = new SqlConnection(ConnectionString))
                 {
                     conn.Open();
                     using (var cmd = new SqlCommand(sql, conn))
@@ -103,7 +100,7 @@ namespace QuanLyGiuXe.Services
 
             try
             {
-                using (var conn = new SqlConnection(_connectionString))
+                using (var conn = new SqlConnection(ConnectionString))
                 {
                     conn.Open();
                     using (var cmd = new SqlCommand(query, conn))

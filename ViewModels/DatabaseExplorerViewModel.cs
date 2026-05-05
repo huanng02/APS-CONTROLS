@@ -1,6 +1,8 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Data;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using QuanLyGiuXe.Models;
@@ -8,15 +10,32 @@ using QuanLyGiuXe.Services;
 
 namespace QuanLyGiuXe.ViewModels
 {
-    public class DatabaseExplorerViewModel : BaseViewModel
+    public class DatabaseExplorerViewModel : BaseViewModel, IDisposable
     {
         private readonly DatabaseExplorerService _dbService;
+        private CancellationTokenSource _reloadCts;
+
+        // ──────────────────────────────────────────────
+        // Properties
+        // ──────────────────────────────────────────────
 
         private string _connectedServerInfo;
         public string ConnectedServerInfo
         {
             get => _connectedServerInfo;
             set { _connectedServerInfo = value; OnPropertyChanged(nameof(ConnectedServerInfo)); }
+        }
+
+        private bool _isLoading;
+        public bool IsLoading
+        {
+            get => _isLoading;
+            set
+            {
+                _isLoading = value;
+                OnPropertyChanged(nameof(IsLoading));
+                CommandManager.InvalidateRequerySuggested();
+            }
         }
 
         public ObservableCollection<string> Tables { get; } = new ObservableCollection<string>();
@@ -64,29 +83,131 @@ namespace QuanLyGiuXe.ViewModels
             set { _queryResult = value; OnPropertyChanged(nameof(QueryResult)); }
         }
 
+        // ──────────────────────────────────────────────
+        // Commands
+        // ──────────────────────────────────────────────
         public ICommand RefreshCommand { get; }
         public ICommand ExecuteQueryCommand { get; }
         public ICommand GenerateSelectCommand { get; }
         public ICommand GenerateInsertCommand { get; }
         public ICommand GenerateUpdateCommand { get; }
         public ICommand GenerateDeleteCommand { get; }
+        public ICommand ChangeConnectionCommand { get; }
 
+        // ──────────────────────────────────────────────
+        // Constructor
+        // ──────────────────────────────────────────────
         public DatabaseExplorerViewModel()
         {
             _dbService = new DatabaseExplorerService();
-            
-            var config = DbConnectionConfig.LoadFromFile();
-            ConnectedServerInfo = $"Connected to: {config.ServerIP}:{config.Port}";
 
-            RefreshCommand = new RelayCommand(_ => LoadTables());
-            ExecuteQueryCommand = new RelayCommand(_ => ExecuteQuery());
-            GenerateSelectCommand = new RelayCommand(_ => GenerateSelect());
-            GenerateInsertCommand = new RelayCommand(_ => GenerateInsert());
-            GenerateUpdateCommand = new RelayCommand(_ => GenerateUpdate());
-            GenerateDeleteCommand = new RelayCommand(_ => GenerateDelete());
+            // Hiển thị server info từ ConnectionManager
+            ConnectedServerInfo = ConnectionManager.Instance.GetDisplayInfo();
+
+            // Subscribe ConnectionChanged → tự reload khi connection đổi
+            ConnectionManager.Instance.ConnectionChanged += OnConnectionChanged;
+
+            RefreshCommand         = new RelayCommand(_ => LoadTables(), _ => !IsLoading);
+            ExecuteQueryCommand    = new RelayCommand(_ => ExecuteQuery(), _ => !IsLoading);
+            GenerateSelectCommand  = new RelayCommand(_ => GenerateSelect());
+            GenerateInsertCommand  = new RelayCommand(_ => GenerateInsert());
+            GenerateUpdateCommand  = new RelayCommand(_ => GenerateUpdate());
+            GenerateDeleteCommand  = new RelayCommand(_ => GenerateDelete());
+            ChangeConnectionCommand = new RelayCommand(_ => ChangeConnection(), _ => !IsLoading);
 
             LoadTables();
         }
+
+        // ──────────────────────────────────────────────
+        // Change Connection
+        // ──────────────────────────────────────────────
+
+        /// <summary>
+        /// Mở ConnectDatabaseWindow. Nếu user bấm Connect thành công,
+        /// ConnectionManager sẽ raise ConnectionChanged và ReloadAsync() sẽ được gọi tự động.
+        /// </summary>
+        private void ChangeConnection()
+        {
+            var window = new Views.ConnectDatabaseWindow
+            {
+                Owner = Application.Current.MainWindow
+            };
+            window.ShowDialog();
+            // Reload được kích hoạt tự động qua OnConnectionChanged event,
+            // không cần gọi lại ở đây.
+        }
+
+        /// <summary>
+        /// Handler cho ConnectionManager.ConnectionChanged.
+        /// Luôn marshal về UI thread vì event có thể đến từ bất kỳ thread nào.
+        /// </summary>
+        private void OnConnectionChanged(object sender, EventArgs e)
+        {
+            Application.Current.Dispatcher.InvokeAsync(() => _ = ReloadAsync());
+        }
+
+        /// <summary>
+        /// Clear toàn bộ dữ liệu cũ rồi load lại từ DB mới.
+        /// Hỗ trợ cancellation để tránh race condition khi user đổi connection nhanh nhiều lần.
+        /// </summary>
+        private async Task ReloadAsync()
+        {
+            // Huỷ reload đang chạy nếu có
+            _reloadCts?.Cancel();
+            _reloadCts = new CancellationTokenSource();
+            var token = _reloadCts.Token;
+
+            IsLoading = true;
+
+            // Cập nhật label server
+            ConnectedServerInfo = ConnectionManager.Instance.GetDisplayInfo();
+
+            // Clear dữ liệu cũ ngay lập tức
+            Tables.Clear();
+            CurrentData   = null;
+            CurrentSchema = null;
+            QueryResult   = null;
+            _selectedTable = null;
+            OnPropertyChanged(nameof(SelectedTable));
+
+            try
+            {
+                // Chạy query trên background thread
+                var tables = await Task.Run(() => _dbService.GetTables(), token);
+
+                if (token.IsCancellationRequested) return;
+
+                foreach (var t in tables) Tables.Add(t);
+
+                if (Tables.Count > 0)
+                    SelectedTable = Tables[0];
+                else
+                    LoggingService.Instance.LogInfo("DatabaseExplorer", "Reload",
+                        "DB mới không có bảng nào hoặc không có quyền đọc.");
+            }
+            catch (OperationCanceledException)
+            {
+                // Reload bị huỷ, bỏ qua
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("DatabaseExplorer", "ReloadAsync", "Lỗi reload sau đổi connection", ex);
+                MessageBox.Show(
+                    $"Không thể tải dữ liệu từ server mới.\n\nChi tiết: {ex.Message}",
+                    "Lỗi kết nối",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
+            finally
+            {
+                if (!token.IsCancellationRequested)
+                    IsLoading = false;
+            }
+        }
+
+        // ──────────────────────────────────────────────
+        // Load data
+        // ──────────────────────────────────────────────
 
         private void LoadTables()
         {
@@ -95,7 +216,7 @@ namespace QuanLyGiuXe.ViewModels
                 Tables.Clear();
                 var list = _dbService.GetTables();
                 foreach (var t in list) Tables.Add(t);
-                
+
                 if (Tables.Count > 0 && string.IsNullOrEmpty(SelectedTable))
                     SelectedTable = Tables[0];
             }
@@ -111,18 +232,20 @@ namespace QuanLyGiuXe.ViewModels
 
             try
             {
-                // 1. Get Schema
                 CurrentSchema = _dbService.GetTableSchema(SelectedTable);
 
-                // 2. Get Data (Top 100)
                 string query = $"SELECT * FROM [{SelectedTable}]";
-                CurrentData = _dbService.ExecuteQuery(query, out string _);
+                CurrentData  = _dbService.ExecuteQuery(query, out string _);
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Lỗi tải dữ liệu bảng {SelectedTable}: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+
+        // ──────────────────────────────────────────────
+        // Execute Query
+        // ──────────────────────────────────────────────
 
         private void ExecuteQuery()
         {
@@ -136,9 +259,10 @@ namespace QuanLyGiuXe.ViewModels
             }
             catch (InvalidOperationException ex)
             {
-                // Prompt user to bypass restriction
-                var result = MessageBox.Show($"{ex.Message}\n\nBạn có chắc chắn muốn CHẠY CƯỠNG CHẾ lệnh này không?", 
-                                             "Cảnh báo bảo mật", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                var result = MessageBox.Show(
+                    $"{ex.Message}\n\nBạn có chắc chắn muốn CHẠY CƯỠNG CHẾ lệnh này không?",
+                    "Cảnh báo bảo mật", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
                 if (result == MessageBoxResult.Yes)
                 {
                     try
@@ -159,6 +283,10 @@ namespace QuanLyGiuXe.ViewModels
             }
         }
 
+        // ──────────────────────────────────────────────
+        // Generate SQL helpers
+        // ──────────────────────────────────────────────
+
         private void GenerateSelect()
         {
             if (string.IsNullOrEmpty(SelectedTable)) return;
@@ -167,40 +295,27 @@ namespace QuanLyGiuXe.ViewModels
 
         private void GenerateInsert()
         {
-            if (string.IsNullOrEmpty(SelectedTable)) return;
-            if (CurrentSchema == null) return;
+            if (string.IsNullOrEmpty(SelectedTable) || CurrentSchema == null) return;
 
             var columns = new System.Collections.Generic.List<string>();
             foreach (DataRow row in CurrentSchema.Rows)
-            {
                 columns.Add(row["Tên Cột"].ToString());
-            }
 
             string cols = string.Join(", ", columns);
             string vals = string.Join(", ", columns.ConvertAll(c => $"@{c}"));
-
             QueryText = $"INSERT INTO [{SelectedTable}] ({cols})\r\nVALUES ({vals})";
         }
 
         private void GenerateUpdate()
         {
-            if (string.IsNullOrEmpty(SelectedTable)) return;
-            if (CurrentSchema == null) return;
+            if (string.IsNullOrEmpty(SelectedTable) || CurrentSchema == null) return;
 
             var columns = new System.Collections.Generic.List<string>();
             foreach (DataRow row in CurrentSchema.Rows)
-            {
                 columns.Add(row["Tên Cột"].ToString());
-            }
 
-            var assignments = new System.Collections.Generic.List<string>();
-            foreach (var col in columns)
-            {
-                assignments.Add($"[{col}] = @{col}");
-            }
-
-            string assigns = string.Join(",\r\n    ", assignments);
-
+            var assignments = columns.ConvertAll(c => $"[{c}] = @{c}");
+            string assigns  = string.Join(",\r\n    ", assignments);
             QueryText = $"UPDATE [{SelectedTable}]\r\nSET\r\n    {assigns}\r\nWHERE Id = @Id";
         }
 
@@ -208,6 +323,16 @@ namespace QuanLyGiuXe.ViewModels
         {
             if (string.IsNullOrEmpty(SelectedTable)) return;
             QueryText = $"DELETE FROM [{SelectedTable}]\r\nWHERE Id = @Id";
+        }
+
+        // ──────────────────────────────────────────────
+        // IDisposable – unsubscribe event để tránh memory leak
+        // ──────────────────────────────────────────────
+        public void Dispose()
+        {
+            ConnectionManager.Instance.ConnectionChanged -= OnConnectionChanged;
+            _reloadCts?.Cancel();
+            _reloadCts?.Dispose();
         }
     }
 }
