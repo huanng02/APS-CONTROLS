@@ -33,10 +33,12 @@ namespace QuanLyGiuXe.Services
                     .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
                     .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
                     .Build();
+                LoggingService.Instance.LogInfo("ConfigLoaded", "DatabaseService", "Loaded appsettings.json successfully");
             }
-            catch
+            catch (Exception ex)
             {
                 // Fail silently to use hardcoded defaults if config is missing or corrupt
+                LoggingService.Instance.LogError("ConfigError", "DatabaseService", "Failed to load appsettings.json, using defaults", ex);
             }
         }
 
@@ -433,73 +435,109 @@ namespace QuanLyGiuXe.Services
         // via BangGiaKhungGio and should not be written here.
         public void UpdateBangGia(int id, decimal? giaThang = null, string trangThai = null)
         {
-            string conn_string = GetWorkingConnection();
-            using (SqlConnection conn = new SqlConnection(conn_string))
+            try
             {
-                conn.Open();
-                string sql = "UPDATE dbo.BangGia SET GiaThang=@gt, TrangThai=@tt WHERE Id=@id";
-                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                string conn_string = GetWorkingConnection();
+                using (SqlConnection conn = new SqlConnection(conn_string))
                 {
-                    cmd.Parameters.AddWithValue("@gt", (object?)giaThang ?? DBNull.Value);
-                    cmd.Parameters.AddWithValue("@tt", (object?)trangThai ?? DBNull.Value);
-                    cmd.Parameters.AddWithValue("@id", id);
-                    cmd.ExecuteNonQuery();
+                    conn.Open();
+                    string sql = "UPDATE dbo.BangGia SET GiaThang=@gt, TrangThai=@tt WHERE Id=@id";
+                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@gt", (object?)giaThang ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@tt", (object?)trangThai ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@id", id);
+                        cmd.ExecuteNonQuery();
+                    }
                 }
+                LoggingService.Instance.LogInfo("Update", "DatabaseService.BangGia", $"Cập nhật bảng giá (legacy) thành công (Id: {id})");
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("UpdateError", "DatabaseService.BangGia", $"Lỗi cập nhật bảng giá (Id: {id}): {ex.Message}", ex);
+                throw;
             }
         }
 
         public void InsertLoaiXe(string tenLoai, string trangThai)
         {
-            using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+            try
             {
-                conn.Open();
-
-                string sql = @"INSERT INTO LoaiXe (TenLoai, TrangThai)
-                       VALUES (@ten, @tt)";
-
-                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                using (SqlConnection conn = new SqlConnection(GetConnectionString()))
                 {
-                    cmd.Parameters.AddWithValue("@ten", tenLoai);
-                    cmd.Parameters.AddWithValue("@tt", trangThai ?? "Active");
+                    conn.Open();
 
-                    cmd.ExecuteNonQuery();
+                    string sql = @"INSERT INTO LoaiXe (TenLoai, TrangThai)
+                           VALUES (@ten, @tt)";
+
+                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@ten", tenLoai);
+                        cmd.Parameters.AddWithValue("@tt", trangThai ?? "Active");
+
+                        cmd.ExecuteNonQuery();
+                    }
                 }
+                LoggingService.Instance.LogInfo("Insert", "DatabaseService.LoaiXe", $"Thêm loại xe thành công (Tên: {tenLoai})");
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("InsertError", "DatabaseService.LoaiXe", $"Lỗi thêm loại xe: {ex.Message}", ex);
+                throw;
             }
         }
 
         public void UpdateLoaiXe(int id, string tenLoai, string trangThai)
         {
-            using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+            try
             {
-                conn.Open();
-
-                string sql = @"UPDATE LoaiXe 
-                       SET TenLoai=@ten, TrangThai=@tt 
-                       WHERE Id=@id";
-
-                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                using (SqlConnection conn = new SqlConnection(GetConnectionString()))
                 {
-                    cmd.Parameters.AddWithValue("@id", id);
-                    cmd.Parameters.AddWithValue("@ten", tenLoai);
-                    cmd.Parameters.AddWithValue("@tt", trangThai ?? "Active");
+                    conn.Open();
 
-                    cmd.ExecuteNonQuery();
+                    string sql = @"UPDATE LoaiXe 
+                           SET TenLoai=@ten, TrangThai=@tt 
+                           WHERE Id=@id";
+
+                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@id", id);
+                        cmd.Parameters.AddWithValue("@ten", tenLoai);
+                        cmd.Parameters.AddWithValue("@tt", trangThai ?? "Active");
+
+                        cmd.ExecuteNonQuery();
+                    }
                 }
+                LoggingService.Instance.LogInfo("Update", "DatabaseService.LoaiXe", $"Cập nhật loại xe thành công (Id: {id}, Tên: {tenLoai})");
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("UpdateError", "DatabaseService.LoaiXe", $"Lỗi cập nhật loại xe (Id: {id}): {ex.Message}", ex);
+                throw;
             }
         }
 
         public void DeleteLoaiXe(int id)
         {
-            using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+            try
             {
-                conn.Open();
-                string sql = "DELETE FROM LoaiXe WHERE Id=@id";
-
-                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                using (SqlConnection conn = new SqlConnection(GetConnectionString()))
                 {
-                    cmd.Parameters.AddWithValue("@id", id);
-                    cmd.ExecuteNonQuery();
+                    conn.Open();
+                    string sql = "DELETE FROM LoaiXe WHERE Id=@id";
+
+                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@id", id);
+                        cmd.ExecuteNonQuery();
+                    }
                 }
+                LoggingService.Instance.LogInfo("Delete", "DatabaseService.LoaiXe", $"Xóa loại xe thành công (Id: {id})");
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("DeleteError", "DatabaseService.LoaiXe", $"Lỗi xóa loại xe (Id: {id}): {ex.Message}", ex);
+                throw;
             }
         }
         // -----------------------
@@ -536,49 +574,76 @@ namespace QuanLyGiuXe.Services
 
         public void InsertLoaiThe(string tenLoaiThe, decimal giaTien, string trangThai)
         {
-            using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+            try
             {
-                conn.Open();
-                string sql = "INSERT INTO LoaiVe (TenLoai, TrangThai) VALUES (@ten, @trang)";
-
-                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                using (SqlConnection conn = new SqlConnection(GetConnectionString()))
                 {
-                    cmd.Parameters.AddWithValue("@ten", tenLoaiThe ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@trang", trangThai ?? string.Empty);
-                    cmd.ExecuteNonQuery();
+                    conn.Open();
+                    string sql = "INSERT INTO LoaiVe (TenLoai, TrangThai) VALUES (@ten, @trang)";
+
+                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@ten", tenLoaiThe ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@trang", trangThai ?? string.Empty);
+                        cmd.ExecuteNonQuery();
+                    }
                 }
+                LoggingService.Instance.LogInfo("Insert", "DatabaseService.LoaiThe", $"Thêm loại thẻ thành công (Tên: {tenLoaiThe})");
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("InsertError", "DatabaseService.LoaiThe", $"Lỗi thêm loại thẻ: {ex.Message}", ex);
+                throw;
             }
         }
 
         public void UpdateLoaiThe(int id, string tenLoaiThe, decimal giaTien, string trangThai)
         {
-            using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+            try
             {
-                conn.Open();
-                string sql = "UPDATE LoaiVe SET TenLoai=@ten, TrangThai=@trang WHERE Id=@id";
-
-                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                using (SqlConnection conn = new SqlConnection(GetConnectionString()))
                 {
-                    cmd.Parameters.AddWithValue("@ten", tenLoaiThe ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@trang", trangThai ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@id", id);
-                    cmd.ExecuteNonQuery();
+                    conn.Open();
+                    string sql = "UPDATE LoaiVe SET TenLoai=@ten, TrangThai=@trang WHERE Id=@id";
+
+                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@ten", tenLoaiThe ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@trang", trangThai ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@id", id);
+                        cmd.ExecuteNonQuery();
+                    }
                 }
+                LoggingService.Instance.LogInfo("Update", "DatabaseService.LoaiThe", $"Cập nhật loại thẻ thành công (Id: {id}, Tên: {tenLoaiThe})");
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("UpdateError", "DatabaseService.LoaiThe", $"Lỗi cập nhật loại thẻ (Id: {id}): {ex.Message}", ex);
+                throw;
             }
         }
 
         public void DeleteLoaiThe(int id)
         {
-            using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+            try
             {
-                conn.Open();
-                string sql = "DELETE FROM LoaiVe WHERE Id=@id";
-
-                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                using (SqlConnection conn = new SqlConnection(GetConnectionString()))
                 {
-                    cmd.Parameters.AddWithValue("@id", id);
-                    cmd.ExecuteNonQuery();
+                    conn.Open();
+                    string sql = "DELETE FROM LoaiVe WHERE Id=@id";
+
+                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@id", id);
+                        cmd.ExecuteNonQuery();
+                    }
                 }
+                LoggingService.Instance.LogInfo("Delete", "DatabaseService.LoaiThe", $"Xóa loại thẻ thành công (Id: {id})");
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("DeleteError", "DatabaseService.LoaiThe", $"Lỗi xóa loại thẻ (Id: {id}): {ex.Message}", ex);
+                throw;
             }
         }
 
@@ -615,51 +680,78 @@ namespace QuanLyGiuXe.Services
 
         public void InsertLoaiVe(string tenLoaiVe, string trangThai, string detail = null)
         {
-            using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+            try
             {
-                conn.Open();
-                string sql = "INSERT INTO LoaiVe (TenLoai, TrangThai, Detail) VALUES (@ten, @trang, @detail)";
-
-                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                using (SqlConnection conn = new SqlConnection(GetConnectionString()))
                 {
-                    cmd.Parameters.AddWithValue("@ten", tenLoaiVe ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@trang", trangThai ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@detail", (object?)detail ?? DBNull.Value);
-                    cmd.ExecuteNonQuery();
+                    conn.Open();
+                    string sql = "INSERT INTO LoaiVe (TenLoai, TrangThai, Detail) VALUES (@ten, @trang, @detail)";
+
+                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@ten", tenLoaiVe ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@trang", trangThai ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@detail", (object?)detail ?? DBNull.Value);
+                        cmd.ExecuteNonQuery();
+                    }
                 }
+                LoggingService.Instance.LogInfo("Insert", "DatabaseService.LoaiVe", $"Thêm loại vé (legacy) thành công (Tên: {tenLoaiVe})");
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("InsertError", "DatabaseService.LoaiVe", $"Lỗi thêm loại vé (legacy): {ex.Message}", ex);
+                throw;
             }
         }
 
         public void UpdateLoaiVe(int id, string tenLoaiVe, string trangThai, string detail = null)
         {
-            using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+            try
             {
-                conn.Open();
-                string sql = "UPDATE LoaiVe SET TenLoai=@ten, TrangThai=@trang, Detail=@detail WHERE Id=@id";
-
-                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                using (SqlConnection conn = new SqlConnection(GetConnectionString()))
                 {
-                    cmd.Parameters.AddWithValue("@ten", tenLoaiVe ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@trang", trangThai ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@detail", (object?)detail ?? DBNull.Value);
-                    cmd.Parameters.AddWithValue("@id", id);
-                    cmd.ExecuteNonQuery();
+                    conn.Open();
+                    string sql = "UPDATE LoaiVe SET TenLoai=@ten, TrangThai=@trang, Detail=@detail WHERE Id=@id";
+
+                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@ten", tenLoaiVe ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@trang", trangThai ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@detail", (object?)detail ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@id", id);
+                        cmd.ExecuteNonQuery();
+                    }
                 }
+                LoggingService.Instance.LogInfo("Update", "DatabaseService.LoaiVe", $"Cập nhật loại vé (legacy) thành công (Id: {id}, Tên: {tenLoaiVe})");
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("UpdateError", "DatabaseService.LoaiVe", $"Lỗi cập nhật loại vé (legacy) (Id: {id}): {ex.Message}", ex);
+                throw;
             }
         }
 
         public void DeleteLoaiVe(int id)
         {
-            using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+            try
             {
-                conn.Open();
-                string sql = "DELETE FROM LoaiVe WHERE Id=@id";
-
-                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                using (SqlConnection conn = new SqlConnection(GetConnectionString()))
                 {
-                    cmd.Parameters.AddWithValue("@id", id);
-                    cmd.ExecuteNonQuery();
+                    conn.Open();
+                    string sql = "DELETE FROM LoaiVe WHERE Id=@id";
+
+                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@id", id);
+                        cmd.ExecuteNonQuery();
+                    }
                 }
+                LoggingService.Instance.LogInfo("Delete", "DatabaseService.LoaiVe", $"Xóa loại vé (legacy) thành công (Id: {id})");
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("DeleteError", "DatabaseService.LoaiVe", $"Lỗi xóa loại vé (legacy) (Id: {id}): {ex.Message}", ex);
+                throw;
             }
         }
 

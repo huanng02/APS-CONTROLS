@@ -19,17 +19,24 @@ namespace QuanLyGiuXe.Services
             var tables = new List<string>();
             string sql = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME != 'sysdiagrams' ORDER BY TABLE_NAME";
             
-            using (var conn = new SqlConnection(_dbService.GetConnectionString()))
+            try
             {
-                conn.Open();
-                using (var cmd = new SqlCommand(sql, conn))
-                using (var reader = cmd.ExecuteReader())
+                using (var conn = new SqlConnection(_dbService.GetConnectionString()))
                 {
-                    while (reader.Read())
+                    conn.Open();
+                    using (var cmd = new SqlCommand(sql, conn))
+                    using (var reader = cmd.ExecuteReader())
                     {
-                        tables.Add(reader.GetString(0));
+                        while (reader.Read())
+                        {
+                            tables.Add(reader.GetString(0));
+                        }
                     }
                 }
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("DatabaseExplorer", "GetTables", "Lỗi lấy danh sách bảng", ex);
             }
             return tables;
         }
@@ -53,17 +60,24 @@ namespace QuanLyGiuXe.Services
                 ORDER BY c.ORDINAL_POSITION;";
 
             var dataTable = new DataTable();
-            using (var conn = new SqlConnection(_dbService.GetConnectionString()))
+            try
             {
-                conn.Open();
-                using (var cmd = new SqlCommand(sql, conn))
+                using (var conn = new SqlConnection(_dbService.GetConnectionString()))
                 {
-                    cmd.Parameters.AddWithValue("@TableName", tableName);
-                    using (var adapter = new SqlDataAdapter(cmd))
+                    conn.Open();
+                    using (var cmd = new SqlCommand(sql, conn))
                     {
-                        adapter.Fill(dataTable);
+                        cmd.Parameters.AddWithValue("@TableName", tableName);
+                        using (var adapter = new SqlDataAdapter(cmd))
+                        {
+                            adapter.Fill(dataTable);
+                        }
                     }
                 }
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("DatabaseExplorer", "GetTableSchema", $"Lỗi lấy cấu trúc bảng {tableName}", ex);
             }
             return dataTable;
         }
@@ -87,28 +101,37 @@ namespace QuanLyGiuXe.Services
                 throw new InvalidOperationException("Cảnh báo: Câu lệnh không có WHERE có thể ảnh hưởng toàn bộ dữ liệu. Bạn phải thêm WHERE hoặc xác nhận cưỡng chế.");
             }
 
-            using (var conn = new SqlConnection(_dbService.GetConnectionString()))
+            try
             {
-                conn.Open();
-                using (var cmd = new SqlCommand(query, conn))
+                using (var conn = new SqlConnection(_dbService.GetConnectionString()))
                 {
-                    if (upperQuery.StartsWith("SELECT"))
+                    conn.Open();
+                    using (var cmd = new SqlCommand(query, conn))
                     {
-                        using (var adapter = new SqlDataAdapter(cmd))
+                        if (upperQuery.StartsWith("SELECT"))
                         {
-                            adapter.Fill(dataTable);
+                            using (var adapter = new SqlDataAdapter(cmd))
+                            {
+                                adapter.Fill(dataTable);
+                            }
+                        }
+                        else
+                        {
+                            int rowsAffected = cmd.ExecuteNonQuery();
+                            message = $"{rowsAffected} dòng đã bị ảnh hưởng.";
+                            
+                            // Return empty datatable with message for non-select queries
+                            dataTable.Columns.Add("Message", typeof(string));
+                            dataTable.Rows.Add(message);
                         }
                     }
-                    else
-                    {
-                        int rowsAffected = cmd.ExecuteNonQuery();
-                        message = $"{rowsAffected} dòng đã bị ảnh hưởng.";
-                        
-                        // Return empty datatable with message for non-select queries
-                        dataTable.Columns.Add("Message", typeof(string));
-                        dataTable.Rows.Add(message);
-                    }
                 }
+                LoggingService.Instance.LogInfo("ExecuteQuery", "DatabaseExplorer", $"Thực thi SQL thành công. Lệnh: {query}");
+            }
+            catch (Exception ex)
+            {
+                message = $"Lỗi: {ex.Message}";
+                LoggingService.Instance.LogError("DatabaseExplorer", "ExecuteQuery", $"Lỗi thực thi SQL. Lệnh: {query}", ex);
             }
             return dataTable;
         }

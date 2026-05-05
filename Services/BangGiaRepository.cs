@@ -114,26 +114,35 @@ namespace QuanLyGiuXe.Services
         /// </summary>
         public void Insert(BangGia entity)
         {
-            if (entity == null) throw new ArgumentNullException(nameof(entity));
-            ValidateEntity(entity, isUpdate: false);
-            if (Exists(entity.LoaiXeId, entity.LoaiVeId))
-                throw new InvalidOperationException("A pricing row for the given LoaiXeId and LoaiVeId already exists.");
-
-            string conn = _db.GetConnectionString();
-            using (var sql = new SqlConnection(conn))
+            try
             {
-                sql.Open();
-                // New model: do not write legacy per-day/night columns from repository.
-                string q = @"INSERT INTO dbo.BangGia (LoaiXeId, LoaiVeId, GiaThang, TrangThai)
-                                     VALUES (@lx,@lv,@gt,@tt)";
-                using (var cmd = new SqlCommand(q, sql))
+                if (entity == null) throw new ArgumentNullException(nameof(entity));
+                ValidateEntity(entity, isUpdate: false);
+                if (Exists(entity.LoaiXeId, entity.LoaiVeId))
+                    throw new InvalidOperationException("A pricing row for the given LoaiXeId and LoaiVeId already exists.");
+
+                string conn = _db.GetConnectionString();
+                using (var sql = new SqlConnection(conn))
                 {
-                    cmd.Parameters.AddWithValue("@lx", entity.LoaiXeId);
-                    cmd.Parameters.AddWithValue("@lv", entity.LoaiVeId);
-                    AddDecimalParameter(cmd, "@gt", entity.GiaThang);
-                    cmd.Parameters.AddWithValue("@tt", (object?)entity.TrangThai ?? string.Empty);
-                    cmd.ExecuteNonQuery();
+                    sql.Open();
+                    // New model: do not write legacy per-day/night columns from repository.
+                    string q = @"INSERT INTO dbo.BangGia (LoaiXeId, LoaiVeId, GiaThang, TrangThai)
+                                         VALUES (@lx,@lv,@gt,@tt)";
+                    using (var cmd = new SqlCommand(q, sql))
+                    {
+                        cmd.Parameters.AddWithValue("@lx", entity.LoaiXeId);
+                        cmd.Parameters.AddWithValue("@lv", entity.LoaiVeId);
+                        AddDecimalParameter(cmd, "@gt", entity.GiaThang);
+                        cmd.Parameters.AddWithValue("@tt", (object?)entity.TrangThai ?? string.Empty);
+                        cmd.ExecuteNonQuery();
+                    }
                 }
+                LoggingService.Instance.LogInfo("Insert", "BangGiaRepository", $"Thêm bảng giá thành công (LoaiXeId: {entity.LoaiXeId}, LoaiVeId: {entity.LoaiVeId})");
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("InsertError", "BangGiaRepository", $"Lỗi thêm bảng giá: {ex.Message}", ex);
+                throw;
             }
         }
 
@@ -142,30 +151,39 @@ namespace QuanLyGiuXe.Services
         /// </summary>
         public void Update(BangGia entity)
         {
-            if (entity == null) throw new ArgumentNullException(nameof(entity));
-            if (entity.Id <= 0) throw new ArgumentException("Invalid Id", nameof(entity));
-            ValidateEntity(entity, isUpdate: true);
-
-            // ensure uniqueness: no other row with same pair
-            var existing = GetByLoaiXeAndLoaiVe(entity.LoaiXeId, entity.LoaiVeId);
-            if (existing != null && existing.Id != entity.Id)
-                throw new InvalidOperationException("Another pricing row with same LoaiXeId and LoaiVeId exists.");
-
-            string conn = _db.GetConnectionString();
-            using (var sql = new SqlConnection(conn))
+            try
             {
-                sql.Open();
-                // New model: do not update legacy per-day/night columns here.
-                string q = @"UPDATE dbo.BangGia SET LoaiXeId=@lx, LoaiVeId=@lv, GiaThang=@gt, TrangThai=@tt WHERE Id=@id";
-                using (var cmd = new SqlCommand(q, sql))
+                if (entity == null) throw new ArgumentNullException(nameof(entity));
+                if (entity.Id <= 0) throw new ArgumentException("Invalid Id", nameof(entity));
+                ValidateEntity(entity, isUpdate: true);
+
+                // ensure uniqueness: no other row with same pair
+                var existing = GetByLoaiXeAndLoaiVe(entity.LoaiXeId, entity.LoaiVeId);
+                if (existing != null && existing.Id != entity.Id)
+                    throw new InvalidOperationException("Another pricing row with same LoaiXeId and LoaiVeId exists.");
+
+                string conn = _db.GetConnectionString();
+                using (var sql = new SqlConnection(conn))
                 {
-                    cmd.Parameters.AddWithValue("@lx", entity.LoaiXeId);
-                    cmd.Parameters.AddWithValue("@lv", entity.LoaiVeId);
-                    AddDecimalParameter(cmd, "@gt", entity.GiaThang);
-                    cmd.Parameters.AddWithValue("@tt", (object?)entity.TrangThai ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@id", entity.Id);
-                    cmd.ExecuteNonQuery();
+                    sql.Open();
+                    // New model: do not update legacy per-day/night columns here.
+                    string q = @"UPDATE dbo.BangGia SET LoaiXeId=@lx, LoaiVeId=@lv, GiaThang=@gt, TrangThai=@tt WHERE Id=@id";
+                    using (var cmd = new SqlCommand(q, sql))
+                    {
+                        cmd.Parameters.AddWithValue("@lx", entity.LoaiXeId);
+                        cmd.Parameters.AddWithValue("@lv", entity.LoaiVeId);
+                        AddDecimalParameter(cmd, "@gt", entity.GiaThang);
+                        cmd.Parameters.AddWithValue("@tt", (object?)entity.TrangThai ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@id", entity.Id);
+                        cmd.ExecuteNonQuery();
+                    }
                 }
+                LoggingService.Instance.LogInfo("Update", "BangGiaRepository", $"Cập nhật bảng giá thành công (Id: {entity.Id})");
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("UpdateError", "BangGiaRepository", $"Lỗi cập nhật bảng giá (Id: {entity?.Id}): {ex.Message}", ex);
+                throw;
             }
         }
 
@@ -174,17 +192,26 @@ namespace QuanLyGiuXe.Services
         /// </summary>
         public void Delete(int id)
         {
-            if (id <= 0) throw new ArgumentException("Invalid id", nameof(id));
-            string conn = _db.GetConnectionString();
-            using (var sql = new SqlConnection(conn))
+            try
             {
-                sql.Open();
-                const string q = "DELETE FROM dbo.BangGia WHERE Id=@id";
-                using (var cmd = new SqlCommand(q, sql))
+                if (id <= 0) throw new ArgumentException("Invalid id", nameof(id));
+                string conn = _db.GetConnectionString();
+                using (var sql = new SqlConnection(conn))
                 {
-                    cmd.Parameters.AddWithValue("@id", id);
-                    cmd.ExecuteNonQuery();
+                    sql.Open();
+                    const string q = "DELETE FROM dbo.BangGia WHERE Id=@id";
+                    using (var cmd = new SqlCommand(q, sql))
+                    {
+                        cmd.Parameters.AddWithValue("@id", id);
+                        cmd.ExecuteNonQuery();
+                    }
                 }
+                LoggingService.Instance.LogInfo("Delete", "BangGiaRepository", $"Xóa bảng giá thành công (Id: {id})");
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("DeleteError", "BangGiaRepository", $"Lỗi xóa bảng giá (Id: {id}): {ex.Message}", ex);
+                throw;
             }
         }
 

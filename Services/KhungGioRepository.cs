@@ -40,60 +40,87 @@ namespace QuanLyGiuXe.Services
 
         public void Update(KhungGio entity)
         {
-            if (entity == null) throw new ArgumentNullException(nameof(entity));
-            if (entity.Id <= 0) throw new ArgumentException("Invalid Id", nameof(entity.Id));
-            string conn = _db.GetConnectionString();
-            using (var sql = new SqlConnection(conn))
+            try
             {
-                sql.Open();
-                string q = "UPDATE dbo.KhungGio SET TenKhungGio=@name, GioBatDau=@gb, GioKetThuc=@gk, QuaDem=@qd, TrangThai=@tt WHERE Id=@id";
-                using (var cmd = new SqlCommand(q, sql))
+                if (entity == null) throw new ArgumentNullException(nameof(entity));
+                if (entity.Id <= 0) throw new ArgumentException("Invalid Id", nameof(entity.Id));
+                string conn = _db.GetConnectionString();
+                using (var sql = new SqlConnection(conn))
                 {
-                    cmd.Parameters.AddWithValue("@name", (object?)entity.TenKhungGio ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@gb", entity.GioBatDau.ToString());
-                    cmd.Parameters.AddWithValue("@gk", entity.GioKetThuc.ToString());
-                    cmd.Parameters.AddWithValue("@qd", entity.QuaDem);
-                    cmd.Parameters.AddWithValue("@tt", entity.TrangThai);
-                    cmd.Parameters.AddWithValue("@id", entity.Id);
-                    cmd.ExecuteNonQuery();
+                    sql.Open();
+                    string q = "UPDATE dbo.KhungGio SET TenKhungGio=@name, GioBatDau=@gb, GioKetThuc=@gk, QuaDem=@qd, TrangThai=@tt WHERE Id=@id";
+                    using (var cmd = new SqlCommand(q, sql))
+                    {
+                        cmd.Parameters.AddWithValue("@name", (object?)entity.TenKhungGio ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@gb", entity.GioBatDau.ToString());
+                        cmd.Parameters.AddWithValue("@gk", entity.GioKetThuc.ToString());
+                        cmd.Parameters.AddWithValue("@qd", entity.QuaDem);
+                        cmd.Parameters.AddWithValue("@tt", entity.TrangThai);
+                        cmd.Parameters.AddWithValue("@id", entity.Id);
+                        cmd.ExecuteNonQuery();
+                    }
                 }
+                LoggingService.Instance.LogInfo("Update", "KhungGioRepository", $"Cập nhật khung giờ thành công (Id: {entity.Id}, Tên: {entity.TenKhungGio})");
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("UpdateError", "KhungGioRepository", $"Lỗi cập nhật khung giờ (Id: {entity?.Id}): {ex.Message}", ex);
+                throw;
             }
         }
 
         public void Insert(KhungGio entity)
         {
-            if (entity == null) throw new ArgumentNullException(nameof(entity));
-            string conn = _db.GetConnectionString();
-            using (var sql = new SqlConnection(conn))
+            try
             {
-                sql.Open();
-                string q = "INSERT INTO dbo.KhungGio (TenKhungGio, GioBatDau, GioKetThuc, QuaDem, TrangThai) VALUES (@name,@gb,@gk,@qd,@tt); SELECT SCOPE_IDENTITY();";
-                using (var cmd = new SqlCommand(q, sql))
+                if (entity == null) throw new ArgumentNullException(nameof(entity));
+                string conn = _db.GetConnectionString();
+                using (var sql = new SqlConnection(conn))
                 {
-                    cmd.Parameters.AddWithValue("@name", (object?)entity.TenKhungGio ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@gb", entity.GioBatDau.ToString());
-                    cmd.Parameters.AddWithValue("@gk", entity.GioKetThuc.ToString());
-                    cmd.Parameters.AddWithValue("@qd", entity.QuaDem);
-                    cmd.Parameters.AddWithValue("@tt", entity.TrangThai);
-                    var id = cmd.ExecuteScalar();
-                    if (id != null && int.TryParse(id.ToString(), out var iid)) entity.Id = iid;
+                    sql.Open();
+                    string q = "INSERT INTO dbo.KhungGio (TenKhungGio, GioBatDau, GioKetThuc, QuaDem, TrangThai) VALUES (@name,@gb,@gk,@qd,@tt); SELECT SCOPE_IDENTITY();";
+                    using (var cmd = new SqlCommand(q, sql))
+                    {
+                        cmd.Parameters.AddWithValue("@name", (object?)entity.TenKhungGio ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@gb", entity.GioBatDau.ToString());
+                        cmd.Parameters.AddWithValue("@gk", entity.GioKetThuc.ToString());
+                        cmd.Parameters.AddWithValue("@qd", entity.QuaDem);
+                        cmd.Parameters.AddWithValue("@tt", entity.TrangThai);
+                        var id = cmd.ExecuteScalar();
+                        if (id != null && int.TryParse(id.ToString(), out var iid)) entity.Id = iid;
+                    }
                 }
+                LoggingService.Instance.LogInfo("Insert", "KhungGioRepository", $"Thêm khung giờ thành công (Tên: {entity.TenKhungGio})");
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("InsertError", "KhungGioRepository", $"Lỗi thêm khung giờ: {ex.Message}", ex);
+                throw;
             }
         }
 
         public void Delete(int id)
         {
-            if (id <= 0) return;
-            string conn = _db.GetConnectionString();
-            using (var sql = new SqlConnection(conn))
+            try
             {
-                sql.Open();
-                string q = "DELETE FROM dbo.KhungGio WHERE Id=@id";
-                using (var cmd = new SqlCommand(q, sql))
+                if (id <= 0) return;
+                string conn = _db.GetConnectionString();
+                using (var sql = new SqlConnection(conn))
                 {
-                    cmd.Parameters.AddWithValue("@id", id);
-                    cmd.ExecuteNonQuery();
+                    sql.Open();
+                    string q = "DELETE FROM dbo.KhungGio WHERE Id=@id";
+                    using (var cmd = new SqlCommand(q, sql))
+                    {
+                        cmd.Parameters.AddWithValue("@id", id);
+                        cmd.ExecuteNonQuery();
+                    }
                 }
+                LoggingService.Instance.LogInfo("Delete", "KhungGioRepository", $"Xóa khung giờ thành công (Id: {id})");
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("DeleteError", "KhungGioRepository", $"Lỗi xóa khung giờ (Id: {id}): {ex.Message}", ex);
+                throw;
             }
         }
     }

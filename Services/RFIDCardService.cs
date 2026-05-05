@@ -98,40 +98,67 @@ namespace QuanLyGiuXe.Services
 
         public void Add(RFIDCards model)
         {
-            if (model == null) throw new ArgumentNullException(nameof(model));
-            if (string.IsNullOrWhiteSpace(model.CardUID)) throw new ArgumentException("CardUID không được rỗng", nameof(model.CardUID));
-            if (db.IsRFIDUidExists(model.CardUID)) throw new InvalidOperationException("CardUID đã tồn tại");
+            try
+            {
+                if (model == null) throw new ArgumentNullException(nameof(model));
+                if (string.IsNullOrWhiteSpace(model.CardUID)) throw new ArgumentException("CardUID không được rỗng", nameof(model.CardUID));
+                if (db.IsRFIDUidExists(model.CardUID)) throw new InvalidOperationException("CardUID đã tồn tại");
 
-            // Determine NgayHetHan logic if provided by model (caller should set NgayHetHan when needed)
-            var ngayDangKy = model.NgayDangKy ?? DateTime.Now;
-            var ngayHetHan = model.NgayHetHan;
+                // Determine NgayHetHan logic if provided by model (caller should set NgayHetHan when needed)
+                var ngayDangKy = model.NgayDangKy ?? DateTime.Now;
+                var ngayHetHan = model.NgayHetHan;
 
-            db.InsertRFIDCard(model.CardUID, model.BienSo ?? string.Empty, model.CardName ?? string.Empty, model.LoaiVeId ?? 0, model.LoaiXeId ?? 0, model.TrangThai ?? string.Empty, ngayDangKy, ngayHetHan);
+                db.InsertRFIDCard(model.CardUID, model.BienSo ?? string.Empty, model.CardName ?? string.Empty, model.LoaiVeId ?? 0, model.LoaiXeId ?? 0, model.TrangThai ?? string.Empty, ngayDangKy, ngayHetHan);
+                LoggingService.Instance.LogInfo("Add", "RFIDCardService", $"Thêm thẻ RFID thành công (UID: {model.CardUID}, Biển số: {model.BienSo})");
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("AddError", "RFIDCardService", $"Lỗi thêm thẻ RFID (UID: {model?.CardUID}): {ex.Message}", ex);
+                throw;
+            }
         }
 
         public void Update(RFIDCards model)
         {
-            if (model == null) throw new ArgumentNullException(nameof(model));
-            if (model.Id <= 0) throw new ArgumentException("ID không hợp lệ", nameof(model.Id));
-            // CardUID is readonly on edit, so we don't allow changing it here; but still ensure it's not empty
-            if (string.IsNullOrWhiteSpace(model.CardUID)) throw new ArgumentException("CardUID không được rỗng", nameof(model.CardUID));
+            try
+            {
+                if (model == null) throw new ArgumentNullException(nameof(model));
+                if (model.Id <= 0) throw new ArgumentException("ID không hợp lệ", nameof(model.Id));
+                // CardUID is readonly on edit, so we don't allow changing it here; but still ensure it's not empty
+                if (string.IsNullOrWhiteSpace(model.CardUID)) throw new ArgumentException("CardUID không được rỗng", nameof(model.CardUID));
 
-            // existing record check
-            var all = db.GetRFIDCards();
-            var existing = all?.Find(x => x.Id == model.Id);
-            if (existing == null) throw new InvalidOperationException("Không tìm thấy thẻ");
+                // existing record check
+                var all = db.GetRFIDCards();
+                var existing = all?.Find(x => x.Id == model.Id);
+                if (existing == null) throw new InvalidOperationException("Không tìm thấy thẻ");
 
-            // if CardUID changed (shouldn't), prevent duplicate
-            if (!string.Equals(existing.UID, model.CardUID, StringComparison.OrdinalIgnoreCase) && db.IsRFIDUidExists(model.CardUID))
-                throw new InvalidOperationException("CardUID đã tồn tại");
+                // if CardUID changed (shouldn't), prevent duplicate
+                if (!string.Equals(existing.UID, model.CardUID, StringComparison.OrdinalIgnoreCase) && db.IsRFIDUidExists(model.CardUID))
+                    throw new InvalidOperationException("CardUID đã tồn tại");
 
-            db.UpdateRFIDCard(model.Id, model.CardUID, model.BienSo ?? string.Empty, model.CardName ?? string.Empty, model.LoaiVeId ?? 0, model.LoaiXeId ?? 0, model.TrangThai ?? string.Empty, model.NgayDangKy, model.NgayHetHan);
+                db.UpdateRFIDCard(model.Id, model.CardUID, model.BienSo ?? string.Empty, model.CardName ?? string.Empty, model.LoaiVeId ?? 0, model.LoaiXeId ?? 0, model.TrangThai ?? string.Empty, model.NgayDangKy, model.NgayHetHan);
+                LoggingService.Instance.LogInfo("Update", "RFIDCardService", $"Cập nhật thẻ RFID thành công (Id: {model.Id}, UID: {model.CardUID})");
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("UpdateError", "RFIDCardService", $"Lỗi cập nhật thẻ RFID (Id: {model?.Id}): {ex.Message}", ex);
+                throw;
+            }
         }
 
         public void Delete(int id)
         {
-            if (id <= 0) throw new ArgumentException("ID không hợp lệ", nameof(id));
-            db.DeleteRFIDCard(id);
+            try
+            {
+                if (id <= 0) throw new ArgumentException("ID không hợp lệ", nameof(id));
+                db.DeleteRFIDCard(id);
+                LoggingService.Instance.LogInfo("Delete", "RFIDCardService", $"Xóa thẻ RFID thành công (Id: {id})");
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("DeleteError", "RFIDCardService", $"Lỗi xóa thẻ RFID (Id: {id}): {ex.Message}", ex);
+                throw;
+            }
         }
 
         // Get by id - map DatabaseService RFIDCard to project RFIDCards model
@@ -157,10 +184,19 @@ namespace QuanLyGiuXe.Services
 
         public void GiaHan(int id, int soThang)
         {
-            if (id <= 0) throw new ArgumentException("ID không hợp lệ");
-            if (soThang <= 0) throw new ArgumentException("Số tháng gia hạn phải lớn hơn 0");
+            try
+            {
+                if (id <= 0) throw new ArgumentException("ID không hợp lệ");
+                if (soThang <= 0) throw new ArgumentException("Số tháng gia hạn phải lớn hơn 0");
 
-            db.GiaHanRFIDCard(id, soThang);
+                db.GiaHanRFIDCard(id, soThang);
+                LoggingService.Instance.LogInfo("GiaHan", "RFIDCardService", $"Gia hạn thẻ RFID thành công (Id: {id}, {soThang} tháng)");
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("GiaHanError", "RFIDCardService", $"Lỗi gia hạn thẻ RFID (Id: {id}): {ex.Message}", ex);
+                throw;
+            }
         }
     }
 }
