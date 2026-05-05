@@ -139,7 +139,7 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel>
-                        <TextBlock Text="Tổng Lượt Xe Vừa/Ra" Foreground="{StaticResource MutedTextColor}" FontSize="14" FontWeight="SemiBold"/>
+                        <TextBlock Text="Tổng Lượt Xe Vào/Ra" Foreground="{StaticResource MutedTextColor}" FontSize="14" FontWeight="SemiBold"/>
                         <TextBlock Text="{Binding LuotXeVao}" FontSize="32" FontWeight="Bold" Foreground="{StaticResource TextColor}" Margin="0,5,0,0"/>
                     </StackPanel>
                     <TextBlock Grid.Column="1" Text="📈" FontSize="40" Opacity="0.5" VerticalAlignment="Center"/>
