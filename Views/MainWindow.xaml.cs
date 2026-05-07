@@ -32,15 +32,63 @@ namespace QuanLyGiuXe
         {
             InitializeComponent();
             DataContext = new MainViewModel();
-            MoCameras();
 
+            this.Loaded += MainWindow_Loaded;
+            
             RFIDService.Instance.OnCardScanned += OnRfidScanned;
-            RFIDService.Instance.Start();
             C3200Service.Instance.OnCardScanned += OnC3200Scanned;
             // subscribe to full RT events to record button presses
             C3200Service.Instance.OnEvent += OnC3200Event;
-            this.Closing += (s, e) => C3200Service.Instance.OnEvent -= OnC3200Event;
-            // UI: logs menu is defined in XAML (TopPanel) — no dynamic button needed here
+            
+            // UI RBAC
+            ApplyPermissions();
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            // IMPORTANT: Unsubscribe from all global events to prevent leaks and duplication!
+            RFIDService.Instance.OnCardScanned -= OnRfidScanned;
+            C3200Service.Instance.OnCardScanned -= OnC3200Scanned;
+            C3200Service.Instance.OnEvent -= OnC3200Event;
+
+            // Stop camera to release resources
+            try { _cameraService.StopAll(); } catch { }
+
+            base.OnClosed(e);
+        }
+
+        private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            // Show main UI immediately, then load heavy components in background
+            await Task.Run(() => {
+                // Pre-loading logic if any
+                System.Threading.Thread.Sleep(100); // Small breath for UI
+            });
+
+            MoCameras();
+            
+            Task.Run(() => {
+                RFIDService.Instance.Start();
+            });
+        }
+
+        private void ApplyPermissions()
+        {
+            string role = CurrentUser.Role?.ToUpper() ?? "";
+
+            // 1. Nhân viên/Hệ thống -> Chỉ ADMIN
+            MenuAdmin.Visibility = (role == "ADMIN") ? Visibility.Visible : Visibility.Collapsed;
+
+            // 2. Báo cáo -> ADMIN + SUPERVISOR + CASHIER
+            MenuBaoCao.Visibility = (role == "ADMIN" || role == "SUPERVISOR" || role == "CASHIER") ? Visibility.Visible : Visibility.Collapsed;
+
+            // 3. Vận hành -> OPERATOR + ADMIN + TECHNICIAN
+            MenuVanHanh.Visibility = (role == "OPERATOR" || role == "ADMIN" || role == "TECHNICIAN") ? Visibility.Visible : Visibility.Collapsed;
+            
+            // 4. Công cụ SQL -> Chỉ ADMIN
+            MenuTools.Visibility = (role == "ADMIN") ? Visibility.Visible : Visibility.Collapsed;
+            
+            // CASHIER: Hiện tại chưa có menu riêng trong WPF, nhưng bạn có thể thêm tương tự
         }
 
         private void GenerateTestLogs_Click(object sender, RoutedEventArgs e)
@@ -477,6 +525,19 @@ namespace QuanLyGiuXe
 
         // ── Khác ─────────────────────────────────────────────────────────────────
 
+        private void DoiMatKhau_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show("Chức năng đổi mật khẩu đang được phát triển.", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        private void UserPanel_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (DataContext is ViewModels.MainViewModel vm)
+            {
+                vm.IsUserPopupOpen = !vm.IsUserPopupOpen;
+            }
+        }
+
         private void MoLichSu(object sender, RoutedEventArgs e) =>
             new HistoryWindow().ShowDialog();
 
@@ -536,12 +597,7 @@ namespace QuanLyGiuXe
                 new VehicleDetailWindow(xe).ShowDialog();
         }
 
-        protected override void OnClosed(EventArgs e)
-        {
-            base.OnClosed(e);
-            // Ép tắt toàn bộ ứng dụng và tất cả các luồng ngầm (camera, thẻ, v.v.)
-            Environment.Exit(0);
-        }
+
 
         // ===== SIDEBAR HANDLERS =====
         private void MoDashboard_Click(object sender, RoutedEventArgs e)

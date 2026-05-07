@@ -36,6 +36,20 @@ namespace QuanLyGiuXe.Services
         private volatile bool _isShowing = false;
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
 
+        // ── Suppression ───────────────────────────────────────────────────────────
+        /// <summary>
+        /// Khi true, tất cả toast mới sẽ bị bỏ qua (dùng khi đăng xuất/đăng nhập).
+        /// </summary>
+        public bool IsSuppressed { get; set; } = false;
+
+        /// <summary>
+        /// Xóa tất cả toast đang chờ trong queue.
+        /// </summary>
+        public void ClearQueue()
+        {
+            while (_queue.TryDequeue(out _)) { }
+        }
+
         private ToastNotificationService() { }
 
         // ── Public API ────────────────────────────────────────────────────────────
@@ -45,6 +59,9 @@ namespace QuanLyGiuXe.Services
         /// </summary>
         public void ShowToast(string message, ToastType type, int durationMs = 4000)
         {
+            // Bỏ qua toast nếu đang trong trạng thái suppressed (đăng xuất/đăng nhập)
+            if (IsSuppressed) return;
+
             _queue.Enqueue(new ToastItem
             {
                 Message    = message,
@@ -103,7 +120,7 @@ namespace QuanLyGiuXe.Services
             });
 
             // Đợi toast đóng (có timeout để không treo mãi)
-            var timeoutTask = Task.Delay(item.DurationMs + 2000);
+            var timeoutTask = Task.Delay(item.DurationMs + 2000);   
             await Task.WhenAny(tcs.Task, timeoutTask).ConfigureAwait(false);
         }
     }

@@ -1,6 +1,7 @@
 using System;
 using System.Windows;
 using System.Windows.Media;
+using Color = System.Windows.Media.Color;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
 using QuanLyGiuXe.Services;

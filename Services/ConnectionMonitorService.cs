@@ -39,6 +39,7 @@ namespace QuanLyGiuXe.Services
         private bool? _lastC3Status = null;
 
         // ── Lifecycle ─────────────────────────────────────────────────────────────
+        private readonly object _lifecycleLock = new();
         private CancellationTokenSource? _cts;
         private Task? _loopTask;
 
@@ -58,32 +59,72 @@ namespace QuanLyGiuXe.Services
         /// </summary>
         public void Start(CancellationToken appToken = default)
         {
-            if (_loopTask != null && !_loopTask.IsCompleted) return;
+            lock (_lifecycleLock)
+            {
+                if (_loopTask != null && !_loopTask.IsCompleted) return;
 
-            _cts = CancellationTokenSource.CreateLinkedTokenSource(appToken);
-            _loopTask = Task.Run(() => MonitorLoopAsync(_cts.Token));
+                StartLocked(appToken);
+            }
 
             LoggingService.Instance.LogInfo("CONNECTION", "Monitor",
                 $"ConnectionMonitorService started (interval={IntervalSeconds}s)");
         }
 
         /// <summary>
-        /// Dừng vòng lặp monitor (gọi khi đóng app).
+        /// Hủy task hiện tại (nếu có) và khởi động vòng lặp mới. Dùng sau login lại để
+        /// tránh race: check chạy khi chưa có subscriber làm mất sự kiện cập nhật UI.
+        /// </summary>
+        public void Restart(CancellationToken appToken = default)
+        {
+            lock (_lifecycleLock)
+            {
+                CancelAndJoinLoop();
+                ResetState();
+                StartLocked(appToken);
+            }
+
+            LoggingService.Instance.LogInfo("CONNECTION", "Monitor",
+                $"ConnectionMonitorService restarted (interval={IntervalSeconds}s)");
+        }
+
+        /// <summary>
+        /// Dừng vòng lặp monitor (gọi khi đóng app hoặc logout).
         /// </summary>
         public void Stop()
         {
-            try
+            lock (_lifecycleLock)
             {
-                _cts?.Cancel();
-                _loopTask?.Wait(2000);
+                CancelAndJoinLoop();
+                ResetState();
             }
-            catch { }
+        }
+
+        private void StartLocked(CancellationToken appToken)
+        {
+            _cts = CancellationTokenSource.CreateLinkedTokenSource(appToken);
+            _loopTask = Task.Run(() => MonitorLoopAsync(_cts.Token));
+        }
+
+        private void CancelAndJoinLoop()
+        {
+            try { _cts?.Cancel(); } catch { /* ignore */ }
+            try { _loopTask?.Wait(2000); } catch { /* ignore */ }
             finally
             {
                 _cts?.Dispose();
                 _cts = null;
                 _loopTask = null;
             }
+        }
+
+        /// <summary>
+        /// Xóa bộ nhớ trạng thái cũ (dùng khi logout/login mới)
+        /// </summary>
+        public void ResetState()
+        {
+            _lastDbStatus = null;
+            _lastC3Status = null;
+            LoggingService.Instance.LogInfo("CONNECTION", "Monitor", "Status state reset.");
         }
 
         // ── Loop ──────────────────────────────────────────────────────────────────

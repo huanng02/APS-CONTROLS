@@ -42,33 +42,61 @@ namespace QuanLyGiuXe.Services
             }
         }
 
+        private static string? _cachedWorkingConnection;
+        private static DateTime _lastCheckTime = DateTime.MinValue;
+
         private string GetWorkingConnection()
         {
-            // Try primary connection first
+            // Use cached connection if it was checked recently (within 5 minutes)
+            if (_cachedWorkingConnection != null && (DateTime.Now - _lastCheckTime).TotalMinutes < 5)
+            {
+                return _cachedWorkingConnection;
+            }
+
+            // Try primary connection with a SHORT timeout (2 seconds)
+            string primaryWithTimeout = primaryConnection;
+            if (!primaryWithTimeout.Contains("Connect Timeout") && !primaryWithTimeout.Contains("Connection Timeout"))
+            {
+                primaryWithTimeout += ";Connect Timeout=2;";
+            }
+
             try
             {
-                using (SqlConnection conn = new SqlConnection(primaryConnection))
+                using (SqlConnection conn = new SqlConnection(primaryWithTimeout))
                 {
                     conn.Open();
+                    _cachedWorkingConnection = primaryConnection;
+                    _lastCheckTime = DateTime.Now;
                     return primaryConnection;
                 }
             }
             catch
             {
                 // fallback to backup
+                LoggingService.Instance.LogWarning("DBConn", "DatabaseService", "Primary DB failed, trying backup...");
             }
 
             try
             {
-                using (SqlConnection conn = new SqlConnection(backupConnection))
+                string backupWithTimeout = backupConnection;
+                if (!backupWithTimeout.Contains("Connect Timeout"))
+                {
+                    backupWithTimeout += ";Connect Timeout=2;";
+                }
+
+                using (SqlConnection conn = new SqlConnection(backupWithTimeout))
                 {
                     conn.Open();
+                    _cachedWorkingConnection = backupConnection;
+                    _lastCheckTime = DateTime.Now;
                     return backupConnection;
                 }
             }
             catch
             {
-                throw new Exception("Database connection failed. Both primary and backup servers are unavailable.");
+                // Last ditch effort: return primary and let the caller handle the long timeout/error
+                _cachedWorkingConnection = primaryConnection; 
+                return primaryConnection;
             }
         }
         /// <summary>
@@ -119,6 +147,24 @@ namespace QuanLyGiuXe.Services
                     cmd.ExecuteNonQuery();
                 }
             }
+        }
+
+        public int GetTotalXeTrongBaiCount()
+        {
+            try
+            {
+                using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+                {
+                    conn.Open();
+                    string sql = "SELECT COUNT(*) FROM XeTrongBai";
+                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    {
+                        var result = cmd.ExecuteScalar();
+                        return result != null ? Convert.ToInt32(result) : 0;
+                    }
+                }
+            }
+            catch { return 0; }
         }
 
         /// Calculate parking fee based on vehicle type, ticket type and duration.

@@ -143,7 +143,30 @@ namespace QuanLyGiuXe.ViewModels
             set { _trangThaiKetNoi = value; OnPropertyChanged(nameof(TrangThaiKetNoi)); }
         }
 
-        public string SoXeTrongBai => $"Xe trong bãi: {DanhSachXe?.Count ?? 0}";
+        private int _totalXeTrongBai = 0;
+        public string SoXeTrongBai => $"Xe trong bãi: {_totalXeTrongBai}";
+
+        private bool _isUserPopupOpen;
+        public bool IsUserPopupOpen
+        {
+            get => _isUserPopupOpen;
+            set { _isUserPopupOpen = value; OnPropertyChanged(nameof(IsUserPopupOpen)); }
+        }
+
+        public string CurrentUserTen => QuanLyGiuXe.Models.CurrentUser.Ten ?? "Nhân viên";
+        public string CurrentUserRole => QuanLyGiuXe.Models.CurrentUser.Role ?? "Người vận hành";
+        public string CurrentUserUsername => QuanLyGiuXe.Models.CurrentUser.Username ?? "user";
+
+        public void UpdateVehicleCount()
+        {
+            Task.Run(() => {
+                int count = db.GetTotalXeTrongBaiCount();
+                Application.Current?.Dispatcher?.Invoke(() => {
+                    _totalXeTrongBai = count;
+                    OnPropertyChanged(nameof(SoXeTrongBai));
+                });
+            });
+        }
 
         public ObservableCollection<Services.LogEntry> LogEntries { get; } = new();
 
@@ -267,6 +290,8 @@ namespace QuanLyGiuXe.ViewModels
         public ICommand TimKiemCommand { get; }
         public ICommand LichSuCommand { get; }
         public ICommand DatabaseExplorerCommand { get; }
+        public ICommand LogoutCommand { get; }
+        public ICommand ToggleUserPopupCommand { get; }
 
         // ── Constructor ───────────────────────────────────────────────────────────
 
@@ -275,13 +300,6 @@ namespace QuanLyGiuXe.ViewModels
             var cfg = AppConfig.Load();
             _showLog = cfg.ShowLog;
 
-            var zk = cfg.ZKTeco;
-            C3200Service.Instance.Configure(
-                ip: zk.IpAddress, port: zk.TcpPort,
-                password: zk.Password, timeoutMs: zk.Timeout,
-                barrierDuration: zk.BarrierDuration);
-            _ = C3200Service.Instance.ConnectAsync();
-
             DanhSachXe = new ObservableCollection<Xe>();
             DanhSachXe.CollectionChanged += (_, _) => OnPropertyChanged(nameof(SoXeTrongBai));
 
@@ -289,36 +307,79 @@ namespace QuanLyGiuXe.ViewModels
             XeRaCommand = new RelayCommand(async _ => await XeRaAsync());
             XeChiTietCommand = new RelayCommand<Xe>(XeChiTiet);
 
-            C3200Service.Instance.OnConnectionChanged += online =>
-                Application.Current?.Dispatcher?.Invoke(() =>
-                    TrangThaiKetNoi = online ? "C3200: Online ●" : "C3200: Offline ○");
-
+            C3200Service.Instance.OnConnectionChanged += OnC3200ConnectionChanged;
+            
             CurrentView = new TrangChuViewModel();
-
+            
             TrangChuCommand = new RelayCommand(_ => SetView(new TrangChuViewModel()));
             TimKiemCommand = new RelayCommand(_ => SetView(new TimKiemViewModel()));
             LichSuCommand = new RelayCommand(_ => SetView(new LichSuViewModel()));
             DatabaseExplorerCommand = new RelayCommand(_ => SetView(new DatabaseExplorerViewModel()));
+            ToggleUserPopupCommand = new RelayCommand(_ => IsUserPopupOpen = !IsUserPopupOpen);
+            LogoutCommand = new RelayCommand(_ => {
+                IsUserPopupOpen = false;
+                UnsubscribeEvents(); // Clean up this VM
+                if (Application.Current is App app)
+                {
+                    app.PerformLogout();
+                }
+            });
 
-            LoadXeTrongBai();
+            // Kick off heavy initialization in the background
+            _ = InitializeAsync(cfg);
+        }
 
-            // ── Subscribe realtime log ─────────────────────────────────────────────
+        private async Task InitializeAsync(AppConfig cfg)
+        {
             try
             {
+                // 1. ZKTeco/C3200 Init
+                var zk = cfg.ZKTeco;
+                C3200Service.Instance.Configure(
+                    ip: zk.IpAddress, port: zk.TcpPort,
+                    password: zk.Password, timeoutMs: zk.Timeout,
+                    barrierDuration: zk.BarrierDuration);
+                
+                await C3200Service.Instance.ConnectAsync();
+
+                // 2. Heavy data loading removed from startup (Load on demand)
+                UpdateVehicleCount();
+
+                // 3. Subscribe realtime log
                 QuanLyGiuXe.Services.LoggingService.Instance.LogEmitted += OnLogEmitted;
-            }
-            catch { }
 
-            // ── Start Connection Monitor ───────────────────────────────────────────
-            try
-            {
-                ConnectionMonitorService.Instance.StatusChanged += OnConnectionStatusChanged;
-                ConnectionMonitorService.Instance.Start();
+                // 4. Connection monitor: reset UI + restart loop (login lại / VM mới)
+                await Application.Current.Dispatcher.InvokeAsync(ResetStatus);
+                await StartConnectionCheck();
+                
+                LoggingService.Instance.LogInfo("VMInit", "MainViewModel", "Async initialization complete");
             }
-            catch { }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("VMInitError", "MainViewModel", "Async init failed", ex);
+            }
         }
 
         // ── Connection Monitor handler ─────────────────────────────────────────
+
+        /// <summary>
+        /// Đặt chỉ báo DB/C3 về màu vàng "Đang kiểm tra". Gọi trên UI thread (Dispatcher).
+        /// </summary>
+        public void ResetStatus()
+        {
+            DbStatusLabel = "🟡 Database — Đang kiểm tra";
+            C3StatusLabel = "🟡 C3-200 — Đang kiểm tra";
+        }
+
+        /// <summary>
+        /// Đăng ký handler và hủy task monitor cũ (nếu có), chạy vòng kiểm tra mới.
+        /// </summary>
+        public async Task StartConnectionCheck()
+        {
+            ConnectionMonitorService.Instance.StatusChanged -= OnConnectionStatusChanged;
+            ConnectionMonitorService.Instance.StatusChanged += OnConnectionStatusChanged;
+            await Task.Run(() => ConnectionMonitorService.Instance.Restart()).ConfigureAwait(false);
+        }
 
         private void OnConnectionStatusChanged(ConnectionStatus status)
         {
@@ -385,18 +446,8 @@ namespace QuanLyGiuXe.ViewModels
             OnPropertyChanged(nameof(CurrentView));
         }
 
-        private void LoadXeTrongBai()
-        {
-            foreach (DataRow row in db.LayXeTrongBai().Rows)
-            {
-                var xe = new Xe
-                {
-                    BienSo = row["BienSo"].ToString()!,
-                    ThoiGianVao = Convert.ToDateTime(row["ThoiGianVao"])
-                };
-                DanhSachXe.Add(xe);
-            }
-        }
+        // LoadXeTrongBai removed - use UpdateVehicleCount for dashboard instead
+
 
         // ── Xe Vào / Ra ──────────────────────────────────────────────────────────
 
@@ -481,6 +532,7 @@ namespace QuanLyGiuXe.ViewModels
                 );
 
                 ThemLog("VÀO", plate, opened ? "✅ Barrier đã mở" : "⚠ Barrier lỗi");
+                UpdateVehicleCount();
 
                 BienSoNhap = "";
                 LastScannedUID = string.Empty;
@@ -610,6 +662,7 @@ namespace QuanLyGiuXe.ViewModels
                 );
 
                 ThemLog("RA", plate, $"💰 {tien:N0} VNĐ");
+                UpdateVehicleCount();
             }
             catch (Exception ex)
             {
@@ -645,6 +698,24 @@ namespace QuanLyGiuXe.ViewModels
         {
             if (xe == null) return;
             new Views.VehicleDetailWindow(xe).ShowDialog();
+        }
+
+        public void UnsubscribeEvents()
+        {
+            try
+            {
+                // Unsubscribe from global services to prevent memory leaks and background crashes
+                C3200Service.Instance.OnConnectionChanged -= OnC3200ConnectionChanged;
+                QuanLyGiuXe.Services.LoggingService.Instance.LogEmitted -= OnLogEmitted;
+                ConnectionMonitorService.Instance.StatusChanged -= OnConnectionStatusChanged;
+            }
+            catch { }
+        }
+
+        private void OnC3200ConnectionChanged(bool online)
+        {
+            Application.Current?.Dispatcher?.Invoke(() =>
+                TrangThaiKetNoi = online ? "C3200: Online ●" : "C3200: Offline ○");
         }
     }
 }
