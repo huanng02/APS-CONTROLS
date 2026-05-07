@@ -242,6 +242,10 @@
                                         Content="💰 Bảng giá"
                                         Tag="BangGia"
                                         Click="OpenModule_Click"/>
+
+                                <Button Style="{StaticResource SidebarButtonStyle}"
+                                        Content="👥 Quản lý người dùng"
+                                        Click="MoQuanLyNguoiDung_Click"/>
                             </StackPanel>
 
 

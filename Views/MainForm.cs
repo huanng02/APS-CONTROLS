@@ -49,6 +49,7 @@ namespace QuanLyGiuXe.Views
             btnNhanVien.Text = "👥 Quản Lý Nhân Viên";
             btnNhanVien.Location = new System.Drawing.Point(20, startY);
             btnNhanVien.Size = new System.Drawing.Size(200, 30);
+            btnNhanVien.Click += BtnNhanVien_Click;
 
             btnBaoCao.Text = "📊 Báo cáo doanh thu";
             btnBaoCao.Location = new System.Drawing.Point(20, startY + gap);
@@ -98,6 +99,12 @@ namespace QuanLyGiuXe.Views
             btnVanHanh.Visible = (role == "OPERATOR");
             
             // TECHNICIAN có thể xem gì đó (tùy chọn thêm)
+        }
+
+        private void BtnNhanVien_Click(object? sender, EventArgs e)
+        {
+            using var frm = new UserManagementForm();
+            frm.ShowDialog(this);
         }
     }
 }

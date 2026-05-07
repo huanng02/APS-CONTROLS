@@ -620,6 +620,20 @@ namespace QuanLyGiuXe
             new RealtimeLogWindow { Owner = this }.Show();
         }
 
+        private void MoQuanLyNguoiDung_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                using var frm = new QuanLyGiuXe.Views.UserManagementForm();
+                frm.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("UserManagement", "MoQuanLyNguoiDung_Click", "Lỗi mở Quản lý người dùng", ex);
+                MessageBox.Show($"Không thể mở Quản lý người dùng: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private void MoDanhSachRFID(object sender, RoutedEventArgs e)
         {
             ShowToast("Mở danh sách thẻ RFID (chưa triển khai)");
