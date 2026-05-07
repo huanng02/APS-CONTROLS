@@ -292,6 +292,8 @@ namespace QuanLyGiuXe.ViewModels
         public ICommand DatabaseExplorerCommand { get; }
         public ICommand LogoutCommand { get; }
         public ICommand ToggleUserPopupCommand { get; }
+        public ICommand EditProfileCommand { get; }
+        public ICommand ChangePasswordCommand { get; }
 
         // ── Constructor ───────────────────────────────────────────────────────────
 
@@ -316,6 +318,57 @@ namespace QuanLyGiuXe.ViewModels
             LichSuCommand = new RelayCommand(_ => SetView(new LichSuViewModel()));
             DatabaseExplorerCommand = new RelayCommand(_ => SetView(new DatabaseExplorerViewModel()));
             ToggleUserPopupCommand = new RelayCommand(_ => IsUserPopupOpen = !IsUserPopupOpen);
+            EditProfileCommand = new RelayCommand(_ =>
+            {
+                try
+                {
+                    IsUserPopupOpen = false;
+
+                    var window = new Views.UserProfileWindow();
+
+                    window.ShowDialog();
+                }
+                catch (Exception ex)
+                {
+                    LoggingService.Instance.LogError(
+                        "OpenProfileWindow",
+                        "MainViewModel",
+                        "Failed to open profile window",
+                        ex);
+
+                    MessageBox.Show(
+                        "Không thể mở thông tin cá nhân",
+                        "Lỗi",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error);
+                }
+            });
+
+            ChangePasswordCommand = new RelayCommand(_ =>
+            {
+                try
+                {
+                    IsUserPopupOpen = false;
+
+                    var window = new Views.ChangePasswordWindow();
+
+                    window.ShowDialog();
+                }
+                catch (Exception ex)
+                {
+                    LoggingService.Instance.LogError(
+                        "OpenChangePasswordWindow",
+                        "MainViewModel",
+                        "Failed to open change password window",
+                        ex);
+
+                    MessageBox.Show(
+                        "Không thể mở đổi mật khẩu",
+                        "Lỗi",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error);
+                }
+            });
             LogoutCommand = new RelayCommand(_ => {
                 IsUserPopupOpen = false;
                 UnsubscribeEvents(); // Clean up this VM

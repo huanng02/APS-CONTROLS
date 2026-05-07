@@ -307,40 +307,106 @@
                     </Border>
 
                     <!-- Popup for User Details -->
-                    <Popup x:Name="UserDetailPopup" 
-                           IsOpen="{Binding IsUserPopupOpen, Mode=TwoWay}" 
-                           PlacementTarget="{Binding ElementName=UserPanel}" 
-                           Placement="Top" StaysOpen="False" AllowsTransparency="True">
-                        <Border Background="White" BorderBrush="#DDD" BorderThickness="1" 
-                                CornerRadius="8" Width="220" Margin="0,0,10,10" Padding="15">
+                    <Popup x:Name="UserDetailPopup"
+       IsOpen="{Binding IsUserPopupOpen, Mode=TwoWay}"
+       PlacementTarget="{Binding ElementName=UserPanel}"
+       Placement="Top"
+       StaysOpen="False"
+       AllowsTransparency="True">
+
+                        <Border Background="White"
+            BorderBrush="#DDD"
+            BorderThickness="1"
+            CornerRadius="8"
+            Width="240"
+            Margin="0,0,10,10"
+            Padding="15">
+
                             <Border.Effect>
-                                <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.2"/>
+                                <DropShadowEffect BlurRadius="10"
+                              ShadowDepth="2"
+                              Opacity="0.2"/>
                             </Border.Effect>
+
                             <StackPanel>
-                                <TextBlock Text="Thông tin tài khoản" FontWeight="Bold" FontSize="14" Margin="0,0,0,15" Foreground="#34495E"/>
-                                
+
+                                <!-- Header -->
+                                <TextBlock Text="Thông tin tài khoản"
+                       FontWeight="Bold"
+                       FontSize="14"
+                       Margin="0,0,0,15"
+                       Foreground="#34495E"/>
+
+                                <!-- Tên -->
                                 <Grid Margin="0,0,0,8">
-                                    <TextBlock Text="👤 Tên:" Foreground="#7F8C8D" FontSize="11"/>
-                                    <TextBlock Text="{Binding CurrentUserTen}" FontWeight="SemiBold" HorizontalAlignment="Right" Foreground="#2C3E50"/>
-                                </Grid>
-                                
-                                <Grid Margin="0,0,0,8">
-                                    <TextBlock Text="🔑 Username:" Foreground="#7F8C8D" FontSize="11"/>
-                                    <TextBlock Text="{Binding CurrentUserUsername}" FontWeight="SemiBold" HorizontalAlignment="Right" Foreground="#2C3E50"/>
+                                    <TextBlock Text="👤 Tên:"
+                           Foreground="#7F8C8D"
+                           FontSize="11"/>
+
+                                    <TextBlock Text="{Binding CurrentUserTen}"
+                           FontWeight="SemiBold"
+                           HorizontalAlignment="Right"
+                           Foreground="#2C3E50"/>
                                 </Grid>
 
+                                <!-- Username -->
+                                <Grid Margin="0,0,0,8">
+                                    <TextBlock Text="🔑 Username:"
+                           Foreground="#7F8C8D"
+                           FontSize="11"/>
+
+                                    <TextBlock Text="{Binding CurrentUserUsername}"
+                           FontWeight="SemiBold"
+                           HorizontalAlignment="Right"
+                           Foreground="#2C3E50"/>
+                                </Grid>
+
+                                <!-- Role -->
                                 <Grid Margin="0,0,0,15">
-                                    <TextBlock Text="🛡 Vai trò:" Foreground="#7F8C8D" FontSize="11"/>
-                                    <TextBlock Text="{Binding CurrentUserRole}" FontWeight="SemiBold" HorizontalAlignment="Right" Foreground="#27AE60"/>
+                                    <TextBlock Text="🛡 Vai trò:"
+                           Foreground="#7F8C8D"
+                           FontSize="11"/>
+
+                                    <TextBlock Text="{Binding CurrentUserRole}"
+                           FontWeight="SemiBold"
+                           HorizontalAlignment="Right"
+                           Foreground="#27AE60"/>
                                 </Grid>
 
-                                <Separator Margin="0,5,0,10" Background="#EEE"/>
+                                <Separator Margin="0,5,0,10"
+                       Background="#EEE"/>
 
-                                <Button Style="{StaticResource SidebarButtonStyle}" 
-                                        Content="🚪 Đăng xuất hệ thống" 
-                                        Background="#E74C3C" Foreground="White"
-                                        Command="{Binding LogoutCommand}"
-                                        Height="35"/>
+                                <!-- Edit Profile -->
+                                <Button Content="✏ Chỉnh sửa thông tin"
+        Height="35"
+        Margin="0,0,0,8"
+        Command="{Binding EditProfileCommand}"
+        Background="#3498DB"
+        Foreground="White"
+        BorderThickness="0"
+        Cursor="Hand"/>
+
+                                <!-- Change Password -->
+                                <Button Content="🔒 Đổi mật khẩu"
+        Height="35"
+        Margin="0,0,0,12"
+        Command="{Binding ChangePasswordCommand}"
+        Background="#F39C12"
+        Foreground="White"
+        BorderThickness="0"
+        Cursor="Hand"/>
+
+                                <Separator Margin="0,0,0,10"
+           Background="#EEE"/>
+
+                                <!-- Logout -->
+                                <Button Content="🚪 Đăng xuất hệ thống"
+                    Background="#E74C3C"
+                    Foreground="White"
+                    Command="{Binding LogoutCommand}"
+                    Height="35"
+                    BorderThickness="0"
+                    Cursor="Hand"/>
                             </StackPanel>
                         </Border>
                     </Popup>
