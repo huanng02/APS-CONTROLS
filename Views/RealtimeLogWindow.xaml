@@ -100,7 +100,7 @@
                 </Style>
             </DataGrid.RowStyle>
 
-            <DataGrid.Columns>
+                <DataGrid.Columns>
                 <DataGridTextColumn Header="STT" Binding="{Binding STT}" IsReadOnly="True" Width="60" />
                 <DataGridTextColumn Header="Time" Binding="{Binding Timestamp, StringFormat=HH:mm:ss}" Width="140" />
                 <DataGridTemplateColumn Header="Level" Width="110">
@@ -128,10 +128,27 @@
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
                 <DataGridTextColumn Header="Event" Binding="{Binding EventType}" Width="220" />
+                <DataGridTextColumn Header="User" Binding="{Binding Username}" Width="140" />
+                <DataGridTextColumn Header="Action" Binding="{Binding Action}" Width="140" />
+                <DataGridTextColumn Header="Entity" Binding="{Binding EntityName}" Width="140" />
+                <DataGridTextColumn Header="EntityId" Binding="{Binding EntityId}" Width="120" />
                 <DataGridTemplateColumn Header="Details" Width="*">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <TextBlock Text="{Binding Details}" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" MaxHeight="72" ToolTip="{Binding Details}" />
+                            <StackPanel>
+                                <TextBlock Text="{Binding Details}" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" MaxHeight="48" ToolTip="{Binding Details}" />
+                                <TextBlock Foreground="#7F8C8D" FontSize="11" TextTrimming="CharacterEllipsis" MaxHeight="36" TextWrapping="Wrap">
+                                    <Run Text="Old: " />
+                                    <Run Text="" />
+                                    <TextBlock Text="" Visibility="Collapsed" />
+                                    <Run Text="" />
+                                    <Run Text="{Binding OldValues}" />
+                                </TextBlock>
+                                <TextBlock Foreground="#7F8C8D" FontSize="11" TextTrimming="CharacterEllipsis" MaxHeight="36" TextWrapping="Wrap">
+                                    <Run Text="New: " />
+                                    <Run Text="{Binding NewValues}" />
+                                </TextBlock>
+                            </StackPanel>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>

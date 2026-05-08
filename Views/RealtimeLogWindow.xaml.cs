@@ -115,7 +115,16 @@ namespace QuanLyGiuXe.Views
                     Details = it.Details,
                     UserId = it.UserId,
                     Plate = it.Plate,
-                    Exception = it.Exception
+                    Exception = it.Exception,
+                    // audit fields
+                    Username = it.Username,
+                    Action = it.Action,
+                    EntityName = it.EntityName,
+                    EntityId = it.EntityId,
+                    OldValues = it.OldValues,
+                    NewValues = it.NewValues,
+                    SessionId = it.SessionId,
+                    CorrelationId = it.CorrelationId
                 }).ToList();
 
                 // If sort is Newest first, ensure display shows newest on top for page items

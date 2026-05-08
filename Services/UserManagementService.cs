@@ -35,10 +35,15 @@ namespace QuanLyGiuXe.Services
             model.Password = hashed;
 
             int newId = await _repo.CreateUserAsync(model).ConfigureAwait(false);
-            LoggingService.Instance.LogInfo(
-                "CREATE_USER", nameof(UserManagementService),
-                $"Created user Id={newId}, Username={model.Username}, RoleId={model.RoleId}, Status={model.TrangThai}",
-                actorUserId.ToString());
+            try
+            {
+                LoggingService.Instance.LogSecurity(
+                    "CREATE_USER",
+                    "Auth",
+                    $"{{\"Username\":\"{model.Username}\",\"UserId\":{newId}}}",
+                    userId: actorUserId.ToString());
+            }
+            catch { }
 
             return (true, "Thêm user thành công.");
         }
@@ -51,12 +56,43 @@ namespace QuanLyGiuXe.Services
             if (string.IsNullOrWhiteSpace(ten))
                 return (false, "Tên không được để trống.");
 
+            var previous = await _repo.GetUserByIdAsync(id).ConfigureAwait(false);
+            var oldValues = previous == null ? null : new { Ten = previous.Ten, Username = previous.Username, RoleId = previous.RoleId, TrangThai = previous.TrangThai };
+            var newValues = new { Ten = ten, Username = previous?.Username ?? string.Empty, RoleId = roleId, TrangThai = trangThai };
+
             await _repo.UpdateUserAsync(id, ten, roleId, trangThai)
                 .ConfigureAwait(false);
-            LoggingService.Instance.LogInfo(
-                "UPDATE_USER", nameof(UserManagementService),
-                $"Updated user Id={id}, Ten={ten}, RoleId={roleId}, Status={trangThai}",
-                actorUserId.ToString());
+
+            try
+            {
+                bool roleChanged = previous != null && previous.RoleId != roleId;
+                bool otherChanged = previous == null || previous.Ten != ten || previous.TrangThai != trangThai;
+
+                if (roleChanged && !otherChanged)
+                {
+                    LoggingService.Instance.LogCrud(
+                        "CHANGE_ROLE",
+                        "NhanVien",
+                        id.ToString(),
+                        oldValues: new { RoleId = previous.RoleId },
+                        newValues: new { RoleId = roleId },
+                        source: "Auth",
+                        userId: actorUserId.ToString());
+                }
+                else
+                {
+                    LoggingService.Instance.LogCrud(
+                        "UPDATE_USER",
+                        "NhanVien",
+                        id.ToString(),
+                        oldValues: oldValues,
+                        newValues: newValues,
+                        source: "Auth",
+                        userId: actorUserId.ToString());
+                }
+            }
+            catch { }
+
             return (true, "Cập nhật user thành công.");
         }
 
@@ -65,12 +101,76 @@ namespace QuanLyGiuXe.Services
         {
             if (id <= 0)
                 return (false, "User không hợp lệ.");
+            var previous = await _repo.GetUserByIdAsync(id).ConfigureAwait(false);
+            var oldValues = previous == null ? null : new { Ten = previous.Ten, Username = previous.Username, TrangThai = previous.TrangThai };
+
             await _repo.DisableUserAsync(id).ConfigureAwait(false);
 
-            LoggingService.Instance.LogInfo(
-                "DISABLE_USER", nameof(UserManagementService),
-                $"Disabled user Id={id}", actorUserId.ToString());
+            try
+            {
+                var newValues = new { TrangThai = "Disabled" };
+                LoggingService.Instance.LogCrud(
+                    "DISABLE_USER",
+                    "NhanVien",
+                    id.ToString(),
+                    oldValues: oldValues,
+                    newValues: newValues,
+                    source: "Auth",
+                    userId: actorUserId.ToString());
+            }
+            catch { }
+
             return (true, "Đã disable user.");
+        }
+
+        public async Task<(bool Success, string Message)> EnableUserAsync(int id, int actorUserId)
+        {
+            if (id <= 0) return (false, "User không hợp lệ.");
+            var previous = await _repo.GetUserByIdAsync(id).ConfigureAwait(false);
+            var oldValues = previous == null ? null : new { Ten = previous.Ten, Username = previous.Username, TrangThai = previous.TrangThai };
+
+            await _repo.EnableUserAsync(id).ConfigureAwait(false);
+
+            try
+            {
+                var newValues = new { TrangThai = "Active" };
+                LoggingService.Instance.LogCrud(
+                    "ENABLE_USER",
+                    "NhanVien",
+                    id.ToString(),
+                    oldValues: oldValues,
+                    newValues: newValues,
+                    source: "Auth",
+                    userId: actorUserId.ToString());
+            }
+            catch { }
+
+            return (true, "Đã enable user.");
+        }
+
+        public async Task<(bool Success, string Message)> DeleteUserAsync(int id, int actorUserId)
+        {
+            if (id <= 0) return (false, "User không hợp lệ.");
+
+            var previous = await _repo.GetUserByIdAsync(id).ConfigureAwait(false);
+            var oldValues = previous == null ? null : new { Ten = previous.Ten, Username = previous.Username, TrangThai = previous.TrangThai };
+
+            await _repo.DeleteUserAsync(id).ConfigureAwait(false);
+
+            try
+            {
+                LoggingService.Instance.LogCrud(
+                    "DELETE_USER",
+                    "NhanVien",
+                    id.ToString(),
+                    oldValues: oldValues,
+                    newValues: null,
+                    source: "Auth",
+                    userId: actorUserId.ToString());
+            }
+            catch { }
+
+            return (true, "Đã xóa user.");
         }
 
         public async Task<(bool Success, string Message)> ResetPasswordAsync(
@@ -84,9 +184,21 @@ namespace QuanLyGiuXe.Services
             string hashed = BCrypt.Net.BCrypt.HashPassword(defaultPassword);
 
             await _repo.ResetPasswordAsync(id, hashed).ConfigureAwait(false);
-            LoggingService.Instance.LogInfo(
-                "RESET_PASSWORD", nameof(UserManagementService),
-                $"Reset password user Id={id} -> default (hashed)", actorUserId.ToString());
+            try
+            {
+                var target = await _repo.GetUserByIdAsync(id).ConfigureAwait(false);
+                var oldValues = target == null ? null : new { Ten = target.Ten, Username = target.Username, TrangThai = target.TrangThai };
+                var newValues = new { /* password changed - do not include password */ PasswordChanged = true };
+                LoggingService.Instance.LogCrud(
+                    "RESET_PASSWORD",
+                    "NhanVien",
+                    id.ToString(),
+                    oldValues: oldValues,
+                    newValues: newValues,
+                    source: "Auth",
+                    userId: actorUserId.ToString());
+            }
+            catch { /* best-effort logging */ }
 
             return (true, $"Đã reset password mặc định: {defaultPassword}");
         }
@@ -209,9 +321,15 @@ namespace QuanLyGiuXe.Services
 
                 if (!oldMatches)
                 {
-                    LoggingService.Instance.LogWarning(
-                        "CHANGE_PASSWORD_FAILED", nameof(UserManagementService),
-                        $"User '{user.Username}' nhập sai mật khẩu cũ", id.ToString());
+                    try
+                    {
+                        LoggingService.Instance.LogSecurity(
+                            "CHANGE_PASSWORD",
+                            "Auth",
+                            $"{{\"PasswordChanged\":false,\"Reason\":\"OldPasswordMismatch\",\"Username\":\"{user.Username}\"}}",
+                            userId: id.ToString());
+                    }
+                    catch { }
 
                     return (false, "Mật khẩu cũ không đúng.");
                 }
@@ -220,9 +338,16 @@ namespace QuanLyGiuXe.Services
                 string hashedNew = BCrypt.Net.BCrypt.HashPassword(newPassword);
                 await _repo.ChangePasswordAsync(id, hashedNew);
 
-                LoggingService.Instance.LogInfo(
-                    "CHANGE_PASSWORD", nameof(UserManagementService),
-                    $"User '{user.Username}' đổi mật khẩu thành công", id.ToString());
+                try
+                {
+                    // success audit: do NOT log the actual password
+                    LoggingService.Instance.LogSecurity(
+                        "CHANGE_PASSWORD",
+                        "Auth",
+                        "{\"PasswordChanged\":true}",
+                        userId: id.ToString());
+                }
+                catch { }
 
                 return (true, "Đổi mật khẩu thành công.");
             }

@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Text;
 using System.Threading.Tasks;
-using System.Security.Cryptography;
-using BCrypt.Net;
 using QuanLyGiuXe.Models;
 
 namespace QuanLyGiuXe.Services
@@ -197,7 +195,6 @@ namespace QuanLyGiuXe.Services
             using var conn = new SqlConnection(_db.GetConnectionString());
             using var cmd = new SqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("@Id", id);
-            // newPassword MUST already be a bcrypt hash when calling this method
             cmd.Parameters.AddWithValue("@Password", newPassword);
             await conn.OpenAsync().ConfigureAwait(false);
             await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
@@ -230,29 +227,26 @@ namespace QuanLyGiuXe.Services
         public async Task<bool> VerifyCurrentPasswordAsync(int userId,
                                                            string oldPassword)
         {
-            // Load user and verify password using BCrypt when possible.
-            var user = await GetUserByIdAsync(userId).ConfigureAwait(false);
-            if (user == null) return false;
+            const string sql =
+                @"
+    SELECT COUNT(1)
+    FROM NhanVien
+    WHERE Id = @Id
+    AND [Password] = @Password;";
 
-            var stored = user.Password ?? string.Empty;
+            using var conn = new SqlConnection(_db.GetConnectionString());
 
-            if (stored.StartsWith("$2") )
-            {
-                try
-                {
-                    return BCrypt.Net.BCrypt.Verify(oldPassword, stored);
-                }
-                catch
-                {
-                    return false;
-                }
-            }
+            using var cmd = new SqlCommand(sql, conn);
 
-            // Legacy plain-text password in DB -> perform fixed-time comparison
-            var a = Encoding.UTF8.GetBytes(oldPassword ?? string.Empty);
-            var b = Encoding.UTF8.GetBytes(stored);
-            if (a.Length != b.Length) return false;
-            return CryptographicOperations.FixedTimeEquals(a, b);
+            cmd.Parameters.AddWithValue("@Id", userId);
+            cmd.Parameters.AddWithValue("@Password", oldPassword);
+
+            await conn.OpenAsync().ConfigureAwait(false);
+
+            int count =
+                Convert.ToInt32(await cmd.ExecuteScalarAsync().ConfigureAwait(false));
+
+            return count > 0;
         }
         public async Task ChangePasswordAsync(int userId, string newPassword)
         {
@@ -328,6 +322,38 @@ WHERE Id = @Id;";
             }
 
             return null;
+        }
+
+        public async Task EnableUserAsync(int id)
+        {
+            const string sql =
+                "UPDATE NhanVien SET TrangThai = 'Active' WHERE Id = @Id;";
+
+            using var conn = new SqlConnection(_db.GetConnectionString());
+
+            using var cmd = new SqlCommand(sql, conn);
+
+            cmd.Parameters.AddWithValue("@Id", id);
+
+            await conn.OpenAsync().ConfigureAwait(false);
+
+            await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
+        }
+
+        public async Task DeleteUserAsync(int id)
+        {
+            const string sql =
+                "DELETE FROM NhanVien WHERE Id = @Id;";
+
+            using var conn = new SqlConnection(_db.GetConnectionString());
+
+            using var cmd = new SqlCommand(sql, conn);
+
+            cmd.Parameters.AddWithValue("@Id", id);
+
+            await conn.OpenAsync().ConfigureAwait(false);
+
+            await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
         }
     }
 }

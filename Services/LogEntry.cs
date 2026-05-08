@@ -4,6 +4,7 @@ namespace QuanLyGiuXe.Services
 {
     public class LogEntry
     {
+        // original fields (kept for backward compatibility)
         public DateTime Timestamp { get; set; }
         public string Level { get; set; }
         public string EventType { get; set; }
@@ -12,5 +13,18 @@ namespace QuanLyGiuXe.Services
         public string Plate { get; set; }
         public string Details { get; set; }
         public string Exception { get; set; }
+
+        // new audit fields
+        public string Username { get; set; }
+        public string Action { get; set; }
+        public string EntityName { get; set; }
+        public string EntityId { get; set; }
+        public string OldValues { get; set; }
+        public string NewValues { get; set; }
+        public string IpAddress { get; set; }
+        public string MachineName { get; set; }
+        public string DeviceName { get; set; }
+        public string SessionId { get; set; }
+        public string CorrelationId { get; set; }
     }
 }

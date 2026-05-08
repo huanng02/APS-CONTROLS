@@ -21,7 +21,76 @@ namespace QuanLyGiuXe.Services
                 EnsureConfigLoaded();
                 return _config?.GetConnectionString("Default") ?? "Server=DESKTOP-BFOEO42\\SQLEXPRESS02;Database=BaiXe;Trusted_Connection=True;TrustServerCertificate=True;";
             }
+            }
+
+        /// <summary>
+        /// Insert an audit/log entry into AppLogs. Best-effort: swallow errors and only insert columns that exist.
+        /// </summary>
+        public void InsertAppLog(DateTime timestampUtc, string level, string eventType, string source,
+            string userId, string plate, string details, string exception,
+            string username = null, string action = null, string entityName = null, string entityId = null,
+            string oldValues = null, string newValues = null, string ipAddress = null, string machineName = null,
+            string deviceName = null, string sessionId = null, string correlationId = null)
+        {
+            try
+            {
+                var cols = new System.Collections.Generic.List<string>();
+                var paramNames = new System.Collections.Generic.List<string>();
+                var parameters = new System.Collections.Generic.List<SqlParameter>();
+
+                void Add(string col, string paramName, object value)
+                {
+                    cols.Add(col);
+                    paramNames.Add(paramName);
+                    parameters.Add(new SqlParameter(paramName, value ?? (object)DBNull.Value));
+                }
+
+                // core columns (compat)
+                Add("TimestampUtc", "@ts", timestampUtc);
+                Add("Level", "@lvl", level ?? string.Empty);
+                Add("EventType", "@evt", eventType ?? string.Empty);
+                Add("Source", "@src", source ?? string.Empty);
+                Add("UserId", "@uid", userId ?? string.Empty);
+                Add("Plate", "@plate", plate ?? string.Empty);
+                Add("Details", "@details", details ?? string.Empty);
+                Add("Exception", "@ex", exception ?? string.Empty);
+
+                // extended columns - only add if they exist in DB
+                if (ColumnExistsInTable("AppLogs", "Username")) Add("Username", "@username", username ?? string.Empty);
+                if (ColumnExistsInTable("AppLogs", "Action")) Add("Action", "@action", action ?? string.Empty);
+                if (ColumnExistsInTable("AppLogs", "EntityName")) Add("EntityName", "@entityName", entityName ?? string.Empty);
+                if (ColumnExistsInTable("AppLogs", "EntityId")) Add("EntityId", "@entityId", entityId ?? string.Empty);
+                if (ColumnExistsInTable("AppLogs", "OldValues")) Add("OldValues", "@old", oldValues ?? string.Empty);
+                if (ColumnExistsInTable("AppLogs", "NewValues")) Add("NewValues", "@new", newValues ?? string.Empty);
+                if (ColumnExistsInTable("AppLogs", "IpAddress")) Add("IpAddress", "@ip", ipAddress ?? string.Empty);
+                if (ColumnExistsInTable("AppLogs", "MachineName")) Add("MachineName", "@machine", machineName ?? string.Empty);
+                if (ColumnExistsInTable("AppLogs", "DeviceName")) Add("DeviceName", "@device", deviceName ?? string.Empty);
+                if (ColumnExistsInTable("AppLogs", "SessionId")) Add("SessionId", "@session", sessionId ?? string.Empty);
+                if (ColumnExistsInTable("AppLogs", "CorrelationId")) Add("CorrelationId", "@corr", correlationId ?? string.Empty);
+
+                if (cols.Count == 0)
+                {
+                    return;
+                }
+
+                var sql = $"INSERT INTO dbo.AppLogs ({string.Join(",", cols)}) VALUES ({string.Join(",", paramNames)})";
+
+                using (var conn = new SqlConnection(GetConnectionString()))
+                {
+                    conn.Open();
+                    using (var cmd = new SqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddRange(parameters.ToArray());
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+            }
+            catch
+            {
+                // best-effort logging: swallow errors
+            }
         }
+
         private string backupConnection = "Server=BACKUP_SERVER;Database=Baixe;Trusted_Connection=True;";
 
         private static void EnsureConfigLoaded()
@@ -496,7 +565,8 @@ namespace QuanLyGiuXe.Services
                         cmd.ExecuteNonQuery();
                     }
                 }
-                LoggingService.Instance.LogInfo("Update", "DatabaseService.BangGia", $"Cập nhật bảng giá (legacy) thành công (Id: {id})");
+                // audit log
+                try { LoggingService.Instance.LogCrud("UPDATE_BANGGIA", "BangGia", id.ToString(), null, new { GiaThang = giaThang, TrangThai = trangThai }, "DatabaseService"); } catch { }
             }
             catch (Exception ex)
             {
@@ -524,7 +594,7 @@ namespace QuanLyGiuXe.Services
                         cmd.ExecuteNonQuery();
                     }
                 }
-                LoggingService.Instance.LogInfo("Insert", "DatabaseService.LoaiXe", $"Thêm loại xe thành công (Tên: {tenLoai})");
+                try { LoggingService.Instance.LogCrud("CREATE_LOAIXE", "LoaiXe", "", null, new { TenLoai = tenLoai, TrangThai = trangThai }, "DatabaseService"); } catch { }
             }
             catch (Exception ex)
             {
@@ -554,7 +624,7 @@ namespace QuanLyGiuXe.Services
                         cmd.ExecuteNonQuery();
                     }
                 }
-                LoggingService.Instance.LogInfo("Update", "DatabaseService.LoaiXe", $"Cập nhật loại xe thành công (Id: {id}, Tên: {tenLoai})");
+                try { LoggingService.Instance.LogCrud("UPDATE_LOAIXE", "LoaiXe", id.ToString(), null, new { TenLoai = tenLoai, TrangThai = trangThai }, "DatabaseService"); } catch { }
             }
             catch (Exception ex)
             {
@@ -578,7 +648,7 @@ namespace QuanLyGiuXe.Services
                         cmd.ExecuteNonQuery();
                     }
                 }
-                LoggingService.Instance.LogInfo("Delete", "DatabaseService.LoaiXe", $"Xóa loại xe thành công (Id: {id})");
+                try { LoggingService.Instance.LogCrud("DELETE_LOAIXE", "LoaiXe", id.ToString(), null, null, "DatabaseService"); } catch { }
             }
             catch (Exception ex)
             {

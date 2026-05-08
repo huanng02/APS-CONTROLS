@@ -41,8 +41,9 @@ namespace QuanLyGiuXe
 
         public void PerformLogout()
         {
-            LoggingService.Instance.LogInfo("App", "App", "PerformLogout: Starting proactive logout.");
-            
+            // Audit logout for current user (best-effort)
+            try { LoggingService.Instance.LogSecurity("LOGOUT", "Auth", "{\"Action\":\"Logout\"}", userId: CurrentUser.Id > 0 ? CurrentUser.Id.ToString() : null); } catch { }
+
             _isLoggingOut = true;
             try
             {

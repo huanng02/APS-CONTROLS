@@ -4,6 +4,7 @@ using System.Data.SqlClient;
 using System.Drawing;
 using System.Windows.Forms;
 using QuanLyGiuXe.Models;
+using QuanLyGiuXe.Services;
 using Microsoft.Extensions.Configuration;
 using System.IO;
 using BCrypt.Net;
@@ -181,6 +182,7 @@ namespace QuanLyGiuXe.Views
                         lblMessage.ForeColor = Color.Red;
                         btnLogin.Enabled = true;
                         btnLogin.Text = "ĐĂNG NHẬP";
+                        try { LoggingService.Instance.LogSecurity("LOGIN_FAILED", "Auth", "{\"Reason\":\"AccountLocked\"}", userId: null); } catch { }
                         return;
                     }
 
@@ -195,6 +197,7 @@ namespace QuanLyGiuXe.Views
                     CurrentUser.Ten = userFound.Ten;
                     CurrentUser.Role = userFound.Role;
 
+                    try { LoggingService.Instance.LogSecurity("LOGIN_SUCCESS", "Auth", null, userId: CurrentUser.Id.ToString()); } catch { }
                     this.DialogResult = DialogResult.OK;
                     this.Close();
                 }
@@ -204,6 +207,7 @@ namespace QuanLyGiuXe.Views
                     lblMessage.ForeColor = Color.Red;
                     btnLogin.Enabled = true;
                     btnLogin.Text = "ĐĂNG NHẬP";
+                    // AuthenticateUser already logs failed attempts; avoid duplicate logging here
                 }
             }
             catch (Exception ex)
@@ -248,7 +252,11 @@ namespace QuanLyGiuXe.Views
                                 verified = (a.Length == b.Length) && System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(a, b);
                             }
 
-                            if (!verified) return null;
+                            if (!verified)
+                            {
+                                try { LoggingService.Instance.LogSecurity("LOGIN_FAILED", "Auth", "{\"Reason\":\"InvalidCredentials\",\"Username\":\"" + user + "\"}", userId: null); } catch { }
+                                return null;
+                            }
 
                             // If stored password was legacy plaintext, migrate to bcrypt now
                             if (!stored.StartsWith("$2"))
