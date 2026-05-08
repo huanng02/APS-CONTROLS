@@ -6,6 +6,7 @@ using System.Windows.Forms;
 using QuanLyGiuXe.Models;
 using Microsoft.Extensions.Configuration;
 using System.IO;
+using BCrypt.Net;
 
 namespace QuanLyGiuXe.Views
 {
@@ -219,18 +220,52 @@ namespace QuanLyGiuXe.Views
             {
                 conn.Open();
                 using (SqlCommand cmd = new SqlCommand(@"
-                    SELECT nv.Id, nv.Username, nv.Ten, nv.TrangThai, r.Name as RoleName 
+                    SELECT nv.Id, nv.Username, nv.Ten, nv.TrangThai, r.Name as RoleName, nv.Password as StoredPassword
                     FROM NhanVien nv
                     LEFT JOIN Roles r ON nv.RoleId = r.Id
-                    WHERE nv.Username = @user AND nv.Password = @pass", conn))
+                    WHERE nv.Username = @user", conn))
                 {
                     cmd.Parameters.AddWithValue("@user", user);
-                    cmd.Parameters.AddWithValue("@pass", pass);
 
                     using (SqlDataReader reader = cmd.ExecuteReader())
                     {
                         if (reader.Read())
                         {
+                            var stored = reader["StoredPassword"]?.ToString() ?? string.Empty;
+
+                            bool verified = false;
+
+                            if (stored.StartsWith("$2"))
+                            {
+                                try { verified = BCrypt.Net.BCrypt.Verify(pass, stored); }
+                                catch { verified = false; }
+                            }
+                            else
+                            {
+                                // legacy plaintext compare using fixed time
+                                var a = System.Text.Encoding.UTF8.GetBytes(pass ?? string.Empty);
+                                var b = System.Text.Encoding.UTF8.GetBytes(stored);
+                                verified = (a.Length == b.Length) && System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(a, b);
+                            }
+
+                            if (!verified) return null;
+
+                            // If stored password was legacy plaintext, migrate to bcrypt now
+                            if (!stored.StartsWith("$2"))
+                            {
+                                try
+                                {
+                                    string newHash = BCrypt.Net.BCrypt.HashPassword(pass);
+                                    using (var upCmd = new SqlCommand("UPDATE NhanVien SET [Password] = @pwd WHERE Id = @id", conn))
+                                    {
+                                        upCmd.Parameters.AddWithValue("@pwd", newHash);
+                                        upCmd.Parameters.AddWithValue("@id", reader["Id"]);
+                                        upCmd.ExecuteNonQuery();
+                                    }
+                                }
+                                catch { /* non-fatal migration failure */ }
+                            }
+
                             return new {
                                 Id = (int)reader["Id"],
                                 Username = reader["Username"].ToString(),

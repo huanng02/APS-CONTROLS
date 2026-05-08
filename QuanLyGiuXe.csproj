@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -13,6 +13,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="BCrypt.Net-Next" Version="4.1.0" />
     <PackageReference Include="LiveCharts.Wpf" Version="0.9.7" />
     <PackageReference Include="OpenCvSharp4.Extensions" Version="4.13.0.20260330" />
     <PackageReference Include="OpenCvSharp4.Windows" Version="4.13.0.20260302" />

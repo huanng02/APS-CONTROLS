@@ -30,6 +30,10 @@ namespace QuanLyGiuXe.Services
             if (await _repo.UsernameExistsAsync(model.Username).ConfigureAwait(false))
                 return (false, "Username đã tồn tại.");
 
+            // Hash password before saving (do NOT double-hash)
+            string hashed = BCrypt.Net.BCrypt.HashPassword(model.Password);
+            model.Password = hashed;
+
             int newId = await _repo.CreateUserAsync(model).ConfigureAwait(false);
             LoggingService.Instance.LogInfo(
                 "CREATE_USER", nameof(UserManagementService),
@@ -76,10 +80,13 @@ namespace QuanLyGiuXe.Services
                 return (false, "User không hợp lệ.");
             const string defaultPassword = "123456";
 
-            await _repo.ResetPasswordAsync(id, defaultPassword).ConfigureAwait(false);
+            // Hash default password before saving
+            string hashed = BCrypt.Net.BCrypt.HashPassword(defaultPassword);
+
+            await _repo.ResetPasswordAsync(id, hashed).ConfigureAwait(false);
             LoggingService.Instance.LogInfo(
                 "RESET_PASSWORD", nameof(UserManagementService),
-                $"Reset password user Id={id} -> default", actorUserId.ToString());
+                $"Reset password user Id={id} -> default (hashed)", actorUserId.ToString());
 
             return (true, $"Đã reset password mặc định: {defaultPassword}");
         }
@@ -177,8 +184,30 @@ namespace QuanLyGiuXe.Services
                 if (user == null)
                     return (false, "Không tìm thấy user.");
 
-                // check old password
-                if (user.Password != oldPassword)
+                // verify old password using BCrypt when possible
+                var stored = user.Password ?? string.Empty;
+
+                bool oldMatches;
+                if (stored.StartsWith("$2"))
+                {
+                    try
+                    {
+                        oldMatches = BCrypt.Net.BCrypt.Verify(oldPassword, stored);
+                    }
+                    catch
+                    {
+                        oldMatches = false;
+                    }
+                }
+                else
+                {
+                    // legacy plaintext - fixed time compare
+                    var a = System.Text.Encoding.UTF8.GetBytes(oldPassword ?? string.Empty);
+                    var b = System.Text.Encoding.UTF8.GetBytes(stored);
+                    oldMatches = (a.Length == b.Length) && System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(a, b);
+                }
+
+                if (!oldMatches)
                 {
                     LoggingService.Instance.LogWarning(
                         "CHANGE_PASSWORD_FAILED", nameof(UserManagementService),
@@ -187,7 +216,9 @@ namespace QuanLyGiuXe.Services
                     return (false, "Mật khẩu cũ không đúng.");
                 }
 
-                await _repo.ChangePasswordAsync(id, newPassword);
+                // Hash new password before saving
+                string hashedNew = BCrypt.Net.BCrypt.HashPassword(newPassword);
+                await _repo.ChangePasswordAsync(id, hashedNew);
 
                 LoggingService.Instance.LogInfo(
                     "CHANGE_PASSWORD", nameof(UserManagementService),

@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Text;
 using System.Threading.Tasks;
+using System.Security.Cryptography;
+using BCrypt.Net;
 using QuanLyGiuXe.Models;
 
 namespace QuanLyGiuXe.Services
@@ -195,6 +197,7 @@ namespace QuanLyGiuXe.Services
             using var conn = new SqlConnection(_db.GetConnectionString());
             using var cmd = new SqlCommand(sql, conn);
             cmd.Parameters.AddWithValue("@Id", id);
+            // newPassword MUST already be a bcrypt hash when calling this method
             cmd.Parameters.AddWithValue("@Password", newPassword);
             await conn.OpenAsync().ConfigureAwait(false);
             await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
@@ -227,26 +230,29 @@ namespace QuanLyGiuXe.Services
         public async Task<bool> VerifyCurrentPasswordAsync(int userId,
                                                            string oldPassword)
         {
-            const string sql =
-                @"
-    SELECT COUNT(1)
-    FROM NhanVien
-    WHERE Id = @Id
-    AND [Password] = @Password;";
+            // Load user and verify password using BCrypt when possible.
+            var user = await GetUserByIdAsync(userId).ConfigureAwait(false);
+            if (user == null) return false;
 
-            using var conn = new SqlConnection(_db.GetConnectionString());
+            var stored = user.Password ?? string.Empty;
 
-            using var cmd = new SqlCommand(sql, conn);
+            if (stored.StartsWith("$2") )
+            {
+                try
+                {
+                    return BCrypt.Net.BCrypt.Verify(oldPassword, stored);
+                }
+                catch
+                {
+                    return false;
+                }
+            }
 
-            cmd.Parameters.AddWithValue("@Id", userId);
-            cmd.Parameters.AddWithValue("@Password", oldPassword);
-
-            await conn.OpenAsync().ConfigureAwait(false);
-
-            int count =
-                Convert.ToInt32(await cmd.ExecuteScalarAsync().ConfigureAwait(false));
-
-            return count > 0;
+            // Legacy plain-text password in DB -> perform fixed-time comparison
+            var a = Encoding.UTF8.GetBytes(oldPassword ?? string.Empty);
+            var b = Encoding.UTF8.GetBytes(stored);
+            if (a.Length != b.Length) return false;
+            return CryptographicOperations.FixedTimeEquals(a, b);
         }
         public async Task ChangePasswordAsync(int userId, string newPassword)
         {
