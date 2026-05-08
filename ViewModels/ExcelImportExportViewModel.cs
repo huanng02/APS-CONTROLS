@@ -189,8 +189,19 @@ namespace QuanLyGiuXe.ViewModels
                 var result = await Task.Run(() => _db.BulkUpsertRFIDCards(models, batchSize: 1000, progress: progress, updateExisting: false));
                 StatusSummary = $"Inserted: {result.Inserted}, Updated: {result.Updated}";
 
-                // refresh UI: append inserted items to PreviewRows and optionally to global DB list
-                // We'll append the inserted ones to Items in main view later; here we at least report counts.
+                // Audit Log
+                try
+                {
+                    LoggingService.Instance.LogAudit(
+                        "CONFIRM_IMPORT", 
+                        "RFIDCard", 
+                        null, 
+                        null, 
+                        new { FileRows = models.Count, Inserted = result.Inserted, Updated = result.Updated },
+                        source: "ImportWizard",
+                        details: $"User confirmed import of {models.Count} rows. Results: {result.Inserted} inserted, {result.Updated} updated.");
+                }
+                catch { }
             }
             catch (Exception ex)
             {

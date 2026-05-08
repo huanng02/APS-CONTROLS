@@ -70,7 +70,7 @@ namespace QuanLyGiuXe.Services
                 if (card == null || card.Id == 0)
                 {
                     Console.WriteLine("❌ Thẻ chưa đăng ký");
-                    LoggingService.Instance.LogInfo("RFIDUnregisteredCard", "ParkingLogicService", uid);
+                    LoggingService.Instance.LogVehicle("RFID_DENIED", plate: null, details: $"Scanned unregistered card (UID: {uid})", source: "RFID");
                     return;
                 }
 
@@ -100,7 +100,7 @@ namespace QuanLyGiuXe.Services
                         db.UpdateXeRaById(rec.Value.Id, DateTime.Now);
                         db.LuuLichSu(rec.Value.BienSo == string.Empty ? null : rec.Value.BienSo, timeIn, DateTime.Now, fee, string.Empty, uid);
                         db.XoaXeByCardId(cardId);
-                        LoggingService.Instance.LogInfo("XeRa", "ParkingLogicService", $"CardId={cardId} exited, Fee={fee}");
+                        LoggingService.Instance.LogVehicle("XE_RA", rec.Value.BienSo, entityId: cardId, details: $"Vehicle exited. Fee: {fee:N0} VND", source: "RFID");
                     }
                     catch (Exception ex)
                     {
@@ -114,7 +114,7 @@ namespace QuanLyGiuXe.Services
                     try
                     {
                         db.ThemXe(cardId, string.IsNullOrEmpty(currentPlate) ? null : currentPlate, "");
-                        LoggingService.Instance.LogInfo("XeVao", "ParkingLogicService", $"CardId={cardId} checked in, Plate={(string.IsNullOrEmpty(currentPlate) ? "NULL" : currentPlate)}");
+                        LoggingService.Instance.LogVehicle("XE_VAO", currentPlate, entityId: cardId, details: "Vehicle entered", source: "RFID");
                     }
                     catch (Exception ex)
                     {

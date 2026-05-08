@@ -123,6 +123,21 @@ namespace QuanLyGiuXe.Services
                 // Save
                 wb.SaveAs(filename);
 
+                // Audit Log
+                try 
+                {
+                    var count = cards.Count();
+                    LoggingService.Instance.LogAudit(
+                        "EXPORT_DATA", 
+                        "RFIDCard", 
+                        null, 
+                        null, 
+                        new { Filename = Path.GetFileName(filename), RecordCount = count },
+                        source: "ExcelExport",
+                        details: $"Exported {count} RFID cards to {filename}");
+                }
+                catch { }
+
                 if (openAfter)
                 {
                     try

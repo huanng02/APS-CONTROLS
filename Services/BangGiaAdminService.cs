@@ -22,6 +22,12 @@ namespace QuanLyGiuXe.Services
             if (!model.GiaThang.HasValue || model.GiaThang.Value <= 0) throw new ArgumentException("GiaThang phải > 0");
 
             _db.UpdateBangGia(model.Id, model.GiaThang, model.TrangThai);
+
+            try
+            {
+                LoggingService.Instance.LogCrud("UPDATE_PRICE_ADMIN", "BangGia", model.Id.ToString(), null, model, source: "BangGiaAdminService");
+            }
+            catch { }
         }
     }
 }

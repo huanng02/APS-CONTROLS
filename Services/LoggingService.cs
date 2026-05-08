@@ -53,8 +53,8 @@ namespace QuanLyGiuXe.Services
         }
 
         // Public API: specialized audit/security/crud/vehicle/barrier logs
-        public void LogAudit(string action, string entityName, string entityId, object? oldValues = null, object? newValues = null,
-            string source = "App", string userId = null, string plate = null, string details = null)
+        public void LogAudit(string action, string entityName, string entityId = null, object? oldValues = null, object? newValues = null,
+            string source = "App", string userId = null, string plate = null, string details = null, string username = null, string level = "Info")
         {
             try
             {
@@ -62,7 +62,7 @@ namespace QuanLyGiuXe.Services
                 var entry = new LogEntry
                 {
                     Timestamp = DateTime.UtcNow,
-                    Level = "Info",
+                    Level = level ?? "Info",
                     EventType = action,
                     Source = source,
                     UserId = userId ?? string.Empty,
@@ -74,7 +74,7 @@ namespace QuanLyGiuXe.Services
                     EntityId = entityId ?? string.Empty,
                     OldValues = SerializeSafe(oldValues),
                     NewValues = SerializeSafe(newValues),
-                    Username = GetCurrentUsername(),
+                    Username = username ?? GetCurrentUsername(),
                     MachineName = GetMachineName(),
                     DeviceName = GetDeviceName(),
                     SessionId = _sessionId,
@@ -88,7 +88,7 @@ namespace QuanLyGiuXe.Services
             catch { }
         }
 
-        public void LogSecurity(string eventType, string source, string details = null, string userId = null, string plate = null, Exception ex = null)
+        public void LogSecurity(string eventType, string source, string details = null, string userId = null, string plate = null, Exception ex = null, string username = null)
         {
             try
             {
@@ -103,7 +103,7 @@ namespace QuanLyGiuXe.Services
                     Plate = plate ?? string.Empty,
                     Details = details ?? string.Empty,
                     Exception = ex?.ToString(),
-                    Username = GetCurrentUsername(),
+                    Username = username ?? GetCurrentUsername(),
                     MachineName = GetMachineName(),
                     DeviceName = GetDeviceName(),
                     SessionId = _sessionId,
@@ -116,13 +116,13 @@ namespace QuanLyGiuXe.Services
             catch { }
         }
 
-        public void LogCrud(string action, string entityName, string entityId, object? oldValues = null, object? newValues = null,
-            string source = "App", string userId = null, string plate = null, string details = null)
+        public void LogCrud(string action, string entityName, string entityId = null, object? oldValues = null, object? newValues = null,
+            string source = "App", string userId = null, string plate = null, string details = null, string username = null, string level = "Info")
         {
-            LogAudit(action, entityName, entityId, oldValues, newValues, source, userId, plate, details);
+            LogAudit(action, entityName, entityId, oldValues, newValues, source, userId, plate, details, username, level);
         }
 
-        public void LogVehicle(string action, string plate, int? entityId = null, object? oldValues = null, object? newValues = null, string source = "Vehicle")
+        public void LogVehicle(string action, string plate, int? entityId = null, object? oldValues = null, object? newValues = null, string source = "Vehicle", string details = null)
         {
             try
             {
@@ -134,7 +134,7 @@ namespace QuanLyGiuXe.Services
                     Source = source,
                     UserId = string.Empty,
                     Plate = plate ?? string.Empty,
-                    Details = string.Empty,
+                    Details = details ?? string.Empty,
                     Exception = null,
                     Action = action,
                     EntityName = "Xe",

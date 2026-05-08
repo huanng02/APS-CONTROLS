@@ -58,7 +58,7 @@ namespace QuanLyGiuXe.Services
                         entity.Id = Convert.ToInt32(id);
                     }
                 }
-                LoggingService.Instance.LogInfo("Insert", "BangGiaKhungGioRepository", $"Thêm chi tiết bảng giá - khung giờ thành công (BangGiaId: {entity.BangGiaId}, KhungGioId: {entity.KhungGioId})");
+                try { LoggingService.Instance.LogCrud("CREATE_PRICE_SLOT", "BangGiaKhungGio", entity.Id.ToString(), null, entity, source: "BangGiaKhungGioRepository"); } catch { }
             }
             catch (Exception ex)
             {
@@ -87,7 +87,7 @@ namespace QuanLyGiuXe.Services
                         cmd.ExecuteNonQuery();
                     }
                 }
-                LoggingService.Instance.LogInfo("Update", "BangGiaKhungGioRepository", $"Cập nhật chi tiết bảng giá - khung giờ thành công (Id: {entity.Id})");
+                try { LoggingService.Instance.LogCrud("UPDATE_PRICE_SLOT", "BangGiaKhungGio", entity.Id.ToString(), null, entity, source: "BangGiaKhungGioRepository"); } catch { }
             }
             catch (Exception ex)
             {
@@ -112,7 +112,7 @@ namespace QuanLyGiuXe.Services
                         cmd.ExecuteNonQuery();
                     }
                 }
-                LoggingService.Instance.LogInfo("Delete", "BangGiaKhungGioRepository", $"Xóa chi tiết bảng giá - khung giờ thành công (Id: {id})");
+                try { LoggingService.Instance.LogCrud("DELETE_PRICE_SLOT", "BangGiaKhungGio", id.ToString(), null, null, source: "BangGiaKhungGioRepository"); } catch { }
             }
             catch (Exception ex)
             {

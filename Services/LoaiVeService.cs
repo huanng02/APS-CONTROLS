@@ -18,6 +18,12 @@ namespace QuanLyGiuXe.Services
             if (string.IsNullOrWhiteSpace(ten)) throw new ArgumentException("Tên loại vé không được rỗng", nameof(ten));
             var lv = new LoaiVe { TenLoai = ten, TrangThai = trangThai ?? string.Empty, Detail = detail };
             _repo.Insert(lv);
+
+            try
+            {
+                LoggingService.Instance.LogCrud("CREATE_TICKET_TYPE", "LoaiVe", lv.Id.ToString(), null, lv, source: "LoaiVeService");
+            }
+            catch { }
         }
 
         public void Update(int id, string ten, string trangThai, string detail = null)
@@ -26,12 +32,24 @@ namespace QuanLyGiuXe.Services
             if (string.IsNullOrWhiteSpace(ten)) throw new ArgumentException("Tên loại vé không được rỗng", nameof(ten));
             var lv = new LoaiVe { Id = id, TenLoai = ten, TrangThai = trangThai ?? string.Empty, Detail = detail };
             _repo.Update(lv);
+
+            try
+            {
+                LoggingService.Instance.LogCrud("UPDATE_TICKET_TYPE", "LoaiVe", id.ToString(), null, lv, source: "LoaiVeService");
+            }
+            catch { }
         }
 
         public void Delete(int id)
         {
             if (id <= 0) throw new ArgumentException("ID không hợp lệ", nameof(id));
             _repo.Delete(id);
+
+            try
+            {
+                LoggingService.Instance.LogCrud("DELETE_TICKET_TYPE", "LoaiVe", id.ToString(), null, null, source: "LoaiVeService");
+            }
+            catch { }
         }
     }
 }

@@ -20,6 +20,12 @@ namespace QuanLyGiuXe.Services
             if (giaThang <= 0) throw new ArgumentException("Giá tháng phải > 0", nameof(giaThang));
 
             _db.UpdateBangGia(id, giaThang, "Active");
+
+            try
+            {
+                LoggingService.Instance.LogCrud("UPDATE_PRICE", "BangGia", id.ToString(), null, new { GiaThang = giaThang, TrangThai = "Active" }, source: "BangGiaService");
+            }
+            catch { }
         }
     }
 }

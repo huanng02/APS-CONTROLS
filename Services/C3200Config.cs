@@ -44,7 +44,11 @@ namespace QuanLyGiuXe.Services
 
             var json = JsonConvert.SerializeObject(this, Formatting.Indented);
             File.WriteAllText(path, json);
-            try { LoggingService.Instance.LogInfo("ConfigSaved", "AppConfig", $"Saved config to {path}"); } catch { }
+            try 
+            { 
+                LoggingService.Instance.LogAudit("SAVE_CONFIG", "AppConfig", Path.GetFileName(path), null, this, source: "AppConfig", details: $"Saved system configuration to {path}");
+            } 
+            catch { }
         }
     }
 

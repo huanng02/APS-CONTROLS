@@ -182,7 +182,7 @@ namespace QuanLyGiuXe.Views
                         lblMessage.ForeColor = Color.Red;
                         btnLogin.Enabled = true;
                         btnLogin.Text = "ĐĂNG NHẬP";
-                        try { LoggingService.Instance.LogSecurity("LOGIN_FAILED", "Auth", "{\"Reason\":\"AccountLocked\"}", userId: null); } catch { }
+                        try { LoggingService.Instance.LogSecurity("LOGIN_FAILED", "Auth", "{\"Reason\":\"AccountLocked\"}", userId: userFound.Id.ToString(), username: user); } catch { }
                         return;
                     }
 
@@ -197,7 +197,7 @@ namespace QuanLyGiuXe.Views
                     CurrentUser.Ten = userFound.Ten;
                     CurrentUser.Role = userFound.Role;
 
-                    try { LoggingService.Instance.LogSecurity("LOGIN_SUCCESS", "Auth", null, userId: CurrentUser.Id.ToString()); } catch { }
+                    try { LoggingService.Instance.LogSecurity("LOGIN_SUCCESS", "Auth", null, userId: CurrentUser.Id.ToString(), username: CurrentUser.Username); } catch { }
                     this.DialogResult = DialogResult.OK;
                     this.Close();
                 }
@@ -254,7 +254,7 @@ namespace QuanLyGiuXe.Views
 
                             if (!verified)
                             {
-                                try { LoggingService.Instance.LogSecurity("LOGIN_FAILED", "Auth", "{\"Reason\":\"InvalidCredentials\",\"Username\":\"" + user + "\"}", userId: null); } catch { }
+                                try { LoggingService.Instance.LogSecurity("LOGIN_FAILED", "Auth", "{\"Reason\":\"InvalidCredentials\",\"Username\":\"" + user + "\"}", userId: null, username: user); } catch { }
                                 return null;
                             }
 

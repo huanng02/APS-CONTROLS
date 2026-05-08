@@ -42,7 +42,7 @@ namespace QuanLyGiuXe
         public void PerformLogout()
         {
             // Audit logout for current user (best-effort)
-            try { LoggingService.Instance.LogSecurity("LOGOUT", "Auth", "{\"Action\":\"Logout\"}", userId: CurrentUser.Id > 0 ? CurrentUser.Id.ToString() : null); } catch { }
+            try { LoggingService.Instance.LogSecurity("LOGOUT", "Auth", "{\"Action\":\"Logout\"}", userId: CurrentUser.Id > 0 ? CurrentUser.Id.ToString() : null, username: CurrentUser.Username); } catch { }
 
             _isLoggingOut = true;
             try

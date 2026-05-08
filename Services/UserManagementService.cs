@@ -37,10 +37,13 @@ namespace QuanLyGiuXe.Services
             int newId = await _repo.CreateUserAsync(model).ConfigureAwait(false);
             try
             {
-                LoggingService.Instance.LogSecurity(
+                LoggingService.Instance.LogCrud(
                     "CREATE_USER",
-                    "Auth",
-                    $"{{\"Username\":\"{model.Username}\",\"UserId\":{newId}}}",
+                    "NhanVien",
+                    newId.ToString(),
+                    oldValues: null,
+                    newValues: new { model.Username, model.Ten, model.RoleId, model.TrangThai },
+                    source: "Auth",
                     userId: actorUserId.ToString());
             }
             catch { }
@@ -256,10 +259,15 @@ namespace QuanLyGiuXe.Services
                 // =========================
                 // LOG
                 // =========================
-
-                LoggingService.Instance.LogInfo(
-                    "UPDATE_PROFILE", nameof(UserManagementService),
-                    $"Profile updated | {detail}", id.ToString());
+                LoggingService.Instance.LogCrud(
+                    "UPDATE_PROFILE",
+                    "NhanVien",
+                    id.ToString(),
+                    oldValues: new { Ten = oldTen, Username = oldUsername },
+                    newValues: new { Ten = ten, Username = username },
+                    source: "Auth",
+                    userId: id.ToString(),
+                    details: $"Profile updated | {detail}");
 
                 return (true, "Cập nhật thông tin thành công.");
             }

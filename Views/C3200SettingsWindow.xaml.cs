@@ -323,7 +323,7 @@ namespace QuanLyGiuXe
                 // log detailed audit of changes
                 if (changes.Length > 0)
                 {
-                    try { LoggingService.Instance.LogInfo("ConfigChanged", "C3200SettingsWindow", changes.ToString(), userId: Environment.UserName); } catch { }
+                    try { LoggingService.Instance.LogAudit("CONFIG_CHANGED_UI", "C3200Settings", "config.json", null, new { Diffs = changes.ToString() }, source: "C3200SettingsWindow", details: $"Config updated via UI: {changes}"); } catch { }
                 }
             }
             catch (Exception ex)

@@ -24,70 +24,115 @@ namespace QuanLyGiuXe.Services
             }
 
         /// <summary>
-        /// Insert an audit/log entry into AppLogs. Best-effort: swallow errors and only insert columns that exist.
+        /// Insert an audit/log entry into AppLogs. Best-effort: swallow errors and auto-provisions table/columns if missing.
         /// </summary>
-        public void InsertAppLog(DateTime timestampUtc, string level, string eventType, string source,
-            string userId, string plate, string details, string exception,
+        public void InsertAppLog(DateTime timestampUtc, string level, string eventType, string source, string userId, string plate, string details, string exception,
             string username = null, string action = null, string entityName = null, string entityId = null,
             string oldValues = null, string newValues = null, string ipAddress = null, string machineName = null,
             string deviceName = null, string sessionId = null, string correlationId = null)
         {
             try
             {
-                var cols = new System.Collections.Generic.List<string>();
-                var paramNames = new System.Collections.Generic.List<string>();
-                var parameters = new System.Collections.Generic.List<SqlParameter>();
-
-                void Add(string col, string paramName, object value)
-                {
-                    cols.Add(col);
-                    paramNames.Add(paramName);
-                    parameters.Add(new SqlParameter(paramName, value ?? (object)DBNull.Value));
-                }
-
-                // core columns (compat)
-                Add("TimestampUtc", "@ts", timestampUtc);
-                Add("Level", "@lvl", level ?? string.Empty);
-                Add("EventType", "@evt", eventType ?? string.Empty);
-                Add("Source", "@src", source ?? string.Empty);
-                Add("UserId", "@uid", userId ?? string.Empty);
-                Add("Plate", "@plate", plate ?? string.Empty);
-                Add("Details", "@details", details ?? string.Empty);
-                Add("Exception", "@ex", exception ?? string.Empty);
-
-                // extended columns - only add if they exist in DB
-                if (ColumnExistsInTable("AppLogs", "Username")) Add("Username", "@username", username ?? string.Empty);
-                if (ColumnExistsInTable("AppLogs", "Action")) Add("Action", "@action", action ?? string.Empty);
-                if (ColumnExistsInTable("AppLogs", "EntityName")) Add("EntityName", "@entityName", entityName ?? string.Empty);
-                if (ColumnExistsInTable("AppLogs", "EntityId")) Add("EntityId", "@entityId", entityId ?? string.Empty);
-                if (ColumnExistsInTable("AppLogs", "OldValues")) Add("OldValues", "@old", oldValues ?? string.Empty);
-                if (ColumnExistsInTable("AppLogs", "NewValues")) Add("NewValues", "@new", newValues ?? string.Empty);
-                if (ColumnExistsInTable("AppLogs", "IpAddress")) Add("IpAddress", "@ip", ipAddress ?? string.Empty);
-                if (ColumnExistsInTable("AppLogs", "MachineName")) Add("MachineName", "@machine", machineName ?? string.Empty);
-                if (ColumnExistsInTable("AppLogs", "DeviceName")) Add("DeviceName", "@device", deviceName ?? string.Empty);
-                if (ColumnExistsInTable("AppLogs", "SessionId")) Add("SessionId", "@session", sessionId ?? string.Empty);
-                if (ColumnExistsInTable("AppLogs", "CorrelationId")) Add("CorrelationId", "@corr", correlationId ?? string.Empty);
-
-                if (cols.Count == 0)
-                {
-                    return;
-                }
-
-                var sql = $"INSERT INTO dbo.AppLogs ({string.Join(",", cols)}) VALUES ({string.Join(",", paramNames)})";
-
-                using (var conn = new SqlConnection(GetConnectionString()))
+                using (SqlConnection conn = new SqlConnection(GetConnectionString()))
                 {
                     conn.Open();
-                    using (var cmd = new SqlCommand(sql, conn))
+
+                    // Ensure table exists with ALL columns (Auto-heal schema)
+                    string sqlCheck = @"
+                        IF OBJECT_ID('dbo.AppLogs') IS NULL
+                        BEGIN
+                            CREATE TABLE dbo.AppLogs (
+                                Id INT IDENTITY(1,1) PRIMARY KEY,
+                                TimestampUtc DATETIME2,
+                                [Level] NVARCHAR(50),
+                                EventType NVARCHAR(200),
+                                Source NVARCHAR(200),
+                                UserId NVARCHAR(200),
+                                Plate NVARCHAR(200),
+                                Details NVARCHAR(MAX),
+                                Exception NVARCHAR(MAX),
+                                Username NVARCHAR(200),
+                                [Action] NVARCHAR(200),
+                                EntityName NVARCHAR(200),
+                                EntityId NVARCHAR(200),
+                                OldValues NVARCHAR(MAX),
+                                NewValues NVARCHAR(MAX),
+                                IpAddress NVARCHAR(50),
+                                MachineName NVARCHAR(200),
+                                DeviceName NVARCHAR(200),
+                                SessionId NVARCHAR(200),
+                                CorrelationId NVARCHAR(200)
+                            )
+                        END
+                        ELSE
+                        BEGIN
+                            -- Add missing columns if they don't exist
+                            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.AppLogs') AND name = 'Username')
+                                ALTER TABLE dbo.AppLogs ADD Username NVARCHAR(200);
+                            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.AppLogs') AND name = 'Action')
+                                ALTER TABLE dbo.AppLogs ADD [Action] NVARCHAR(200);
+                            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.AppLogs') AND name = 'EntityName')
+                                ALTER TABLE dbo.AppLogs ADD EntityName NVARCHAR(200);
+                            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.AppLogs') AND name = 'EntityId')
+                                ALTER TABLE dbo.AppLogs ADD EntityId NVARCHAR(200);
+                            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.AppLogs') AND name = 'OldValues')
+                                ALTER TABLE dbo.AppLogs ADD OldValues NVARCHAR(MAX);
+                            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.AppLogs') AND name = 'NewValues')
+                                ALTER TABLE dbo.AppLogs ADD NewValues NVARCHAR(MAX);
+                            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.AppLogs') AND name = 'IpAddress')
+                                ALTER TABLE dbo.AppLogs ADD IpAddress NVARCHAR(50);
+                            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.AppLogs') AND name = 'MachineName')
+                                ALTER TABLE dbo.AppLogs ADD MachineName NVARCHAR(200);
+                            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.AppLogs') AND name = 'DeviceName')
+                                ALTER TABLE dbo.AppLogs ADD DeviceName NVARCHAR(200);
+                            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.AppLogs') AND name = 'SessionId')
+                                ALTER TABLE dbo.AppLogs ADD SessionId NVARCHAR(200);
+                            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.AppLogs') AND name = 'CorrelationId')
+                                ALTER TABLE dbo.AppLogs ADD CorrelationId NVARCHAR(200);
+                        END";
+
+                    using (SqlCommand cmdCheck = new SqlCommand(sqlCheck, conn))
                     {
-                        cmd.Parameters.AddRange(parameters.ToArray());
+                        cmdCheck.ExecuteNonQuery();
+                    }
+
+                    string sql = @"INSERT INTO dbo.AppLogs 
+                        (TimestampUtc, [Level], EventType, Source, UserId, Plate, Details, Exception, 
+                         Username, [Action], EntityName, EntityId, OldValues, NewValues, IpAddress, MachineName, DeviceName, SessionId, CorrelationId)
+                        VALUES 
+                        (@ts, @lvl, @evt, @src, @uid, @plate, @details, @ex, 
+                         @user, @action, @entity, @entityId, @old, @new, @ip, @mach, @dev, @sess, @corr)";
+
+                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@ts", timestampUtc);
+                        cmd.Parameters.AddWithValue("@lvl", level ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@evt", eventType ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@src", source ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@uid", userId ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@plate", plate ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@details", details ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@ex", exception ?? string.Empty);
+
+                        cmd.Parameters.AddWithValue("@user", (object?)username ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@action", (object?)action ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@entity", (object?)entityName ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@entityId", (object?)entityId ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@old", (object?)oldValues ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@new", (object?)newValues ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@ip", (object?)ipAddress ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@mach", (object?)machineName ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@dev", (object?)deviceName ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@sess", (object?)sessionId ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@corr", (object?)correlationId ?? DBNull.Value);
+
                         cmd.ExecuteNonQuery();
                     }
                 }
             }
             catch
             {
-                // best-effort logging: swallow errors
+                // swallow DB logging errors
             }
         }
 
@@ -594,7 +639,7 @@ namespace QuanLyGiuXe.Services
                         cmd.ExecuteNonQuery();
                     }
                 }
-                try { LoggingService.Instance.LogCrud("CREATE_LOAIXE", "LoaiXe", "", null, new { TenLoai = tenLoai, TrangThai = trangThai }, "DatabaseService"); } catch { }
+                try { LoggingService.Instance.LogCrud("CREATE_LOAIXE", "LoaiXe", tenLoai, null, new { TenLoai = tenLoai, TrangThai = trangThai }, "DatabaseService", details: $"Created new vehicle type: {tenLoai} ({trangThai})"); } catch { }
             }
             catch (Exception ex)
             {
@@ -624,7 +669,7 @@ namespace QuanLyGiuXe.Services
                         cmd.ExecuteNonQuery();
                     }
                 }
-                try { LoggingService.Instance.LogCrud("UPDATE_LOAIXE", "LoaiXe", id.ToString(), null, new { TenLoai = tenLoai, TrangThai = trangThai }, "DatabaseService"); } catch { }
+                try { LoggingService.Instance.LogCrud("UPDATE_LOAIXE", "LoaiXe", id.ToString(), null, new { TenLoai = tenLoai, TrangThai = trangThai }, "DatabaseService", details: $"Updated vehicle type to: {tenLoai} ({trangThai})"); } catch { }
             }
             catch (Exception ex)
             {
@@ -642,13 +687,22 @@ namespace QuanLyGiuXe.Services
                     conn.Open();
                     string sql = "DELETE FROM LoaiXe WHERE Id=@id";
 
+                    // Audit: fetch name before deletion
+                    string name = string.Empty;
+                    using (SqlCommand cmdFetch = new SqlCommand("SELECT TenLoai FROM LoaiXe WHERE Id=@id", conn))
+                    {
+                        cmdFetch.Parameters.AddWithValue("@id", id);
+                        name = cmdFetch.ExecuteScalar()?.ToString() ?? id.ToString();
+                    }
+
                     using (SqlCommand cmd = new SqlCommand(sql, conn))
                     {
                         cmd.Parameters.AddWithValue("@id", id);
                         cmd.ExecuteNonQuery();
                     }
+
+                    try { LoggingService.Instance.LogCrud("DELETE_LOAIXE", "LoaiXe", id.ToString(), null, null, "DatabaseService", details: $"Deleted vehicle type: {name}"); } catch { }
                 }
-                try { LoggingService.Instance.LogCrud("DELETE_LOAIXE", "LoaiXe", id.ToString(), null, null, "DatabaseService"); } catch { }
             }
             catch (Exception ex)
             {
@@ -1577,53 +1631,6 @@ namespace QuanLyGiuXe.Services
             }
 
             return list;
-        }
-
-        // Insert a generic app log record for audit/important events
-        public void InsertAppLog(DateTime timestampUtc, string level, string eventType, string source, string userId, string plate, string details, string exception)
-        {
-            try
-            {
-                string conn_string = GetWorkingConnection();
-                using (SqlConnection conn = new SqlConnection(conn_string))
-                {
-                    conn.Open();
-                    string sql = @"IF OBJECT_ID('dbo.AppLogs') IS NULL
-                                    BEGIN
-                                        CREATE TABLE dbo.AppLogs (
-                                            Id INT IDENTITY(1,1) PRIMARY KEY,
-                                            TimestampUtc DATETIME2,
-                                            [Level] NVARCHAR(50),
-                                            EventType NVARCHAR(200),
-                                            Source NVARCHAR(200),
-                                            UserId NVARCHAR(200),
-                                            Plate NVARCHAR(200),
-                                            Details NVARCHAR(MAX),
-                                            Exception NVARCHAR(MAX)
-                                        )
-                                    END
-                                    INSERT INTO dbo.AppLogs (TimestampUtc, [Level], EventType, Source, UserId, Plate, Details, Exception)
-                                    VALUES (@ts, @lvl, @evt, @src, @uid, @plate, @details, @ex)";
-
-                    using (SqlCommand cmd = new SqlCommand(sql, conn))
-                    {
-                        cmd.Parameters.AddWithValue("@ts", timestampUtc);
-                        cmd.Parameters.AddWithValue("@lvl", level ?? string.Empty);
-                        cmd.Parameters.AddWithValue("@evt", eventType ?? string.Empty);
-                        cmd.Parameters.AddWithValue("@src", source ?? string.Empty);
-                        cmd.Parameters.AddWithValue("@uid", userId ?? string.Empty);
-                        cmd.Parameters.AddWithValue("@plate", plate ?? string.Empty);
-                        cmd.Parameters.AddWithValue("@details", details ?? string.Empty);
-                        cmd.Parameters.AddWithValue("@ex", exception ?? string.Empty);
-
-                        cmd.ExecuteNonQuery();
-                    }
-                }
-            }
-            catch
-            {
-                // swallow DB logging errors
-            }
         }
 
         // Read persisted app logs from the AppLogs table. Returns newest-first list.

@@ -137,7 +137,7 @@ namespace QuanLyGiuXe.Services
                         cmd.ExecuteNonQuery();
                     }
                 }
-                LoggingService.Instance.LogInfo("Insert", "BangGiaRepository", $"Thêm bảng giá thành công (LoaiXeId: {entity.LoaiXeId}, LoaiVeId: {entity.LoaiVeId})");
+                try { LoggingService.Instance.LogCrud("CREATE_BANGGIA", "BangGia", entity.Id.ToString(), null, entity, source: "BangGiaRepository"); } catch { }
             }
             catch (Exception ex)
             {
@@ -178,7 +178,7 @@ namespace QuanLyGiuXe.Services
                         cmd.ExecuteNonQuery();
                     }
                 }
-                LoggingService.Instance.LogInfo("Update", "BangGiaRepository", $"Cập nhật bảng giá thành công (Id: {entity.Id})");
+                try { LoggingService.Instance.LogCrud("UPDATE_BANGGIA", "BangGia", entity.Id.ToString(), null, entity, source: "BangGiaRepository"); } catch { }
             }
             catch (Exception ex)
             {
@@ -206,7 +206,7 @@ namespace QuanLyGiuXe.Services
                         cmd.ExecuteNonQuery();
                     }
                 }
-                LoggingService.Instance.LogInfo("Delete", "BangGiaRepository", $"Xóa bảng giá thành công (Id: {id})");
+                try { LoggingService.Instance.LogCrud("DELETE_BANGGIA", "BangGia", id.ToString(), null, null, source: "BangGiaRepository"); } catch { }
             }
             catch (Exception ex)
             {

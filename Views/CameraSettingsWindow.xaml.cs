@@ -58,6 +58,13 @@ namespace QuanLyGiuXe.Views
             config.Cameras.RaToanCanh = Pick(cbRaToanCanh);
             config.Cameras.RaBienSo = Pick(cbRaBienSo);
             config.Save();
+
+            try
+            {
+                LoggingService.Instance.LogAudit("CAMERA_CONFIG_CHANGED", "Cameras", null, null, config.Cameras, source: "CameraSettings", details: $"Updated camera configuration: {config.Cameras.VaoToanCanh}, {config.Cameras.VaoBienSo}, {config.Cameras.RaToanCanh}, {config.Cameras.RaBienSo}");
+            }
+            catch { }
+
             MessageBox.Show("✅ Đã lưu. Khởi động lại app để áp dụng.", "Thành công");
         }
 

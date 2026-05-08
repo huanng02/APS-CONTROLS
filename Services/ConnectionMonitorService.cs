@@ -181,22 +181,18 @@ namespace QuanLyGiuXe.Services
             {
                 _lastDbStatus = dbOk;
                 if (dbOk)
-                    LoggingService.Instance.LogInfo("CONNECTION", "DATABASE",
-                        "Database connected successfully");
+                    LoggingService.Instance.LogAudit("DB_CONNECTED", "System", details: "Database connected successfully", source: "Monitor");
                 else
-                    LoggingService.Instance.LogError("CONNECTION", "DATABASE",
-                        "Database connection lost");
+                    LoggingService.Instance.LogAudit("DB_DISCONNECTED", "System", level: "Error", details: "Database connection lost", source: "Monitor");
             }
 
             if (c3Changed)
             {
                 _lastC3Status = c3Ok;
                 if (c3Ok)
-                    LoggingService.Instance.LogInfo("CONNECTION", "C3-200",
-                        "C3-200 connected successfully");
+                    LoggingService.Instance.LogAudit("C3_CONNECTED", "System", details: "C3-200 connected successfully", source: "Monitor");
                 else
-                    LoggingService.Instance.LogError("CONNECTION", "C3-200",
-                        "C3-200 connection lost");
+                    LoggingService.Instance.LogAudit("C3_DISCONNECTED", "System", level: "Error", details: "C3-200 connection lost", source: "Monitor");
             }
 
             // ── Raise event nếu có thay đổi ──────────────────────────────────────

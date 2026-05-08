@@ -109,7 +109,7 @@ namespace QuanLyGiuXe.Services
                 var ngayHetHan = model.NgayHetHan;
 
                 db.InsertRFIDCard(model.CardUID, model.BienSo ?? string.Empty, model.CardName ?? string.Empty, model.LoaiVeId ?? 0, model.LoaiXeId ?? 0, model.TrangThai ?? string.Empty, ngayDangKy, ngayHetHan);
-                LoggingService.Instance.LogInfo("Add", "RFIDCardService", $"Thêm thẻ RFID thành công (UID: {model.CardUID}, Biển số: {model.BienSo})");
+                LoggingService.Instance.LogCrud("CREATE_CARD", "RFIDCard", model.CardUID, null, new { model.CardUID, model.BienSo, model.CardName, model.LoaiVeId, model.LoaiXeId, model.TrangThai, NgayDangKy = ngayDangKy, NgayHetHan = ngayHetHan }, source: "RFIDCardService");
             }
             catch (Exception ex)
             {
@@ -137,7 +137,7 @@ namespace QuanLyGiuXe.Services
                     throw new InvalidOperationException("CardUID đã tồn tại");
 
                 db.UpdateRFIDCard(model.Id, model.CardUID, model.BienSo ?? string.Empty, model.CardName ?? string.Empty, model.LoaiVeId ?? 0, model.LoaiXeId ?? 0, model.TrangThai ?? string.Empty, model.NgayDangKy, model.NgayHetHan);
-                LoggingService.Instance.LogInfo("Update", "RFIDCardService", $"Cập nhật thẻ RFID thành công (Id: {model.Id}, UID: {model.CardUID})");
+                LoggingService.Instance.LogCrud("UPDATE_CARD", "RFIDCard", model.Id.ToString(), existing, model, source: "RFIDCardService");
             }
             catch (Exception ex)
             {
@@ -152,7 +152,7 @@ namespace QuanLyGiuXe.Services
             {
                 if (id <= 0) throw new ArgumentException("ID không hợp lệ", nameof(id));
                 db.DeleteRFIDCard(id);
-                LoggingService.Instance.LogInfo("Delete", "RFIDCardService", $"Xóa thẻ RFID thành công (Id: {id})");
+                LoggingService.Instance.LogCrud("DELETE_CARD", "RFIDCard", id.ToString(), null, null, source: "RFIDCardService");
             }
             catch (Exception ex)
             {
@@ -190,7 +190,7 @@ namespace QuanLyGiuXe.Services
                 if (soThang <= 0) throw new ArgumentException("Số tháng gia hạn phải lớn hơn 0");
 
                 db.GiaHanRFIDCard(id, soThang);
-                LoggingService.Instance.LogInfo("GiaHan", "RFIDCardService", $"Gia hạn thẻ RFID thành công (Id: {id}, {soThang} tháng)");
+                LoggingService.Instance.LogCrud("RENEW_CARD", "RFIDCard", id.ToString(), null, new { Months = soThang }, source: "RFIDCardService", details: $"Gia hạn thẻ RFID (Id: {id}, {soThang} tháng)");
             }
             catch (Exception ex)
             {

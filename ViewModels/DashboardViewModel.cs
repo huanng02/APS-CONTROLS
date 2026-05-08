@@ -345,6 +345,20 @@ namespace QuanLyGiuXe.ViewModels
                     workbook.SaveAs(filePath);
                 }
 
+                // Audit Log
+                try
+                {
+                    LoggingService.Instance.LogAudit(
+                        "EXPORT_DASHBOARD", 
+                        "Dashboard", 
+                        null, 
+                        null, 
+                        new { Filename = Path.GetFileName(filePath), FromDate = FromDate, ToDate = ToDate },
+                        source: "Dashboard",
+                        details: $"Dashboard report exported for period {FromDate:dd/MM/yyyy} - {ToDate:dd/MM/yyyy}");
+                }
+                catch { }
+
                 // 5. Success Notification
                 MessageBox.Show($"Xuất báo cáo thành công!\nFile đã được lưu tại: {filePath}", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
 

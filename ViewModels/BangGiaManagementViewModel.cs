@@ -692,6 +692,26 @@ namespace QuanLyGiuXe.ViewModels
                 _repo.Update(EditingItem);
                 // save KhungGiaList back to DB if applicable
                 if (CanEditKhungGia) SaveKhungGiaList(EditingItem);
+
+                try
+                {
+                    LoggingService.Instance.LogAudit(
+                        "SAVE_PRICE_CONFIGURATION", 
+                        "BangGia", 
+                        EditingItem.Id.ToString(), 
+                        null, 
+                        new { 
+                            BangGiaId = EditingItem.Id, 
+                            LoaiXe = LoaiXeList.FirstOrDefault(x => x.Id == EditingItem.LoaiXeId)?.TenLoai,
+                            LoaiVe = LoaiVeList.FirstOrDefault(x => x.Id == EditingItem.LoaiVeId)?.TenLoai,
+                            GiaThang = EditingItem.GiaThang,
+                            Slots = KhungGiaItems.Select(s => new { s.TenKhungGio, s.GiaTien }).ToList()
+                        },
+                        source: "BangGiaManagement",
+                        details: $"Batch updated pricing for {LoaiXeList.FirstOrDefault(x => x.Id == EditingItem.LoaiXeId)?.TenLoai} - {LoaiVeList.FirstOrDefault(x => x.Id == EditingItem.LoaiVeId)?.TenLoai}");
+                }
+                catch { }
+
                 MessageBox.Show("Cập nhật thành công", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
                 Load();
             }
