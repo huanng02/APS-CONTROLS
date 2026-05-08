@@ -103,12 +103,18 @@ namespace QuanLyGiuXe.ViewModels
             }
 
             MessageBox.Show(
-                result.Message,
+                "Đổi mật khẩu thành công.\nVui lòng đăng nhập lại.",
                 "Thành công",
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
 
             window?.Close();
+
+            // Force logout after password changed
+            if (Application.Current is App app)
+            {
+                app.PerformLogout();
+            }
         }
     }
 }

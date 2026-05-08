@@ -327,6 +327,9 @@ namespace QuanLyGiuXe.ViewModels
                     var window = new Views.UserProfileWindow();
 
                     window.ShowDialog();
+
+                    // Refresh UI user info
+                    RefreshCurrentUserInfo();
                 }
                 catch (Exception ex)
                 {
@@ -769,6 +772,12 @@ namespace QuanLyGiuXe.ViewModels
         {
             Application.Current?.Dispatcher?.Invoke(() =>
                 TrangThaiKetNoi = online ? "C3200: Online ●" : "C3200: Offline ○");
+        }
+        public void RefreshCurrentUserInfo()
+        {
+            OnPropertyChanged(nameof(CurrentUserTen));
+            OnPropertyChanged(nameof(CurrentUserUsername));
+            OnPropertyChanged(nameof(CurrentUserRole));
         }
     }
 }
