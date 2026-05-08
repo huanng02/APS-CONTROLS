@@ -234,7 +234,24 @@ namespace QuanLyGiuXe.ViewModels
             {
                 CurrentSchema = _dbService.GetTableSchema(SelectedTable);
 
-                string query = $"SELECT * FROM [{SelectedTable}]";
+                string orderBy = "";
+                if (CurrentSchema != null)
+                {
+                    foreach (DataRow row in CurrentSchema.Rows)
+                    {
+                        string colName = row["Tên Cột"].ToString();
+                        if (colName.Equals("Id", StringComparison.OrdinalIgnoreCase) || 
+                            colName.Equals("TimestampUtc", StringComparison.OrdinalIgnoreCase) ||
+                            colName.Equals("Timestamp", StringComparison.OrdinalIgnoreCase) ||
+                            colName.Equals("ThoiGianVao", StringComparison.OrdinalIgnoreCase))
+                        {
+                            orderBy = $" ORDER BY [{colName}] DESC";
+                            break;
+                        }
+                    }
+                }
+
+                string query = $"SELECT * FROM [{SelectedTable}]{orderBy}";
                 CurrentData  = _dbService.ExecuteQuery(query, out string _);
             }
             catch (Exception ex)
@@ -290,7 +307,25 @@ namespace QuanLyGiuXe.ViewModels
         private void GenerateSelect()
         {
             if (string.IsNullOrEmpty(SelectedTable)) return;
-            QueryText = $"SELECT TOP 100 * \r\nFROM [{SelectedTable}]\r\n-- WHERE ...";
+
+            string orderBy = "";
+            if (CurrentSchema != null)
+            {
+                foreach (DataRow row in CurrentSchema.Rows)
+                {
+                    string colName = row["Tên Cột"].ToString();
+                    if (colName.Equals("Id", StringComparison.OrdinalIgnoreCase) || 
+                        colName.Equals("TimestampUtc", StringComparison.OrdinalIgnoreCase) ||
+                        colName.Equals("Timestamp", StringComparison.OrdinalIgnoreCase) ||
+                        colName.Equals("ThoiGianVao", StringComparison.OrdinalIgnoreCase))
+                    {
+                        orderBy = $" ORDER BY [{colName}] DESC";
+                        break;
+                    }
+                }
+            }
+
+            QueryText = $"SELECT TOP 100 * \r\nFROM [{SelectedTable}]{orderBy}\r\n-- WHERE ...";
         }
 
         private void GenerateInsert()

@@ -46,6 +46,7 @@ namespace QuanLyGiuXe.ViewModels
 
         public SQLQueryToolViewModel()
         {
+            SqlText = "SELECT TOP 100 * FROM AppLogs ORDER BY TimestampUtc DESC";
             ExecuteCommand = new RelayCommand(_ => ExecuteSql());
             ClearCommand = new RelayCommand(_ =>
             {
