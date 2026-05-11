@@ -144,7 +144,7 @@ namespace QuanLyGiuXe
                 var _ = Task.Run(async () =>
                 {
                     await Task.Delay(milliseconds);
-                    try { toast.Dispatcher.Invoke(() => toast.Close()); } catch { }
+                    try { toast.Dispatcher.BeginInvoke(new Action(() => toast.Close())); } catch { }
                 });
             }
             catch { }
@@ -182,7 +182,7 @@ namespace QuanLyGiuXe
 
         private void XuLyQuetThe(string uid, int door = 0)
         {
-            Dispatcher.Invoke(() =>
+            Dispatcher.BeginInvoke(new Action(() =>
             {
                 if (DataContext is not MainViewModel vm) return;
 
@@ -280,7 +280,7 @@ namespace QuanLyGiuXe
                     vm.XeRaCommand.Execute(null);
                 else
                     vm.XeVaoCommand.Execute(null);
-            });
+            }));
         }
 
         // ── Quản lý thẻ ──────────────────────────────────────────────────────────
@@ -401,7 +401,7 @@ namespace QuanLyGiuXe
                 if (!string.IsNullOrEmpty(plate) && plate.Length > 4 && !plate.Contains("Lỗi"))
                 {
                     // 3. Đẩy dữ liệu về UI Thread
-                    this.Dispatcher.Invoke(() =>
+                    this.Dispatcher.BeginInvoke(new Action(() =>
                     {
                         if (this.DataContext is MainViewModel vm)
                         {
@@ -411,7 +411,7 @@ namespace QuanLyGiuXe
                             // (Tùy chọn) Thông báo trạng thái để người dùng biết đã nhận diện xong
                             vm.LanVaoTrangThai = "Đã nhận diện: " + vm.BienSoNhap;
                         }
-                    });
+                    }));
                 }
             }
             catch (Exception ex)
@@ -499,14 +499,14 @@ namespace QuanLyGiuXe
                     if (DataContext is MainViewModel vm)
                     {
                         // Dùng Dispatcher để đảm bảo UI nhận được giá trị mới ngay lập tức
-                        this.Dispatcher.Invoke(() =>
+                        this.Dispatcher.BeginInvoke(new Action(() =>
                         {
                             vm.BienSoNhap = plate?.Trim() ?? "";
                             if (vm.XeVaoCommand.CanExecute(null))
                             {
                                 vm.XeVaoCommand.Execute(null);
                             }
-                        });
+                        }));
                     }
 
                     // Giải phóng ảnh tạm sau khi đã gửi xong

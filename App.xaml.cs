@@ -58,7 +58,7 @@ namespace QuanLyGiuXe
                 _ = System.Threading.Tasks.Task.Run(() => ConnectionMonitorService.Instance.Stop());
 
                 // 3. Close ALL open windows (including Toasts/Notifications)
-                this.Dispatcher.Invoke(() => {
+                this.Dispatcher.BeginInvoke(new Action(() => {
                     LoggingService.Instance.LogInfo("App", "App", "PerformLogout: Cleaning up all windows.");
                     
                     // We need a list because we can't modify the collection while iterating
@@ -74,7 +74,7 @@ namespace QuanLyGiuXe
                     }
                     
                     this.MainWindow = null; 
-                });
+                }));
 
                 // 4. Restart Login Flow
                 this.Dispatcher.BeginInvoke(new Action(() => {

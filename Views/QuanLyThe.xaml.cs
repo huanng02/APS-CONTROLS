@@ -25,10 +25,10 @@ namespace QuanLyGiuXe.Views
         }
 
         private void OnCardScanned(string uid) =>
-            Dispatcher.Invoke(() => txtUID.Text = uid);
+            Dispatcher.BeginInvoke(new Action(() => txtUID.Text = uid));
 
         private void OnC3200CardScanned(string uid, int door) =>
-            Dispatcher.Invoke(() => txtUID.Text = uid);
+            Dispatcher.BeginInvoke(new Action(() => txtUID.Text = uid));
 
         private void SaveCard(object sender, RoutedEventArgs e)
         {

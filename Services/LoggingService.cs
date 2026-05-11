@@ -198,17 +198,16 @@ namespace QuanLyGiuXe.Services
             try { return QuanLyGiuXe.Models.CurrentUser.Username ?? string.Empty; } catch { return string.Empty; }
         }
 
-        private string GetMachineName()
+        private static readonly string _machineName = GetMachineNameInternal();
+        private static readonly string _deviceName = GetMachineNameInternal();
+        private static readonly string _localIpAddress = GetLocalIpAddressInternal();
+
+        private static string GetMachineNameInternal()
         {
             try { return Environment.MachineName; } catch { return string.Empty; }
         }
 
-        private string GetDeviceName()
-        {
-            try { return Environment.MachineName; } catch { return string.Empty; }
-        }
-
-        private string GetLocalIpAddress()
+        private static string GetLocalIpAddressInternal()
         {
             try
             {
@@ -218,6 +217,10 @@ namespace QuanLyGiuXe.Services
             }
             catch { return string.Empty; }
         }
+
+        private string GetMachineName() => _machineName;
+        private string GetDeviceName() => _deviceName;
+        private string GetLocalIpAddress() => _localIpAddress;
 
         private string SerializeSafe(object? obj)
         {
@@ -242,22 +245,6 @@ namespace QuanLyGiuXe.Services
             {
                 if (_suppressLogging.Value) return;
                 _queue.Add(entry, _cts.Token);
-
-                Task.Run(() =>
-                {
-                    if (_suppressLogging.Value) return;
-                    _suppressLogging.Value = true;
-                    try
-                    {
-                        var db = new DatabaseService();
-                        db.InsertAppLog(entry.Timestamp, entry.Level, entry.EventType, entry.Source, entry.UserId, entry.Plate, entry.Details, entry.Exception,
-                            username: entry.Username, action: entry.Action, entityName: entry.EntityName, entityId: entry.EntityId,
-                            oldValues: entry.OldValues, newValues: entry.NewValues, ipAddress: entry.IpAddress, machineName: entry.MachineName,
-                            deviceName: entry.DeviceName, sessionId: entry.SessionId, correlationId: entry.CorrelationId);
-                    }
-                    catch { }
-                    finally { _suppressLogging.Value = false; }
-                }, _cts.Token);
             }
             catch { }
         }
@@ -275,36 +262,17 @@ namespace QuanLyGiuXe.Services
                 UserId = userId ?? string.Empty,
                 Plate = plate ?? string.Empty,
                 Details = details ?? string.Empty,
-                Exception = null
+                Exception = null,
+                Username = GetCurrentUsername(),
+                MachineName = _machineName,
+                DeviceName = _deviceName,
+                SessionId = _sessionId,
+                CorrelationId = GetOrCreateCorrelationId(),
+                IpAddress = _localIpAddress
             };
 
-            // emit to UI listeners unless suppressed
             try { if (!_suppressUi.Contains(entry.EventType)) LogEmitted?.Invoke(entry); } catch { }
-
-            // enqueue for background write (best-effort)
-            try { _queue.Add(entry, _cts.Token); } catch { }
-
-            // also persist to DB (best-effort, fire-and-forget)
-            // persist to DB asynchronously; do not allow logging recursion
-            try
-            {
-                Task.Run(() =>
-                {
-                    if (_suppressLogging.Value) return;
-                    _suppressLogging.Value = true;
-                    try
-                    {
-                        var db = new DatabaseService();
-                        db.InsertAppLog(entry.Timestamp, entry.Level, entry.EventType, entry.Source, entry.UserId, entry.Plate, entry.Details, entry.Exception,
-                            username: entry.Username, action: entry.Action, entityName: entry.EntityName, entityId: entry.EntityId,
-                            oldValues: entry.OldValues, newValues: entry.NewValues, ipAddress: entry.IpAddress, machineName: entry.MachineName,
-                            deviceName: entry.DeviceName, sessionId: entry.SessionId, correlationId: entry.CorrelationId);
-                    }
-                    catch { }
-                    finally { _suppressLogging.Value = false; }
-                }, _cts.Token);
-            }
-            catch { }
+            EnqueueAndPersist(entry);
         }
 
         public void LogWarning(string eventType, string source, string details = null, string userId = null, string plate = null)
@@ -320,31 +288,17 @@ namespace QuanLyGiuXe.Services
                 UserId = userId ?? string.Empty,
                 Plate = plate ?? string.Empty,
                 Details = details ?? string.Empty,
-                Exception = null
+                Exception = null,
+                Username = GetCurrentUsername(),
+                MachineName = _machineName,
+                DeviceName = _deviceName,
+                SessionId = _sessionId,
+                CorrelationId = GetOrCreateCorrelationId(),
+                IpAddress = _localIpAddress
             };
 
             try { if (!_suppressUi.Contains(entry.EventType)) LogEmitted?.Invoke(entry); } catch { }
-            try { _queue.Add(entry, _cts.Token); } catch { }
-
-            try
-            {
-                Task.Run(() =>
-                {
-                    if (_suppressLogging.Value) return;
-                    _suppressLogging.Value = true;
-                    try
-                    {
-                        var db = new DatabaseService();
-                        db.InsertAppLog(entry.Timestamp, entry.Level, entry.EventType, entry.Source, entry.UserId, entry.Plate, entry.Details, entry.Exception,
-                            username: entry.Username, action: entry.Action, entityName: entry.EntityName, entityId: entry.EntityId,
-                            oldValues: entry.OldValues, newValues: entry.NewValues, ipAddress: entry.IpAddress, machineName: entry.MachineName,
-                            deviceName: entry.DeviceName, sessionId: entry.SessionId, correlationId: entry.CorrelationId);
-                    }
-                    catch { }
-                    finally { _suppressLogging.Value = false; }
-                }, _cts.Token);
-            }
-            catch { }
+            EnqueueAndPersist(entry);
         }
 
         public void LogError(string eventType, string source, string details = null, Exception ex = null, string userId = null, string plate = null)
@@ -360,32 +314,17 @@ namespace QuanLyGiuXe.Services
                 UserId = userId ?? string.Empty,
                 Plate = plate ?? string.Empty,
                 Details = details ?? string.Empty,
-                Exception = ex?.ToString()
+                Exception = ex?.ToString(),
+                Username = GetCurrentUsername(),
+                MachineName = _machineName,
+                DeviceName = _deviceName,
+                SessionId = _sessionId,
+                CorrelationId = GetOrCreateCorrelationId(),
+                IpAddress = _localIpAddress
             };
 
             try { if (!_suppressUi.Contains(entry.EventType)) LogEmitted?.Invoke(entry); } catch { }
-            try { _queue.Add(entry, _cts.Token); } catch { }
-
-            // persist error to DB as well
-            try
-            {
-                Task.Run(() =>
-                {
-                    if (_suppressLogging.Value) return;
-                    _suppressLogging.Value = true;
-                    try
-                    {
-                        var db = new DatabaseService();
-                        db.InsertAppLog(entry.Timestamp, entry.Level, entry.EventType, entry.Source, entry.UserId, entry.Plate, entry.Details, entry.Exception,
-                            username: entry.Username, action: entry.Action, entityName: entry.EntityName, entityId: entry.EntityId,
-                            oldValues: entry.OldValues, newValues: entry.NewValues, ipAddress: entry.IpAddress, machineName: entry.MachineName,
-                            deviceName: entry.DeviceName, sessionId: entry.SessionId, correlationId: entry.CorrelationId);
-                    }
-                    catch { }
-                    finally { _suppressLogging.Value = false; }
-                }, _cts.Token);
-            }
-            catch { }
+            EnqueueAndPersist(entry);
         }
 
         public void Shutdown()
@@ -403,6 +342,7 @@ namespace QuanLyGiuXe.Services
         {
             StreamWriter? writer = null;
             string? currentFile = null;
+            var dbBatch = new System.Collections.Generic.List<LogEntry>();
             try
             {
                 foreach (var entry in _queue.GetConsumingEnumerable(ct))
@@ -426,13 +366,44 @@ namespace QuanLyGiuXe.Services
                         await writer.WriteLineAsync(line).ConfigureAwait(false);
                     }
                     catch { /* swallow per-entry errors */ }
+
+                    dbBatch.Add(entry);
+                    if (dbBatch.Count >= 20 || _queue.Count == 0)
+                    {
+                        PersistBatchToDb(dbBatch);
+                        dbBatch.Clear();
+                    }
                 }
             }
             catch { }
             finally
             {
                 try { writer?.Dispose(); } catch { }
+                if (dbBatch.Count > 0) { PersistBatchToDb(dbBatch); }
             }
+        }
+
+        private void PersistBatchToDb(System.Collections.Generic.List<LogEntry> batch)
+        {
+            if (batch.Count == 0 || _suppressLogging.Value) return;
+            _suppressLogging.Value = true;
+            try
+            {
+                var db = new DatabaseService();
+                foreach (var entry in batch)
+                {
+                    try
+                    {
+                        db.InsertAppLog(entry.Timestamp, entry.Level, entry.EventType, entry.Source, entry.UserId, entry.Plate, entry.Details, entry.Exception,
+                            username: entry.Username, action: entry.Action, entityName: entry.EntityName, entityId: entry.EntityId,
+                            oldValues: entry.OldValues, newValues: entry.NewValues, ipAddress: entry.IpAddress, machineName: entry.MachineName,
+                            deviceName: entry.DeviceName, sessionId: entry.SessionId, correlationId: entry.CorrelationId);
+                    }
+                    catch { }
+                }
+            }
+            catch { }
+            finally { _suppressLogging.Value = false; }
         }
 
         private object SanitizeForLogging(LogEntry entry)

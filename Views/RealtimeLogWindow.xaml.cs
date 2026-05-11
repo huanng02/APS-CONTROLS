@@ -277,13 +277,13 @@ namespace QuanLyGiuXe.Views
                     foreach (var r in rows)
                     {
                         try { r.Timestamp = r.Timestamp.ToLocalTime(); } catch { }
-                        Application.Current.Dispatcher.Invoke(() => vm.LogEntries.Add(r));
+                        Application.Current.Dispatcher.BeginInvoke(new Action(() => vm.LogEntries.Add(r)));
                     }
                     // default sort: newest first
-                    Application.Current?.Dispatcher?.Invoke(() => {
+                    Application.Current?.Dispatcher?.BeginInvoke(new Action(() => {
                         if (this.FindName("SortOrder") is ComboBox cb) cb.SelectedIndex = 0;
                         ApplySort();
-                    });
+                    }));
                     return;
                 }
                 catch { /* fallback to files */ }
@@ -308,7 +308,7 @@ namespace QuanLyGiuXe.Views
                                     // convert timestamp to local for display
                                     entry.Timestamp = entry.Timestamp.ToLocalTime();
                                     // insert at beginning to keep newest top
-                                    Application.Current.Dispatcher.Invoke(() => vm.LogEntries.Add(entry));
+                                    Application.Current.Dispatcher.BeginInvoke(new Action(() => vm.LogEntries.Add(entry)));
                                 }
                             }
                             catch { }

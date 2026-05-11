@@ -14,36 +14,13 @@ using QuanLyGiuXe.Services;
 
 namespace QuanLyGiuXe.ViewModels
 {
-    internal class MainViewModel : INotifyPropertyChanged
+    internal class MainViewModel : INotifyPropertyChanged, IDisposable
     {
         private readonly DatabaseService db = new();
         public event PropertyChangedEventHandler? PropertyChanged;
         private void OnPropertyChanged(string name)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-            try
-            {
-                // avoid logging the realtime log collection changes to prevent recursion/noise
-                if (string.Equals(name, nameof(LogEntries), StringComparison.OrdinalIgnoreCase))
-                    return;
-
-                // try to read property value via reflection for context
-                string val = string.Empty;
-                try
-                {
-                    var pi = this.GetType().GetProperty(name);
-                    if (pi != null)
-                    {
-                        var v = pi.GetValue(this);
-                        val = v?.ToString() ?? "";
-                    }
-                }
-                catch { }
-
-                // emit a property-changed audit entry
-                try { QuanLyGiuXe.Services.LoggingService.Instance.LogInfo("PropertyChanged", "MainViewModel", $"{name}={val}"); } catch { }
-            }
-            catch { }
         }
 
         // ── Properties ────────────────────────────────────────────────────────────
@@ -157,15 +134,20 @@ namespace QuanLyGiuXe.ViewModels
         public string CurrentUserRole => QuanLyGiuXe.Models.CurrentUser.Role ?? "Người vận hành";
         public string CurrentUserUsername => QuanLyGiuXe.Models.CurrentUser.Username ?? "user";
 
-        public void UpdateVehicleCount()
+        public async void UpdateVehicleCount()
         {
-            Task.Run(() => {
-                int count = db.GetTotalXeTrongBaiCount();
-                Application.Current?.Dispatcher?.Invoke(() => {
+            try
+            {
+                int count = await Task.Run(() => db.GetTotalXeTrongBaiCount());
+                Application.Current?.Dispatcher?.BeginInvoke(new Action(() => {
                     _totalXeTrongBai = count;
                     OnPropertyChanged(nameof(SoXeTrongBai));
-                });
-            });
+                }));
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("UpdateCount", "MainViewModel", "Lỗi cập nhật số xe", ex);
+            }
         }
 
         public ObservableCollection<Services.LogEntry> LogEntries { get; } = new();
@@ -439,7 +421,7 @@ namespace QuanLyGiuXe.ViewModels
 
         private void OnConnectionStatusChanged(ConnectionStatus status)
         {
-            Application.Current?.Dispatcher?.Invoke(() =>
+            Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
             {
                 // Cập nhật label trạng thái
                 if (status.DatabaseChanged)
@@ -447,7 +429,7 @@ namespace QuanLyGiuXe.ViewModels
 
                 if (status.C3Changed)
                     C3StatusLabel = status.IsC3Connected ? "🟢 C3-200" : "🔴 C3-200";
-            });
+            }));
 
             // Toast notification (có thể gọi từ bất kỳ thread, service tự marshal)
             if (status.DatabaseChanged)
@@ -476,7 +458,7 @@ namespace QuanLyGiuXe.ViewModels
             try
             {
                 // add the LogEntry object directly so UI grid shows fields
-                Application.Current?.Dispatcher?.Invoke(() =>
+                Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
                 {
                     // convert timestamp to local time for display
                     entry.Timestamp = entry.Timestamp.ToLocalTime();
@@ -491,7 +473,7 @@ namespace QuanLyGiuXe.ViewModels
                         if (LogEntries.Count > 200) LogEntries.RemoveAt(0);
                         LogEntries.Add(entry);
                     }
-                });
+                }));
             }
             catch { }
         }
@@ -734,20 +716,38 @@ namespace QuanLyGiuXe.ViewModels
 
         // ── Tìm kiếm / Chi tiết ──────────────────────────────────────────────────
 
-        private void TimKiemXe()
+        private async void TimKiemXe()
         {
-            DanhSachXe.Clear();
-            var source = string.IsNullOrWhiteSpace(TuKhoaTimKiem)
-                ? db.LayXeTrongBai().AsEnumerable()
-                : db.LayXeTrongBai().AsEnumerable()
-                    .Where(r => r["BienSo"].ToString()!.Contains(TuKhoaTimKiem));
-
-            foreach (var row in source)
-                DanhSachXe.Add(new Xe
+            try
+            {
+                var keyword = TuKhoaTimKiem?.Trim().ToLower();
+                var source = await Task.Run(() => 
                 {
-                    BienSo = row["BienSo"].ToString()!,
-                    ThoiGianVao = Convert.ToDateTime(row["ThoiGianVao"])
+                    var data = db.LayXeTrongBai().AsEnumerable();
+                    if (!string.IsNullOrWhiteSpace(keyword))
+                    {
+                        data = data.Where(r => r["BienSo"].ToString()!.ToLower().Contains(keyword));
+                    }
+                    return data.ToList();
                 });
+
+                Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
+                {
+                    DanhSachXe.Clear();
+                    foreach (var row in source)
+                    {
+                        DanhSachXe.Add(new Xe
+                        {
+                            BienSo = row["BienSo"].ToString()!,
+                            ThoiGianVao = Convert.ToDateTime(row["ThoiGianVao"])
+                        });
+                    }
+                }));
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("TimKiem", "MainViewModel", "Lỗi tìm kiếm xe", ex);
+            }
         }
 
         public void XeChiTiet(Xe xe)
@@ -778,6 +778,11 @@ namespace QuanLyGiuXe.ViewModels
             OnPropertyChanged(nameof(CurrentUserTen));
             OnPropertyChanged(nameof(CurrentUserUsername));
             OnPropertyChanged(nameof(CurrentUserRole));
+        }
+
+        public void Dispose()
+        {
+            UnsubscribeEvents();
         }
     }
 }

@@ -34,9 +34,9 @@ namespace QuanLyGiuXe.Services
         private const int PingTimeoutMs    = 3000;
 
         // ── State (anti-spam) ─────────────────────────────────────────────────────
-        // null = chưa check lần nào → lần đầu luôn fire event
         private bool? _lastDbStatus = null;
         private bool? _lastC3Status = null;
+        private string? _cachedC3Ip = null;
 
         // ── Lifecycle ─────────────────────────────────────────────────────────────
         private readonly object _lifecycleLock = new();
@@ -117,13 +117,11 @@ namespace QuanLyGiuXe.Services
             }
         }
 
-        /// <summary>
-        /// Xóa bộ nhớ trạng thái cũ (dùng khi logout/login mới)
-        /// </summary>
         public void ResetState()
         {
             _lastDbStatus = null;
             _lastC3Status = null;
+            _cachedC3Ip = null;
             LoggingService.Instance.LogInfo("CONNECTION", "Monitor", "Status state reset.");
         }
 
@@ -246,8 +244,13 @@ namespace QuanLyGiuXe.Services
         {
             try
             {
-                var cfg = AppConfig.Load();
-                string ip = cfg.ZKTeco.IpAddress;
+                if (_cachedC3Ip == null)
+                {
+                    var cfg = AppConfig.Load();
+                    _cachedC3Ip = cfg.ZKTeco.IpAddress;
+                }
+
+                string ip = _cachedC3Ip;
 
                 if (string.IsNullOrWhiteSpace(ip)) return false;
 
