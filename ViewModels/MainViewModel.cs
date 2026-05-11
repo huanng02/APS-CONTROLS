@@ -150,7 +150,7 @@ namespace QuanLyGiuXe.ViewModels
             }
         }
 
-        public ObservableCollection<Services.LogEntry> LogEntries { get; } = new();
+
 
         // ── Connection status indicators ──────────────────────────────────────────
 
@@ -168,38 +168,9 @@ namespace QuanLyGiuXe.ViewModels
             set { _c3StatusLabel = value; OnPropertyChanged(nameof(C3StatusLabel)); }
         }
 
-        private bool _newestOnTop = true;
-        public bool NewestOnTop
-        {
-            get => _newestOnTop;
-            set { _newestOnTop = value; OnPropertyChanged(nameof(NewestOnTop)); }
-        }
 
-        private void ThemLog(string dir, string bienSo, string status)
-        {
-            var entry = new Services.LogEntry
-            {
-                Timestamp = DateTime.Now,
-                Level = "Info",
-                EventType = dir,
-                Source = "UI",
-                UserId = string.Empty,
-                Plate = bienSo,
-                Details = status,
-                Exception = null
-            };
-            // insert according to NewestOnTop preference
-            if (NewestOnTop)
-            {
-                if (LogEntries.Count > 200) LogEntries.RemoveAt(LogEntries.Count - 1);
-                LogEntries.Insert(0, entry);
-            }
-            else
-            {
-                if (LogEntries.Count > 200) LogEntries.RemoveAt(0);
-                LogEntries.Add(entry);
-            }
-        }
+
+
 
         // ── Ảnh biển số ─────────────────────────────────────────────────────────────
 
@@ -254,14 +225,7 @@ namespace QuanLyGiuXe.ViewModels
             set { _anhChupRa2 = value; OnPropertyChanged(nameof(AnhChupRa2)); }
         }
 
-        // ── Log toggle ────────────────────────────────────────────────────────────
 
-        private bool _showLog;
-        public bool ShowLog
-        {
-            get => _showLog;
-            set { _showLog = value; OnPropertyChanged(nameof(ShowLog)); }
-        }
 
         // ── Commands ──────────────────────────────────────────────────────────────
 
@@ -282,7 +246,6 @@ namespace QuanLyGiuXe.ViewModels
         public MainViewModel()
         {
             var cfg = AppConfig.Load();
-            _showLog = cfg.ShowLog;
 
             DanhSachXe = new ObservableCollection<Xe>();
             DanhSachXe.CollectionChanged += (_, _) => OnPropertyChanged(nameof(SoXeTrongBai));
@@ -383,8 +346,7 @@ namespace QuanLyGiuXe.ViewModels
                 // 2. Heavy data loading removed from startup (Load on demand)
                 UpdateVehicleCount();
 
-                // 3. Subscribe realtime log
-                QuanLyGiuXe.Services.LoggingService.Instance.LogEmitted += OnLogEmitted;
+
 
                 // 4. Connection monitor: reset UI + restart loop (login lại / VM mới)
                 await Application.Current.Dispatcher.InvokeAsync(ResetStatus);
@@ -453,30 +415,7 @@ namespace QuanLyGiuXe.ViewModels
             }
         }
 
-        private void OnLogEmitted(Services.LogEntry entry)
-        {
-            try
-            {
-                // add the LogEntry object directly so UI grid shows fields
-                Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
-                {
-                    // convert timestamp to local time for display
-                    entry.Timestamp = entry.Timestamp.ToLocalTime();
-                    // insert according to NewestOnTop preference
-                    if (NewestOnTop)
-                    {
-                        if (LogEntries.Count > 200) LogEntries.RemoveAt(LogEntries.Count - 1);
-                        LogEntries.Insert(0, entry);
-                    }
-                    else
-                    {
-                        if (LogEntries.Count > 200) LogEntries.RemoveAt(0);
-                        LogEntries.Add(entry);
-                    }
-                }));
-            }
-            catch { }
-        }
+
 
         private void SetView(object view)
         {
@@ -569,7 +508,7 @@ namespace QuanLyGiuXe.ViewModels
                     $"CardId={card.Id}; Plate={plate}; opened={opened}"
                 );
 
-                ThemLog("VÀO", plate, opened ? "✅ Barrier đã mở" : "⚠ Barrier lỗi");
+
                 UpdateVehicleCount();
 
                 BienSoNhap = "";
@@ -699,7 +638,7 @@ namespace QuanLyGiuXe.ViewModels
                     $"CardId={cardId}, Fee={tien}"
                 );
 
-                ThemLog("RA", plate, $"💰 {tien:N0} VNĐ");
+
                 UpdateVehicleCount();
             }
             catch (Exception ex)
@@ -762,7 +701,6 @@ namespace QuanLyGiuXe.ViewModels
             {
                 // Unsubscribe from global services to prevent memory leaks and background crashes
                 C3200Service.Instance.OnConnectionChanged -= OnC3200ConnectionChanged;
-                QuanLyGiuXe.Services.LoggingService.Instance.LogEmitted -= OnLogEmitted;
                 ConnectionMonitorService.Instance.StatusChanged -= OnConnectionStatusChanged;
             }
             catch { }

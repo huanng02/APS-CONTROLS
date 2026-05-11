@@ -3,6 +3,12 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Input;
+using ClosedXML.Excel;
+using Microsoft.Win32;
 using QuanLyGiuXe.Models;
 using QuanLyGiuXe.Services;
 
@@ -10,45 +16,76 @@ namespace QuanLyGiuXe.ViewModels
 {
     public class LichSuViewModel : INotifyPropertyChanged
     {
-        DatabaseService db = new DatabaseService();
+        private readonly DatabaseService db = new();
 
-        private List<LichSuXe> TatCaLichSu = new List<LichSuXe>();
+        private List<LichSuXe> TatCaLichSu = new();
 
-        public ObservableCollection<LichSuXe> DanhSachLichSu { get; set; }
+        public ObservableCollection<LichSuXe> DanhSachLichSu { get; set; } = new();
 
-        public LichSuViewModel()
+        // ======================
+        // STATS PROPERTIES
+        // ======================
+        private int _tongLuotXe;
+        public int TongLuotXe
         {
-            DanhSachLichSu = new ObservableCollection<LichSuXe>();
-            TatCaLichSu = db.LayLichSu().ToList();
-            LoadTrang();
+            get => _tongLuotXe;
+            set { _tongLuotXe = value; OnPropertyChanged(nameof(TongLuotXe)); }
+        }
+
+        private double _tongDoanhThu;
+        public double TongDoanhThu
+        {
+            get => _tongDoanhThu;
+            set { _tongDoanhThu = value; OnPropertyChanged(nameof(TongDoanhThu)); }
+        }
+
+        private int _xeHomNay;
+        public int XeHomNay
+        {
+            get => _xeHomNay;
+            set { _xeHomNay = value; OnPropertyChanged(nameof(XeHomNay)); }
+        }
+
+        private double _doanhThuHomNay;
+        public double DoanhThuHomNay
+        {
+            get => _doanhThuHomNay;
+            set { _doanhThuHomNay = value; OnPropertyChanged(nameof(DoanhThuHomNay)); }
         }
 
         // ======================
-        // FILTER
+        // FILTER PROPERTIES
         // ======================
-
-        private string _tuKhoaTimKiem;
+        private string _tuKhoaTimKiem = "";
         public string TuKhoaTimKiem
         {
             get => _tuKhoaTimKiem;
             set
             {
                 _tuKhoaTimKiem = value;
-                TrangHienTai = 1;
-                LoadTrang();
+                OnPropertyChanged(nameof(TuKhoaTimKiem));
+                DebounceSearch();
             }
         }
 
-        public DateTime? TuNgay { get; set; }
-        public DateTime? DenNgay { get; set; }
-        public decimal? TienMin { get; set; }
-        public decimal? TienMax { get; set; }
+        private DateTime? _tuNgay;
+        public DateTime? TuNgay
+        {
+            get => _tuNgay;
+            set { _tuNgay = value; OnPropertyChanged(nameof(TuNgay)); LoadTrangAsync(); }
+        }
+
+        private DateTime? _denNgay;
+        public DateTime? DenNgay
+        {
+            get => _denNgay;
+            set { _denNgay = value; OnPropertyChanged(nameof(DenNgay)); LoadTrangAsync(); }
+        }
 
         // ======================
-        // PAGING (FIXED)
+        // PAGING
         // ======================
-
-        private int _pageSize = 10;
+        private int _pageSize = 50;
         public int PageSize
         {
             get => _pageSize;
@@ -57,13 +94,9 @@ namespace QuanLyGiuXe.ViewModels
                 if (_pageSize != value)
                 {
                     _pageSize = value;
-
                     TrangHienTai = 1;
-
                     OnPropertyChanged(nameof(PageSize));
-                    OnPropertyChanged(nameof(TongTrang));
-
-                    LoadTrang(); // 🔥 APPLY NGAY
+                    LoadTrangAsync();
                 }
             }
         }
@@ -84,112 +117,207 @@ namespace QuanLyGiuXe.ViewModels
         {
             get
             {
-                int total = GetFilteredData().Count();
+                int total = _filteredCount;
                 return total == 0 ? 1 : (int)Math.Ceiling((double)total / PageSize);
             }
         }
 
+        private int _filteredCount = 0;
+
         // ======================
-        // FILTER DATA
+        // COMMANDS
         // ======================
+        public ICommand TrangTruocCommand { get; }
+        public ICommand TrangSauCommand { get; }
+        public ICommand TrangDauCommand { get; }
+        public ICommand TrangCuoiCommand { get; }
+        public ICommand ResetFilterCommand { get; }
+        public ICommand ExportExcelCommand { get; }
+
+        private CancellationTokenSource? _searchCts;
+
+        public LichSuViewModel()
+        {
+            TrangTruocCommand = new RelayCommand(_ => { if (TrangHienTai > 1) { TrangHienTai--; LoadTrangAsync(); } });
+            TrangSauCommand = new RelayCommand(_ => { if (TrangHienTai < TongTrang) { TrangHienTai++; LoadTrangAsync(); } });
+            TrangDauCommand = new RelayCommand(_ => { TrangHienTai = 1; LoadTrangAsync(); });
+            TrangCuoiCommand = new RelayCommand(_ => { TrangHienTai = TongTrang; LoadTrangAsync(); });
+            ResetFilterCommand = new RelayCommand(_ => ResetFilter());
+            ExportExcelCommand = new RelayCommand(_ => ExportExcel());
+
+            // Default dates
+            TuNgay = DateTime.Today;
+            DenNgay = DateTime.Today.AddDays(1).AddTicks(-1);
+
+            _ = InitializeDataAsync();
+        }
+
+        private async Task InitializeDataAsync()
+        {
+            try
+            {
+                var data = await Task.Run(() => db.LayLichSu().ToList());
+                TatCaLichSu = data;
+                CalculateStats(data);
+                await LoadTrangAsync();
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("HistoryLoad", "LichSuViewModel", "Lỗi tải lịch sử ban đầu", ex);
+            }
+        }
+
+        private void CalculateStats(List<LichSuXe> data)
+        {
+            Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
+            {
+                TongLuotXe = data.Count;
+                TongDoanhThu = data.Sum(x => x.Tien ?? 0);
+                
+                var today = DateTime.Today;
+                var dataToday = data.Where(x => x.ThoiGianVao.Date == today || (x.ThoiGianRa.HasValue && x.ThoiGianRa.Value.Date == today)).ToList();
+                XeHomNay = dataToday.Count;
+                DoanhThuHomNay = dataToday.Sum(x => x.Tien ?? 0);
+            }));
+        }
+
+        private void DebounceSearch()
+        {
+            _searchCts?.Cancel();
+            _searchCts = new CancellationTokenSource();
+            var token = _searchCts.Token;
+
+            Task.Delay(300, token).ContinueWith(t =>
+            {
+                if (t.IsCompletedSuccessfully)
+                {
+                    TrangHienTai = 1;
+                    _ = LoadTrangAsync();
+                }
+            }, TaskScheduler.Default);
+        }
 
         private IEnumerable<LichSuXe> GetFilteredData()
         {
             var query = TatCaLichSu.AsEnumerable();
 
-            if (!string.IsNullOrEmpty(TuKhoaTimKiem))
+            if (!string.IsNullOrWhiteSpace(TuKhoaTimKiem))
+            {
+                var keyword = TuKhoaTimKiem.ToLower();
                 query = query.Where(x =>
-                    !string.IsNullOrEmpty(x.BienSo) &&
-                    x.BienSo.ToLower().Contains(TuKhoaTimKiem.ToLower()));
+                    (!string.IsNullOrEmpty(x.BienSo) && x.BienSo.ToLower().Contains(keyword)));
+            }
 
             if (TuNgay.HasValue)
                 query = query.Where(x => x.ThoiGianVao.Date >= TuNgay.Value.Date);
 
             if (DenNgay.HasValue)
-                query = query.Where(x => x.ThoiGianVao.Date <= DenNgay.Value.Date);
+                query = query.Where(x => (x.ThoiGianRa ?? x.ThoiGianVao).Date <= DenNgay.Value.Date);
 
-            if (TienMin.HasValue)
-                query = query.Where(x => x.Tien >= (double)TienMin.Value);
-
-            if (TienMax.HasValue)
-                query = query.Where(x => x.Tien <= (double)TienMax.Value);
-
-            return query;
+            return query.OrderByDescending(x => x.ThoiGianRa ?? x.ThoiGianVao);
         }
 
-        // ======================
-        // LOAD PAGE
-        // ======================
-
-        public void LoadTrang()
+        public async Task LoadTrangAsync()
         {
-            DanhSachLichSu.Clear();
-
-            var data = GetFilteredData()
-                .Skip((TrangHienTai - 1) * PageSize)
-                .Take(PageSize)
-                .ToList();
-
-            foreach (var item in data)
-                DanhSachLichSu.Add(item);
-
-            OnPropertyChanged(nameof(TongTrang));
-        }
-
-        // ======================
-        // PAGING ACTIONS
-        // ======================
-
-        public void TrangTruoc()
-        {
-            if (TrangHienTai > 1)
+            try
             {
-                TrangHienTai--;
-                LoadTrang();
+                var filtered = await Task.Run(() => GetFilteredData().ToList());
+                _filteredCount = filtered.Count;
+
+                var pageData = filtered
+                    .Skip((TrangHienTai - 1) * PageSize)
+                    .Take(PageSize)
+                    .ToList();
+
+                Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
+                {
+                    DanhSachLichSu.Clear();
+                    foreach (var item in pageData)
+                    {
+                        DanhSachLichSu.Add(item);
+                    }
+                    OnPropertyChanged(nameof(TongTrang));
+                }));
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("HistoryLoadPage", "LichSuViewModel", "Lỗi tải trang lịch sử", ex);
             }
         }
-
-        public void TrangSau()
-        {
-            if (TrangHienTai < TongTrang)
-            {
-                TrangHienTai++;
-                LoadTrang();
-            }
-        }
-
-        public void TrangDau()
-        {
-            TrangHienTai = 1;
-            LoadTrang();
-        }
-
-        public void TrangCuoi()
-        {
-            TrangHienTai = TongTrang;
-            LoadTrang();
-        }
-
-        // ======================
-        // RESET
-        // ======================
 
         public void ResetFilter()
         {
-            TuKhoaTimKiem = "";
-            TuNgay = null;
-            DenNgay = null;
-            TienMin = null;
-            TienMax = null;
+            _tuKhoaTimKiem = "";
+            OnPropertyChanged(nameof(TuKhoaTimKiem));
+            
+            _tuNgay = DateTime.Today;
+            OnPropertyChanged(nameof(TuNgay));
+            
+            _denNgay = DateTime.Today.AddDays(1).AddTicks(-1);
+            OnPropertyChanged(nameof(DenNgay));
 
-            TrangDau();
+            TrangHienTai = 1;
+            _ = LoadTrangAsync();
         }
 
-        // ======================
-        // PROPERTY CHANGED
-        // ======================
+        private async void ExportExcel()
+        {
+            try
+            {
+                var sfd = new SaveFileDialog
+                {
+                    Filter = "Excel Files|*.xlsx",
+                    Title = "Lưu danh sách lịch sử ra vào",
+                    FileName = $"LichSuXe_{DateTime.Now:yyyyMMdd_HHmm}.xlsx"
+                };
 
-        public event PropertyChangedEventHandler PropertyChanged;
+                if (sfd.ShowDialog() == true)
+                {
+                    var dataToExport = await Task.Run(() => GetFilteredData().ToList());
+
+                    await Task.Run(() =>
+                    {
+                        using var wb = new XLWorkbook();
+                        var ws = wb.Worksheets.Add("LichSu");
+                        
+                        // Header
+                        ws.Cell(1, 1).Value = "ID";
+                        ws.Cell(1, 2).Value = "Biển số";
+                        ws.Cell(1, 3).Value = "Thời gian vào";
+                        ws.Cell(1, 4).Value = "Thời gian ra";
+                        ws.Cell(1, 5).Value = "Tiền (VNĐ)";
+                        ws.Cell(1, 6).Value = "Card ID";
+                        
+                        // Data
+                        for (int i = 0; i < dataToExport.Count; i++)
+                        {
+                            var row = i + 2;
+                            var item = dataToExport[i];
+                            
+                            ws.Cell(row, 1).Value = item.Id;
+                            ws.Cell(row, 2).Value = item.BienSo;
+                            ws.Cell(row, 3).Value = item.ThoiGianVao;
+                            ws.Cell(row, 4).Value = item.ThoiGianRa;
+                            ws.Cell(row, 5).Value = item.Tien;
+                            ws.Cell(row, 6).Value = item.CardId;
+                        }
+                        
+                        ws.Columns().AdjustToContents();
+                        wb.SaveAs(sfd.FileName);
+                    });
+
+                    MessageBox.Show("Xuất file Excel thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                    LoggingService.Instance.LogSecurity("EXPORT", "LichSuViewModel", $"Exported {dataToExport.Count} rows to {sfd.FileName}");
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("ExportExcel", "LichSuViewModel", "Lỗi xuất Excel", ex);
+                MessageBox.Show($"Lỗi xuất Excel: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        public event PropertyChangedEventHandler? PropertyChanged;
         private void OnPropertyChanged(string name)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));

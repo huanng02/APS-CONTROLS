@@ -1,15 +1,14 @@
-﻿<Window x:Class="QuanLyGiuXe.HistoryWindow"
+<Window x:Class="QuanLyGiuXe.HistoryWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:sys="clr-namespace:System;assembly=System.Runtime"
         Title="Lịch sử xe"
-        Height="650"
-        Width="1000"
+        Height="768"
+        Width="1200"
         WindowStartupLocation="CenterScreen"
-        Background="#F5F6FA">
+        Background="{StaticResource BgDarkBrush}">
 
     <Grid Margin="20">
-
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -17,147 +16,124 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- HEADER -->
-        <Border Background="White"
-                Padding="15"
-                CornerRadius="10"
-                Margin="0,0,0,10">
+        <!-- STATS CARDS ROW -->
+        <UniformGrid Grid.Row="0" Columns="4" Margin="0,0,0,15">
+            <!-- Total Visits -->
+            <Border Style="{StaticResource ModernCardBorder}" Margin="0,0,10,0" Background="#263A7BD5">
+                <StackPanel>
+                    <TextBlock Text="TỔNG LƯỢT XE" Foreground="{StaticResource AccentCyanBrush}" FontWeight="SemiBold"/>
+                    <TextBlock Text="{Binding TongLuotXe}" FontSize="32" FontWeight="Bold" Foreground="White" Margin="0,5,0,0"/>
+                </StackPanel>
+            </Border>
+            
+            <!-- Total Revenue -->
+            <Border Style="{StaticResource ModernCardBorder}" Margin="5,0,10,0" Background="#264CAF50">
+                <StackPanel>
+                    <TextBlock Text="TỔNG DOANH THU (VNĐ)" Foreground="{StaticResource SuccessBrush}" FontWeight="SemiBold"/>
+                    <TextBlock Text="{Binding TongDoanhThu, StringFormat=N0}" FontSize="32" FontWeight="Bold" Foreground="White" Margin="0,5,0,0"/>
+                </StackPanel>
+            </Border>
 
-            <TextBlock Text="📊 LỊCH SỬ XE"
-                       FontSize="20"
-                       FontWeight="Bold"/>
-        </Border>
+            <!-- Visits Today -->
+            <Border Style="{StaticResource ModernCardBorder}" Margin="5,0,10,0" Background="#26FFD700">
+                <StackPanel>
+                    <TextBlock Text="LƯỢT XE HÔM NAY" Foreground="{StaticResource WarningBrush}" FontWeight="SemiBold"/>
+                    <TextBlock Text="{Binding XeHomNay}" FontSize="32" FontWeight="Bold" Foreground="White" Margin="0,5,0,0"/>
+                </StackPanel>
+            </Border>
+            
+            <!-- Revenue Today -->
+            <Border Style="{StaticResource ModernCardBorder}" Margin="5,0,0,0" Background="#26FF5252">
+                <StackPanel>
+                    <TextBlock Text="DOANH THU HÔM NAY" Foreground="{StaticResource ErrorBrush}" FontWeight="SemiBold"/>
+                    <TextBlock Text="{Binding DoanhThuHomNay, StringFormat=N0}" FontSize="32" FontWeight="Bold" Foreground="White" Margin="0,5,0,0"/>
+                </StackPanel>
+            </Border>
+        </UniformGrid>
 
-        <!-- FILTER -->
-        <Border Grid.Row="1"
-                Background="White"
-                Padding="15"
-                CornerRadius="10"
-                Margin="0,0,0,10">
+        <!-- FILTER PANEL -->
+        <Border Grid.Row="1" Style="{StaticResource ModernCardBorder}" Margin="0,0,0,15">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
 
-            <!-- 🔥 ONE ROW FILTER -->
-            <StackPanel Orientation="Horizontal">
-
-                <!-- SEARCH -->
-                <StackPanel Orientation="Horizontal" Margin="0,0,10,0">
-                    <TextBlock Text="🔎"
-                               VerticalAlignment="Center"
-                               Margin="0,0,5,0"/>
-
-                    <TextBox Width="180"
-                             Height="32"
-                             Padding="5"
-                             VerticalContentAlignment="Center"
-                             Text="{Binding TuKhoaTimKiem, UpdateSourceTrigger=PropertyChanged}"/>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="Tìm kiếm:" Style="{StaticResource ModernTextBlock}" Margin="0,0,10,0"/>
+                    <TextBox Width="200" Text="{Binding TuKhoaTimKiem, UpdateSourceTrigger=PropertyChanged}" 
+                             Style="{StaticResource ModernSearchBox}"
+                             ToolTip="Biển số..."/>
+                             
+                    <TextBlock Text="Từ:" Style="{StaticResource ModernTextBlock}" Margin="15,0,10,0"/>
+                    <DatePicker SelectedDate="{Binding TuNgay}" Width="130" Margin="0,0,10,0"/>
+                    
+                    <TextBlock Text="Đến:" Style="{StaticResource ModernTextBlock}" Margin="5,0,10,0"/>
+                    <DatePicker SelectedDate="{Binding DenNgay}" Width="130"/>
                 </StackPanel>
 
-                <!-- DATE FROM -->
-                <DatePicker SelectedDate="{Binding TuNgay}"
-                            Width="140"
-                            Margin="5,0"/>
-
-                <!-- DATE TO -->
-                <DatePicker SelectedDate="{Binding DenNgay}"
-                            Width="140"
-                            Margin="5,0"/>
-
-                <!-- MONEY MIN -->
-                <!--<TextBox Width="120"
-                         Height="32"
-                         Margin="5,0"
-                         VerticalContentAlignment="Center"
-                         Text="{Binding TienMin, UpdateSourceTrigger=PropertyChanged}"
-                         ToolTip="Tiền tối thiểu"/> -->
-
-                <!-- FILTER BUTTON -->
-                <Button Content="Lọc"
-                        Width="80"
-                        Height="32"
-                        Margin="10,0,0,0"
-                        Background="#4CAF50"
-                        Foreground="White"
-                        Click="Loc_Click"/>
-
-                <!-- RESET BUTTON -->
-                <Button Content="Reset"
-                        Width="80"
-                        Height="32"
-                        Margin="5,0,0,0"
-                        Background="#FF5252"
-                        Foreground="White"
-                        Click="Reset_Click"/>
-
-            </StackPanel>
-
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="20,0,0,0">
+                    <Button Content="🔄 Reset" Command="{Binding ResetFilterCommand}" Style="{StaticResource ModernOutlineButton}" Margin="0,0,10,0"/>
+                    <Button Content="📊 Xuất Excel" Command="{Binding ExportExcelCommand}" Style="{StaticResource ModernButton}" Background="#4CAF50"/>
+                </StackPanel>
+            </Grid>
         </Border>
 
         <!-- TABLE -->
-        <Border Grid.Row="2"
-                Background="White"
-                Padding="10"
-                CornerRadius="10">
-
+        <Border Grid.Row="2" Style="{StaticResource ModernCardBorder}" Padding="1">
             <DataGrid ItemsSource="{Binding DanhSachLichSu}"
-                      AutoGenerateColumns="False"
-                      IsReadOnly="True"
-                      RowHeight="30">
+                      Style="{StaticResource ModernDataGrid}"
+                      VirtualizingPanel.IsVirtualizing="True"
+                      VirtualizingPanel.VirtualizationMode="Recycling">
+
+                <DataGrid.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="Sao chép biển số" />
+                        <MenuItem Header="In vé thu tiền" />
+                    </ContextMenu>
+                </DataGrid.ContextMenu>
 
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="🚗 Biển số" Binding="{Binding BienSo}" Width="*"/>
-                    <DataGridTextColumn Header="🟢 Vào" Binding="{Binding ThoiGianVao}" Width="2*"/>
-                    <DataGridTextColumn Header="🔴 Ra" Binding="{Binding ThoiGianRa}" Width="2*"/>
-                    <DataGridTextColumn Header="💰 Tiền" Binding="{Binding Tien}" Width="*"/>
+                    <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="60"/>
+                    <DataGridTextColumn Header="Biển số" Binding="{Binding BienSo}" Width="150" FontWeight="Bold"/>
+                    <DataGridTextColumn Header="Thời gian vào" Binding="{Binding ThoiGianVao, StringFormat=dd/MM/yyyy HH:mm:ss}" Width="160"/>
+                    <DataGridTextColumn Header="Thời gian ra" Binding="{Binding ThoiGianRa, StringFormat=dd/MM/yyyy HH:mm:ss}" Width="160"/>
+                    
+                    <DataGridTemplateColumn Header="Thanh toán" Width="140">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Tien, StringFormat=N0}" Foreground="{StaticResource SuccessBrush}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    
+                    <DataGridTextColumn Header="Mã thẻ (CardID)" Binding="{Binding CardId}" Width="*"/>
                 </DataGrid.Columns>
-
             </DataGrid>
-
         </Border>
 
         <!-- PAGING -->
-        <Border Grid.Row="3"
-                Background="White"
-                Padding="10"
-                CornerRadius="10"
-                Margin="0,10,0,0">
-
+        <Border Grid.Row="3" Style="{StaticResource ModernCardBorder}" Margin="0,15,0,0" Padding="10">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-
-                <!-- PAGE SIZE -->
-                <TextBlock Text="Hiển thị:"
-                           VerticalAlignment="Center"
-                           Margin="0,0,5,0"/>
-
-                <ComboBox Width="90"
-                          SelectedItem="{Binding PageSize, Mode=TwoWay}">
-                    <sys:Int32>5</sys:Int32>
-                    <sys:Int32>10</sys:Int32>
+                <TextBlock Text="Dòng/trang:" Style="{StaticResource ModernTextBlock}" Margin="0,0,10,0"/>
+                <ComboBox Width="80" Style="{StaticResource ModernComboBox}" SelectedItem="{Binding PageSize, Mode=TwoWay}" Margin="0,0,20,0">
+                    <sys:Int32>25</sys:Int32>
                     <sys:Int32>50</sys:Int32>
                     <sys:Int32>100</sys:Int32>
+                    <sys:Int32>500</sys:Int32>
                 </ComboBox>
 
-                <TextBlock Text="dòng/trang"
-                           VerticalAlignment="Center"
-                           Margin="5,0,15,0"/>
+                <Button Content="⏮" Width="40" Command="{Binding TrangDauCommand}" Style="{StaticResource ModernOutlineButton}" Margin="0,0,5,0" Padding="5"/>
+                <Button Content="◀" Width="40" Command="{Binding TrangTruocCommand}" Style="{StaticResource ModernOutlineButton}" Margin="0,0,15,0" Padding="5"/>
 
-                <!-- NAV -->
-                <Button Content="⏮" Width="40" Click="TrangDau_Click"/>
-                <Button Content="◀" Width="40" Click="TrangTruoc_Click"/>
+                <TextBlock Text="{Binding TrangHienTai}" Style="{StaticResource ModernTextBlock}" FontWeight="Bold" Foreground="{StaticResource AccentCyanBrush}"/>
+                <TextBlock Text="/" Style="{StaticResource ModernTextBlock}" Margin="5,0"/>
+                <TextBlock Text="{Binding TongTrang}" Style="{StaticResource ModernTextBlock}" Margin="0,0,15,0"/>
 
-                <TextBlock Text="{Binding TrangHienTai}"
-                           FontWeight="Bold"
-                           Margin="10,0"/>
-
-                <TextBlock Text="/"/>
-
-                <TextBlock Text="{Binding TongTrang}"
-                           Margin="5,0"/>
-
-                <Button Content="▶" Width="40" Click="TrangSau_Click"/>
-                <Button Content="⏭" Width="40" Click="TrangCuoi_Click"/>
-
+                <Button Content="▶" Width="40" Command="{Binding TrangSauCommand}" Style="{StaticResource ModernOutlineButton}" Margin="0,0,5,0" Padding="5"/>
+                <Button Content="⏭" Width="40" Command="{Binding TrangCuoiCommand}" Style="{StaticResource ModernOutlineButton}" Padding="5"/>
             </StackPanel>
-
         </Border>
-
     </Grid>
 </Window>

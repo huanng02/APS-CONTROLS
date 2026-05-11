@@ -1,49 +1,148 @@
 <UserControl x:Class="QuanLyGiuXe.Views.LoaiVeView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="clr-namespace:QuanLyGiuXe.ViewModels">
+             xmlns:vm="clr-namespace:QuanLyGiuXe.ViewModels"
+             Background="Transparent">
+             
     <UserControl.DataContext>
         <vm:LoaiVeViewModel />
     </UserControl.DataContext>
-    <Grid Margin="12">
+
+    <Grid Margin="20">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="8"/>
-            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
-            <TextBlock Text="Tên loại vé" VerticalAlignment="Center" Margin="0,6,8,0" />
-            <Button Content="Thêm" Command="{Binding AddCommand}" Width="90" Margin="0,0,6,0"/>
-            <Button Content="Delete Selected" Command="{Binding DeleteSelectedCommand}" Width="120" Margin="0,0,6,0"/>
-            <Button Content="Delete All" Command="{Binding DeleteAllCommand}" Width="100" Margin="0,0,6,0"/>
-            <Button Content="Load" Command="{Binding LoadCommand}" Width="90" Margin="0,0,6,0"/>
-        </StackPanel>
+        <!-- Header & Action Bar -->
+        <Border Grid.Row="0" Style="{StaticResource ModernCardBorder}" Margin="0,0,0,15" Padding="20,15">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
 
-        <DataGrid Grid.Row="2" ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem, Mode=TwoWay}" AutoGenerateColumns="False" CanUserAddRows="False" RowHeight="36">
-            <DataGrid.Columns>
-                <DataGridTemplateColumn Width="44">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
-                <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="80"/>
-                <DataGridTextColumn Header="Tên loại vé" Binding="{Binding TenLoai}" Width="*"/>
-                <DataGridTextColumn Header="Trạng thái" Binding="{Binding TrangThai}" Width="140"/>
-                <DataGridTextColumn Header="Chi tiết" Binding="{Binding Detail}" Width="200"/>
-                <DataGridTemplateColumn Header="Action" Width="140">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                <Button Content="Sửa" Width="56" Margin="4" Command="{Binding DataContext.UpdateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
-                                <Button Content="Xóa" Width="56" Margin="4" Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" CommandParameter="{Binding}" />
-                            </StackPanel>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
-            </DataGrid.Columns>
-        </DataGrid>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- Icon -->
+                    <Border Background="#1AFFFFFF" CornerRadius="8" Padding="10" Margin="0,0,15,0">
+                        <TextBlock Text="🎟" FontSize="24" VerticalAlignment="Center"/>
+                    </Border>
+                    <StackPanel>
+                        <TextBlock Text="QUẢN LÝ LOẠI VÉ" Style="{StaticResource ModernTitleTextBlock}" Foreground="{StaticResource AccentCyanBrush}"/>
+                        <TextBlock Text="Cấu hình các loại vé và thời hạn sử dụng" Style="{StaticResource ModernTextBlock}" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,5,0,0"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Actions -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Content="🔄 Làm mới" Command="{Binding LoadCommand}" Style="{StaticResource ModernOutlineButton}" Margin="0,0,10,0"/>
+                    <Button Content="🗑 Xoá đã chọn" Command="{Binding DeleteSelectedCommand}" Style="{StaticResource DangerButton}" Margin="0,0,10,0"/>
+                    <Button Content="➕ Thêm Loại Vé" Command="{Binding AddCommand}" Style="{StaticResource ModernButton}"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Cards Area -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <ItemsControl ItemsSource="{Binding Items}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal" ItemWidth="280" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Margin="0,0,15,15" Padding="20">
+                            <!-- Hover Effect -->
+                            <Border.Style>
+                                <Style TargetType="Border" BasedOn="{StaticResource ModernCardBorder}">
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#35354A"/>
+                                        </Trigger>
+                                        <!-- Selection border -->
+                                        <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                            <Setter Property="BorderBrush" Value="{StaticResource AccentCyanBrush}"/>
+                                            <Setter Property="BorderThickness" Value="2"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsSelected}" Value="False">
+                                            <Setter Property="BorderThickness" Value="2"/>
+                                            <Setter Property="BorderBrush" Value="Transparent"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                
+                                <!-- Top: Checkbox + Status -->
+                                <Grid Grid.Row="0" Margin="0,0,0,10">
+                                    <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                                    
+                                    <Border HorizontalAlignment="Right" CornerRadius="10" Padding="8,3">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="#264CAF50"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding TrangThai}" Value="Inactive">
+                                                        <Setter Property="Background" Value="#26FF5252"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <TextBlock Text="{Binding TrangThai}" FontSize="10" FontWeight="Bold">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Foreground" Value="{StaticResource SuccessBrush}"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding TrangThai}" Value="Inactive">
+                                                            <Setter Property="Foreground" Value="{StaticResource ErrorBrush}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </Border>
+                                </Grid>
+
+                                <!-- Center: Icon + Name -->
+                                <StackPanel Grid.Row="1" Orientation="Vertical" HorizontalAlignment="Center" Margin="0,10,0,20">
+                                    <TextBlock Text="🎟" FontSize="40" HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                                    <TextBlock Text="{Binding TenLoai}" FontSize="20" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"/>
+                                    <TextBlock Text="{Binding Detail}" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center" Margin="0,5,0,0" TextWrapping="Wrap" TextAlignment="Center"/>
+                                    <TextBlock Text="{Binding Id, StringFormat='ID: {0}'}" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center" Margin="0,5,0,0"/>
+                                </StackPanel>
+
+                                <!-- Bottom: Actions -->
+                                <Grid Grid.Row="2">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    
+                                    <Button Grid.Column="0" Content="✏️ Sửa" 
+                                            Command="{Binding DataContext.UpdateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                                            CommandParameter="{Binding}" 
+                                            Style="{StaticResource ModernOutlineButton}" 
+                                            Margin="0,0,5,0"/>
+                                            
+                                    <Button Grid.Column="1" Content="🗑 Xoá" 
+                                            Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
+                                            CommandParameter="{Binding}" 
+                                            Style="{StaticResource DangerButton}" 
+                                            Margin="5,0,0,0"/>
+                                </Grid>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
     </Grid>
 </UserControl>
