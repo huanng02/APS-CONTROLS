@@ -7,16 +7,12 @@
              d:DesignHeight="700" d:DesignWidth="1100" Background="#F4F7F6" FontFamily="Segoe UI">
     
     <UserControl.Resources>
-        <!-- Converters -->
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
-
-        <!-- Color Palette -->
         <SolidColorBrush x:Key="PrimaryColor" Color="#2B3A4A"/>
         <SolidColorBrush x:Key="SecondaryColor" Color="#4A90E2"/>
         <SolidColorBrush x:Key="AccentColor" Color="#27AE60"/>
         <SolidColorBrush x:Key="DangerColor" Color="#E74C3C"/>
         <SolidColorBrush x:Key="WarningColor" Color="#F39C12"/>
-        <SolidColorBrush x:Key="BgColor" Color="#F4F7F6"/>
         <SolidColorBrush x:Key="CardBgColor" Color="#FFFFFF"/>
         <SolidColorBrush x:Key="BorderColor" Color="#DDE3E8"/>
         <SolidColorBrush x:Key="TextColor" Color="#333333"/>
@@ -43,25 +39,31 @@
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter Property="Opacity" Value="0.8"/>
                             </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.4"/>
+                            </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
-
         <Style x:Key="ActionButton" BasedOn="{StaticResource FlatButton}" TargetType="Button">
             <Setter Property="Background" Value="{StaticResource SecondaryColor}"/>
         </Style>
-
         <Style x:Key="DangerButton" BasedOn="{StaticResource FlatButton}" TargetType="Button">
             <Setter Property="Background" Value="{StaticResource DangerColor}"/>
         </Style>
-        
         <Style x:Key="SuccessButton" BasedOn="{StaticResource FlatButton}" TargetType="Button">
             <Setter Property="Background" Value="{StaticResource AccentColor}"/>
         </Style>
+        <Style x:Key="PageButton" BasedOn="{StaticResource FlatButton}" TargetType="Button">
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Background" Value="#E6EDF2"/>
+            <Setter Property="Foreground" Value="{StaticResource PrimaryColor}"/>
+        </Style>
 
-        <!-- ListBox Style for Sidebar -->
+        <!-- ListBox Style -->
         <Style TargetType="ListBox">
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Background" Value="Transparent"/>
@@ -109,6 +111,11 @@
             <Setter Property="HeadersVisibility" Value="Column"/>
             <Setter Property="GridLinesVisibility" Value="Horizontal"/>
             <Setter Property="CanUserAddRows" Value="False"/>
+            <Setter Property="EnableRowVirtualization" Value="True"/>
+            <Setter Property="EnableColumnVirtualization" Value="True"/>
+            <Setter Property="VirtualizingPanel.IsVirtualizing" Value="True"/>
+            <Setter Property="VirtualizingPanel.VirtualizationMode" Value="Recycling"/>
+            <Setter Property="VirtualizingPanel.IsContainerVirtualizable" Value="True"/>
             <Setter Property="ColumnHeaderStyle">
                 <Setter.Value>
                     <Style TargetType="DataGridColumnHeader">
@@ -191,7 +198,7 @@
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
-        <!-- Sidebar: Danh sách bảng -->
+        <!-- Sidebar -->
         <Border Grid.Column="0" Background="{StaticResource CardBgColor}" CornerRadius="8" Padding="15">
             <Border.Effect>
                 <DropShadowEffect Color="#000000" Opacity="0.05" BlurRadius="10" ShadowDepth="2"/>
@@ -206,7 +213,6 @@
                     <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
                 
-                <!-- Header: Tiêu đề + Refresh -->
                 <Grid Grid.Row="0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
@@ -221,36 +227,26 @@
                     </Button>
                 </Grid>
 
-                <!-- Server info -->
                 <TextBlock Grid.Row="1" Text="{Binding ConnectedServerInfo}"
                            Foreground="{StaticResource AccentColor}" FontSize="12" FontWeight="SemiBold"
                            Margin="0,5,0,0" TextWrapping="Wrap" />
 
-                <!-- Change Connection button -->
-                <Button Grid.Row="2"
-                        Command="{Binding ChangeConnectionCommand}"
-                        Style="{StaticResource FlatButton}"
-                        Background="#4A90E2"
-                        Padding="10,6"
-                        Margin="0,8,0,0"
-                        ToolTip="Đổi sang SQL Server khác">
+                <Button Grid.Row="2" Command="{Binding ChangeConnectionCommand}" Style="{StaticResource FlatButton}"
+                        Background="#4A90E2" Padding="10,6" Margin="0,8,0,0" ToolTip="Đổi sang SQL Server khác">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="🔌" FontSize="13" Margin="0,0,6,0" VerticalAlignment="Center"/>
                         <TextBlock Text="Đổi Kết Nối" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
 
-                <!-- Loading indicator -->
-                <Grid Grid.Row="3" Margin="0,10,0,0"
-                      Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}">
+                <Grid Grid.Row="3" Margin="0,10,0,0" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
                     <ProgressBar IsIndeterminate="True" Height="4" Background="#E6EDF2" Foreground="{StaticResource SecondaryColor}"/>
                     <TextBlock Grid.Row="1" Text="Đang tải dữ liệu..." FontSize="11"
-                               Foreground="{StaticResource MutedTextColor}" HorizontalAlignment="Center"
-                               Margin="0,4,0,0"/>
+                               Foreground="{StaticResource MutedTextColor}" HorizontalAlignment="Center" Margin="0,4,0,0"/>
                 </Grid>
                 
                 <Border Grid.Row="4" BorderBrush="{StaticResource BorderColor}" BorderThickness="0,0,0,1" Margin="0,0,0,5"/>
@@ -268,10 +264,9 @@
             </Grid>
         </Border>
 
-        <!-- Splitter -->
         <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Center" Background="Transparent" />
 
-        <!-- Main Content: Tabs -->
+        <!-- Main Content -->
         <Border Grid.Column="2" Background="{StaticResource CardBgColor}" CornerRadius="8" Padding="10">
             <Border.Effect>
                 <DropShadowEffect Color="#000000" Opacity="0.05" BlurRadius="10" ShadowDepth="2"/>
@@ -279,17 +274,91 @@
             <TabControl>
                 <!-- DATA TAB -->
                 <TabItem Header="Dữ Liệu">
-                    <Grid Margin="0,15,0,0">
+                    <Grid Margin="0,10,0,0">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
-                        
-                        <Border Grid.Row="0" Background="#F8FAFC" BorderBrush="{StaticResource BorderColor}" BorderThickness="1" CornerRadius="4" Padding="12,10" Margin="0,0,0,10">
-                            <TextBlock Text="{Binding SelectedTable, StringFormat='Hiển thị dữ liệu của bảng: {0}'}" FontSize="14" Foreground="{StaticResource PrimaryColor}" FontWeight="SemiBold" />
+
+                        <!-- Header + Search -->
+                        <Grid Grid.Row="0" Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderColor}" BorderThickness="1" CornerRadius="4" Padding="12,8">
+                                <TextBlock Text="{Binding SelectedTable, StringFormat='Bảng: {0}'}" FontSize="14" Foreground="{StaticResource PrimaryColor}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            </Border>
+                            <Border Grid.Column="1" Background="#F8FAFC" BorderBrush="{StaticResource BorderColor}" BorderThickness="1" CornerRadius="4" Padding="8,4" Margin="8,0,0,0" MinWidth="220">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="🔍" FontSize="14" VerticalAlignment="Center" Margin="4,0,6,0"/>
+                                    <TextBox Grid.Column="1" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" 
+                                             BorderThickness="0" Background="Transparent" FontSize="13" VerticalAlignment="Center"
+                                             ToolTip="Tìm kiếm (debounce 400ms)"/>
+                                </Grid>
+                            </Border>
+                        </Grid>
+
+                        <!-- Index Warning -->
+                        <Border Grid.Row="1" Visibility="{Binding HasIndexWarning, Converter={StaticResource BoolToVis}}"
+                                Background="#FFF3CD" BorderBrush="#FFEAA7" BorderThickness="1" CornerRadius="4" Padding="10,6" Margin="0,0,0,6">
+                            <TextBlock Text="{Binding IndexWarning}" FontSize="12" Foreground="#856404"/>
                         </Border>
-                        
-                        <DataGrid Grid.Row="1" ItemsSource="{Binding CurrentData.DefaultView}" IsReadOnly="True" />
+
+                        <!-- Loading Indicator -->
+                        <Grid Grid.Row="2" Visibility="{Binding IsDataLoading, Converter={StaticResource BoolToVis}}" Margin="0,0,0,4">
+                            <ProgressBar IsIndeterminate="True" Height="3" Background="#E6EDF2" Foreground="{StaticResource SecondaryColor}"/>
+                        </Grid>
+
+                        <!-- Data Grid -->
+                        <DataGrid Grid.Row="3" ItemsSource="{Binding CurrentData.DefaultView}" IsReadOnly="True"
+                                  ScrollViewer.CanContentScroll="True"/>
+
+                        <!-- Pagination Bar -->
+                        <Border Grid.Row="4" Background="#F8FAFC" BorderBrush="{StaticResource BorderColor}" BorderThickness="1" CornerRadius="4" Padding="10,8" Margin="0,8,0,0">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Page Nav -->
+                                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Content="⏮" Command="{Binding FirstPageCommand}" Style="{StaticResource PageButton}" Margin="0,0,3,0" ToolTip="Trang đầu"/>
+                                    <Button Content="◀" Command="{Binding PrevPageCommand}" Style="{StaticResource PageButton}" Margin="0,0,8,0" ToolTip="Trang trước"/>
+                                    <TextBlock VerticalAlignment="Center" FontSize="13" Foreground="{StaticResource TextColor}">
+                                        <Run Text="Trang "/>
+                                        <Run Text="{Binding CurrentPageDisplay, Mode=OneWay}" FontWeight="Bold"/>
+                                        <Run Text=" / "/>
+                                        <Run Text="{Binding TotalPages, Mode=OneWay}" FontWeight="Bold"/>
+                                    </TextBlock>
+                                    <Button Content="▶" Command="{Binding NextPageCommand}" Style="{StaticResource PageButton}" Margin="8,0,3,0" ToolTip="Trang sau"/>
+                                    <Button Content="⏭" Command="{Binding LastPageCommand}" Style="{StaticResource PageButton}" ToolTip="Trang cuối"/>
+                                </StackPanel>
+
+                                <!-- Total Records -->
+                                <TextBlock Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="12" Foreground="{StaticResource MutedTextColor}">
+                                    <Run Text="Tổng: "/>
+                                    <Run Text="{Binding TotalRecordsDisplay, Mode=OneWay}" FontWeight="SemiBold"/>
+                                    <Run Text=" dòng"/>
+                                </TextBlock>
+
+                                <!-- Page Size -->
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="Hiển thị:" VerticalAlignment="Center" FontSize="12" Foreground="{StaticResource MutedTextColor}" Margin="0,0,6,0"/>
+                                    <ComboBox ItemsSource="{Binding PageSizeOptions}" SelectedItem="{Binding PageSize}" Width="65" FontSize="12" VerticalAlignment="Center"/>
+                                    <TextBlock Text="/ trang" VerticalAlignment="Center" FontSize="12" Foreground="{StaticResource MutedTextColor}" Margin="4,0,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
                     </Grid>
                 </TabItem>
 
@@ -300,34 +369,32 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
-                        
                         <Border Grid.Row="0" Background="#F8FAFC" BorderBrush="{StaticResource BorderColor}" BorderThickness="1" CornerRadius="4" Padding="12,10" Margin="0,0,0,10">
                             <TextBlock Text="{Binding SelectedTable, StringFormat='Cấu trúc Schema của bảng: {0}'}" FontSize="14" Foreground="{StaticResource PrimaryColor}" FontWeight="SemiBold" />
                         </Border>
-
                         <DataGrid Grid.Row="1" ItemsSource="{Binding CurrentSchema.DefaultView}" IsReadOnly="True" />
                     </Grid>
                 </TabItem>
 
                 <!-- QUERY EDITOR TAB -->
                 <TabItem Header="Tạo Query &amp; Chạy">
-                    <Grid Margin="0,15,0,0">
+                    <Grid Margin="0,10,0,0">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
-                            <RowDefinition Height="15" />
+                            <RowDefinition Height="10" />
                             <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
 
                         <!-- Action Bar -->
-                        <Border Grid.Row="0" Background="#F8FAFC" BorderBrush="{StaticResource BorderColor}" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,10">
+                        <Border Grid.Row="0" Background="#F8FAFC" BorderBrush="{StaticResource BorderColor}" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,8">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="*" />
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
-                                
                                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
                                     <TextBlock Text="Sinh tự động:" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="{StaticResource MutedTextColor}" FontWeight="SemiBold" />
                                     <Button Content="SELECT" Command="{Binding GenerateSelectCommand}" Style="{StaticResource ActionButton}" Margin="0,0,5,0" />
@@ -335,11 +402,10 @@
                                     <Button Content="UPDATE" Command="{Binding GenerateUpdateCommand}" Style="{StaticResource ActionButton}" Margin="0,0,5,0" />
                                     <Button Content="DELETE" Command="{Binding GenerateDeleteCommand}" Style="{StaticResource DangerButton}" />
                                 </StackPanel>
-                                
                                 <Button Grid.Column="2" Command="{Binding ExecuteQueryCommand}" Style="{StaticResource SuccessButton}">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="▶" Margin="0,0,5,0"/>
-                                        <TextBlock Text="Thực thi Query (F5)"/>
+                                        <TextBlock Text="Thực thi (F5)"/>
                                     </StackPanel>
                                 </Button>
                             </Grid>
@@ -355,7 +421,6 @@
                                      Padding="15" CaretBrush="White" />
                         </Border>
 
-                        <!-- Splitter -->
                         <GridSplitter Grid.Row="2" Height="5" HorizontalAlignment="Stretch" VerticalAlignment="Center" Background="Transparent" />
 
                         <!-- Result Grid -->
@@ -363,13 +428,39 @@
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="*"/>
                                 </Grid.RowDefinitions>
                                 <Border Background="{StaticResource PrimaryColor}" Padding="10,6" CornerRadius="3,3,0,0">
                                     <TextBlock Text="Kết quả truy vấn" Foreground="White" FontWeight="SemiBold" FontSize="12"/>
                                 </Border>
-                                <DataGrid Grid.Row="1" ItemsSource="{Binding QueryResult.DefaultView}" IsReadOnly="True" BorderThickness="0" />
+                                <Grid Grid.Row="1" Visibility="{Binding IsQueryLoading, Converter={StaticResource BoolToVis}}">
+                                    <ProgressBar IsIndeterminate="True" Height="3" Background="#E6EDF2" Foreground="{StaticResource SecondaryColor}"/>
+                                </Grid>
+                                <DataGrid Grid.Row="2" ItemsSource="{Binding QueryResult.DefaultView}" IsReadOnly="True" BorderThickness="0"
+                                          ScrollViewer.CanContentScroll="True"/>
                             </Grid>
+                        </Border>
+
+                        <!-- Query Pagination -->
+                        <Border Grid.Row="4" Background="#F8FAFC" BorderBrush="{StaticResource BorderColor}" BorderThickness="1" CornerRadius="4" Padding="10,6" Margin="0,6,0,0">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <Button Content="⏮" Command="{Binding QueryFirstPageCommand}" Style="{StaticResource PageButton}" Margin="0,0,3,0"/>
+                                <Button Content="◀" Command="{Binding QueryPrevPageCommand}" Style="{StaticResource PageButton}" Margin="0,0,8,0"/>
+                                <TextBlock VerticalAlignment="Center" FontSize="12" Foreground="{StaticResource TextColor}">
+                                    <Run Text="Trang "/>
+                                    <Run Text="{Binding QueryCurrentPageDisplay, Mode=OneWay}" FontWeight="Bold"/>
+                                    <Run Text=" / "/>
+                                    <Run Text="{Binding QueryTotalPages, Mode=OneWay}" FontWeight="Bold"/>
+                                </TextBlock>
+                                <Button Content="▶" Command="{Binding QueryNextPageCommand}" Style="{StaticResource PageButton}" Margin="8,0,3,0"/>
+                                <Button Content="⏭" Command="{Binding QueryLastPageCommand}" Style="{StaticResource PageButton}" Margin="0,0,15,0"/>
+                                <TextBlock VerticalAlignment="Center" FontSize="12" Foreground="{StaticResource MutedTextColor}">
+                                    <Run Text="Tổng: "/>
+                                    <Run Text="{Binding QueryTotalRecordsDisplay, Mode=OneWay}" FontWeight="SemiBold"/>
+                                    <Run Text=" dòng"/>
+                                </TextBlock>
+                            </StackPanel>
                         </Border>
                     </Grid>
                 </TabItem>
