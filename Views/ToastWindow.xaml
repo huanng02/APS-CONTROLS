@@ -35,16 +35,18 @@
     </Window.Resources>
 
     <Border x:Name="RootBorder"
-            CornerRadius="10"
-            Padding="14,0"
+            CornerRadius="12"
+            Padding="16,0"
             Cursor="Hand"
-            MouseLeftButtonDown="Border_Click">
+            MouseLeftButtonDown="Border_Click"
+            BorderThickness="1"
+            BorderBrush="{StaticResource BorderLightBrush}">
         <Border.Effect>
-            <DropShadowEffect Color="#000000" Opacity="0.25" BlurRadius="16" ShadowDepth="3"/>
+            <DropShadowEffect Color="#0F172A" Opacity="0.15" BlurRadius="25" ShadowDepth="4"/>
         </Border.Effect>
         <Border.Background>
             <!-- Background set từ code-behind theo ToastType -->
-            <SolidColorBrush x:Name="ToastBackground" Color="#27AE60"/>
+            <SolidColorBrush x:Name="ToastBackground" Color="#FFFFFF"/>
         </Border.Background>
 
         <Grid>
@@ -53,33 +55,34 @@
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <!-- Icon -->
-            <TextBlock x:Name="ToastIcon"
-                       Grid.Column="0"
-                       Text="✅"
-                       FontSize="22"
-                       VerticalAlignment="Center"
-                       Margin="0,0,12,0"/>
+            <!-- Icon Container -->
+            <Border Grid.Column="0" Width="36" Height="36" CornerRadius="18" Background="#F8FAFC" VerticalAlignment="Center" Margin="0,0,14,0">
+                <TextBlock x:Name="ToastIcon"
+                           Text="✅"
+                           FontSize="18"
+                           VerticalAlignment="Center"
+                           HorizontalAlignment="Center"/>
+            </Border>
 
-            <!-- Message + progress bar -->
+            <!-- Message Section -->
             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                 <TextBlock x:Name="ToastMessage"
-                           Text="Connected"
-                           Foreground="White"
+                           Text="System operation successful"
+                           Foreground="{StaticResource APSBlueBrush}"
                            FontSize="13"
-                           FontWeight="SemiBold"
-                           FontFamily="Segoe UI"
+                           FontWeight="Bold"
+                           FontFamily="Segoe UI Semibold"
                            TextWrapping="Wrap"
-                           MaxWidth="240"/>
+                           MaxWidth="220"/>
 
-                <!-- Countdown bar -->
-                <Border Height="3" CornerRadius="2" Background="#33FFFFFF" Margin="0,6,0,0">
+                <!-- Professional Progress Indicator -->
+                <Border Height="4" CornerRadius="2" Background="#F1F5F9" Margin="0,8,0,0">
                     <Border x:Name="CountdownBar"
-                            Height="3"
+                            Height="4"
                             HorizontalAlignment="Left"
                             CornerRadius="2"
-                            Background="White"
-                            Width="240">
+                            Background="{StaticResource APSBlueBrush}"
+                            Width="220">
                         <Border.RenderTransform>
                             <ScaleTransform x:Name="CountdownScale" ScaleX="1" ScaleY="1"/>
                         </Border.RenderTransform>
@@ -90,3 +93,4 @@
         </Grid>
     </Border>
 </Window>
+

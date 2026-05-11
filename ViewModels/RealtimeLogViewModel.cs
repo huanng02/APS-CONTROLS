@@ -7,6 +7,7 @@ using System.Windows.Data;
 using System.Windows.Input;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 using QuanLyGiuXe.Services;
 
 namespace QuanLyGiuXe.ViewModels
@@ -17,16 +18,14 @@ namespace QuanLyGiuXe.ViewModels
         private void OnPropertyChanged(string propertyName) =>
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 
-        // Circular buffer limit
         private const int MAX_LOGS = 1000;
-
-        // Thread-safe lock object
         private readonly object _lockObj = new();
-
+        
+        // Internal full collection
+        private readonly List<LogEntry> _fullLogEntries = new();
+        
+        // Collection shown in DataGrid (Paged)
         public ObservableCollection<LogEntry> LogEntries { get; } = new();
-
-        // ── View for Filtering / Sorting ──
-        public ICollectionView LogView { get; }
 
         private bool _isPaused;
         public bool IsPaused
@@ -50,6 +49,7 @@ namespace QuanLyGiuXe.ViewModels
             { 
                 _searchText = value; 
                 OnPropertyChanged(nameof(SearchText)); 
+                CurrentPage = 1;
                 DebounceSearch();
             }
         }
@@ -62,40 +62,67 @@ namespace QuanLyGiuXe.ViewModels
             { 
                 _selectedLevel = value; 
                 OnPropertyChanged(nameof(SelectedLevel)); 
-                Application.Current?.Dispatcher.BeginInvoke(new Action(() => LogView.Refresh()));
+                CurrentPage = 1;
+                RefreshPagedLogs();
             }
         }
 
         public ObservableCollection<string> Levels { get; } = new() { "All", "Info", "Warning", "Error", "Security", "Audit" };
+
+        // ── Paging Properties ──
+        private int _pageSize = 50;
+        public int PageSize
+        {
+            get => _pageSize;
+            set { _pageSize = value; OnPropertyChanged(nameof(PageSize)); CurrentPage = 1; RefreshPagedLogs(); }
+        }
+
+        private int _currentPage = 1;
+        public int CurrentPage
+        {
+            get => _currentPage;
+            set { _currentPage = value; OnPropertyChanged(nameof(CurrentPage)); RefreshPagedLogs(); }
+        }
+
+        private int _totalPages = 1;
+        public int TotalPages
+        {
+            get => _totalPages;
+            set { _totalPages = value; OnPropertyChanged(nameof(TotalPages)); }
+        }
+
+        private int _totalItems = 0;
+        public int TotalItems
+        {
+            get => _totalItems;
+            set { _totalItems = value; OnPropertyChanged(nameof(TotalItems)); }
+        }
 
         // Commands
         public ICommand ClearLogCommand { get; }
         public ICommand PauseLogCommand { get; }
         public ICommand ToggleAutoScrollCommand { get; }
         public ICommand ExportLogCommand { get; }
+        public ICommand NextPageCommand { get; }
+        public ICommand PrevPageCommand { get; }
 
         private CancellationTokenSource? _searchCts;
 
         public RealtimeLogViewModel()
         {
-            // Enable collection synchronization for thread-safe UI updates
-            BindingOperations.EnableCollectionSynchronization(LogEntries, _lockObj);
-
-            LogView = CollectionViewSource.GetDefaultView(LogEntries);
-            LogView.Filter = FilterLog;
-
             ClearLogCommand = new RelayCommand(_ => {
-                lock (_lockObj) LogEntries.Clear();
+                lock (_lockObj) { _fullLogEntries.Clear(); }
+                RefreshPagedLogs();
             });
             
             PauseLogCommand = new RelayCommand(_ => IsPaused = !IsPaused);
             ToggleAutoScrollCommand = new RelayCommand(_ => AutoScroll = !AutoScroll);
             ExportLogCommand = new RelayCommand(_ => ExportLogs());
+            
+            NextPageCommand = new RelayCommand(_ => { if (CurrentPage < TotalPages) CurrentPage++; });
+            PrevPageCommand = new RelayCommand(_ => { if (CurrentPage > 1) CurrentPage--; });
 
-            // Load initial logs
             LoadInitialLogs();
-
-            // Subscribe to new logs
             LoggingService.Instance.LogEmitted += OnLogEmitted;
         }
 
@@ -106,16 +133,18 @@ namespace QuanLyGiuXe.ViewModels
                 try
                 {
                     var db = new DatabaseService();
-                    var logs = db.GetAppLogs(null, null, 200).OrderBy(x => x.Timestamp); // Load last 200 logs
+                    var logs = db.GetAppLogs(null, null, 500).OrderByDescending(x => x.Timestamp);
                     
                     lock (_lockObj)
                     {
+                        _fullLogEntries.Clear();
                         foreach (var log in logs)
                         {
                             log.Timestamp = log.Timestamp.ToLocalTime();
-                            LogEntries.Insert(0, log); // Insert at top since UI typically expects newest first
+                            _fullLogEntries.Add(log);
                         }
                     }
+                    RefreshPagedLogs();
                 }
                 catch { }
             });
@@ -125,7 +154,6 @@ namespace QuanLyGiuXe.ViewModels
         {
             if (IsPaused) return;
 
-            // Deep copy to prevent cross-thread issues if entry is mutated
             var newEntry = new LogEntry
             {
                 Timestamp = entry.Timestamp.ToLocalTime(),
@@ -147,41 +175,93 @@ namespace QuanLyGiuXe.ViewModels
 
             lock (_lockObj)
             {
-                LogEntries.Insert(0, newEntry);
+                // New logs always at top (Index 0)
+                _fullLogEntries.Insert(0, newEntry);
                 
-                // Circular buffer logic
-                while (LogEntries.Count > MAX_LOGS)
+                if (_fullLogEntries.Count > MAX_LOGS)
                 {
-                    LogEntries.RemoveAt(LogEntries.Count - 1);
+                    _fullLogEntries.RemoveAt(_fullLogEntries.Count - 1);
                 }
+            }
+
+            // If we are on page 1, we should update the UI
+            if (CurrentPage == 1)
+            {
+                RefreshPagedLogs();
+            }
+            else
+            {
+                // Just update totals if on other pages
+                UpdateTotals();
             }
         }
 
-        private bool FilterLog(object obj)
+        private void RefreshPagedLogs()
         {
-            if (obj is not LogEntry log) return false;
-
-            // Level filter
-            if (SelectedLevel != "All" && !string.Equals(log.Level, SelectedLevel, StringComparison.OrdinalIgnoreCase))
+            List<LogEntry> filtered;
+            lock (_lockObj)
             {
-                // Handle alias "Security"/"Audit" as they might map to different strings or events
-                // In our codebase: Level "Security" is custom mapped in UI, but LoggingService uses LogSecurity (usually Level=Security/Warning)
-                // Let's do simple string match first
-                if (SelectedLevel == "Security" && !string.Equals(log.Level, "Security", StringComparison.OrdinalIgnoreCase)) return false;
-                if (SelectedLevel == "Audit" && !string.Equals(log.Level, "Audit", StringComparison.OrdinalIgnoreCase)) return false;
+                var query = _fullLogEntries.AsEnumerable();
+
+                // Filter
+                if (SelectedLevel != "All")
+                {
+                    query = query.Where(x => string.Equals(x.Level, SelectedLevel, StringComparison.OrdinalIgnoreCase));
+                }
+
+                if (!string.IsNullOrWhiteSpace(SearchText))
+                {
+                    var term = SearchText.ToLower();
+                    query = query.Where(log => 
+                        (log.Details?.ToLower().Contains(term) == true) ||
+                        (log.Source?.ToLower().Contains(term) == true) ||
+                        (log.EventType?.ToLower().Contains(term) == true) ||
+                        (log.Plate?.ToLower().Contains(term) == true));
+                }
+
+                filtered = query.ToList();
             }
 
-            // Search filter
-            if (!string.IsNullOrWhiteSpace(SearchText))
-            {
-                var term = SearchText.ToLower();
-                return (log.Details?.ToLower().Contains(term) == true) ||
-                       (log.Source?.ToLower().Contains(term) == true) ||
-                       (log.EventType?.ToLower().Contains(term) == true) ||
-                       (log.Plate?.ToLower().Contains(term) == true);
-            }
+            int total = filtered.Count;
+            int pages = (int)Math.Ceiling((double)total / PageSize);
+            if (pages == 0) pages = 1;
 
-            return true;
+            var pageItems = filtered
+                .Skip((CurrentPage - 1) * PageSize)
+                .Take(PageSize)
+                .ToList();
+
+            Application.Current?.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                TotalItems = total;
+                TotalPages = pages;
+                
+                LogEntries.Clear();
+                foreach (var item in pageItems)
+                {
+                    LogEntries.Add(item);
+                }
+            }));
+        }
+
+        private void UpdateTotals()
+        {
+            lock (_lockObj)
+            {
+                var query = _fullLogEntries.AsEnumerable();
+                if (SelectedLevel != "All") query = query.Where(x => string.Equals(x.Level, SelectedLevel, StringComparison.OrdinalIgnoreCase));
+                if (!string.IsNullOrWhiteSpace(SearchText))
+                {
+                    var term = SearchText.ToLower();
+                    query = query.Where(log => (log.Details?.ToLower().Contains(term) == true) || (log.Source?.ToLower().Contains(term) == true));
+                }
+                
+                int total = query.Count();
+                Application.Current?.Dispatcher.BeginInvoke(new Action(() => {
+                    TotalItems = total;
+                    TotalPages = (int)Math.Ceiling((double)total / PageSize) == 0 ? 1 : (int)Math.Ceiling((double)total / PageSize);
+                }));
+            }
         }
 
         private void DebounceSearch()
@@ -194,14 +274,13 @@ namespace QuanLyGiuXe.ViewModels
             {
                 if (t.IsCompletedSuccessfully)
                 {
-                    Application.Current?.Dispatcher.BeginInvoke(new Action(() => LogView.Refresh()));
+                    RefreshPagedLogs();
                 }
             }, TaskScheduler.Default);
         }
 
         private void ExportLogs()
         {
-            // TODO: Implement ClosedXML export for logs
             MessageBox.Show("Tính năng Export Excel đang được cập nhật.", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 

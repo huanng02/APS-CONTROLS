@@ -6,85 +6,10 @@
              xmlns:lvc="clr-namespace:LiveCharts.Wpf;assembly=LiveCharts.Wpf"
              mc:Ignorable="d" 
              d:DesignHeight="800" d:DesignWidth="1200"
-             Background="#F4F7F6" FontFamily="Segoe UI">
+             Background="{StaticResource BgLightBrush}" FontFamily="Segoe UI">
 
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
-        <!-- Color Palette -->
-        <SolidColorBrush x:Key="PrimaryColor" Color="#2B3A4A"/>
-        <SolidColorBrush x:Key="SecondaryColor" Color="#4A90E2"/>
-        <SolidColorBrush x:Key="AccentColor" Color="#27AE60"/>
-        <SolidColorBrush x:Key="DangerColor" Color="#E74C3C"/>
-        <SolidColorBrush x:Key="WarningColor" Color="#F39C12"/>
-        <SolidColorBrush x:Key="BgColor" Color="#F4F7F6"/>
-        <SolidColorBrush x:Key="CardBgColor" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="BorderColor" Color="#DDE3E8"/>
-        <SolidColorBrush x:Key="TextColor" Color="#333333"/>
-        <SolidColorBrush x:Key="MutedTextColor" Color="#888888"/>
-
-        <!-- Card Style -->
-        <Style x:Key="CardStyle" TargetType="Border">
-            <Setter Property="Background" Value="{StaticResource CardBgColor}"/>
-            <Setter Property="CornerRadius" Value="8"/>
-            <Setter Property="Padding" Value="20"/>
-            <Setter Property="Margin" Value="10"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BorderColor}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Effect">
-                <Setter.Value>
-                    <DropShadowEffect Color="#000000" Opacity="0.05" BlurRadius="10" ShadowDepth="2"/>
-                </Setter.Value>
-            </Setter>
-        </Style>
-        
-        <!-- KPI Card Base -->
-        <Style x:Key="KpiCardStyle" BasedOn="{StaticResource CardStyle}" TargetType="Border">
-            <Setter Property="BorderThickness" Value="4,0,0,0"/>
-            <Setter Property="Padding" Value="15"/>
-        </Style>
-        
-        <Style TargetType="DataGrid">
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BorderColor}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="RowBackground" Value="White"/>
-            <Setter Property="AlternatingRowBackground" Value="#FBFBFC"/>
-            <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource BorderColor}"/>
-            <Setter Property="VerticalGridLinesBrush" Value="Transparent"/>
-            <Setter Property="RowHeaderWidth" Value="0"/>
-            <Setter Property="HeadersVisibility" Value="Column"/>
-            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
-            <Setter Property="CanUserAddRows" Value="False"/>
-            <Setter Property="AutoGenerateColumns" Value="False"/>
-            <Setter Property="ColumnHeaderStyle">
-                <Setter.Value>
-                    <Style TargetType="DataGridColumnHeader">
-                        <Setter Property="Background" Value="{StaticResource PrimaryColor}"/>
-                        <Setter Property="Foreground" Value="White"/>
-                        <Setter Property="Padding" Value="10,8"/>
-                        <Setter Property="FontWeight" Value="SemiBold"/>
-                        <Setter Property="BorderThickness" Value="0,0,1,0"/>
-                    </Style>
-                </Setter.Value>
-            </Setter>
-            <Setter Property="CellStyle">
-                <Setter.Value>
-                    <Style TargetType="DataGridCell">
-                        <Setter Property="Padding" Value="10,6"/>
-                        <Setter Property="BorderThickness" Value="0"/>
-                        <Setter Property="Template">
-                            <Setter.Value>
-                                <ControlTemplate TargetType="DataGridCell">
-                                    <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
-                                        <ContentPresenter VerticalAlignment="Center"/>
-                                    </Border>
-                                </ControlTemplate>
-                            </Setter.Value>
-                        </Setter>
-                    </Style>
-                </Setter.Value>
-            </Setter>
-        </Style>
     </UserControl.Resources>
 
     <Grid Margin="15">
@@ -103,59 +28,34 @@
             </Grid.ColumnDefinitions>
             
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <TextBlock Text="📊" FontSize="24" Margin="0,0,10,0" VerticalAlignment="Center"/>
-                <TextBlock Text="DASHBOARD TỔNG QUAN" FontWeight="Bold" FontSize="22" Foreground="{StaticResource PrimaryColor}" VerticalAlignment="Center"/>
-                <Border Background="#E6F4EA" CornerRadius="15" Padding="12,5" Margin="20,0,0,0" VerticalAlignment="Center">
-                    <TextBlock Text="{Binding SelectedDateRangeDisplay}" Foreground="{StaticResource AccentColor}" FontWeight="SemiBold" FontSize="14"/>
+                <Border Background="{StaticResource APSBlueBrush}" CornerRadius="4" Padding="10" Margin="0,0,15,0">
+                    <TextBlock Text="📊" FontSize="20" Foreground="White" VerticalAlignment="Center"/>
                 </Border>
-                <ProgressBar IsIndeterminate="True" Width="100" Height="4" Margin="20,0,0,0" VerticalAlignment="Center" 
+                <TextBlock Text="SYSTEM DASHBOARD" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}" VerticalAlignment="Center"/>
+                <Border Background="{StaticResource BgLightBrush}" BorderBrush="{StaticResource APSBlueBrush}" BorderThickness="1" CornerRadius="15" Padding="12,5" Margin="20,0,0,0" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding SelectedDateRangeDisplay}" Foreground="{StaticResource APSBlueBrush}" FontWeight="SemiBold" FontSize="12"/>
+                </Border>
+                <ProgressBar IsIndeterminate="True" Width="80" Height="2" Margin="20,0,0,0" VerticalAlignment="Center" Foreground="{StaticResource APSBlueBrush}"
                              Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}"/>
             </StackPanel>
 
             <StackPanel Grid.Column="1" Orientation="Horizontal">
                 <StackPanel Orientation="Horizontal" Visibility="{Binding IsCustomDateVisible, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="0,0,20,0">
-                    <TextBlock Text="Từ:" VerticalAlignment="Center" Margin="0,0,5,0" Foreground="{StaticResource MutedTextColor}"/>
-                    <DatePicker SelectedDate="{Binding FromDate}" Width="120" Height="30" VerticalContentAlignment="Center"/>
-                    <TextBlock Text="Đến:" VerticalAlignment="Center" Margin="10,0,5,0" Foreground="{StaticResource MutedTextColor}"/>
-                    <DatePicker SelectedDate="{Binding ToDate}" Width="120" Height="30" VerticalContentAlignment="Center"/>
+                    <TextBlock Text="From:" Style="{StaticResource SubTitleStyle}" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                    <DatePicker SelectedDate="{Binding FromDate}" Width="120" />
+                    <TextBlock Text="To:" Style="{StaticResource SubTitleStyle}" VerticalAlignment="Center" Margin="10,0,5,0"/>
+                    <DatePicker SelectedDate="{Binding ToDate}" Width="120" />
                 </StackPanel>
 
-                <TextBlock Text="Lọc theo:" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="{StaticResource MutedTextColor}" FontWeight="SemiBold"/>
-                <ComboBox Width="150" Height="35" VerticalContentAlignment="Center" 
-                          ItemsSource="{Binding FilterOptions}" SelectedItem="{Binding SelectedFilter}"
-                          FontSize="14" Padding="10,0"/>
+                <TextBlock Text="Range:" Style="{StaticResource SubTitleStyle}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                <ComboBox Width="130" Style="{StaticResource ModernComboBox}"
+                          ItemsSource="{Binding FilterOptions}" SelectedItem="{Binding SelectedFilter}"/>
 
-                <Button Command="{Binding ExportCommand}" Margin="10,0,0,0" Width="120" Height="35" 
-                        Background="{StaticResource AccentColor}" Foreground="White" BorderThickness="0">
-                    <Button.Style>
-                        <Style TargetType="Button">
-                            <Setter Property="Template">
-                                <Setter.Value>
-                                    <ControlTemplate TargetType="Button">
-                                        <Border Background="{TemplateBinding Background}" CornerRadius="4">
-                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                                <TextBlock Text="📥" Margin="0,0,5,0"/>
-                                                <TextBlock x:Name="btnText" Text="Export Excel"/>
-                                            </StackPanel>
-                                        </Border>
-                                        <ControlTemplate.Triggers>
-                                            <DataTrigger Binding="{Binding IsExporting}" Value="True">
-                                                <Setter TargetName="btnText" Property="Text" Value="Đang xuất..."/>
-                                            </DataTrigger>
-                                        </ControlTemplate.Triggers>
-                                    </ControlTemplate>
-                                </Setter.Value>
-                            </Setter>
-                            <Style.Triggers>
-                                <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter Property="Opacity" Value="0.8"/>
-                                </Trigger>
-                                <Trigger Property="IsEnabled" Value="False">
-                                    <Setter Property="Background" Value="{StaticResource MutedTextColor}"/>
-                                </Trigger>
-                            </Style.Triggers>
-                        </Style>
-                    </Button.Style>
+                <Button Command="{Binding ExportCommand}" Margin="10,0,0,0" Style="{StaticResource ModernButton}" Background="{StaticResource SuccessBrush}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="📥" Margin="0,0,5,0"/>
+                        <TextBlock x:Name="btnText" Text="Export Excel"/>
+                    </StackPanel>
                 </Button>
             </StackPanel>
         </Grid>
@@ -164,62 +64,62 @@
         <UniformGrid Grid.Row="1" Columns="4">
             
             <!-- Card 1 -->
-            <Border Style="{StaticResource KpiCardStyle}" BorderBrush="{StaticResource SecondaryColor}">
+            <Border Style="{StaticResource EnterpriseCardBorder}" BorderBrush="{StaticResource APSBlueBrush}" BorderThickness="0,4,0,0">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel>
-                        <TextBlock Text="Xe Trong Bãi" Foreground="{StaticResource MutedTextColor}" FontSize="14" FontWeight="SemiBold"/>
-                        <TextBlock Text="{Binding XeTrongBai}" FontSize="32" FontWeight="Bold" Foreground="{StaticResource TextColor}" Margin="0,5,0,0"/>
+                        <TextBlock Text="VEHICLES IN YARD" Style="{StaticResource SubTitleStyle}"/>
+                        <TextBlock Text="{Binding XeTrongBai}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}" Margin="0,5,0,0"/>
                     </StackPanel>
-                    <TextBlock Grid.Column="1" Text="🚗" FontSize="40" Opacity="0.5" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="1" Text="🚗" FontSize="32" Opacity="0.3" VerticalAlignment="Center"/>
                 </Grid>
             </Border>
 
             <!-- Card 2 -->
-            <Border Style="{StaticResource KpiCardStyle}" BorderBrush="{StaticResource WarningColor}">
+            <Border Style="{StaticResource EnterpriseCardBorder}" BorderBrush="{StaticResource WarningBrush}" BorderThickness="0,4,0,0">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel>
-                        <TextBlock Text="Tổng Lượt Xe Vào/Ra" Foreground="{StaticResource MutedTextColor}" FontSize="14" FontWeight="SemiBold"/>
-                        <TextBlock Text="{Binding LuotXeVao}" FontSize="32" FontWeight="Bold" Foreground="{StaticResource TextColor}" Margin="0,5,0,0"/>
+                        <TextBlock Text="TRAFFIC FLOW" Style="{StaticResource SubTitleStyle}"/>
+                        <TextBlock Text="{Binding LuotXeVao}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource WarningBrush}" Margin="0,5,0,0"/>
                     </StackPanel>
-                    <TextBlock Grid.Column="1" Text="📈" FontSize="40" Opacity="0.5" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="1" Text="📈" FontSize="32" Opacity="0.3" VerticalAlignment="Center"/>
                 </Grid>
             </Border>
 
             <!-- Card 3 -->
-            <Border Style="{StaticResource KpiCardStyle}" BorderBrush="{StaticResource AccentColor}">
+            <Border Style="{StaticResource EnterpriseCardBorder}" BorderBrush="{StaticResource SuccessBrush}" BorderThickness="0,4,0,0">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel>
-                        <TextBlock Text="Doanh Thu" Foreground="{StaticResource MutedTextColor}" FontSize="14" FontWeight="SemiBold"/>
-                        <TextBlock Text="{Binding DoanhThu, StringFormat={}{0:N0} đ}" FontSize="32" FontWeight="Bold" Foreground="{StaticResource AccentColor}" Margin="0,5,0,0"/>
+                        <TextBlock Text="TOTAL REVENUE" Style="{StaticResource SubTitleStyle}"/>
+                        <TextBlock Text="{Binding DoanhThu, StringFormat={}{0:N0} đ}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource SuccessBrush}" Margin="0,5,0,0"/>
                     </StackPanel>
-                    <TextBlock Grid.Column="1" Text="💰" FontSize="40" Opacity="0.5" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="1" Text="💰" FontSize="32" Opacity="0.3" VerticalAlignment="Center"/>
                 </Grid>
             </Border>
 
             <!-- Card 4 -->
-            <Border Style="{StaticResource KpiCardStyle}" BorderBrush="#9B59B6">
+            <Border Style="{StaticResource EnterpriseCardBorder}" BorderBrush="{StaticResource APSBlueBrush}" BorderThickness="0,4,0,0">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel>
-                        <TextBlock Text="Vé Đang Active" Foreground="{StaticResource MutedTextColor}" FontSize="14" FontWeight="SemiBold"/>
-                        <TextBlock Text="{Binding VeActive}" FontSize="32" FontWeight="Bold" Foreground="{StaticResource TextColor}" Margin="0,5,0,0"/>
+                        <TextBlock Text="ACTIVE TICKETS" Style="{StaticResource SubTitleStyle}"/>
+                        <TextBlock Text="{Binding VeActive}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}" Margin="0,5,0,0"/>
                     </StackPanel>
-                    <TextBlock Grid.Column="1" Text="💳" FontSize="40" Opacity="0.5" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="1" Text="💳" FontSize="32" Opacity="0.3" VerticalAlignment="Center"/>
                 </Grid>
             </Border>
         </UniformGrid>
@@ -232,13 +132,13 @@
             </Grid.ColumnDefinitions>
 
             <!-- Revenue Chart -->
-            <Border Grid.Column="0" Style="{StaticResource CardStyle}">
+            <Border Grid.Column="0" Style="{StaticResource EnterpriseCardBorder}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
-                    <TextBlock Text="Biểu Đồ Doanh Thu" FontWeight="Bold" FontSize="16" Foreground="{StaticResource PrimaryColor}" Margin="0,0,0,15"/>
+                    <TextBlock Text="REVENUE OVERVIEW" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}" Margin="0,0,0,15"/>
                     <lvc:CartesianChart Grid.Row="1" Series="{Binding RevenueSeries}" Margin="0,10,0,0">
                         <lvc:CartesianChart.AxisX>
                             <lvc:Axis Labels="{Binding RevenueLabels}" />
@@ -251,13 +151,13 @@
             </Border>
 
             <!-- Hourly Chart -->
-            <Border Grid.Column="1" Style="{StaticResource CardStyle}">
+            <Border Grid.Column="1" Style="{StaticResource EnterpriseCardBorder}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
-                    <TextBlock Text="Lượt Xe Vô Bãi Theo Giờ" FontWeight="Bold" FontSize="16" Foreground="{StaticResource PrimaryColor}" Margin="0,0,0,15"/>
+                    <TextBlock Text="HOURLY TRAFFIC" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}" Margin="0,0,0,15"/>
                     <lvc:CartesianChart Grid.Row="1" Series="{Binding HourlySeries}" Margin="0,10,0,0">
                         <lvc:CartesianChart.AxisX>
                             <lvc:Axis Labels="{Binding HourlyLabels}" />
@@ -278,7 +178,7 @@
             </Grid.ColumnDefinitions>
 
             <!-- Park Status -->
-            <Border Grid.Column="0" Style="{StaticResource CardStyle}">
+            <Border Grid.Column="0" Style="{StaticResource EnterpriseCardBorder}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -287,16 +187,15 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
                     
-                    <TextBlock Text="Trạng Thái Bãi Xe" FontWeight="Bold" FontSize="16" Foreground="{StaticResource PrimaryColor}" Margin="0,0,0,15"/>
+                    <TextBlock Text="YARD STATUS" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}" Margin="0,0,0,15"/>
                     
                     <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10">
-                        <TextBlock Text="Sức chứa tối đa: " FontSize="14" Foreground="{StaticResource MutedTextColor}"/>
-                        <TextBlock Text="{Binding TongCho}" FontSize="14" FontWeight="Bold"/>
+                        <TextBlock Text="Capacity: " Style="{StaticResource SubTitleStyle}"/>
+                        <TextBlock Text="{Binding TongCho}" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold"/>
                     </StackPanel>
 
-                    <!-- Progress Bar Custom Style -->
-                    <ProgressBar Grid.Row="2" Height="25" Value="{Binding TyLeLapDay, Mode=OneWay}" Maximum="100" 
-                                 Foreground="{StaticResource SecondaryColor}" Background="#E6EDF2" BorderThickness="0" Margin="0,10"/>
+                    <ProgressBar Grid.Row="2" Height="20" Value="{Binding TyLeLapDay, Mode=OneWay}" Maximum="100" 
+                                 Foreground="{StaticResource APSBlueBrush}" Background="{StaticResource BgLightBrush}" BorderThickness="0" Margin="0,10"/>
                     
                     <Grid Grid.Row="3" Margin="0,10,0,0">
                         <Grid.ColumnDefinitions>
@@ -304,18 +203,18 @@
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
                         <StackPanel Grid.Column="0">
-                            <TextBlock Text="Đang Sử Dụng" FontSize="12" Foreground="{StaticResource MutedTextColor}"/>
-                            <TextBlock Text="{Binding XeTrongBai}" FontSize="24" FontWeight="Bold" Foreground="{StaticResource SecondaryColor}"/>
-                            <TextBlock Text="{Binding TyLeLapDay, StringFormat={}{0:N1}%}" FontSize="12" Foreground="{StaticResource SecondaryColor}"/>
+                            <TextBlock Text="Occupied" Style="{StaticResource SubTitleStyle}"/>
+                            <TextBlock Text="{Binding XeTrongBai}" FontSize="24" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}"/>
+                            <TextBlock Text="{Binding TyLeLapDay, StringFormat={}{0:N1}%}" Style="{StaticResource SubTitleStyle}" Foreground="{StaticResource APSBlueBrush}"/>
                         </StackPanel>
                         <StackPanel Grid.Column="1">
-                            <TextBlock Text="Còn Trống" FontSize="12" Foreground="{StaticResource MutedTextColor}"/>
-                            <TextBlock Text="{Binding ChoTrong}" FontSize="24" FontWeight="Bold" Foreground="{StaticResource AccentColor}"/>
+                            <TextBlock Text="Available" Style="{StaticResource SubTitleStyle}"/>
+                            <TextBlock Text="{Binding ChoTrong}" FontSize="24" FontWeight="Bold" Foreground="{StaticResource SuccessBrush}"/>
                         </StackPanel>
                     </Grid>
 
                     <!-- Warning if Near Full -->
-                    <Border Grid.Row="3" VerticalAlignment="Bottom" Background="#FDEDEC" BorderBrush="{StaticResource DangerColor}" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,10,0,0">
+                    <Border Grid.Row="3" VerticalAlignment="Bottom" Background="#FFF1F0" BorderBrush="{StaticResource APSRedBrush}" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,10,0,0">
                         <Border.Style>
                             <Style TargetType="Border">
                                 <Setter Property="Visibility" Value="Collapsed"/>
@@ -328,53 +227,52 @@
                         </Border.Style>
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="⚠️" Margin="0,0,10,0"/>
-                            <TextBlock Text="Cảnh báo: Bãi xe sắp đầy!" Foreground="{StaticResource DangerColor}" FontWeight="SemiBold"/>
+                            <TextBlock Text="Yard is near capacity!" Foreground="{StaticResource APSRedBrush}" FontWeight="SemiBold"/>
                         </StackPanel>
                     </Border>
                 </Grid>
             </Border>
 
             <!-- Recent Activity -->
-            <Border Grid.Column="1" Style="{StaticResource CardStyle}">
+            <Border Grid.Column="1" Style="{StaticResource EnterpriseCardBorder}">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
                     
-                    <TextBlock Text="Hoạt Động Gần Đây (Vào / Ra)" FontWeight="Bold" FontSize="16" Foreground="{StaticResource PrimaryColor}" Margin="0,0,0,15"/>
+                    <TextBlock Text="RECENT ACTIVITY" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}" Margin="0,0,0,15"/>
                     
-                    <DataGrid Grid.Row="1" ItemsSource="{Binding RecentActivities}">
+                    <DataGrid Grid.Row="1" ItemsSource="{Binding RecentActivities}" Style="{StaticResource ModernDataGrid}">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Biển Số" Binding="{Binding BienSo}" Width="150" FontWeight="Bold"/>
-                            <DataGridTextColumn Header="Thời Gian" Binding="{Binding ThoiGian, StringFormat=dd/MM/yyyy HH:mm:ss}" Width="150"/>
+                            <DataGridTextColumn Header="PLATE NO" Binding="{Binding BienSo}" Width="150" FontWeight="Bold"/>
+                            <DataGridTextColumn Header="TIME" Binding="{Binding ThoiGian, StringFormat=dd/MM/yyyy HH:mm:ss}" Width="150"/>
                             
-                            <!-- Hanh Dong with colored text -->
-                            <DataGridTemplateColumn Header="Hành Động" Width="100">
+                            <DataGridTemplateColumn Header="ACTION" Width="100">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <Border Padding="8,4" CornerRadius="4" HorizontalAlignment="Left">
+                                        <Border Padding="10,2" CornerRadius="12" HorizontalAlignment="Left">
                                             <Border.Style>
                                                 <Style TargetType="Border">
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding HanhDong}" Value="VÀO">
-                                                            <Setter Property="Background" Value="#EAF6F0"/>
+                                                            <Setter Property="Background" Value="#E6FFFA"/>
                                                         </DataTrigger>
                                                         <DataTrigger Binding="{Binding HanhDong}" Value="RA">
-                                                            <Setter Property="Background" Value="#FDEFEF"/>
+                                                            <Setter Property="Background" Value="#FFF5F5"/>
                                                         </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
                                             </Border.Style>
-                                            <TextBlock Text="{Binding HanhDong}" FontWeight="Bold">
+                                            <TextBlock Text="{Binding HanhDong}" FontWeight="Bold" FontSize="11">
                                                 <TextBlock.Style>
                                                     <Style TargetType="TextBlock">
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding HanhDong}" Value="VÀO">
-                                                                <Setter Property="Foreground" Value="#27AE60"/>
+                                                                <Setter Property="Foreground" Value="{StaticResource SuccessBrush}"/>
                                                             </DataTrigger>
                                                             <DataTrigger Binding="{Binding HanhDong}" Value="RA">
-                                                                <Setter Property="Foreground" Value="#E74C3C"/>
+                                                                <Setter Property="Foreground" Value="{StaticResource APSRedBrush}"/>
                                                             </DataTrigger>
                                                         </Style.Triggers>
                                                     </Style>
@@ -385,8 +283,8 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
 
-                            <DataGridTextColumn Header="Loại" Binding="{Binding TheLoai}" Width="120"/>
-                            <DataGridTextColumn Header="Thu Tiền" Binding="{Binding GiaTien, StringFormat={}{0:N0} đ}" Width="*"/>
+                            <DataGridTextColumn Header="TYPE" Binding="{Binding TheLoai}" Width="120"/>
+                            <DataGridTextColumn Header="FEE" Binding="{Binding GiaTien, StringFormat={}{0:N0} đ}" Width="*"/>
                         </DataGrid.Columns>
                     </DataGrid>
                 </Grid>
@@ -394,3 +292,4 @@
         </Grid>
     </Grid>
 </UserControl>
+

@@ -14,7 +14,7 @@ using QuanLyGiuXe.Services;
 
 namespace QuanLyGiuXe.ViewModels
 {
-    internal class MainViewModel : INotifyPropertyChanged, IDisposable
+    public class MainViewModel : INotifyPropertyChanged, IDisposable
     {
         private readonly DatabaseService db = new();
         public event PropertyChangedEventHandler? PropertyChanged;
@@ -154,14 +154,28 @@ namespace QuanLyGiuXe.ViewModels
 
         // ── Connection status indicators ──────────────────────────────────────────
 
-        private string _dbStatusLabel = "🟡 Database";
+        private bool _isDbConnected;
+        public bool IsDbConnected
+        {
+            get => _isDbConnected;
+            set { _isDbConnected = value; OnPropertyChanged(nameof(IsDbConnected)); }
+        }
+
+        private bool _isC3Connected;
+        public bool IsC3Connected
+        {
+            get => _isC3Connected;
+            set { _isC3Connected = value; OnPropertyChanged(nameof(IsC3Connected)); }
+        }
+
+        private string _dbStatusLabel = "Database";
         public string DbStatusLabel
         {
             get => _dbStatusLabel;
             set { _dbStatusLabel = value; OnPropertyChanged(nameof(DbStatusLabel)); }
         }
 
-        private string _c3StatusLabel = "🟡 C3-200";
+        private string _c3StatusLabel = "C3-200";
         public string C3StatusLabel
         {
             get => _c3StatusLabel;
@@ -367,8 +381,8 @@ namespace QuanLyGiuXe.ViewModels
         /// </summary>
         public void ResetStatus()
         {
-            DbStatusLabel = "🟡 Database — Đang kiểm tra";
-            C3StatusLabel = "🟡 C3-200 — Đang kiểm tra";
+            DbStatusLabel = "Database — Đang kiểm tra";
+            C3StatusLabel = "C3-200 — Đang kiểm tra";
         }
 
         /// <summary>
@@ -387,10 +401,16 @@ namespace QuanLyGiuXe.ViewModels
             {
                 // Cập nhật label trạng thái
                 if (status.DatabaseChanged)
-                    DbStatusLabel = status.IsDatabaseConnected ? "🟢 Database" : "🔴 Database";
+                {
+                    IsDbConnected = status.IsDatabaseConnected;
+                    DbStatusLabel = status.IsDatabaseConnected ? "Database" : "Database";
+                }
 
                 if (status.C3Changed)
-                    C3StatusLabel = status.IsC3Connected ? "🟢 C3-200" : "🔴 C3-200";
+                {
+                    IsC3Connected = status.IsC3Connected;
+                    C3StatusLabel = status.IsC3Connected ? "C3-200" : "C3-200";
+                }
             }));
 
             // Toast notification (có thể gọi từ bất kỳ thread, service tự marshal)
@@ -417,7 +437,7 @@ namespace QuanLyGiuXe.ViewModels
 
 
 
-        private void SetView(object view)
+        public void SetView(object view)
         {
             CurrentView = view;
             OnPropertyChanged(nameof(CurrentView));

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace QuanLyGiuXe.Models
 {
-    internal class Xe
+    public class Xe
     {
         public string BienSo { get; set; } = "";
         public DateTime ThoiGianVao { get; set; }

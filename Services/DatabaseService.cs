@@ -1624,7 +1624,8 @@ namespace QuanLyGiuXe.Services
                 using (SqlConnection conn = new SqlConnection(conn_string))
                 {
                     conn.Open();
-                    string sql = @"SELECT TimestampUtc, [Level], EventType, Source, UserId, Plate, Details, Exception
+                    string sql = @"SELECT TimestampUtc, [Level], EventType, Source, UserId, Plate, Details, Exception, 
+                                          Username, [Action], EntityName, EntityId, OldValues, NewValues, IpAddress, MachineName, DeviceName, SessionId, CorrelationId
                                    FROM dbo.AppLogs
                                    WHERE (@from IS NULL OR TimestampUtc >= @from)
                                      AND (@to IS NULL OR TimestampUtc <= @to)
@@ -1653,7 +1654,19 @@ namespace QuanLyGiuXe.Services
                                         UserId = reader.IsDBNull(4) ? string.Empty : reader.GetString(4),
                                         Plate = reader.IsDBNull(5) ? string.Empty : reader.GetString(5),
                                         Details = reader.IsDBNull(6) ? string.Empty : reader.GetString(6),
-                                        Exception = reader.IsDBNull(7) ? string.Empty : reader.GetString(7)
+                                        Exception = reader.IsDBNull(7) ? string.Empty : reader.GetString(7),
+                                        
+                                        Username = reader.IsDBNull(8) ? string.Empty : reader.GetString(8),
+                                        Action = reader.IsDBNull(9) ? string.Empty : reader.GetString(9),
+                                        EntityName = reader.IsDBNull(10) ? string.Empty : reader.GetString(10),
+                                        EntityId = reader.IsDBNull(11) ? string.Empty : reader.GetString(11),
+                                        OldValues = reader.IsDBNull(12) ? string.Empty : reader.GetString(12),
+                                        NewValues = reader.IsDBNull(13) ? string.Empty : reader.GetString(13),
+                                        IpAddress = reader.IsDBNull(14) ? string.Empty : reader.GetString(14),
+                                        MachineName = reader.IsDBNull(15) ? string.Empty : reader.GetString(15),
+                                        DeviceName = reader.IsDBNull(16) ? string.Empty : reader.GetString(16),
+                                        SessionId = reader.IsDBNull(17) ? string.Empty : reader.GetString(17),
+                                        CorrelationId = reader.IsDBNull(18) ? string.Empty : reader.GetString(18)
                                     };
                                     list.Add(entry);
                                 }

@@ -298,10 +298,10 @@ namespace QuanLyGiuXe
 
         // ── Mở cổng thủ công ─────────────────────────────────────────────────────
 
-        private async void OpenGateIn_Click(object sender, RoutedEventArgs e) =>
+        public async void OpenGateIn_Click(object sender, RoutedEventArgs e) =>
             await OpenGateAsync(1);
 
-        private async void OpenGateOut_Click(object sender, RoutedEventArgs e) =>
+        public async void OpenGateOut_Click(object sender, RoutedEventArgs e) =>
             await OpenGateAsync(2);
 
         private void MoButtonLogs_Click(object sender, RoutedEventArgs e) =>
@@ -353,12 +353,10 @@ namespace QuanLyGiuXe
                 {
                     Dispatcher.BeginInvoke(new Action(() =>
                     {
-                        switch (data.CamKey)
+                        var parkingView = FindVisualChild<ParkingView>(MainContentHost);
+                        if (parkingView != null)
                         {
-                            case "Vao1": CameraVao1.Source = uiImage; break;
-                            case "Vao2": CameraVao2.Source = uiImage; break;
-                            case "Ra1": CameraRa1.Source = uiImage; break;
-                            case "Ra2": CameraRa2.Source = uiImage; break;
+                            parkingView.UpdateCamera(data.CamKey, uiImage);
                         }
                     }));
                 }
@@ -527,7 +525,22 @@ namespace QuanLyGiuXe
 
         private void DoiMatKhau_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("Chức năng đổi mật khẩu đang được phát triển.", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+            var win = new Views.ChangePasswordWindow
+            {
+                Owner = this,
+                DataContext = new ViewModels.ChangePasswordViewModel()
+            };
+            win.ShowDialog();
+        }
+
+        private void MoThongTinCaNhan_Click(object sender, RoutedEventArgs e)
+        {
+            var win = new Views.UserProfileWindow
+            {
+                Owner = this,
+                DataContext = new ViewModels.UserProfileViewModel()
+            };
+            win.ShowDialog();
         }
 
         private void UserPanel_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
@@ -600,19 +613,20 @@ namespace QuanLyGiuXe
 
 
         // ===== SIDEBAR HANDLERS =====
+        private void MoParkingView_Click(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is MainViewModel vm)
+            {
+                vm.TrangChuCommand.Execute(null);
+            }
+        }
+
         private void MoDashboard_Click(object sender, RoutedEventArgs e)
         {
-            var content = new QuanLyGiuXe.Views.DashboardView();
-            var win = new Window
+            if (DataContext is MainViewModel vm)
             {
-                Title = "Hệ thống Dashboard Thống kê",
-                Content = content,
-                Owner = this,
-                Width = 1200,
-                Height = 850,
-                WindowStartupLocation = WindowStartupLocation.CenterOwner
-            };
-            win.Show();
+                vm.SetView(new DashboardViewModel());
+            }
         }
 
         private void MoRealtimeLog_Click(object sender, RoutedEventArgs e)
@@ -634,15 +648,10 @@ namespace QuanLyGiuXe
             }
         }
 
-        private void MoDanhSachRFID(object sender, RoutedEventArgs e)
-        {
-            ShowToast("Mở danh sách thẻ RFID (chưa triển khai)");
-        }
-
         // ===== MODULE CRUD HANDLER =====
         private void OpenModule_Click(object sender, RoutedEventArgs e)
         {
-            var tag = (sender as Button)?.Tag?.ToString();
+            var tag = (sender as FrameworkElement)?.Tag?.ToString();
             try
             {
                 UserControl content = null;
@@ -650,20 +659,19 @@ namespace QuanLyGiuXe
                 switch (tag)
                 {
                     case "LoaiXe":
-                        content = (UserControl)Application.LoadComponent(new Uri("Views/LoaiXeView.xaml", UriKind.Relative));
+                        content = new QuanLyGiuXe.Views.LoaiXeView();
                         title = "Quản lý Loại Xe";
                         break;
                     case "LoaiVe":
-                        content = (UserControl)Application.LoadComponent(new Uri("Views/LoaiVeView.xaml", UriKind.Relative));
+                        content = new QuanLyGiuXe.Views.LoaiVeView();
                         title = "Quản lý Loại Vé";
                         break;
                     case "RFID":
-                        content = (UserControl)Application.LoadComponent(new Uri("Views/RFIDCardView.xaml", UriKind.Relative));
+                        content = new QuanLyGiuXe.Views.RFIDCardView();
                         title = "Quản lý RFID";
                         break;
                     case "BangGia":
-                        // load admin BangGia view (inline edit only)
-                        content = (UserControl)Application.LoadComponent(new Uri("Views/BangGiaView.xaml", UriKind.Relative));
+                        content = new QuanLyGiuXe.Views.BangGiaView();
                         title = "Bảng giá (Quản trị)";
                         break;
                 }
@@ -675,15 +683,15 @@ namespace QuanLyGiuXe
                         Title = title,
                         Content = content,
                         Owner = this,
-                        Width = 900,
-                        Height = 600,
+                        Width = 1000,
+                        Height = 700,
                         WindowStartupLocation = WindowStartupLocation.CenterOwner
                     };
                     win.Show();
                 }
                 else
                 {
-                    ShowToast("Tính năng chưa có giao diện: " + (tag ?? "(unknown)"));
+                    ShowToast("Tính năng chưa có giao diện hoặc sai Tag: " + (tag ?? "(null)"));
                 }
             }
             catch (Exception ex)
@@ -721,5 +729,22 @@ namespace QuanLyGiuXe
         //        MainContent.Content = new Views.LoaiXeView();
         //    }
         //}
+        private T FindVisualChild<T>(DependencyObject obj) where T : DependencyObject
+        {
+            if (obj == null) return null;
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(obj); i++)
+            {
+                DependencyObject child = VisualTreeHelper.GetChild(obj, i);
+                if (child != null && child is T t)
+                    return t;
+                else
+                {
+                    T childOfChild = FindVisualChild<T>(child);
+                    if (childOfChild != null)
+                        return childOfChild;
+                }
+            }
+            return null;
+        }
     }
 }

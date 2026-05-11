@@ -4,191 +4,10 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              mc:Ignorable="d" 
-             d:DesignHeight="700" d:DesignWidth="1100" Background="#F4F7F6" FontFamily="Segoe UI">
+             d:DesignHeight="700" d:DesignWidth="1100" Background="{StaticResource BgLightBrush}" FontFamily="Segoe UI">
     
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
-        <SolidColorBrush x:Key="PrimaryColor" Color="#2B3A4A"/>
-        <SolidColorBrush x:Key="SecondaryColor" Color="#4A90E2"/>
-        <SolidColorBrush x:Key="AccentColor" Color="#27AE60"/>
-        <SolidColorBrush x:Key="DangerColor" Color="#E74C3C"/>
-        <SolidColorBrush x:Key="WarningColor" Color="#F39C12"/>
-        <SolidColorBrush x:Key="CardBgColor" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="BorderColor" Color="#DDE3E8"/>
-        <SolidColorBrush x:Key="TextColor" Color="#333333"/>
-        <SolidColorBrush x:Key="MutedTextColor" Color="#888888"/>
-
-        <!-- Button Styles -->
-        <Style x:Key="FlatButton" TargetType="Button">
-            <Setter Property="Background" Value="{StaticResource PrimaryColor}"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Padding" Value="15,8"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Background="{TemplateBinding Background}" CornerRadius="4">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Opacity" Value="0.9"/>
-                            </Trigger>
-                            <Trigger Property="IsPressed" Value="True">
-                                <Setter Property="Opacity" Value="0.8"/>
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Opacity" Value="0.4"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-        <Style x:Key="ActionButton" BasedOn="{StaticResource FlatButton}" TargetType="Button">
-            <Setter Property="Background" Value="{StaticResource SecondaryColor}"/>
-        </Style>
-        <Style x:Key="DangerButton" BasedOn="{StaticResource FlatButton}" TargetType="Button">
-            <Setter Property="Background" Value="{StaticResource DangerColor}"/>
-        </Style>
-        <Style x:Key="SuccessButton" BasedOn="{StaticResource FlatButton}" TargetType="Button">
-            <Setter Property="Background" Value="{StaticResource AccentColor}"/>
-        </Style>
-        <Style x:Key="PageButton" BasedOn="{StaticResource FlatButton}" TargetType="Button">
-            <Setter Property="Padding" Value="10,5"/>
-            <Setter Property="FontSize" Value="12"/>
-            <Setter Property="Background" Value="#E6EDF2"/>
-            <Setter Property="Foreground" Value="{StaticResource PrimaryColor}"/>
-        </Style>
-
-        <!-- ListBox Style -->
-        <Style TargetType="ListBox">
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
-            <Setter Property="ItemContainerStyle">
-                <Setter.Value>
-                    <Style TargetType="ListBoxItem">
-                        <Setter Property="Padding" Value="15,10"/>
-                        <Setter Property="Margin" Value="0,2"/>
-                        <Setter Property="Cursor" Value="Hand"/>
-                        <Setter Property="Foreground" Value="{StaticResource TextColor}"/>
-                        <Setter Property="Template">
-                            <Setter.Value>
-                                <ControlTemplate TargetType="ListBoxItem">
-                                    <Border x:Name="Border" Background="Transparent" CornerRadius="4">
-                                        <ContentPresenter Margin="{TemplateBinding Padding}"/>
-                                    </Border>
-                                    <ControlTemplate.Triggers>
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter TargetName="Border" Property="Background" Value="#E6EDF2"/>
-                                        </Trigger>
-                                        <Trigger Property="IsSelected" Value="True">
-                                            <Setter TargetName="Border" Property="Background" Value="{StaticResource SecondaryColor}"/>
-                                            <Setter Property="Foreground" Value="White"/>
-                                        </Trigger>
-                                    </ControlTemplate.Triggers>
-                                </ControlTemplate>
-                            </Setter.Value>
-                        </Setter>
-                    </Style>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- DataGrid Style -->
-        <Style TargetType="DataGrid">
-            <Setter Property="Background" Value="White"/>
-            <Setter Property="BorderBrush" Value="{StaticResource BorderColor}"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="RowBackground" Value="White"/>
-            <Setter Property="AlternatingRowBackground" Value="#FBFBFC"/>
-            <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource BorderColor}"/>
-            <Setter Property="VerticalGridLinesBrush" Value="Transparent"/>
-            <Setter Property="RowHeaderWidth" Value="0"/>
-            <Setter Property="HeadersVisibility" Value="Column"/>
-            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
-            <Setter Property="CanUserAddRows" Value="False"/>
-            <Setter Property="EnableRowVirtualization" Value="True"/>
-            <Setter Property="EnableColumnVirtualization" Value="True"/>
-            <Setter Property="VirtualizingPanel.IsVirtualizing" Value="True"/>
-            <Setter Property="VirtualizingPanel.VirtualizationMode" Value="Recycling"/>
-            <Setter Property="VirtualizingPanel.IsContainerVirtualizable" Value="True"/>
-            <Setter Property="ColumnHeaderStyle">
-                <Setter.Value>
-                    <Style TargetType="DataGridColumnHeader">
-                        <Setter Property="Background" Value="{StaticResource PrimaryColor}"/>
-                        <Setter Property="Foreground" Value="White"/>
-                        <Setter Property="Padding" Value="10,8"/>
-                        <Setter Property="FontWeight" Value="SemiBold"/>
-                        <Setter Property="BorderThickness" Value="0,0,1,0"/>
-                        <Setter Property="BorderBrush" Value="#3D4F61"/>
-                    </Style>
-                </Setter.Value>
-            </Setter>
-            <Setter Property="CellStyle">
-                <Setter.Value>
-                    <Style TargetType="DataGridCell">
-                        <Setter Property="Padding" Value="10,6"/>
-                        <Setter Property="BorderThickness" Value="0"/>
-                        <Setter Property="Template">
-                            <Setter.Value>
-                                <ControlTemplate TargetType="DataGridCell">
-                                    <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
-                                        <ContentPresenter VerticalAlignment="Center"/>
-                                    </Border>
-                                </ControlTemplate>
-                            </Setter.Value>
-                        </Setter>
-                        <Style.Triggers>
-                            <Trigger Property="IsSelected" Value="True">
-                                <Setter Property="Background" Value="#EBF3FA"/>
-                                <Setter Property="Foreground" Value="{StaticResource TextColor}"/>
-                            </Trigger>
-                        </Style.Triggers>
-                    </Style>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <!-- TabControl Style -->
-        <Style TargetType="TabControl">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="BorderThickness" Value="0"/>
-        </Style>
-        <Style TargetType="TabItem">
-            <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="{StaticResource MutedTextColor}"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Padding" Value="20,10"/>
-            <Setter Property="Margin" Value="0,0,5,0"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="TabItem">
-                        <Border x:Name="Border" Background="{TemplateBinding Background}" BorderBrush="{StaticResource SecondaryColor}" BorderThickness="0,0,0,3" CornerRadius="4,4,0,0">
-                            <ContentPresenter x:Name="ContentSite" VerticalAlignment="Center" HorizontalAlignment="Center" ContentSource="Header" Margin="{TemplateBinding Padding}"/>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Border" Property="Background" Value="{StaticResource CardBgColor}"/>
-                                <Setter Property="Foreground" Value="{StaticResource SecondaryColor}"/>
-                            </Trigger>
-                            <Trigger Property="IsSelected" Value="False">
-                                <Setter TargetName="Border" Property="BorderThickness" Value="0"/>
-                            </Trigger>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Foreground" Value="{StaticResource SecondaryColor}"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
     </UserControl.Resources>
 
     <Grid Margin="15">
@@ -199,13 +18,9 @@
         </Grid.ColumnDefinitions>
 
         <!-- Sidebar -->
-        <Border Grid.Column="0" Background="{StaticResource CardBgColor}" CornerRadius="8" Padding="15">
-            <Border.Effect>
-                <DropShadowEffect Color="#000000" Opacity="0.05" BlurRadius="10" ShadowDepth="2"/>
-            </Border.Effect>
+        <Border Grid.Column="0" Style="{StaticResource EnterpriseCardBorder}" Padding="15">
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
@@ -220,46 +35,31 @@
                     </Grid.ColumnDefinitions>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <TextBlock Text="🗄️" FontSize="18" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                        <TextBlock Text="Database Tables" FontWeight="Bold" FontSize="16" Foreground="{StaticResource PrimaryColor}" VerticalAlignment="Center" />
+                        <TextBlock Text="TABLES" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}" VerticalAlignment="Center" />
                     </StackPanel>
-                    <Button Grid.Column="1" Command="{Binding RefreshCommand}" Style="{StaticResource FlatButton}" Background="#E6EDF2" Foreground="{StaticResource PrimaryColor}" Padding="8,4" ToolTip="Làm mới danh sách">
-                        <TextBlock Text="↻ Refresh" FontSize="12" FontWeight="SemiBold"/>
+                    <Button Grid.Column="1" Command="{Binding RefreshCommand}" Style="{StaticResource ModernOutlineButton}" Padding="8,4" ToolTip="Reload table list">
+                        <TextBlock Text="↻ Reload" FontSize="11" FontWeight="SemiBold"/>
                     </Button>
                 </Grid>
 
                 <TextBlock Grid.Row="1" Text="{Binding ConnectedServerInfo}"
-                           Foreground="{StaticResource AccentColor}" FontSize="12" FontWeight="SemiBold"
+                           Foreground="{StaticResource SuccessBrush}" FontSize="11" FontWeight="SemiBold"
                            Margin="0,5,0,0" TextWrapping="Wrap" />
 
-                <Button Grid.Row="2" Command="{Binding ChangeConnectionCommand}" Style="{StaticResource FlatButton}"
-                        Background="#4A90E2" Padding="10,6" Margin="0,8,0,0" ToolTip="Đổi sang SQL Server khác">
+                <Button Grid.Row="2" Command="{Binding ChangeConnectionCommand}" Style="{StaticResource ModernButton}"
+                        Background="{StaticResource APSBlueBrush}" Padding="10,8" Margin="0,15,0,0">
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="🔌" FontSize="13" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                        <TextBlock Text="Đổi Kết Nối" FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        <TextBlock Text="🔌" FontSize="13" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="SWITCH CONNECTION" FontSize="12" FontWeight="Bold" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
 
-                <Grid Grid.Row="3" Margin="0,10,0,0" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-                    <ProgressBar IsIndeterminate="True" Height="4" Background="#E6EDF2" Foreground="{StaticResource SecondaryColor}"/>
-                    <TextBlock Grid.Row="1" Text="Đang tải dữ liệu..." FontSize="11"
-                               Foreground="{StaticResource MutedTextColor}" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                <Grid Grid.Row="3" Margin="0,15,0,0" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}">
+                    <ProgressBar IsIndeterminate="True" Height="4" Background="{StaticResource BgLightBrush}" Foreground="{StaticResource APSBlueBrush}"/>
                 </Grid>
                 
-                <Border Grid.Row="4" BorderBrush="{StaticResource BorderColor}" BorderThickness="0,0,0,1" Margin="0,0,0,5"/>
-                
-                <ListBox Grid.Row="5" ItemsSource="{Binding Tables}" SelectedItem="{Binding SelectedTable}">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="📋" FontSize="14" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                <TextBlock Text="{Binding}" VerticalAlignment="Center" FontWeight="Medium"/>
-                            </StackPanel>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
+                <ListBox Grid.Row="4" ItemsSource="{Binding Tables}" SelectedItem="{Binding SelectedTable}"
+                         Background="Transparent" BorderThickness="0" Margin="0,10,0,0" Style="{StaticResource ModernListBox}">
                 </ListBox>
             </Grid>
         </Border>
@@ -267,13 +67,10 @@
         <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Center" Background="Transparent" />
 
         <!-- Main Content -->
-        <Border Grid.Column="2" Background="{StaticResource CardBgColor}" CornerRadius="8" Padding="10">
-            <Border.Effect>
-                <DropShadowEffect Color="#000000" Opacity="0.05" BlurRadius="10" ShadowDepth="2"/>
-            </Border.Effect>
-            <TabControl>
+        <Border Grid.Column="2" Style="{StaticResource EnterpriseCardBorder}" Padding="0">
+            <TabControl Background="Transparent" Style="{StaticResource EnterpriseTabControl}">
                 <!-- DATA TAB -->
-                <TabItem Header="Dữ Liệu">
+                <TabItem Header="TABLE DATA" FontSize="13" FontWeight="Bold">
                     <Grid Margin="0,10,0,0">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -284,45 +81,48 @@
                         </Grid.RowDefinitions>
 
                         <!-- Header + Search -->
-                        <Grid Grid.Row="0" Margin="0,0,0,8">
+                        <Grid Grid.Row="0" Margin="15,15,15,10">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="300"/>
                             </Grid.ColumnDefinitions>
-                            <Border Background="#F8FAFC" BorderBrush="{StaticResource BorderColor}" BorderThickness="1" CornerRadius="4" Padding="12,8">
-                                <TextBlock Text="{Binding SelectedTable, StringFormat='Bảng: {0}'}" FontSize="14" Foreground="{StaticResource PrimaryColor}" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                            </Border>
-                            <Border Grid.Column="1" Background="#F8FAFC" BorderBrush="{StaticResource BorderColor}" BorderThickness="1" CornerRadius="4" Padding="8,4" Margin="8,0,0,0" MinWidth="220">
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="🔍" FontSize="14" VerticalAlignment="Center" Margin="4,0,6,0"/>
-                                    <TextBox Grid.Column="1" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" 
-                                             BorderThickness="0" Background="Transparent" FontSize="13" VerticalAlignment="Center"
-                                             ToolTip="Tìm kiếm (debounce 400ms)"/>
-                                </Grid>
-                            </Border>
+                            
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Border Background="{StaticResource APSBlueBrush}" CornerRadius="4" Padding="8" Margin="0,0,15,0">
+                                    <TextBlock Text="📄" Foreground="White" FontSize="14"/>
+                                </Border>
+                                <TextBlock Text="{Binding SelectedTable, StringFormat='TABLE: {0}'}" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}"/>
+                            </StackPanel>
+
+                            <Grid Grid.Column="1">
+                                <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" 
+                                         Style="{StaticResource ModernTextBox}"
+                                         Padding="35,0,10,0" Height="36"/>
+                                <TextBlock Text="🔍" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="12,0,0,0" Foreground="{StaticResource TextMutedBrush}"/>
+                            </Grid>
                         </Grid>
 
                         <!-- Index Warning -->
                         <Border Grid.Row="1" Visibility="{Binding HasIndexWarning, Converter={StaticResource BoolToVis}}"
-                                Background="#FFF3CD" BorderBrush="#FFEAA7" BorderThickness="1" CornerRadius="4" Padding="10,6" Margin="0,0,0,6">
-                            <TextBlock Text="{Binding IndexWarning}" FontSize="12" Foreground="#856404"/>
+                                Background="#FFF1F0" BorderBrush="{StaticResource APSRedBrush}" BorderThickness="1,0,0,0" CornerRadius="0" Padding="15,10" Margin="0,0,0,10">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="⚠️" Margin="0,0,10,0"/>
+                                <TextBlock Text="{Binding IndexWarning}" FontSize="12" Foreground="{StaticResource APSRedBrush}" FontWeight="SemiBold"/>
+                            </StackPanel>
                         </Border>
 
                         <!-- Loading Indicator -->
-                        <Grid Grid.Row="2" Visibility="{Binding IsDataLoading, Converter={StaticResource BoolToVis}}" Margin="0,0,0,4">
-                            <ProgressBar IsIndeterminate="True" Height="3" Background="#E6EDF2" Foreground="{StaticResource SecondaryColor}"/>
+                        <Grid Grid.Row="2" Visibility="{Binding IsDataLoading, Converter={StaticResource BoolToVis}}">
+                            <ProgressBar IsIndeterminate="True" Height="2" Background="Transparent" Foreground="{StaticResource APSBlueBrush}"/>
                         </Grid>
 
                         <!-- Data Grid -->
                         <DataGrid Grid.Row="3" ItemsSource="{Binding CurrentData.DefaultView}" IsReadOnly="True"
-                                  ScrollViewer.CanContentScroll="True"/>
+                                  AutoGenerateColumns="True"
+                                  Style="{StaticResource ModernDataGrid}" Margin="10,0"/>
 
                         <!-- Pagination Bar -->
-                        <Border Grid.Row="4" Background="#F8FAFC" BorderBrush="{StaticResource BorderColor}" BorderThickness="1" CornerRadius="4" Padding="10,8" Margin="0,8,0,0">
+                        <Border Grid.Row="4" Background="{StaticResource BgLightBrush}" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,1,0,0" Padding="15,10">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
@@ -332,30 +132,33 @@
 
                                 <!-- Page Nav -->
                                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                                    <Button Content="⏮" Command="{Binding FirstPageCommand}" Style="{StaticResource PageButton}" Margin="0,0,3,0" ToolTip="Trang đầu"/>
-                                    <Button Content="◀" Command="{Binding PrevPageCommand}" Style="{StaticResource PageButton}" Margin="0,0,8,0" ToolTip="Trang trước"/>
-                                    <TextBlock VerticalAlignment="Center" FontSize="13" Foreground="{StaticResource TextColor}">
-                                        <Run Text="Trang "/>
-                                        <Run Text="{Binding CurrentPageDisplay, Mode=OneWay}" FontWeight="Bold"/>
-                                        <Run Text=" / "/>
-                                        <Run Text="{Binding TotalPages, Mode=OneWay}" FontWeight="Bold"/>
+                                    <Button Content="⏮" Command="{Binding FirstPageCommand}" Style="{StaticResource ModernOutlineButton}" Width="40" Margin="0,0,5,0"/>
+                                    <Button Content="◀" Command="{Binding PrevPageCommand}" Style="{StaticResource ModernOutlineButton}" Width="40" Margin="0,0,15,0"/>
+                                    
+                                    <TextBlock VerticalAlignment="Center" FontSize="13">
+                                        <Run Text="Page " Foreground="{StaticResource TextMutedBrush}"/>
+                                        <Run Text="{Binding CurrentPageDisplay, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}"/>
+                                        <Run Text=" of " Foreground="{StaticResource TextMutedBrush}"/>
+                                        <Run Text="{Binding TotalPages, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}"/>
                                     </TextBlock>
-                                    <Button Content="▶" Command="{Binding NextPageCommand}" Style="{StaticResource PageButton}" Margin="8,0,3,0" ToolTip="Trang sau"/>
-                                    <Button Content="⏭" Command="{Binding LastPageCommand}" Style="{StaticResource PageButton}" ToolTip="Trang cuối"/>
+                                    
+                                    <Button Content="▶" Command="{Binding NextPageCommand}" Style="{StaticResource ModernOutlineButton}" Width="40" Margin="15,0,5,0"/>
+                                    <Button Content="⏭" Command="{Binding LastPageCommand}" Style="{StaticResource ModernOutlineButton}" Width="40"/>
                                 </StackPanel>
 
                                 <!-- Total Records -->
-                                <TextBlock Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="12" Foreground="{StaticResource MutedTextColor}">
-                                    <Run Text="Tổng: "/>
-                                    <Run Text="{Binding TotalRecordsDisplay, Mode=OneWay}" FontWeight="SemiBold"/>
-                                    <Run Text=" dòng"/>
-                                </TextBlock>
+                                <Border Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center" Background="{StaticResource BgLightBrush}" CornerRadius="12" Padding="12,4" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1">
+                                    <TextBlock FontSize="12">
+                                        <Run Text="TOTAL: " Foreground="{StaticResource TextMutedBrush}" FontWeight="Bold"/>
+                                        <Run Text="{Binding TotalRecordsDisplay, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}"/>
+                                        <Run Text=" ROWS" Foreground="{StaticResource TextMutedBrush}" FontWeight="Bold"/>
+                                    </TextBlock>
+                                </Border>
 
                                 <!-- Page Size -->
                                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                                    <TextBlock Text="Hiển thị:" VerticalAlignment="Center" FontSize="12" Foreground="{StaticResource MutedTextColor}" Margin="0,0,6,0"/>
-                                    <ComboBox ItemsSource="{Binding PageSizeOptions}" SelectedItem="{Binding PageSize}" Width="65" FontSize="12" VerticalAlignment="Center"/>
-                                    <TextBlock Text="/ trang" VerticalAlignment="Center" FontSize="12" Foreground="{StaticResource MutedTextColor}" Margin="4,0,0,0"/>
+                                    <TextBlock Text="Show:" VerticalAlignment="Center" Style="{StaticResource SubTitleStyle}" Margin="0,0,8,0"/>
+                                    <ComboBox ItemsSource="{Binding PageSizeOptions}" SelectedItem="{Binding PageSize}" Width="70" Style="{StaticResource ModernComboBox}"/>
                                 </StackPanel>
                             </Grid>
                         </Border>
@@ -363,22 +166,24 @@
                 </TabItem>
 
                 <!-- SCHEMA TAB -->
-                <TabItem Header="Cấu Trúc Cột">
-                    <Grid Margin="0,15,0,0">
+                <TabItem Header="TABLE SCHEMA" FontSize="13" FontWeight="Bold">
+                    <Grid Margin="15">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
                         </Grid.RowDefinitions>
-                        <Border Grid.Row="0" Background="#F8FAFC" BorderBrush="{StaticResource BorderColor}" BorderThickness="1" CornerRadius="4" Padding="12,10" Margin="0,0,0,10">
-                            <TextBlock Text="{Binding SelectedTable, StringFormat='Cấu trúc Schema của bảng: {0}'}" FontSize="14" Foreground="{StaticResource PrimaryColor}" FontWeight="SemiBold" />
+                        <Border Grid.Row="0" Background="{StaticResource APSBlueBrush}" CornerRadius="4" Padding="15,10" Margin="0,0,0,15">
+                            <TextBlock Text="{Binding SelectedTable, StringFormat='SCHEMA DEFINITION: {0}'}" FontSize="14" Foreground="White" FontWeight="Bold" />
                         </Border>
-                        <DataGrid Grid.Row="1" ItemsSource="{Binding CurrentSchema.DefaultView}" IsReadOnly="True" />
+                        <DataGrid Grid.Row="1" ItemsSource="{Binding CurrentSchema.DefaultView}" IsReadOnly="True" 
+                                  AutoGenerateColumns="True"
+                                  Style="{StaticResource ModernDataGrid}" />
                     </Grid>
                 </TabItem>
 
                 <!-- QUERY EDITOR TAB -->
-                <TabItem Header="Tạo Query &amp; Chạy">
-                    <Grid Margin="0,10,0,0">
+                <TabItem Header="SQL QUERY CONSOLE" FontSize="13" FontWeight="Bold">
+                    <Grid Margin="15">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="*" />
@@ -388,7 +193,7 @@
                         </Grid.RowDefinitions>
 
                         <!-- Action Bar -->
-                        <Border Grid.Row="0" Background="#F8FAFC" BorderBrush="{StaticResource BorderColor}" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,0,0,8">
+                        <Border Grid.Row="0" Style="{StaticResource EnterpriseCardBorder}" Padding="10" Margin="0,0,0,15">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto" />
@@ -396,23 +201,23 @@
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                                    <TextBlock Text="Sinh tự động:" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="{StaticResource MutedTextColor}" FontWeight="SemiBold" />
-                                    <Button Content="SELECT" Command="{Binding GenerateSelectCommand}" Style="{StaticResource ActionButton}" Margin="0,0,5,0" />
-                                    <Button Content="INSERT" Command="{Binding GenerateInsertCommand}" Style="{StaticResource ActionButton}" Margin="0,0,5,0" />
-                                    <Button Content="UPDATE" Command="{Binding GenerateUpdateCommand}" Style="{StaticResource ActionButton}" Margin="0,0,5,0" />
-                                    <Button Content="DELETE" Command="{Binding GenerateDeleteCommand}" Style="{StaticResource DangerButton}" />
+                                    <TextBlock Text="GENERATORS:" VerticalAlignment="Center" Margin="0,0,15,0" Style="{StaticResource SubTitleStyle}" FontWeight="Bold" />
+                                    <Button Content="SELECT" Command="{Binding GenerateSelectCommand}" Style="{StaticResource ModernButton}" Background="{StaticResource APSBlueBrush}" Margin="0,0,5,0" Height="32" Padding="15,0"/>
+                                    <Button Content="INSERT" Command="{Binding GenerateInsertCommand}" Style="{StaticResource ModernButton}" Background="{StaticResource APSBlueBrush}" Margin="0,0,5,0" Height="32" Padding="15,0"/>
+                                    <Button Content="UPDATE" Command="{Binding GenerateUpdateCommand}" Style="{StaticResource ModernButton}" Background="{StaticResource APSBlueBrush}" Margin="0,0,5,0" Height="32" Padding="15,0"/>
+                                    <Button Content="DELETE" Command="{Binding GenerateDeleteCommand}" Style="{StaticResource DangerButton}" Height="32" Padding="15,0"/>
                                 </StackPanel>
-                                <Button Grid.Column="2" Command="{Binding ExecuteQueryCommand}" Style="{StaticResource SuccessButton}">
+                                <Button Grid.Column="2" Command="{Binding ExecuteQueryCommand}" Style="{StaticResource ModernButton}" Background="{StaticResource SuccessBrush}" Height="36" Padding="20,0">
                                     <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="▶" Margin="0,0,5,0"/>
-                                        <TextBlock Text="Thực thi (F5)"/>
+                                        <TextBlock Text="▶" Margin="0,0,10,0"/>
+                                        <TextBlock Text="RUN QUERY (F5)" FontWeight="Bold"/>
                                     </StackPanel>
                                 </Button>
                             </Grid>
                         </Border>
 
                         <!-- Editor -->
-                        <Border Grid.Row="1" BorderBrush="{StaticResource BorderColor}" BorderThickness="1" CornerRadius="4" Background="#1E1E1E">
+                        <Border Grid.Row="1" BorderBrush="{StaticResource BorderMediumBrush}" BorderThickness="1" CornerRadius="4" Background="#1E1E1E">
                             <TextBox Text="{Binding QueryText, UpdateSourceTrigger=PropertyChanged}" 
                                      AcceptsReturn="True" AcceptsTab="True" 
                                      FontFamily="Consolas" FontSize="15" Foreground="#D4D4D4"
@@ -424,42 +229,45 @@
                         <GridSplitter Grid.Row="2" Height="5" HorizontalAlignment="Stretch" VerticalAlignment="Center" Background="Transparent" />
 
                         <!-- Result Grid -->
-                        <Border Grid.Row="3" BorderBrush="{StaticResource BorderColor}" BorderThickness="1" CornerRadius="4">
+                        <Border Grid.Row="3" Style="{StaticResource EnterpriseCardBorder}" Padding="0">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="*"/>
                                 </Grid.RowDefinitions>
-                                <Border Background="{StaticResource PrimaryColor}" Padding="10,6" CornerRadius="3,3,0,0">
-                                    <TextBlock Text="Kết quả truy vấn" Foreground="White" FontWeight="SemiBold" FontSize="12"/>
+                                <Border Background="{StaticResource APSBlueBrush}" Padding="15,8" CornerRadius="4,4,0,0">
+                                    <TextBlock Text="QUERY RESULTS" Foreground="White" FontWeight="Bold" FontSize="12"/>
                                 </Border>
                                 <Grid Grid.Row="1" Visibility="{Binding IsQueryLoading, Converter={StaticResource BoolToVis}}">
-                                    <ProgressBar IsIndeterminate="True" Height="3" Background="#E6EDF2" Foreground="{StaticResource SecondaryColor}"/>
+                                    <ProgressBar IsIndeterminate="True" Height="2" Background="Transparent" Foreground="{StaticResource APSBlueBrush}"/>
                                 </Grid>
-                                <DataGrid Grid.Row="2" ItemsSource="{Binding QueryResult.DefaultView}" IsReadOnly="True" BorderThickness="0"
-                                          ScrollViewer.CanContentScroll="True"/>
+                                <DataGrid Grid.Row="2" ItemsSource="{Binding QueryResult.DefaultView}" IsReadOnly="True" 
+                                          AutoGenerateColumns="True"
+                                          Style="{StaticResource ModernDataGrid}"/>
                             </Grid>
                         </Border>
 
                         <!-- Query Pagination -->
-                        <Border Grid.Row="4" Background="#F8FAFC" BorderBrush="{StaticResource BorderColor}" BorderThickness="1" CornerRadius="4" Padding="10,6" Margin="0,6,0,0">
+                        <Border Grid.Row="4" Background="{StaticResource BgLightBrush}" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,1,0,0" Padding="15,10" Margin="0,10,0,0">
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <Button Content="⏮" Command="{Binding QueryFirstPageCommand}" Style="{StaticResource PageButton}" Margin="0,0,3,0"/>
-                                <Button Content="◀" Command="{Binding QueryPrevPageCommand}" Style="{StaticResource PageButton}" Margin="0,0,8,0"/>
-                                <TextBlock VerticalAlignment="Center" FontSize="12" Foreground="{StaticResource TextColor}">
-                                    <Run Text="Trang "/>
-                                    <Run Text="{Binding QueryCurrentPageDisplay, Mode=OneWay}" FontWeight="Bold"/>
-                                    <Run Text=" / "/>
-                                    <Run Text="{Binding QueryTotalPages, Mode=OneWay}" FontWeight="Bold"/>
+                                <Button Content="⏮" Command="{Binding QueryFirstPageCommand}" Style="{StaticResource ModernOutlineButton}" Width="40" Margin="0,0,5,0"/>
+                                <Button Content="◀" Command="{Binding QueryPrevPageCommand}" Style="{StaticResource ModernOutlineButton}" Width="40" Margin="0,0,15,0"/>
+                                <TextBlock VerticalAlignment="Center" FontSize="12">
+                                    <Run Text="Page " Foreground="{StaticResource TextMutedBrush}"/>
+                                    <Run Text="{Binding QueryCurrentPageDisplay, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}"/>
+                                    <Run Text=" of " Foreground="{StaticResource TextMutedBrush}"/>
+                                    <Run Text="{Binding QueryTotalPages, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}"/>
                                 </TextBlock>
-                                <Button Content="▶" Command="{Binding QueryNextPageCommand}" Style="{StaticResource PageButton}" Margin="8,0,3,0"/>
-                                <Button Content="⏭" Command="{Binding QueryLastPageCommand}" Style="{StaticResource PageButton}" Margin="0,0,15,0"/>
-                                <TextBlock VerticalAlignment="Center" FontSize="12" Foreground="{StaticResource MutedTextColor}">
-                                    <Run Text="Tổng: "/>
-                                    <Run Text="{Binding QueryTotalRecordsDisplay, Mode=OneWay}" FontWeight="SemiBold"/>
-                                    <Run Text=" dòng"/>
-                                </TextBlock>
+                                <Button Content="▶" Command="{Binding QueryNextPageCommand}" Style="{StaticResource ModernOutlineButton}" Width="40" Margin="15,0,5,0"/>
+                                <Button Content="⏭" Command="{Binding QueryLastPageCommand}" Style="{StaticResource ModernOutlineButton}" Width="40" Margin="0,0,20,0"/>
+                                <Border Background="{StaticResource BgLightBrush}" CornerRadius="12" Padding="12,4" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1">
+                                    <TextBlock FontSize="11">
+                                        <Run Text="TOTAL: " Foreground="{StaticResource TextMutedBrush}" FontWeight="Bold"/>
+                                        <Run Text="{Binding QueryTotalRecordsDisplay, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}"/>
+                                        <Run Text=" ROWS" Foreground="{StaticResource TextMutedBrush}" FontWeight="Bold"/>
+                                    </TextBlock>
+                                </Border>
                             </StackPanel>
                         </Border>
                     </Grid>
@@ -468,3 +276,4 @@
         </Border>
     </Grid>
 </UserControl>
+

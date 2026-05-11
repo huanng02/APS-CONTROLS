@@ -6,7 +6,7 @@
         Height="768"
         Width="1200"
         WindowStartupLocation="CenterScreen"
-        Background="{StaticResource BgDarkBrush}">
+        Background="{StaticResource BgLightBrush}">
 
     <Grid Margin="20">
         <Grid.RowDefinitions>
@@ -19,40 +19,40 @@
         <!-- STATS CARDS ROW -->
         <UniformGrid Grid.Row="0" Columns="4" Margin="0,0,0,15">
             <!-- Total Visits -->
-            <Border Style="{StaticResource ModernCardBorder}" Margin="0,0,10,0" Background="#263A7BD5">
-                <StackPanel>
-                    <TextBlock Text="TỔNG LƯỢT XE" Foreground="{StaticResource AccentCyanBrush}" FontWeight="SemiBold"/>
-                    <TextBlock Text="{Binding TongLuotXe}" FontSize="32" FontWeight="Bold" Foreground="White" Margin="0,5,0,0"/>
+            <Border Style="{StaticResource EnterpriseCardBorder}" Margin="0,0,10,0" BorderBrush="{StaticResource APSBlueBrush}" BorderThickness="0,4,0,0">
+                <StackPanel Margin="15">
+                    <TextBlock Text="TOTAL VISITS" Style="{StaticResource SubTitleStyle}"/>
+                    <TextBlock Text="{Binding TongLuotXe}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}" Margin="0,5,0,0"/>
                 </StackPanel>
             </Border>
             
             <!-- Total Revenue -->
-            <Border Style="{StaticResource ModernCardBorder}" Margin="5,0,10,0" Background="#264CAF50">
-                <StackPanel>
-                    <TextBlock Text="TỔNG DOANH THU (VNĐ)" Foreground="{StaticResource SuccessBrush}" FontWeight="SemiBold"/>
-                    <TextBlock Text="{Binding TongDoanhThu, StringFormat=N0}" FontSize="32" FontWeight="Bold" Foreground="White" Margin="0,5,0,0"/>
+            <Border Style="{StaticResource EnterpriseCardBorder}" Margin="5,0,10,0" BorderBrush="{StaticResource SuccessBrush}" BorderThickness="0,4,0,0">
+                <StackPanel Margin="15">
+                    <TextBlock Text="TOTAL REVENUE (VNĐ)" Style="{StaticResource SubTitleStyle}"/>
+                    <TextBlock Text="{Binding TongDoanhThu, StringFormat=N0}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource SuccessBrush}" Margin="0,5,0,0"/>
                 </StackPanel>
             </Border>
 
             <!-- Visits Today -->
-            <Border Style="{StaticResource ModernCardBorder}" Margin="5,0,10,0" Background="#26FFD700">
-                <StackPanel>
-                    <TextBlock Text="LƯỢT XE HÔM NAY" Foreground="{StaticResource WarningBrush}" FontWeight="SemiBold"/>
-                    <TextBlock Text="{Binding XeHomNay}" FontSize="32" FontWeight="Bold" Foreground="White" Margin="0,5,0,0"/>
+            <Border Style="{StaticResource EnterpriseCardBorder}" Margin="5,0,10,0" BorderBrush="{StaticResource WarningBrush}" BorderThickness="0,4,0,0">
+                <StackPanel Margin="15">
+                    <TextBlock Text="VISITS TODAY" Style="{StaticResource SubTitleStyle}"/>
+                    <TextBlock Text="{Binding XeHomNay}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource WarningBrush}" Margin="0,5,0,0"/>
                 </StackPanel>
             </Border>
             
             <!-- Revenue Today -->
-            <Border Style="{StaticResource ModernCardBorder}" Margin="5,0,0,0" Background="#26FF5252">
-                <StackPanel>
-                    <TextBlock Text="DOANH THU HÔM NAY" Foreground="{StaticResource ErrorBrush}" FontWeight="SemiBold"/>
-                    <TextBlock Text="{Binding DoanhThuHomNay, StringFormat=N0}" FontSize="32" FontWeight="Bold" Foreground="White" Margin="0,5,0,0"/>
+            <Border Style="{StaticResource EnterpriseCardBorder}" Margin="5,0,0,0" BorderBrush="{StaticResource APSRedBrush}" BorderThickness="0,4,0,0">
+                <StackPanel Margin="15">
+                    <TextBlock Text="REVENUE TODAY" Style="{StaticResource SubTitleStyle}"/>
+                    <TextBlock Text="{Binding DoanhThuHomNay, StringFormat=N0}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource APSRedBrush}" Margin="0,5,0,0"/>
                 </StackPanel>
             </Border>
         </UniformGrid>
 
         <!-- FILTER PANEL -->
-        <Border Grid.Row="1" Style="{StaticResource ModernCardBorder}" Margin="0,0,0,15">
+        <Border Grid.Row="1" Style="{StaticResource EnterpriseCardBorder}" Margin="0,0,0,15" Padding="15,10">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -61,27 +61,26 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="Tìm kiếm:" Style="{StaticResource ModernTextBlock}" Margin="0,0,10,0"/>
-                    <TextBox Width="200" Text="{Binding TuKhoaTimKiem, UpdateSourceTrigger=PropertyChanged}" 
-                             Style="{StaticResource ModernSearchBox}"
-                             ToolTip="Biển số..."/>
+                    <TextBlock Text="Plate No:" Style="{StaticResource BaseTextBlockStyle}" Margin="0,0,10,0" Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <TextBox Width="180" Text="{Binding TuKhoaTimKiem, UpdateSourceTrigger=PropertyChanged}" 
+                              Style="{StaticResource ModernTextBox}"/>
                              
-                    <TextBlock Text="Từ:" Style="{StaticResource ModernTextBlock}" Margin="15,0,10,0"/>
+                    <TextBlock Text="From:" Style="{StaticResource BaseTextBlockStyle}" Margin="15,0,10,0" Foreground="{StaticResource TextSecondaryBrush}"/>
                     <DatePicker SelectedDate="{Binding TuNgay}" Width="130" Margin="0,0,10,0"/>
                     
-                    <TextBlock Text="Đến:" Style="{StaticResource ModernTextBlock}" Margin="5,0,10,0"/>
+                    <TextBlock Text="To:" Style="{StaticResource BaseTextBlockStyle}" Margin="5,0,10,0" Foreground="{StaticResource TextSecondaryBrush}"/>
                     <DatePicker SelectedDate="{Binding DenNgay}" Width="130"/>
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="20,0,0,0">
-                    <Button Content="🔄 Reset" Command="{Binding ResetFilterCommand}" Style="{StaticResource ModernOutlineButton}" Margin="0,0,10,0"/>
-                    <Button Content="📊 Xuất Excel" Command="{Binding ExportExcelCommand}" Style="{StaticResource ModernButton}" Background="#4CAF50"/>
+                    <Button Content="Reset" Command="{Binding ResetFilterCommand}" Style="{StaticResource ModernOutlineButton}" Margin="0,0,10,0"/>
+                    <Button Content="Export Excel" Command="{Binding ExportExcelCommand}" Style="{StaticResource ModernButton}" Background="{StaticResource SuccessBrush}"/>
                 </StackPanel>
             </Grid>
         </Border>
 
         <!-- TABLE -->
-        <Border Grid.Row="2" Style="{StaticResource ModernCardBorder}" Padding="1">
+        <Border Grid.Row="2" Style="{StaticResource EnterpriseCardBorder}" Padding="1">
             <DataGrid ItemsSource="{Binding DanhSachLichSu}"
                       Style="{StaticResource ModernDataGrid}"
                       VirtualizingPanel.IsVirtualizing="True"
@@ -89,18 +88,18 @@
 
                 <DataGrid.ContextMenu>
                     <ContextMenu>
-                        <MenuItem Header="Sao chép biển số" />
-                        <MenuItem Header="In vé thu tiền" />
+                        <MenuItem Header="Copy Plate Number" />
+                        <MenuItem Header="Print Receipt" />
                     </ContextMenu>
                 </DataGrid.ContextMenu>
 
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="60"/>
-                    <DataGridTextColumn Header="Biển số" Binding="{Binding BienSo}" Width="150" FontWeight="Bold"/>
-                    <DataGridTextColumn Header="Thời gian vào" Binding="{Binding ThoiGianVao, StringFormat=dd/MM/yyyy HH:mm:ss}" Width="160"/>
-                    <DataGridTextColumn Header="Thời gian ra" Binding="{Binding ThoiGianRa, StringFormat=dd/MM/yyyy HH:mm:ss}" Width="160"/>
+                    <DataGridTextColumn Header="PLATE NO" Binding="{Binding BienSo}" Width="150" FontWeight="Bold"/>
+                    <DataGridTextColumn Header="ENTRY TIME" Binding="{Binding ThoiGianVao, StringFormat=dd/MM/yyyy HH:mm:ss}" Width="160"/>
+                    <DataGridTextColumn Header="EXIT TIME" Binding="{Binding ThoiGianRa, StringFormat=dd/MM/yyyy HH:mm:ss}" Width="160"/>
                     
-                    <DataGridTemplateColumn Header="Thanh toán" Width="140">
+                    <DataGridTemplateColumn Header="REVENUE" Width="140">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
                                 <TextBlock Text="{Binding Tien, StringFormat=N0}" Foreground="{StaticResource SuccessBrush}" FontWeight="SemiBold" VerticalAlignment="Center"/>
@@ -108,15 +107,15 @@
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
                     
-                    <DataGridTextColumn Header="Mã thẻ (CardID)" Binding="{Binding CardId}" Width="*"/>
+                    <DataGridTextColumn Header="RFID CARD" Binding="{Binding CardId}" Width="*"/>
                 </DataGrid.Columns>
             </DataGrid>
         </Border>
 
         <!-- PAGING -->
-        <Border Grid.Row="3" Style="{StaticResource ModernCardBorder}" Margin="0,15,0,0" Padding="10">
+        <Border Grid.Row="3" Style="{StaticResource EnterpriseCardBorder}" Margin="0,15,0,0" Padding="15,10">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <TextBlock Text="Dòng/trang:" Style="{StaticResource ModernTextBlock}" Margin="0,0,10,0"/>
+                <TextBlock Text="Rows per page:" Style="{StaticResource SubTitleStyle}" Margin="0,0,10,0" VerticalAlignment="Center"/>
                 <ComboBox Width="80" Style="{StaticResource ModernComboBox}" SelectedItem="{Binding PageSize, Mode=TwoWay}" Margin="0,0,20,0">
                     <sys:Int32>25</sys:Int32>
                     <sys:Int32>50</sys:Int32>
@@ -127,9 +126,9 @@
                 <Button Content="⏮" Width="40" Command="{Binding TrangDauCommand}" Style="{StaticResource ModernOutlineButton}" Margin="0,0,5,0" Padding="5"/>
                 <Button Content="◀" Width="40" Command="{Binding TrangTruocCommand}" Style="{StaticResource ModernOutlineButton}" Margin="0,0,15,0" Padding="5"/>
 
-                <TextBlock Text="{Binding TrangHienTai}" Style="{StaticResource ModernTextBlock}" FontWeight="Bold" Foreground="{StaticResource AccentCyanBrush}"/>
-                <TextBlock Text="/" Style="{StaticResource ModernTextBlock}" Margin="5,0"/>
-                <TextBlock Text="{Binding TongTrang}" Style="{StaticResource ModernTextBlock}" Margin="0,0,15,0"/>
+                <TextBlock Text="{Binding TrangHienTai}" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}" VerticalAlignment="Center"/>
+                <TextBlock Text="/" Style="{StaticResource BaseTextBlockStyle}" Margin="5,0" VerticalAlignment="Center" Foreground="{StaticResource TextMutedBrush}"/>
+                <TextBlock Text="{Binding TongTrang}" Style="{StaticResource BaseTextBlockStyle}" Margin="0,0,15,0" VerticalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}"/>
 
                 <Button Content="▶" Width="40" Command="{Binding TrangSauCommand}" Style="{StaticResource ModernOutlineButton}" Margin="0,0,5,0" Padding="5"/>
                 <Button Content="⏭" Width="40" Command="{Binding TrangCuoiCommand}" Style="{StaticResource ModernOutlineButton}" Padding="5"/>

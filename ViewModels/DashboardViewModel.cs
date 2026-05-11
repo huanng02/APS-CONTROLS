@@ -62,12 +62,12 @@ namespace QuanLyGiuXe.ViewModels
         public bool IsNearFull => TyLeLapDay > 90;
 
         // Charts
-        public SeriesCollection RevenueSeries { get; set; }
-        public ObservableCollection<string> RevenueLabels { get; set; }
+        public SeriesCollection RevenueSeries { get; set; } = new SeriesCollection();
+        public ObservableCollection<string> RevenueLabels { get; set; } = new ObservableCollection<string>();
         public Func<double, string> RevenueFormatter { get; set; }
 
-        public SeriesCollection HourlySeries { get; set; }
-        public ObservableCollection<string> HourlyLabels { get; set; }
+        public SeriesCollection HourlySeries { get; set; } = new SeriesCollection();
+        public ObservableCollection<string> HourlyLabels { get; set; } = new ObservableCollection<string>();
         public Func<double, string> HourlyFormatter { get; set; }
 
         // Recent Activity
@@ -171,14 +171,8 @@ namespace QuanLyGiuXe.ViewModels
                 "Tùy chọn..." 
             };
 
-            RevenueSeries = new SeriesCollection();
-            RevenueLabels = new ObservableCollection<string>();
             RevenueFormatter = value => value.ToString("N0") + " đ";
-
-            HourlySeries = new SeriesCollection();
-            HourlyLabels = new ObservableCollection<string>();
             HourlyFormatter = value => value.ToString("N0");
-
             RecentActivities = new ObservableCollection<HoatDongGhiNhan>();
 
             RefreshCommand = new RelayCommand(_ => _ = LoadDataAsync());
@@ -452,10 +446,13 @@ namespace QuanLyGiuXe.ViewModels
 
                 // Load Recent Activities (Sync for now as it doesn't take params in service yet)
                 var activities = _service.GetRecentActivities();
-                RecentActivities.Clear();
-                foreach (var act in activities)
+                if (RecentActivities != null)
                 {
-                    RecentActivities.Add(act);
+                    RecentActivities.Clear();
+                    foreach (var act in activities)
+                    {
+                        RecentActivities.Add(act);
+                    }
                 }
 
                 _lastLoadedRange = currentRangeKey;
@@ -472,6 +469,8 @@ namespace QuanLyGiuXe.ViewModels
 
         private void LoadRevenueChart(System.Data.DataTable dt)
         {
+            if (dt == null || RevenueSeries == null || RevenueLabels == null) return;
+
             RevenueSeries.Clear();
             RevenueLabels.Clear();
 
@@ -479,6 +478,8 @@ namespace QuanLyGiuXe.ViewModels
 
             foreach (System.Data.DataRow row in dt.Rows)
             {
+                if (row["Ngay"] == DBNull.Value || row["DoanhThu"] == DBNull.Value) continue;
+
                 DateTime date = Convert.ToDateTime(row["Ngay"]);
                 double rev = Convert.ToDouble(row["DoanhThu"]);
 
@@ -499,6 +500,8 @@ namespace QuanLyGiuXe.ViewModels
 
         private void LoadHourlyChart(System.Data.DataTable dt)
         {
+            if (dt == null || HourlySeries == null || HourlyLabels == null) return;
+
             HourlySeries.Clear();
             HourlyLabels.Clear();
 
@@ -506,6 +509,8 @@ namespace QuanLyGiuXe.ViewModels
 
             foreach (System.Data.DataRow row in dt.Rows)
             {
+                if (row["Gio"] == DBNull.Value || row["SoLuot"] == DBNull.Value) continue;
+
                 int hour = Convert.ToInt32(row["Gio"]);
                 double count = Convert.ToDouble(row["SoLuot"]);
 

@@ -64,17 +64,17 @@ namespace QuanLyGiuXe.Views
         private readonly WFButton _btnRefresh = new();
 
         // ── palette constants ─────────────────────────────────────────────
-        private static readonly Color ClrBg        = Color.FromArgb(245, 247, 250);
+        private static readonly Color ClrBg        = Color.FromArgb(248, 249, 252); // BgLightColor
         private static readonly Color ClrSurface   = Color.White;
-        private static readonly Color ClrPrimary   = Color.FromArgb(79, 70, 229);
-        private static readonly Color ClrSuccess   = Color.FromArgb(16, 185, 129);
-        private static readonly Color ClrDanger    = Color.FromArgb(239, 68, 68);
-        private static readonly Color ClrWarning   = Color.FromArgb(245, 158, 11);
-        private static readonly Color ClrMuted     = Color.FromArgb(107, 114, 128);
-        private static readonly Color ClrHeaderBg  = Color.FromArgb(30, 27, 75);
-        private static readonly Color ClrAltRow    = Color.FromArgb(248, 249, 255);
-        private static readonly Color ClrHoverRow  = Color.FromArgb(237, 233, 254);
-        private static readonly Color ClrSelected  = Color.FromArgb(199, 210, 254);
+        private static readonly Color ClrPrimary   = Color.FromArgb(30, 79, 163);   // APSBlueColor
+        private static readonly Color ClrSuccess   = Color.FromArgb(25, 135, 84);   // SuccessColor
+        private static readonly Color ClrDanger    = Color.FromArgb(220, 53, 69);   // DangerColor
+        private static readonly Color ClrWarning   = Color.FromArgb(255, 193, 7);   // WarningColor
+        private static readonly Color ClrMuted     = Color.FromArgb(173, 181, 189); // TextMutedColor
+        private static readonly Color ClrHeaderBg  = Color.FromArgb(30, 79, 163);   // APSBlueColor
+        private static readonly Color ClrAltRow    = Color.FromArgb(248, 249, 252);
+        private static readonly Color ClrHoverRow  = Color.FromArgb(241, 245, 251);
+        private static readonly Color ClrSelected  = Color.FromArgb(227, 236, 247);
 
         public UserManagementForm()
         {
