@@ -6,22 +6,19 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Configuration;
 using QuanLyGiuXe.Models;
 
 namespace QuanLyGiuXe.Services
 {
     public partial class DatabaseService
     {
-        private static IConfiguration? _config;
         private string primaryConnection 
         {
             get 
             {
-                EnsureConfigLoaded();
-                return _config?.GetConnectionString("Default") ?? "Server=DESKTOP-BFOEO42\\SQLEXPRESS02;Database=BaiXe;Trusted_Connection=True;TrustServerCertificate=True;";
+                return ConnectionManager.Instance.CurrentConnectionString;
             }
-            }
+        }
 
         /// <summary>
         /// Insert an audit/log entry into AppLogs. Best-effort: swallow errors and auto-provisions table/columns if missing.
@@ -138,23 +135,7 @@ namespace QuanLyGiuXe.Services
 
         private string backupConnection = "Server=BACKUP_SERVER;Database=Baixe;Trusted_Connection=True;";
 
-        private static void EnsureConfigLoaded()
-        {
-            if (_config != null) return;
-            try
-            {
-                _config = new ConfigurationBuilder()
-                    .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-                    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
-                    .Build();
-                LoggingService.Instance.LogInfo("ConfigLoaded", "DatabaseService", "Loaded appsettings.json successfully");
-            }
-            catch (Exception ex)
-            {
-                // Fail silently to use hardcoded defaults if config is missing or corrupt
-                LoggingService.Instance.LogError("ConfigError", "DatabaseService", "Failed to load appsettings.json, using defaults", ex);
-            }
-        }
+
 
         private static string? _cachedWorkingConnection;
         private static DateTime _lastCheckTime = DateTime.MinValue;
