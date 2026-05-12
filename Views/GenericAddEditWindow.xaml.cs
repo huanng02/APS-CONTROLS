@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 
 namespace QuanLyGiuXe.Views
 {
@@ -26,6 +27,12 @@ namespace QuanLyGiuXe.Views
             _model = model;
             BuildFields();
             this.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+            
+            // Allow dragging
+            this.MouseDown += (s, e) => {
+                if (e.LeftButton == System.Windows.Input.MouseButtonState.Pressed)
+                    this.DragMove();
+            };
         }
 
         public event System.ComponentModel.PropertyChangedEventHandler PropertyChanged;
@@ -40,21 +47,36 @@ namespace QuanLyGiuXe.Views
             // Special handling: if property name is TrangThai, render ComboBox with predefined values
             foreach (var p in props)
             {
-                var sp = new StackPanel { Orientation = Orientation.Vertical, Margin = new Thickness(0, 6, 0, 6) };
-                sp.Children.Add(new TextBlock { Text = p.Name });
+                var sp = new StackPanel { Orientation = Orientation.Vertical, Margin = new Thickness(0, 8, 0, 8) };
+                sp.Children.Add(new TextBlock { 
+                    Text = p.Name.ToUpper(), 
+                    FontSize = 11, 
+                    FontWeight = FontWeights.Bold, 
+                    Foreground = (System.Windows.Media.Brush)Application.Current.FindResource("TextSecondaryBrush"),
+                    Margin = new Thickness(0, 0, 0, 5)
+                });
+                
                 Control input = null;
                 if (p.Name == "TrangThai")
                 {
-                    var cb = new ComboBox { Width = 200 };
+                    var cb = new ComboBox { 
+                        HorizontalAlignment = HorizontalAlignment.Left,
+                        Width = 200, 
+                        Style = (Style)Application.Current.FindResource("ModernComboBox") 
+                    };
                     // bind ItemsSource and SelectedItem to window properties
                     cb.SetBinding(ComboBox.ItemsSourceProperty, new System.Windows.Data.Binding(nameof(TrangThaiList)) { Source = this });
                     cb.SetBinding(ComboBox.SelectedItemProperty, new System.Windows.Data.Binding(nameof(SelectedTrangThai)) { Source = this, Mode = System.Windows.Data.BindingMode.TwoWay });
                     input = cb;
                 }
-                else if (p.PropertyType == typeof(string)) input = new TextBox { Width = 320 };
-                else if (p.PropertyType == typeof(int) || p.PropertyType == typeof(int?)) input = new TextBox { Width = 120 };
-                else if (p.PropertyType == typeof(decimal)) input = new TextBox { Width = 120 };
-                else if (p.PropertyType == typeof(DateTime)) input = new DatePicker { Width = 200 };
+                else if (p.PropertyType == typeof(string)) 
+                    input = new TextBox { Style = (Style)Application.Current.FindResource("ModernTextBox") };
+                else if (p.PropertyType == typeof(int) || p.PropertyType == typeof(int?)) 
+                    input = new TextBox { Width = 150, HorizontalAlignment = HorizontalAlignment.Left, Style = (Style)Application.Current.FindResource("ModernTextBox") };
+                else if (p.PropertyType == typeof(decimal)) 
+                    input = new TextBox { Width = 150, HorizontalAlignment = HorizontalAlignment.Left, Style = (Style)Application.Current.FindResource("ModernTextBox") };
+                else if (p.PropertyType == typeof(DateTime)) 
+                    input = new DatePicker { Width = 220, HorizontalAlignment = HorizontalAlignment.Left };
 
                 if (input != null)
                 {

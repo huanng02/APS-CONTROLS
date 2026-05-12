@@ -33,6 +33,11 @@ namespace QuanLyGiuXe.Views
                 vm.TrangThai = model.TrangThai;
                 this.DataContext = vm;
             }
+
+            this.MouseDown += (s, e) => {
+                if (e.LeftButton == System.Windows.Input.MouseButtonState.Pressed)
+                    this.DragMove();
+            };
         }
         private void TxtCardUID_PreviewTextInput(object sender, TextCompositionEventArgs e)
         {

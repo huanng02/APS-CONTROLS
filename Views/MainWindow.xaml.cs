@@ -27,6 +27,7 @@ namespace QuanLyGiuXe
         private bool _isProcessingAuto = false;
         private DateTime _lastAutoScanTime = DateTime.MinValue;
         private readonly GateControlService _gateControlService = new GateControlService();
+        private readonly Dictionary<string, Window> _activeModuleWindows = new();
 
         public MainWindow()
         {
@@ -316,6 +317,7 @@ namespace QuanLyGiuXe
 
             RFIDService.Instance.OnCardScanned += OnRfidScanned;
             C3200Service.Instance.OnCardScanned += OnC3200Scanned;
+            RestoreSidebarSelection();
         }
 
         // ── Mở cổng thủ công ─────────────────────────────────────────────────────
@@ -327,7 +329,38 @@ namespace QuanLyGiuXe
             await OpenGateAsync(2);
 
         private void MoButtonLogs_Click(object sender, RoutedEventArgs e) =>
-            new ButtonLogsWindow().Show();
+            ShowModuleModal("📋 Nhật ký nhấn nút", () => new ButtonLogsWindow());
+
+        private void ShowModuleModal(string title, Func<Window> creator)
+        {
+            try
+            {
+                var win = creator();
+                win.Title = title;
+                win.Owner = this;
+                win.WindowStartupLocation = WindowStartupLocation.CenterOwner;
+                win.ShowDialog();
+                
+                // Cập nhật lại nút Sidebar dựa trên View đang hiển thị
+                RestoreSidebarSelection();
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("ShowModuleModal", "MainWindow", $"Lỗi mở cửa sổ {title}", ex);
+                MessageBox.Show($"Lỗi: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void RestoreSidebarSelection()
+        {
+            if (DataContext is MainViewModel vm)
+            {
+                if (vm.CurrentView is DashboardViewModel)
+                    btnDashboard.IsChecked = true;
+                else
+                    btnParkingView.IsChecked = true;
+            }
+        }
 
         private async Task OpenGateAsync(int doorNumber)
         {
@@ -585,11 +618,14 @@ namespace QuanLyGiuXe
             }
         }
 
-        private void MoLichSu(object sender, RoutedEventArgs e) =>
+        private void MoLichSu(object sender, RoutedEventArgs e)
+        {
             new HistoryWindow().ShowDialog();
+            RestoreSidebarSelection();
+        }
 
         private void MoLichSuGiaHan_Click(object sender, RoutedEventArgs e) =>
-            new RFIDGiaHanHistoryWindow().Show();
+            ShowModuleModal("📜 Lịch sử gia hạn thẻ", () => new RFIDGiaHanHistoryWindow());
 
         private async void MoSQLTool_Click(object sender, RoutedEventArgs e) 
         {
@@ -611,22 +647,13 @@ namespace QuanLyGiuXe
                         return; // User cancelled
                     }
                 }
-                else
+                
+                ShowModuleModal("🛠 Mini Database Explorer", () => new Window
                 {
-                    LoggingService.Instance.LogInfo("SQLTool", "CheckConnection", "Kết nối tự động thành công. Mở SQL Tool.");
-                }
-
-                var content = new QuanLyGiuXe.Views.DatabaseExplorerView();
-                var win = new Window
-                {
-                    Title = "Mini Database Explorer",
-                    Content = content,
-                    Owner = this,
+                    Content = new QuanLyGiuXe.Views.DatabaseExplorerView(),
                     Width = 1000,
-                    Height = 600,
-                    WindowStartupLocation = WindowStartupLocation.CenterOwner
-                };
-                win.Show();
+                    Height = 600
+                });
             }
             catch (Exception ex)
             {
@@ -635,8 +662,11 @@ namespace QuanLyGiuXe
             }
         }
 
-        private void MoCameraSettings_Click(object sender, RoutedEventArgs e) =>
+        private void MoCameraSettings_Click(object sender, RoutedEventArgs e)
+        {
             new CameraSettingsWindow { Owner = this }.ShowDialog();
+            RestoreSidebarSelection();
+        }
 
         private void DataGrid_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
@@ -663,10 +693,8 @@ namespace QuanLyGiuXe
             }
         }
 
-        private void MoRealtimeLog_Click(object sender, RoutedEventArgs e)
-        {
-            new RealtimeLogWindow { Owner = this }.Show();
-        }
+        private void MoRealtimeLog_Click(object sender, RoutedEventArgs e) =>
+            ShowModuleModal("📋 Nhật ký hệ thống", () => new RealtimeLogWindow());
 
         private void MoQuanLyNguoiDung_Click(object sender, RoutedEventArgs e)
         {
@@ -674,6 +702,7 @@ namespace QuanLyGiuXe
             {
                 using var frm = new QuanLyGiuXe.Views.UserManagementForm();
                 frm.ShowDialog();
+                RestoreSidebarSelection();
             }
             catch (Exception ex)
             {
@@ -712,16 +741,12 @@ namespace QuanLyGiuXe
 
                 if (content != null)
                 {
-                    var win = new Window
+                    ShowModuleModal(title, () => new Window
                     {
-                        Title = title,
                         Content = content,
-                        Owner = this,
                         Width = 1000,
-                        Height = 700,
-                        WindowStartupLocation = WindowStartupLocation.CenterOwner
-                    };
-                    win.Show();
+                        Height = 700
+                    });
                 }
                 else
                 {

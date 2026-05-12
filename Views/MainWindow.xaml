@@ -87,35 +87,35 @@
                     <ScrollViewer VerticalScrollBarVisibility="Hidden" Grid.Row="0">
                         <StackPanel Margin="10,20">
                             <TextBlock Text="MONITORING" Style="{StaticResource Heading2Style}" Foreground="#B0C4DE" FontSize="11" Margin="10,0,0,10"/>
-                            <RadioButton Content="🚗 Quan sát &amp; Quét thẻ" Style="{StaticResource SidebarButtonStyle}" IsChecked="True" Click="MoParkingView_Click"/>
-                            <RadioButton Content="📊 Thống kê Dashboard" Style="{StaticResource SidebarButtonStyle}" Click="MoDashboard_Click"/>
+                            <RadioButton x:Name="btnParkingView" Content="🚗 Quan sát &amp; Quét thẻ" Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" IsChecked="True" Click="MoParkingView_Click"/>
+                            <RadioButton x:Name="btnDashboard" Content="📊 Thống kê Dashboard" Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Click="MoDashboard_Click"/>
                             
                             <StackPanel x:Name="MenuVanHanh">
                                 <TextBlock Text="LOGS &amp; MONITOR" Style="{StaticResource Heading2Style}" Foreground="#B0C4DE" FontSize="11" Margin="10,20,0,10"/>
-                                <RadioButton Content="📋 Realtime Log" Style="{StaticResource SidebarButtonStyle}" Click="MoRealtimeLog_Click"/>
-                                <RadioButton Content="📋 Button Logs" Style="{StaticResource SidebarButtonStyle}" Click="MoButtonLogs_Click"/>
+                                <RadioButton Content="📋 Realtime Log" Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Click="MoRealtimeLog_Click"/>
+                                <RadioButton Content="📋 Button Logs" Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Click="MoButtonLogs_Click"/>
                             </StackPanel>
 
                             <StackPanel x:Name="MenuBaoCao">
                                 <TextBlock Text="HISTORY" Style="{StaticResource Heading2Style}" Foreground="#B0C4DE" FontSize="11" Margin="10,20,0,10"/>
-                                <RadioButton Content="📜 Xe Ra / Vào" Style="{StaticResource SidebarButtonStyle}" Click="MoLichSu"/>
-                                <RadioButton Content="📜 Gia hạn thẻ" Style="{StaticResource SidebarButtonStyle}" Click="MoLichSuGiaHan_Click"/>
+                                <RadioButton Content="📜 Xe Ra / Vào" Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Click="MoLichSu"/>
+                                <RadioButton Content="📜 Gia hạn thẻ" Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Click="MoLichSuGiaHan_Click"/>
                             </StackPanel>
 
                             <StackPanel x:Name="MenuAdmin">
                                 <TextBlock Text="MANAGEMENT" Style="{StaticResource Heading2Style}" Foreground="#B0C4DE" FontSize="11" Margin="10,20,0,10"/>
-                                <RadioButton Content="🚗 Loại xe" Style="{StaticResource SidebarButtonStyle}" Tag="LoaiXe" Click="OpenModule_Click"/>
-                                <RadioButton Content="🎫 Loại vé" Style="{StaticResource SidebarButtonStyle}" Tag="LoaiVe" Click="OpenModule_Click"/>
-                                <RadioButton Content="💳 Thẻ RFID" Style="{StaticResource SidebarButtonStyle}" Tag="RFID" Click="OpenModule_Click"/>
-                                <RadioButton Content="💰 Bảng giá" Style="{StaticResource SidebarButtonStyle}" Tag="BangGia" Click="OpenModule_Click"/>
-                                <RadioButton Content="👥 Người dùng" Style="{StaticResource SidebarButtonStyle}" Click="MoQuanLyNguoiDung_Click"/>
+                                <RadioButton Content="🚗 Loại xe" Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Tag="LoaiXe" Click="OpenModule_Click"/>
+                                <RadioButton Content="🎫 Loại vé" Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Tag="LoaiVe" Click="OpenModule_Click"/>
+                                <RadioButton Content="💳 Thẻ RFID" Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Tag="RFID" Click="OpenModule_Click"/>
+                                <RadioButton Content="💰 Bảng giá" Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Tag="BangGia" Click="OpenModule_Click"/>
+                                <RadioButton Content="👥 Người dùng" Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Click="MoQuanLyNguoiDung_Click"/>
                             </StackPanel>
 
                             <StackPanel x:Name="MenuTools">
                                 <TextBlock Text="SYSTEM" Style="{StaticResource Heading2Style}" Foreground="#B0C4DE" FontSize="11" Margin="10,20,0,10"/>
-                                <RadioButton Content="📷 Camera" Style="{StaticResource SidebarButtonStyle}" Click="MoCameraSettings_Click"/>
-                                <RadioButton Content="⚙ C3-200" Style="{StaticResource SidebarButtonStyle}" Click="MoC3200Settings_Click"/>
-                                <RadioButton Content="🛠 SQL Tool" Style="{StaticResource SidebarButtonStyle}" Click="MoSQLTool_Click"/>
+                                <RadioButton Content="📷 Camera" Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Click="MoCameraSettings_Click"/>
+                                <RadioButton Content="⚙ C3-200" Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Click="MoC3200Settings_Click"/>
+                                <RadioButton Content="🛠 SQL Tool" Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Click="MoSQLTool_Click"/>
                             </StackPanel>
                         </StackPanel>
                     </ScrollViewer>

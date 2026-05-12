@@ -493,8 +493,8 @@ namespace QuanLyGiuXe.Views
 
         private async Task AddUserAsync()
         {
-            var dialog = new UserEditForm(isCreate: true, roles: _roles);
-            if (dialog.ShowDialog(this) != WFDialogResult.OK) return;
+            var dialog = new UserAddEditWindow(isCreate: true, roles: _roles);
+            if (dialog.ShowDialog() != true) return;
             var result = await _service.CreateUserAsync(dialog.Result, CurrentUser.Id);
             WFMessageBox.Show(result.Message, result.Success ? "Success" : "Validation",
                 WFMessageBoxButtons.OK, result.Success ? WFMessageBoxIcon.Information : WFMessageBoxIcon.Warning);
@@ -505,8 +505,8 @@ namespace QuanLyGiuXe.Views
         {
             var user = GetSelectedUser();
             if (user == null) { WFMessageBox.Show("Vui lòng chọn user cần sửa.", "Info", WFMessageBoxButtons.OK, WFMessageBoxIcon.Information); return; }
-            var dialog = new UserEditForm(isCreate: false, roles: _roles, editingUser: user);
-            if (dialog.ShowDialog(this) != WFDialogResult.OK) return;
+            var dialog = new UserAddEditWindow(isCreate: false, roles: _roles, editingUser: user);
+            if (dialog.ShowDialog() != true) return;
             var result = await _service.UpdateUserAsync(user.Id, dialog.Result.Ten, dialog.Result.RoleId, dialog.Result.TrangThai, CurrentUser.Id);
             WFMessageBox.Show(result.Message, result.Success ? "Success" : "Validation",
                 WFMessageBoxButtons.OK, result.Success ? WFMessageBoxIcon.Information : WFMessageBoxIcon.Warning);
