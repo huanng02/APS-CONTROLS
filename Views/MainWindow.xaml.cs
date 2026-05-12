@@ -58,17 +58,11 @@ namespace QuanLyGiuXe
             base.OnClosed(e);
         }
 
-        private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            // Show main UI immediately, then load heavy components in background
-            await Task.Run(() => {
-                // Pre-loading logic if any
-                System.Threading.Thread.Sleep(100); // Small breath for UI
-            });
-
-            MoCameras();
-            
+            // Start heavy components in background to keep UI responsive
             Task.Run(() => {
+                MoCameras();
                 RFIDService.Instance.Start();
             });
         }
@@ -154,11 +148,13 @@ namespace QuanLyGiuXe
         private void MoC3200Settings_Click(object sender, RoutedEventArgs e)
         {
             new C3200SettingsWindow().ShowDialog();
+            RestoreSidebarSelection();
         }
 
         private void MoAdvancedSettings_Click(object sender, RoutedEventArgs e)
         {
             new Views.AdvancedSettingsWindow { Owner = this }.ShowDialog();
+            RestoreSidebarSelection();
         }
 
         private void OnC3200Event(Services.C3200Event evt)

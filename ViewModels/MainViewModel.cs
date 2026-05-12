@@ -363,7 +363,7 @@ namespace QuanLyGiuXe.ViewModels
             });
 
             // Kick off heavy initialization in the background
-            _ = InitializeAsync(cfg);
+            Task.Run(async () => await InitializeAsync(cfg));
         }
 
         private async Task InitializeAsync(AppConfig cfg)

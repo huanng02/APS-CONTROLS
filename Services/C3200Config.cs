@@ -10,30 +10,48 @@ namespace QuanLyGiuXe.Services
         public CameraConfig Cameras { get; set; } = new();
         public bool ShowLog { get; set; } = true;
 
+        private static AppConfig? _cached;
+        private static readonly object _lock = new();
+
         public static AppConfig Load(string fileName = "config.json")
         {
-            var paths = new[]
+            lock (_lock)
             {
-                Path.Combine(AppContext.BaseDirectory, fileName),
-                fileName
-            };
+                if (_cached != null) return _cached;
 
-            foreach (var path in paths)
-            {
-                if (!File.Exists(path)) continue;
-                try
+                var paths = new[]
                 {
-                    var json = File.ReadAllText(path);
-                    var cfg = JsonConvert.DeserializeObject<AppConfig>(json) ?? new AppConfig();
-                    try { LoggingService.Instance.LogInfo("ConfigLoaded", "AppConfig", $"Loaded config from {path}"); } catch { }
-                    return cfg;
-                }
-                catch
+                    Path.Combine(AppContext.BaseDirectory, fileName),
+                    fileName
+                };
+
+                foreach (var path in paths)
                 {
+                    if (!File.Exists(path)) continue;
+                    try
+                    {
+                        var json = File.ReadAllText(path);
+                        var cfg = JsonConvert.DeserializeObject<AppConfig>(json) ?? new AppConfig();
+                        try { LoggingService.Instance.LogInfo("ConfigLoaded", "AppConfig", $"Loaded config from {path}"); } catch { }
+                        _cached = cfg;
+                        return cfg;
+                    }
+                    catch
+                    {
+                    }
                 }
+
+                _cached = new AppConfig();
+                return _cached;
             }
+        }
 
-            return new AppConfig();
+        public static void ClearCache()
+        {
+            lock (_lock)
+            {
+                _cached = null;
+            }
         }
 
         public void Save(string fileName = "config.json")
@@ -44,6 +62,12 @@ namespace QuanLyGiuXe.Services
 
             var json = JsonConvert.SerializeObject(this, Formatting.Indented);
             File.WriteAllText(path, json);
+            
+            lock (_lock)
+            {
+                _cached = this;
+            }
+
             try 
             { 
                 LoggingService.Instance.LogAudit("SAVE_CONFIG", "AppConfig", Path.GetFileName(path), null, this, source: "AppConfig", details: $"Saved system configuration to {path}");

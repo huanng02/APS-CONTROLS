@@ -92,36 +92,41 @@ namespace QuanLyGiuXe.Services
 
         // ── Kết nối ───────────────────────────────────────────────────────────────
 
-        public Task<bool> ConnectAsync()
+        public async Task<bool> ConnectAsync()
         {
             Disconnect();
 
             try
             {
-                foreach (var parameters in BuildConnectCandidates())
-                {
-                    _handle = PLConnect(parameters);
-                    if (_handle != IntPtr.Zero) break;
-                }
+                IntPtr handle = await Task.Run(() => {
+                    IntPtr h = IntPtr.Zero;
+                    foreach (var parameters in BuildConnectCandidates())
+                    {
+                        h = PLConnect(parameters);
+                        if (h != IntPtr.Zero) break;
+                    }
+                    return h;
+                });
 
-                if (_handle == IntPtr.Zero)
+                if (handle == IntPtr.Zero)
                 {
                     LastError = $"Kết nối thất bại (sdkError={GetSdkError()})";
                     _handle = IntPtr.Zero;
                     OnConnectionChanged?.Invoke(false);
-                    return Task.FromResult(false);
+                    return false;
                 }
 
+                _handle = handle;
                 OnConnectionChanged?.Invoke(true);
                 StartPolling();
-                return Task.FromResult(true);
+                return true;
             }
             catch (Exception ex)
             {
                 LastError = ex.Message;
                 _handle = IntPtr.Zero;
                 OnConnectionChanged?.Invoke(false);
-                return Task.FromResult(false);
+                return false;
             }
         }
 

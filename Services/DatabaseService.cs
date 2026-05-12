@@ -20,6 +20,8 @@ namespace QuanLyGiuXe.Services
             }
         }
 
+        private static bool _appLogsTableChecked = false;
+
         /// <summary>
         /// Insert an audit/log entry into AppLogs. Best-effort: swallow errors and auto-provisions table/columns if missing.
         /// </summary>
@@ -34,63 +36,67 @@ namespace QuanLyGiuXe.Services
                 {
                     conn.Open();
 
-                    // Ensure table exists with ALL columns (Auto-heal schema)
-                    string sqlCheck = @"
-                        IF OBJECT_ID('dbo.AppLogs') IS NULL
-                        BEGIN
-                            CREATE TABLE dbo.AppLogs (
-                                Id INT IDENTITY(1,1) PRIMARY KEY,
-                                TimestampUtc DATETIME2,
-                                [Level] NVARCHAR(50),
-                                EventType NVARCHAR(200),
-                                Source NVARCHAR(200),
-                                UserId NVARCHAR(200),
-                                Plate NVARCHAR(200),
-                                Details NVARCHAR(MAX),
-                                Exception NVARCHAR(MAX),
-                                Username NVARCHAR(200),
-                                [Action] NVARCHAR(200),
-                                EntityName NVARCHAR(200),
-                                EntityId NVARCHAR(200),
-                                OldValues NVARCHAR(MAX),
-                                NewValues NVARCHAR(MAX),
-                                IpAddress NVARCHAR(50),
-                                MachineName NVARCHAR(200),
-                                DeviceName NVARCHAR(200),
-                                SessionId NVARCHAR(200),
-                                CorrelationId NVARCHAR(200)
-                            )
-                        END
-                        ELSE
-                        BEGIN
-                            -- Add missing columns if they don't exist
-                            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.AppLogs') AND name = 'Username')
-                                ALTER TABLE dbo.AppLogs ADD Username NVARCHAR(200);
-                            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.AppLogs') AND name = 'Action')
-                                ALTER TABLE dbo.AppLogs ADD [Action] NVARCHAR(200);
-                            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.AppLogs') AND name = 'EntityName')
-                                ALTER TABLE dbo.AppLogs ADD EntityName NVARCHAR(200);
-                            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.AppLogs') AND name = 'EntityId')
-                                ALTER TABLE dbo.AppLogs ADD EntityId NVARCHAR(200);
-                            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.AppLogs') AND name = 'OldValues')
-                                ALTER TABLE dbo.AppLogs ADD OldValues NVARCHAR(MAX);
-                            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.AppLogs') AND name = 'NewValues')
-                                ALTER TABLE dbo.AppLogs ADD NewValues NVARCHAR(MAX);
-                            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.AppLogs') AND name = 'IpAddress')
-                                ALTER TABLE dbo.AppLogs ADD IpAddress NVARCHAR(50);
-                            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.AppLogs') AND name = 'MachineName')
-                                ALTER TABLE dbo.AppLogs ADD MachineName NVARCHAR(200);
-                            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.AppLogs') AND name = 'DeviceName')
-                                ALTER TABLE dbo.AppLogs ADD DeviceName NVARCHAR(200);
-                            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.AppLogs') AND name = 'SessionId')
-                                ALTER TABLE dbo.AppLogs ADD SessionId NVARCHAR(200);
-                            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.AppLogs') AND name = 'CorrelationId')
-                                ALTER TABLE dbo.AppLogs ADD CorrelationId NVARCHAR(200);
-                        END";
-
-                    using (SqlCommand cmdCheck = new SqlCommand(sqlCheck, conn))
+                    // Ensure table exists with ALL columns (Auto-heal schema) - Only once per app session
+                    if (!_appLogsTableChecked)
                     {
-                        cmdCheck.ExecuteNonQuery();
+                        string sqlCheck = @"
+                            IF OBJECT_ID('dbo.AppLogs') IS NULL
+                            BEGIN
+                                CREATE TABLE dbo.AppLogs (
+                                    Id INT IDENTITY(1,1) PRIMARY KEY,
+                                    TimestampUtc DATETIME2,
+                                    [Level] NVARCHAR(50),
+                                    EventType NVARCHAR(200),
+                                    Source NVARCHAR(200),
+                                    UserId NVARCHAR(200),
+                                    Plate NVARCHAR(200),
+                                    Details NVARCHAR(MAX),
+                                    Exception NVARCHAR(MAX),
+                                    Username NVARCHAR(200),
+                                    [Action] NVARCHAR(200),
+                                    EntityName NVARCHAR(200),
+                                    EntityId NVARCHAR(200),
+                                    OldValues NVARCHAR(MAX),
+                                    NewValues NVARCHAR(MAX),
+                                    IpAddress NVARCHAR(50),
+                                    MachineName NVARCHAR(200),
+                                    DeviceName NVARCHAR(200),
+                                    SessionId NVARCHAR(200),
+                                    CorrelationId NVARCHAR(200)
+                                )
+                            END
+                            ELSE
+                            BEGIN
+                                -- Add missing columns if they don't exist
+                                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.AppLogs') AND name = 'Username')
+                                    ALTER TABLE dbo.AppLogs ADD Username NVARCHAR(200);
+                                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.AppLogs') AND name = 'Action')
+                                    ALTER TABLE dbo.AppLogs ADD [Action] NVARCHAR(200);
+                                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.AppLogs') AND name = 'EntityName')
+                                    ALTER TABLE dbo.AppLogs ADD EntityName NVARCHAR(200);
+                                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.AppLogs') AND name = 'EntityId')
+                                    ALTER TABLE dbo.AppLogs ADD EntityId NVARCHAR(200);
+                                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.AppLogs') AND name = 'OldValues')
+                                    ALTER TABLE dbo.AppLogs ADD OldValues NVARCHAR(MAX);
+                                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.AppLogs') AND name = 'NewValues')
+                                    ALTER TABLE dbo.AppLogs ADD NewValues NVARCHAR(MAX);
+                                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.AppLogs') AND name = 'IpAddress')
+                                    ALTER TABLE dbo.AppLogs ADD IpAddress NVARCHAR(50);
+                                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.AppLogs') AND name = 'MachineName')
+                                    ALTER TABLE dbo.AppLogs ADD MachineName NVARCHAR(200);
+                                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.AppLogs') AND name = 'DeviceName')
+                                    ALTER TABLE dbo.AppLogs ADD DeviceName NVARCHAR(200);
+                                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.AppLogs') AND name = 'SessionId')
+                                    ALTER TABLE dbo.AppLogs ADD SessionId NVARCHAR(200);
+                                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.AppLogs') AND name = 'CorrelationId')
+                                    ALTER TABLE dbo.AppLogs ADD CorrelationId NVARCHAR(200);
+                            END";
+
+                        using (SqlCommand cmdCheck = new SqlCommand(sqlCheck, conn))
+                        {
+                            cmdCheck.ExecuteNonQuery();
+                        }
+                        _appLogsTableChecked = true;
                     }
 
                     string sql = @"INSERT INTO dbo.AppLogs 
