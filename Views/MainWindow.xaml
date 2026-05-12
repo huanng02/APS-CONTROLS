@@ -182,5 +182,19 @@
             </Border>
         </Popup>
 
+        <!-- FOOTER BAR -->
+        <Border Grid.Row="2" Background="White" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,1,0,0" Padding="15,8">
+            <Grid>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="📋" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding SoXeTrongBai}" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}" VerticalAlignment="Center"/>
+                </StackPanel>
+                
+                <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" 
+                           Text="Hệ thống đang hoạt động bình thường" 
+                           Foreground="{StaticResource SuccessBrush}" FontSize="11" FontWeight="SemiBold"/>
+            </Grid>
+        </Border>
+
     </Grid>
 </Window>

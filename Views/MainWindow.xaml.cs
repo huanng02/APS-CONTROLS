@@ -249,6 +249,28 @@ namespace QuanLyGiuXe
                 // 🔥 FIX CHÍNH: dùng CardId
                 bool xeTrongBai = db.IsXeTrongBaiByCardId(card.Id);
 
+                // Capture snapshots immediately upon scan
+                int targetLane = logicalDoor;
+                if (targetLane == 0) targetLane = xeTrongBai ? 2 : 1;
+
+                Task.Run(() => {
+                    try {
+                        string cam1 = targetLane == 1 ? "Vao1" : "Ra1";
+                        string cam2 = targetLane == 1 ? "Vao2" : "Ra2";
+                        
+                        lock (_currentFrames) {
+                            if (_currentFrames.TryGetValue(cam1, out var bmp1)) {
+                                var img1 = ConvertBitmap((Bitmap)bmp1.Clone());
+                                Dispatcher.BeginInvoke(new Action(() => vm.UpdateLaneSnapshot(targetLane, 1, img1)));
+                            }
+                            if (_currentFrames.TryGetValue(cam2, out var bmp2)) {
+                                var img2 = ConvertBitmap((Bitmap)bmp2.Clone());
+                                Dispatcher.BeginInvoke(new Action(() => vm.UpdateLaneSnapshot(targetLane, 2, img2)));
+                            }
+                        }
+                    } catch { }
+                });
+
                 // ── CỔNG VÀO ──
                 if (logicalDoor == 1)
                 {
@@ -360,14 +382,25 @@ namespace QuanLyGiuXe
                         }
                     }));
                 }
+                
+                // Plate recognition on Vao1 (Entrance)
                 if (data.CamKey == "Vao1")
                 {
                     RunAutoDetection(data.Frame);
                 }
             };
 
-            string rtspUrl = "rtsp://192.168.1.121:554/user=admin&password=tlJwpbo6&channel=0&stream=0.sdp";
-            _cameraService.StartIpCamera("Vao1", rtspUrl);
+            // Start all configured cameras
+            if (!string.IsNullOrEmpty(cfg.VaoToanCanh)) _cameraService.StartIpCamera("Vao1", cfg.VaoToanCanh);
+            if (!string.IsNullOrEmpty(cfg.VaoBienSo)) _cameraService.StartIpCamera("Vao2", cfg.VaoBienSo);
+            if (!string.IsNullOrEmpty(cfg.RaToanCanh)) _cameraService.StartIpCamera("Ra1", cfg.RaToanCanh);
+            if (!string.IsNullOrEmpty(cfg.RaBienSo)) _cameraService.StartIpCamera("Ra2", cfg.RaBienSo);
+            
+            // Fallback for debug if no config
+            if (string.IsNullOrEmpty(cfg.VaoToanCanh)) {
+                string debugUrl = "rtsp://192.168.1.121:554/user=admin&password=tlJwpbo6&channel=0&stream=0.sdp";
+                _cameraService.StartIpCamera("Vao1", debugUrl);
+            }
         }
         private async void RunAutoDetection(Bitmap originalBitmap)
         {
@@ -403,8 +436,9 @@ namespace QuanLyGiuXe
                     {
                         if (this.DataContext is MainViewModel vm)
                         {
-                            // Gán vào ô "Biển số nhập"
+                            // Gán vào ô "Biển số nhập" và khung hiển thị làn vào
                             vm.BienSoNhap = plate.Trim().ToUpper();
+                            vm.LanVaoBienSo = vm.BienSoNhap;
 
                             // (Tùy chọn) Thông báo trạng thái để người dùng biết đã nhận diện xong
                             vm.LanVaoTrangThai = "Đã nhận diện: " + vm.BienSoNhap;

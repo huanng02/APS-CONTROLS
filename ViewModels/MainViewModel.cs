@@ -239,6 +239,28 @@ namespace QuanLyGiuXe.ViewModels
             set { _anhChupRa2 = value; OnPropertyChanged(nameof(AnhChupRa2)); }
         }
 
+        // ── Helper methods for UI updates ─────────────────────────────────────
+
+        public void UpdateLaneSnapshot(int lane, int cameraIndex, ImageSource source)
+        {
+            if (lane == 1) // IN
+            {
+                if (cameraIndex == 1) AnhChupVao1 = source;
+                else if (cameraIndex == 2) AnhChupVao2 = source;
+            }
+            else if (lane == 2) // OUT
+            {
+                if (cameraIndex == 1) AnhChupRa1 = source;
+                else if (cameraIndex == 2) AnhChupRa2 = source;
+            }
+        }
+
+        public void SetLanePlate(int lane, string plate)
+        {
+            if (lane == 1) LanVaoBienSo = plate;
+            else if (lane == 2) LanRaBienSo = plate;
+        }
+
 
 
         // ── Commands ──────────────────────────────────────────────────────────────
