@@ -94,10 +94,9 @@ namespace QuanLyGiuXe.Services
 
         public async Task<bool> ConnectAsync()
         {
-            Disconnect();
-
-            try
+            return await ErrorHandling.SafeExecutionService.SafeExecuteAsync(async () => 
             {
+                Disconnect();
                 IntPtr handle = await Task.Run(() => {
                     IntPtr h = IntPtr.Zero;
                     foreach (var parameters in BuildConnectCandidates())
@@ -120,14 +119,10 @@ namespace QuanLyGiuXe.Services
                 OnConnectionChanged?.Invoke(true);
                 StartPolling();
                 return true;
-            }
-            catch (Exception ex)
-            {
-                LastError = ex.Message;
-                _handle = IntPtr.Zero;
-                OnConnectionChanged?.Invoke(false);
-                return false;
-            }
+            }, 
+            source: "C3200Service.Connect", 
+            defaultValue: false,
+            friendlyMessage: "Không thể kết nối với bộ điều khiển C3-200. Vui lòng kiểm tra mạng.");
         }
 
         public void Disconnect()
@@ -159,11 +154,11 @@ namespace QuanLyGiuXe.Services
         /// <summary>Mở barrier. doorNumber: 1 = cửa vào, 2 = cửa ra.</summary>
         public async Task<bool> OpenBarrierAsync(int doorNumber = 1)
         {
-            if (!IsConnected && !await ConnectAsync())
-                return false;
-
-            try
+            return await ErrorHandling.SafeExecutionService.SafeExecuteAsync(async () => 
             {
+                if (!IsConnected && !await ConnectAsync())
+                    return false;
+
                 StopPolling();
 
                 // Gửi lệnh ngay trên kết nối hiện tại
@@ -210,12 +205,10 @@ namespace QuanLyGiuXe.Services
                 // success: keep LastError empty but record ret for trace
                 LastError = $"ret={r}";
                 return true;
-            }
-            catch (Exception ex)
-            {
-                LastError = ex.Message;
-                return false;
-            }
+            }, 
+            source: $"C3200Service.OpenBarrier({doorNumber})",
+            defaultValue: false,
+            friendlyMessage: "Lỗi lệnh điều khiển Barrier.");
         }
 
         /// <summary>Đóng barrier. doorNumber: 1 = cửa vào, 2 = cửa ra.</summary>

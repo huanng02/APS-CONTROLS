@@ -28,17 +28,17 @@ namespace QuanLyGiuXe.Services
 
         public async System.Threading.Tasks.Task<DashboardKpi> GetKpiAsync(DateTime startDate, DateTime endDate)
         {
-            var kpi = new DashboardKpi();
-            string sql = @"
-                SELECT 
-                    (SELECT COUNT(*) FROM XeTrongBai) AS XeTrongBai,
-                    (SELECT COUNT(*) FROM LichSuXe WHERE ThoiGianVao >= @Start AND ThoiGianVao <= @End) AS LuotXeVao,
-                    (SELECT ISNULL(SUM(Tien), 0) FROM LichSuXe WHERE ThoiGianRa >= @Start AND ThoiGianRa <= @End) AS DoanhThu,
-                    (SELECT COUNT(*) FROM RFIDCards WHERE TrangThai = 'Active' AND (NgayHetHan IS NULL OR NgayHetHan >= GETDATE())) AS VeActive;
-            ";
-
-            try
+            return await ErrorHandling.SafeExecutionService.SafeExecuteAsync(async () => 
             {
+                var kpi = new DashboardKpi();
+                string sql = @"
+                    SELECT 
+                        (SELECT COUNT(*) FROM XeTrongBai) AS XeTrongBai,
+                        (SELECT COUNT(*) FROM LichSuXe WHERE ThoiGianVao >= @Start AND ThoiGianVao <= @End) AS LuotXeVao,
+                        (SELECT ISNULL(SUM(Tien), 0) FROM LichSuXe WHERE ThoiGianRa >= @Start AND ThoiGianRa <= @End) AS DoanhThu,
+                        (SELECT COUNT(*) FROM RFIDCards WHERE TrangThai = 'Active' AND (NgayHetHan IS NULL OR NgayHetHan >= GETDATE())) AS VeActive;
+                ";
+
                 using (var conn = new SqlConnection(_db.GetConnectionString()))
                 {
                     await conn.OpenAsync();
@@ -59,13 +59,11 @@ namespace QuanLyGiuXe.Services
                         }
                     }
                 }
-            }
-            catch (Exception ex)
-            {
-                LoggingService.Instance.LogError("DashboardService", "GetKpiAsync", "Lỗi lấy KPI", ex);
-            }
-
-            return kpi;
+                return kpi;
+            }, 
+            source: "DashboardService.GetKpi", 
+            defaultValue: new DashboardKpi(),
+            friendlyMessage: "Không thể tải dữ liệu thống kê KPI.");
         }
 
         public async System.Threading.Tasks.Task<DataTable> GetRevenueByDayAsync(DateTime startDate, DateTime endDate)
@@ -195,22 +193,22 @@ namespace QuanLyGiuXe.Services
 
         public async System.Threading.Tasks.Task<DataTable> GetTransactionsAsync(DateTime startDate, DateTime endDate)
         {
-            var dt = new DataTable();
-            string sql = @"
-                SELECT 
-                    ThoiGianVao AS [Giờ Vào],
-                    ThoiGianRa AS [Giờ Ra],
-                    BienSo AS [Biển Số],
-                    Tien AS [Số Tiền],
-                    TrangThai AS [Trạng Thái]
-                FROM LichSuXe
-                WHERE (ThoiGianVao >= @Start AND ThoiGianVao <= @End)
-                   OR (ThoiGianRa >= @Start AND ThoiGianRa <= @End)
-                ORDER BY Id DESC;
-            ";
-
-            try
+            return await ErrorHandling.SafeExecutionService.SafeExecuteAsync(async () => 
             {
+                var dt = new DataTable();
+                string sql = @"
+                    SELECT 
+                        ThoiGianVao AS [Giờ Vào],
+                        ThoiGianRa AS [Giờ Ra],
+                        BienSo AS [Biển Số],
+                        Tien AS [Số Tiền],
+                        TrangThai AS [Trạng Thái]
+                    FROM LichSuXe
+                    WHERE (ThoiGianVao >= @Start AND ThoiGianVao <= @End)
+                       OR (ThoiGianRa >= @Start AND ThoiGianRa <= @End)
+                    ORDER BY Id DESC;
+                ";
+
                 using (var conn = new SqlConnection(_db.GetConnectionString()))
                 {
                     await conn.OpenAsync();
@@ -225,13 +223,11 @@ namespace QuanLyGiuXe.Services
                         }
                     }
                 }
-            }
-            catch (Exception ex)
-            {
-                LoggingService.Instance.LogError("DashboardService", "GetTransactionsAsync", "Lỗi lấy dữ liệu giao dịch", ex);
-            }
-
-            return dt;
+                return dt;
+            }, 
+            source: "DashboardService.GetTransactions", 
+            defaultValue: new DataTable(),
+            friendlyMessage: "Không thể tải danh sách giao dịch.");
         }
     }
 }

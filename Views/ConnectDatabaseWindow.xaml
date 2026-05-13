@@ -1,13 +1,54 @@
 <Window x:Class="QuanLyGiuXe.Views.ConnectDatabaseWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="SQL SERVER CONNECTION" Height="500" Width="450"
+        Title="KẾT NỐI CƠ SỞ DỮ LIỆU" Height="700" Width="480"
         WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
         Background="{StaticResource BgLightBrush}">
+    
     <Window.Resources>
-        <Style TargetType="TextBlock" x:Key="StatusTextStyle">
+        <!-- Style nhãn phía trên ô nhập liệu -->
+        <Style x:Key="InputLabelStyle" TargetType="TextBlock" BasedOn="{StaticResource SubTitleStyle}">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,0,0,6"/>
+            <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
+        </Style>
+
+        <!-- Style ô nhập liệu nội bộ để đảm bảo không bị lỗi hiển thị -->
+        <Style x:Key="RobustInputStyle" TargetType="Control">
+            <Setter Property="Height" Value="42"/>
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderMediumBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+            <Setter Property="Padding" Value="12,0"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Control">
+                        <Border x:Name="Border" 
+                                Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="{TemplateBinding BorderThickness}" 
+                                CornerRadius="6">
+                            <Grid>
+                                <!-- PART_ContentHost cho TextBox hoặc PasswordBox -->
+                                <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsFocused" Value="True">
+                                <Setter TargetName="Border" Property="BorderBrush" Value="{StaticResource APSBlueBrush}"/>
+                                <Setter TargetName="Border" Property="BorderThickness" Value="1.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="StatusTextStyle" TargetType="TextBlock">
             <Setter Property="Foreground" Value="{StaticResource APSRedBrush}" />
-            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontSize" Value="12"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Style.Triggers>
                 <DataTrigger Binding="{Binding IsSuccessStatus}" Value="True">
@@ -17,82 +58,86 @@
         </Style>
     </Window.Resources>
 
-    <Grid Margin="30">
-        <Border Style="{StaticResource EnterpriseCardBorder}" Padding="30">
+    <Grid Margin="20">
+        <Border Style="{StaticResource EnterpriseCardBorder}" Padding="0" CornerRadius="12">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <TextBlock Text="DATABASE CONFIGURATION" Style="{StaticResource Heading1Style}" Foreground="{StaticResource APSBlueBrush}" HorizontalAlignment="Center" Margin="0,0,0,25"/>
+                <!-- Header -->
+                <Border Background="{StaticResource BgLightBrush}" Padding="20" CornerRadius="12,12,0,0">
+                    <StackPanel>
+                        <TextBlock Text="THIẾT LẬP DATABASE" Style="{StaticResource Heading2Style}" 
+                                   Foreground="{StaticResource APSBlueBrush}" HorizontalAlignment="Center"/>
+                        <TextBlock Text="Vui lòng cấu hình thông số kết nối SQL Server" 
+                                   Style="{StaticResource SubTitleStyle}" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
 
-                <!-- Form -->
-                <Grid Grid.Row="1">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="120"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
+                <!-- Form Area -->
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="25,20">
+                    <StackPanel>
+                        <TextBlock Text="ĐỊA CHỈ SERVER (IP/NAME)" Style="{StaticResource InputLabelStyle}"/>
+                        <TextBox Style="{StaticResource RobustInputStyle}" 
+                                 Text="{Binding ServerIP, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,15"/>
 
-                    <TextBlock Text="SERVER ADDRESS" Style="{StaticResource BaseTextBlockStyle}" VerticalAlignment="Center" Margin="0,0,0,15"/>
-                    <TextBox Grid.Column="1" Style="{StaticResource ModernTextBox}" Text="{Binding ServerIP, UpdateSourceTrigger=PropertyChanged}" Height="36" Margin="0,0,0,15"/>
+                        <Grid Margin="0,0,0,15">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="20"/>
+                                <ColumnDefinition Width="150"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="TÊN CƠ SỞ DỮ LIỆU" Style="{StaticResource InputLabelStyle}"/>
+                                <TextBox Style="{StaticResource RobustInputStyle}" 
+                                         Text="{Binding Database, UpdateSourceTrigger=PropertyChanged}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="CỔNG" Style="{StaticResource InputLabelStyle}"/>
+                                <ComboBox Style="{StaticResource ModernComboBox}" Height="42"
+                                          Text="{Binding Port, UpdateSourceTrigger=PropertyChanged}" IsEditable="True">
+                                    <ComboBoxItem Content="1433"/>
+                                </ComboBox>
+                            </StackPanel>
+                        </Grid>
 
-                    <TextBlock Grid.Row="1" Text="NETWORK PORT" Style="{StaticResource BaseTextBlockStyle}" VerticalAlignment="Center" Margin="0,0,0,15"/>
-                    <ComboBox Grid.Row="1" Grid.Column="1" Style="{StaticResource ModernComboBox}" Text="{Binding Port, UpdateSourceTrigger=PropertyChanged}" IsEditable="True" Height="36" Margin="0,0,0,15">
-                        <ComboBoxItem Content="1433"/>
-                    </ComboBox>
+                        <TextBlock Text="TÀI KHOẢN ĐĂNG NHẬP" Style="{StaticResource InputLabelStyle}"/>
+                        <TextBox Style="{StaticResource RobustInputStyle}" 
+                                 Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,15"/>
 
-                    <TextBlock Grid.Row="2" Text="DATABASE NAME" Style="{StaticResource BaseTextBlockStyle}" VerticalAlignment="Center" Margin="0,0,0,15"/>
-                    <TextBox Grid.Row="2" Grid.Column="1" Style="{StaticResource ModernTextBox}" Text="{Binding Database, UpdateSourceTrigger=PropertyChanged}" Height="36" Margin="0,0,0,15"/>
+                        <TextBlock Text="MẬT KHẨU" Style="{StaticResource InputLabelStyle}"/>
+                        <PasswordBox Style="{StaticResource RobustInputStyle}" x:Name="txtPassword" 
+                                     PasswordChanged="txtPassword_PasswordChanged" Margin="0,0,0,10"/>
+                        
+                        <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource StatusTextStyle}" 
+                                   TextWrapping="Wrap" HorizontalAlignment="Left" Margin="0,5"/>
+                    </StackPanel>
+                </ScrollViewer>
 
-                    <TextBlock Grid.Row="3" Text="USERNAME" Style="{StaticResource BaseTextBlockStyle}" VerticalAlignment="Center" Margin="0,0,0,15"/>
-                    <TextBox Grid.Row="3" Grid.Column="1" Style="{StaticResource ModernTextBox}" Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}" Height="36" Margin="0,0,0,15"/>
-
-                    <TextBlock Grid.Row="4" Text="PASSWORD" Style="{StaticResource BaseTextBlockStyle}" VerticalAlignment="Center" Margin="0,0,0,15"/>
-                    <PasswordBox Grid.Row="4" Grid.Column="1" x:Name="txtPassword" Style="{StaticResource ModernPasswordBox}" PasswordChanged="txtPassword_PasswordChanged" Height="36" Margin="0,0,0,15"/>
-                </Grid>
-
-                <!-- Status & Loading -->
-                <StackPanel Grid.Row="2" Margin="0,10">
-                    <ProgressBar IsIndeterminate="True" Height="2" Background="Transparent" Foreground="{StaticResource APSBlueBrush}" Margin="0,0,0,10">
-                        <ProgressBar.Style>
-                            <Style TargetType="ProgressBar">
-                                <Setter Property="Visibility" Value="Collapsed"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsProcessing}" Value="True">
-                                        <Setter Property="Visibility" Value="Visible"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </ProgressBar.Style>
-                    </ProgressBar>
-                    <TextBlock Text="{Binding StatusMessage}" Style="{StaticResource StatusTextStyle}" TextWrapping="Wrap" HorizontalAlignment="Center" TextAlignment="Center"/>
-                </StackPanel>
-
-                <!-- Buttons -->
-                <Grid Grid.Row="3" Margin="0,10,0,0">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="10"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <Button Content="PING SERVER" Style="{StaticResource ModernOutlineButton}" Command="{Binding PingServerCommand}" Height="40"/>
-                    <Button Grid.Column="2" Content="TEST LINK" Style="{StaticResource ModernOutlineButton}" Command="{Binding TestConnectionCommand}" Height="40"/>
-                </Grid>
-
-                <Button Grid.Row="4" Content="ESTABLISH CONNECTION" Style="{StaticResource ModernButton}" Command="{Binding ConnectCommand}" Height="45" Margin="0,15,0,0" Background="{StaticResource SuccessBrush}"/>
+                <!-- Action Footer -->
+                <Border Grid.Row="2" Padding="25,20" Background="{StaticResource BgLightBrush}" CornerRadius="0,0,12,12">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="12"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Button Content="KIỂM TRA SERVER" Style="{StaticResource ModernOutlineButton}" 
+                                    Command="{Binding PingServerCommand}" Height="42"/>
+                            <Button Grid.Column="2" Content="THỬ KẾT NỐI" Style="{StaticResource ModernOutlineButton}" 
+                                    Command="{Binding TestConnectionCommand}" Height="42"/>
+                        </Grid>
+                        
+                        <Button Content="LƯU VÀ KẾT NỐI HỆ THỐNG" Style="{StaticResource ModernButton}" 
+                                Command="{Binding ConnectCommand}" Height="48" 
+                                Background="{StaticResource SuccessBrush}"/>
+                    </StackPanel>
+                </Border>
             </Grid>
         </Border>
     </Grid>
 </Window>
-

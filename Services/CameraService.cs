@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Drawing;
 using System.Collections.Generic;
 using System.Threading;
@@ -28,9 +28,9 @@ namespace QuanLyGiuXe.Services
             var cts = new CancellationTokenSource();
             _ipCameraTokens[camKey] = cts;
 
-            Task.Run(() =>
+            Task.Run(async () =>
             {
-                try
+                await ErrorHandling.SafeExecutionService.SafeExecuteAsync(async () => 
                 {
                     // Sử dụng FFMPEG cho RTSP
                     using var capture = new VideoCapture(url, VideoCaptureAPIs.FFMPEG);
@@ -53,13 +53,11 @@ namespace QuanLyGiuXe.Services
                             NewFrameReceived?.Invoke(this, (camKey, bitmap));
                         }
                         // Nghỉ một chút để giảm tải CPU (khoảng 30fps)
-                        Thread.Sleep(5);
+                        await Task.Delay(30, cts.Token);
                     }
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Lỗi luồng {camKey}: {ex.Message}");
-                }
+                }, 
+                source: $"CameraService.{camKey}",
+                friendlyMessage: null); // Không hiện Toast liên tục nếu lỗi luồng camera để tránh làm phiền user
             }, cts.Token);
         }
 

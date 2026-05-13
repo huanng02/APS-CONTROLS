@@ -22,11 +22,8 @@ namespace QuanLyGiuXe
             var _ = LoggingService.Instance; 
             LoggingService.Instance.LogInfo("AppStart", "App", "Application starting");
 
-            // global exception handlers
-            this.DispatcherUnhandledException += (s, ex) =>
-            {
-                LoggingService.Instance.LogError("UnhandledException", "App.Dispatcher", "Unhandled UI exception", ex.Exception);
-            };
+            // Kích hoạt hệ thống xử lý lỗi toàn cục (Global Exception Handling)
+            QuanLyGiuXe.Services.ErrorHandling.GlobalExceptionHandler.Initialize();
 
             StartLoginFlow();
         }
