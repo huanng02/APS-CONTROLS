@@ -57,16 +57,16 @@
                     <TextBlock Text="EXIT VEHICLE INFO" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}" Margin="0,0,0,15" />
 
                     <TextBlock Text="PLATE NUMBER" Style="{StaticResource BaseTextBlockStyle}" Foreground="{StaticResource TextMutedBrush}" />
-                    <TextBlock Text="{Binding LanRaBienSo}" FontSize="24" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}" Margin="0,0,0,15"/>
+                    <TextBlock Text="{Binding Lane2BienSo}" FontSize="24" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}" Margin="0,0,0,15"/>
 
                     <TextBlock Text="STATUS" Style="{StaticResource BaseTextBlockStyle}" Foreground="{StaticResource TextMutedBrush}" />
-                    <TextBlock Text="{Binding LanRaTrangThai}" FontSize="14" Foreground="{StaticResource APSRedBrush}" FontWeight="SemiBold" Margin="0,0,0,15"/>
+                    <TextBlock Text="{Binding Lane2TrangThai}" FontSize="14" Foreground="{StaticResource APSRedBrush}" FontWeight="SemiBold" Margin="0,0,0,15"/>
 
                     <TextBlock Text="FEE" Style="{StaticResource BaseTextBlockStyle}" Foreground="{StaticResource TextMutedBrush}" />
-                    <TextBlock Text="{Binding LanRaTien}" FontSize="18" FontWeight="Bold" Foreground="{StaticResource SuccessBrush}" Margin="0,0,0,15"/>
+                    <TextBlock Text="{Binding Lane2Tien}" FontSize="18" FontWeight="Bold" Foreground="{StaticResource SuccessBrush}" Margin="0,0,0,15"/>
 
                     <TextBlock Text="ENTRY TIME" Style="{StaticResource BaseTextBlockStyle}" Foreground="{StaticResource TextMutedBrush}" />
-                    <TextBlock Text="{Binding LanRaThoiGianVao}" FontSize="14" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,20"/>
+                    <TextBlock Text="{Binding Lane2ThoiGianVao}" FontSize="14" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,20"/>
 
                     <Separator Background="{StaticResource BorderLightBrush}" Margin="0,0,0,20"/>
 

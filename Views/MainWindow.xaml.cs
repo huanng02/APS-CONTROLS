@@ -148,6 +148,10 @@ namespace QuanLyGiuXe
         private void MoC3200Settings_Click(object sender, RoutedEventArgs e)
         {
             new C3200SettingsWindow().ShowDialog();
+            if (DataContext is MainViewModel vm)
+            {
+                vm.RefreshSettings();
+            }
             RestoreSidebarSelection();
         }
 
@@ -179,38 +183,23 @@ namespace QuanLyGiuXe
 
         private void XuLyQuetThe(string uid, int door = 0)
         {
-            Dispatcher.BeginInvoke(new Action(() =>
+            Dispatcher.BeginInvoke(new Action(async () =>
             {
                 if (DataContext is not MainViewModel vm) return;
 
                 var cfg = AppConfig.Load();
 
-                int logicalDoor = 0;
-                if (door != 0)
+                // 1. Determine UI Lane (1 = Left, 2 = Right)
+                int laneIndex = (door == 2) ? 2 : 1;
+
+                // 2. Determine Direction (Inbound or Outbound)
+                bool isInbound = true;
+                if (cfg.ZKTeco.ForceAllIn) isInbound = true;
+                else if (cfg.ZKTeco.ForceAllOut) isInbound = false;
+                else
                 {
-                    if (cfg.ZKTeco.ForceAllIn)
-                    {
-                        logicalDoor = 1;
-                    }
-                    else if (cfg.ZKTeco.ForceAllOut)
-                    {
-                        logicalDoor = 2;
-                    }
-                    else
-                    {
-                        var inSet = new HashSet<int>();
-                        var outSet = new HashSet<int>();
-
-                        foreach (var part in (cfg.ZKTeco.GateInDoors ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries))
-                            if (int.TryParse(part.Trim(), out var v)) inSet.Add(v);
-
-                        foreach (var part in (cfg.ZKTeco.GateOutDoors ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries))
-                            if (int.TryParse(part.Trim(), out var v)) outSet.Add(v);
-
-                        if (inSet.Contains(door)) logicalDoor = 1;
-                        else if (outSet.Contains(door)) logicalDoor = 2;
-                        else logicalDoor = 0;
-                    }
+                    // Automatic Mode: Lane 1 = In, Lane 2 = Out
+                    isInbound = (laneIndex == 1);
                 }
 
                 try
@@ -218,89 +207,37 @@ namespace QuanLyGiuXe
                     uid = RFIDService.ChuanHoaUID(uid);
 
                     int cooldown = cfg.ZKTeco.CardCooldownMs > 0 ? cfg.ZKTeco.CardCooldownMs : 2000;
-
                     if (!_lastScanByUid.TryGetValue(uid, out var last)) last = DateTime.MinValue;
-
-                    if ((DateTime.Now - last).TotalMilliseconds < cooldown)
-                        return;
+                    if ((DateTime.Now - last).TotalMilliseconds < cooldown) return;
 
                     _lastScanByUid[uid] = DateTime.Now;
                 }
                 catch { }
 
-                var db = new DatabaseService();
-                var card = db.GetRFIDCardByUid(uid);
-
-                if (card == null || card.Id == 0)
-                {
-                    string msg = $"❌ Thẻ {uid} chưa đăng ký!";
-                    if (logicalDoor == 1) vm.LanVaoTrangThai = msg;
-                    else if (logicalDoor == 2) vm.LanRaTrangThai = msg;
-                    else MessageBox.Show(msg, "Lỗi thẻ");
-                    return;
-                }
-
-                vm.BienSoNhap = card.BienSo ?? string.Empty;
-                vm.LastScannedUID = uid;
-
-                // 🔥 FIX CHÍNH: dùng CardId
-                bool xeTrongBai = db.IsXeTrongBaiByCardId(card.Id);
-
-                // Capture snapshots immediately upon scan
-                int targetLane = logicalDoor;
-                if (targetLane == 0) targetLane = xeTrongBai ? 2 : 1;
-
+                // 3. Snapshot logic (based on physical lane)
                 Task.Run(() => {
                     try {
-                        string cam1 = targetLane == 1 ? "Vao1" : "Ra1";
-                        string cam2 = targetLane == 1 ? "Vao2" : "Ra2";
+                        string cam1 = (laneIndex == 1) ? "Vao1" : "Ra1";
+                        string cam2 = (laneIndex == 1) ? "Vao2" : "Ra2";
                         
                         lock (_currentFrames) {
                             if (_currentFrames.TryGetValue(cam1, out var bmp1)) {
-                                var img1 = ConvertBitmap((Bitmap)bmp1.Clone());
-                                Dispatcher.BeginInvoke(new Action(() => vm.UpdateLaneSnapshot(targetLane, 1, img1)));
+                                var img1 = ConvertBitmap((System.Drawing.Bitmap)bmp1.Clone());
+                                Dispatcher.BeginInvoke(new Action(() => vm.UpdateLaneSnapshot(laneIndex, 1, img1)));
                             }
                             if (_currentFrames.TryGetValue(cam2, out var bmp2)) {
-                                var img2 = ConvertBitmap((Bitmap)bmp2.Clone());
-                                Dispatcher.BeginInvoke(new Action(() => vm.UpdateLaneSnapshot(targetLane, 2, img2)));
+                                var img2 = ConvertBitmap((System.Drawing.Bitmap)bmp2.Clone());
+                                Dispatcher.BeginInvoke(new Action(() => vm.UpdateLaneSnapshot(laneIndex, 2, img2)));
                             }
                         }
                     } catch { }
                 });
 
-                // ── CỔNG VÀO ──
-                if (logicalDoor == 1)
-                {
-                    if (xeTrongBai)
-                    {
-                        vm.LanVaoTrangThai = $"⚠ {card.BienSo ?? uid} đã trong bãi!";
-                        return;
-                    }
-
-                    vm.XeVaoCommand.Execute(null);
-                    return;
-                }
-
-                // ── CỔNG RA ──
-                if (logicalDoor == 2)
-                {
-                    if (!xeTrongBai)
-                    {
-                        vm.LanRaTrangThai = $"⚠ {card.BienSo ?? uid} không có trong bãi!";
-                        return;
-                    }
-
-                    vm.XeRaCommand.Execute(null);
-                    return;
-                }
-
-                // ── AUTO MODE ──
-                if (xeTrongBai)
-                    vm.XeRaCommand.Execute(null);
-                else
-                    vm.XeVaoCommand.Execute(null);
+                // 4. Process action in ViewModel
+                await vm.ProcessActionAsync(laneIndex, isInbound, uid);
             }));
         }
+
 
         // ── Quản lý thẻ ──────────────────────────────────────────────────────────
 
@@ -367,8 +304,8 @@ namespace QuanLyGiuXe
             if (DataContext is MainViewModel vm)
             {
                 string status = $"✅ Đã gửi lệnh mở cổng {doorNumber}";
-                if (doorNumber == 1) vm.LanVaoTrangThai = status;
-                else vm.LanRaTrangThai = status;
+                if (doorNumber == 1) vm.Lane1TrangThai = status;
+                else vm.Lane2TrangThai = status;
             }
         }
 
@@ -465,12 +402,12 @@ namespace QuanLyGiuXe
                     {
                         if (this.DataContext is MainViewModel vm)
                         {
-                            // Gán vào ô "Biển số nhập" và khung hiển thị làn vào
+                            // Gán vào ô "Biển số nhập" và khung hiển thị làn 1
                             vm.BienSoNhap = plate.Trim().ToUpper();
-                            vm.LanVaoBienSo = vm.BienSoNhap;
+                            vm.Lane1BienSo = vm.BienSoNhap;
 
                             // (Tùy chọn) Thông báo trạng thái để người dùng biết đã nhận diện xong
-                            vm.LanVaoTrangThai = "Đã nhận diện: " + vm.BienSoNhap;
+                            vm.Lane1TrangThai = "Đã nhận diện: " + vm.BienSoNhap;
                         }
                     }));
                 }
