@@ -32,6 +32,31 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel Orientation="Horizontal">
+                    <Button Command="{Binding ToggleSidebarCommand}" 
+                            Foreground="White" Margin="0,0,15,0" 
+                            Cursor="Hand" Background="Transparent" BorderThickness="0"
+                            VerticalAlignment="Center">
+                        <Path Data="M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z" 
+                              Fill="White" Width="20" Height="20" Stretch="Uniform"/>
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Background="Transparent" Padding="5">
+                                                <ContentPresenter/>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Opacity" Value="0.7"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
                     <TextBlock Text="APS" Foreground="White" FontSize="18" FontWeight="ExtraBold" VerticalAlignment="Center" Margin="0,0,10,0"/>
                     <Border Width="1" Background="#66FFFFFF" Margin="0,5,15,5"/>
                     <TextBlock Text="ACCESS CONTROL SYSTEM"
@@ -69,7 +94,7 @@
         <!-- MAIN CONTENT AREA -->
         <Grid Grid.Row="1" Margin="8,6,8,4">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="220"/>
+                <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="8"/>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="8"/>
@@ -77,7 +102,37 @@
             </Grid.ColumnDefinitions>
 
             <!-- LEFT SIDEBAR -->
-            <Border Grid.Column="0" Background="{StaticResource APSBlueBrush}" CornerRadius="8">
+            <Border x:Name="SidebarBorder" Grid.Column="0" Background="{StaticResource APSBlueBrush}" CornerRadius="8" Width="220">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsSidebarExpanded}" Value="False">
+                                <DataTrigger.EnterActions>
+                                    <BeginStoryboard Name="CollapseSB">
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetProperty="Width" To="65" Duration="0:0:0.3">
+                                                <DoubleAnimation.EasingFunction>
+                                                    <CubicEase EasingMode="EaseOut"/>
+                                                </DoubleAnimation.EasingFunction>
+                                            </DoubleAnimation>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </DataTrigger.EnterActions>
+                                <DataTrigger.ExitActions>
+                                    <BeginStoryboard Name="ExpandSB">
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetProperty="Width" To="220" Duration="0:0:0.3">
+                                                <DoubleAnimation.EasingFunction>
+                                                    <CubicEase EasingMode="EaseOut"/>
+                                                </DoubleAnimation.EasingFunction>
+                                            </DoubleAnimation>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </DataTrigger.ExitActions>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*"/>
@@ -85,52 +140,298 @@
                     </Grid.RowDefinitions>
 
                     <ScrollViewer VerticalScrollBarVisibility="Hidden" Grid.Row="0">
-                        <StackPanel Margin="10,20">
-                            <TextBlock Text="MONITORING" Style="{StaticResource Heading2Style}" Foreground="#B0C4DE" FontSize="11" Margin="10,0,0,10"/>
-                            <RadioButton x:Name="btnParkingView" Content="🚗 Quan sát &amp; Quét thẻ" Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" IsChecked="True" Click="MoParkingView_Click"/>
-                            <RadioButton x:Name="btnDashboard" Content="📊 Thống kê Dashboard" Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Click="MoDashboard_Click"/>
+                        <StackPanel Margin="0,20">
+                            <TextBlock Text="MONITORING" Style="{StaticResource Heading2Style}" Foreground="#B0C4DE" FontSize="11" Margin="20,0,0,10"
+                                       Visibility="{Binding IsSidebarExpanded, Converter={StaticResource BoolToVis}}"/>
+                            
+                            <RadioButton x:Name="btnParkingView" Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" IsChecked="True" Click="MoParkingView_Click" ToolTip="Quan sát &amp; Quét thẻ">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Data="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M12,6A6,6 0 0,0 6,12A6,6 0 0,0 12,18A6,6 0 0,0 18,12A6,6 0 0,0 12,6M12,8A4,4 0 0,1 16,12A4,4 0 0,1 12,16A4,4 0 0,1 8,12A4,4 0 0,1 12,8Z" 
+                                          Fill="White" Width="18" Height="18" Stretch="Uniform" VerticalAlignment="Center"/>
+                                    <TextBlock Text=" Quan sát &amp; Quét thẻ" Margin="10,0,0,0">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsSidebarExpanded}" Value="False">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </StackPanel>
+                            </RadioButton>
+
+                            <RadioButton x:Name="btnDashboard" Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Click="MoDashboard_Click" ToolTip="Thống kê Dashboard">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Data="M19,3H5C3.89,3 3,3.9 3,5V19C3,20.1 3.89,21 5,21H19C20.1,21 21,20.1 21,19V5C21,3.9 20.1,3 19,3M19,19H5V5H19V19M7,10H9V17H7V10M11,7H13V17H11V7M15,13H17V17H15V13Z" 
+                                          Fill="White" Width="18" Height="18" Stretch="Uniform" VerticalAlignment="Center"/>
+                                    <TextBlock Text=" Thống kê Dashboard" Margin="10,0,0,0">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsSidebarExpanded}" Value="False">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </StackPanel>
+                            </RadioButton>
                             
                             <StackPanel x:Name="MenuVanHanh">
-                                <TextBlock Text="LOGS &amp; MONITOR" Style="{StaticResource Heading2Style}" Foreground="#B0C4DE" FontSize="11" Margin="10,20,0,10"/>
-                                <RadioButton Content="📋 Realtime Log" Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Click="MoRealtimeLog_Click"/>
-                                <RadioButton Content="📋 Button Logs" Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Click="MoButtonLogs_Click"/>
+                                <TextBlock Text="LOGS &amp; MONITOR" Style="{StaticResource Heading2Style}" Foreground="#B0C4DE" FontSize="11" Margin="20,20,0,10"
+                                           Visibility="{Binding IsSidebarExpanded, Converter={StaticResource BoolToVis}}"/>
+                                <RadioButton Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Click="MoRealtimeLog_Click" ToolTip="Realtime Log">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Path Data="M13,2.05C18.05,2.55 22,6.82 22,12C22,17.18 18.05,21.45 13,21.95V19.93C16.94,19.44 20,16.08 20,12C20,7.92 16.94,4.56 13,4.07V2.05M3,11V13H7.38L9.81,20.04L13.19,3.96L15.62,11H21V13H17.38L14.81,5.96L11.43,22.04L8.98,13H3Z" 
+                                              Fill="White" Width="18" Height="18" Stretch="Uniform" VerticalAlignment="Center"/>
+                                        <TextBlock Text=" Realtime Log" Margin="10,0,0,0">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsSidebarExpanded}" Value="False">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </RadioButton>
+                                <RadioButton Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Click="MoButtonLogs_Click" ToolTip="Button Logs">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Path Data="M19,19H5V5H19M19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5A2,2 0 0,0 19,3M12,10.5A1.5,1.5 0 1,1 10.5,12A1.5,1.5 0 0,1 12,10.5M12,7A4.5,4.5 0 1,0 16.5,11.5A4.5,4.5 0 0,0 12,7Z" 
+                                              Fill="White" Width="18" Height="18" Stretch="Uniform" VerticalAlignment="Center"/>
+                                        <TextBlock Text=" Button Logs" Margin="10,0,0,0">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsSidebarExpanded}" Value="False">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </RadioButton>
                             </StackPanel>
 
                             <StackPanel x:Name="MenuBaoCao">
-                                <TextBlock Text="HISTORY" Style="{StaticResource Heading2Style}" Foreground="#B0C4DE" FontSize="11" Margin="10,20,0,10"/>
-                                <RadioButton Content="📜 Xe Ra / Vào" Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Click="MoLichSu"/>
-                                <RadioButton Content="📜 Gia hạn thẻ" Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Click="MoLichSuGiaHan_Click"/>
+                                <TextBlock Text="HISTORY" Style="{StaticResource Heading2Style}" Foreground="#B0C4DE" FontSize="11" Margin="20,20,0,10"
+                                           Visibility="{Binding IsSidebarExpanded, Converter={StaticResource BoolToVis}}"/>
+                                <RadioButton Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Click="MoLichSu" ToolTip="Xe Ra / Vào">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Path Data="M15,14V19L11,16.5L15,14M22,19V4H17V2H7V4H2V19H4V21H20V19H22M20,4V17H18V4H20M4,4V17H6V4H4M8,4V19H16V4H8Z" 
+                                              Fill="White" Width="18" Height="18" Stretch="Uniform" VerticalAlignment="Center"/>
+                                        <TextBlock Text=" Xe Ra / Vào" Margin="10,0,0,0">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsSidebarExpanded}" Value="False">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </RadioButton>
+                                <RadioButton Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Click="MoLichSuGiaHan_Click" ToolTip="Gia hạn thẻ">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Path Data="M12,12H19V14H12V12M12,8H17V10H12V8M12,16H17V18H12V16M7,14V17H9V14H7M7,10V11H9V10H7M7,18V19H9V18H7M22,5V19C22,20.1 21.1,21 20,21H4C2.9,21 2,20.1 2,19V5C2,3.9 2.9,3 4,3H20C21.1,3 22,3.9 22,5M20,5H4V19H20V5Z" 
+                                              Fill="White" Width="18" Height="18" Stretch="Uniform" VerticalAlignment="Center"/>
+                                        <TextBlock Text=" Gia hạn thẻ" Margin="10,0,0,0">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsSidebarExpanded}" Value="False">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </RadioButton>
                             </StackPanel>
 
                             <StackPanel x:Name="MenuAdmin">
-                                <TextBlock Text="MANAGEMENT" Style="{StaticResource Heading2Style}" Foreground="#B0C4DE" FontSize="11" Margin="10,20,0,10"/>
-                                <RadioButton Content="🚗 Loại xe" Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Tag="LoaiXe" Click="OpenModule_Click"/>
-                                <RadioButton Content="🎫 Loại vé" Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Tag="LoaiVe" Click="OpenModule_Click"/>
-                                <RadioButton Content="💳 Thẻ RFID" Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Tag="RFID" Click="OpenModule_Click"/>
-                                <RadioButton Content="💰 Bảng giá" Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Tag="BangGia" Click="OpenModule_Click"/>
-                                <RadioButton Content="👥 Người dùng" Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Click="MoQuanLyNguoiDung_Click"/>
+                                <TextBlock Text="MANAGEMENT" Style="{StaticResource Heading2Style}" Foreground="#B0C4DE" FontSize="11" Margin="20,20,0,10"
+                                           Visibility="{Binding IsSidebarExpanded, Converter={StaticResource BoolToVis}}"/>
+                                <RadioButton Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Tag="LoaiXe" Click="OpenModule_Click" ToolTip="Loại xe">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Path Data="M18.92,6.01C18.72,5.42 18.16,5 17.5,5H6.5C5.84,5 5.28,5.42 5.08,6.01L3,12V20A1,1 0 0,0 4,21H5A1,1 0 0,0 6,20V19H18V20A1,1 0 0,0 19,21H20A1,1 0 0,0 21,20V12L18.92,6.01M6.5,7H17.5L18.5,10H5.5L6.5,7M19,17H5V12H19V17M7.5,13A1.5,1.5 0 0,0 6,14.5A1.5,1.5 0 0,0 7.5,16A1.5,1.5 0 0,0 9,14.5A1.5,1.5 0 0,0 7.5,13M16.5,13A1.5,1.5 0 0,0 15,14.5A1.5,1.5 0 0,0 16.5,16A1.5,1.5 0 0,0 18,14.5A1.5,1.5 0 0,0 16.5,13Z" 
+                                              Fill="White" Width="18" Height="18" Stretch="Uniform" VerticalAlignment="Center"/>
+                                        <TextBlock Text=" Loại xe" Margin="10,0,0,0">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsSidebarExpanded}" Value="False">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </RadioButton>
+                                <RadioButton Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Tag="LoaiVe" Click="OpenModule_Click" ToolTip="Loại vé">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Path Data="M21,11.5V15C21,16.11 20.11,17 19,17H5C3.9,17 3,16.11 3,15V11.5C4.38,11.5 5.5,10.38 5.5,9C5.5,7.62 4.38,6.5 3,6.5V3C3,1.89 3.9,1 5,1H19C20.11,1 21,1.89 21,3V6.5C19.62,6.5 18.5,7.62 18.5,9C18.5,10.38 19.62,11.5 21,11.5M19,3H5V5.59C6.45,6.19 7.5,7.62 7.5,9C7.5,10.38 6.45,11.81 5,12.41V15H19V12.41C17.55,11.81 16.5,10.38 16.5,9C16.5,7.62 17.55,6.19 19,5.59V3M13,5V7H11V5H13M13,9V11H11V9H13M13,13V15H11V13H13Z" 
+                                              Fill="White" Width="18" Height="18" Stretch="Uniform" VerticalAlignment="Center"/>
+                                        <TextBlock Text=" Loại vé" Margin="10,0,0,0">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsSidebarExpanded}" Value="False">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </RadioButton>
+                                <RadioButton Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Tag="RFID" Click="OpenModule_Click" ToolTip="Thẻ RFID">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Path Data="M20,4H4C2.89,4 2,4.89 2,6V18C2,19.11 2.89,20 4,20H20C21.11,20 22,19.11 22,18V6C22,4.89 21.11,4 20,4M20,18H4V6H20V18M6,10H18V12H6V10M6,14H14V16H6V14Z" 
+                                              Fill="White" Width="18" Height="18" Stretch="Uniform" VerticalAlignment="Center"/>
+                                        <TextBlock Text=" Thẻ RFID" Margin="10,0,0,0">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsSidebarExpanded}" Value="False">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </RadioButton>
+                                <RadioButton Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Tag="BangGia" Click="OpenModule_Click" ToolTip="Bảng giá">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Path Data="M12,2C6.48,2 2,6.48 2,12C2,17.52 6.48,22 12,22C17.52,22 22,17.52 22,12C22,6.48 17.52,2 12,2M12,20C7.58,20 4,16.42 4,12C4,7.58 7.58,4 12,4C16.42,4 20,7.58 20,12C20,16.42 16.42,20 12,20M11,7V8H10V10H11V11H10V13H11V14H10V16H11V17H13V16H14V14H13V13H14V11H13V10H14V8H13V7H11M12,9A1,1 0 0,1 13,10A1,1 0 0,1 12,11A1,1 0 0,1 11,10A1,1 0 0,1 12,9M12,13A1,1 0 0,1 13,14A1,1 0 0,1 12,15A1,1 0 0,1 11,14A1,1 0 0,1 12,13Z" 
+                                              Fill="White" Width="18" Height="18" Stretch="Uniform" VerticalAlignment="Center"/>
+                                        <TextBlock Text=" Bảng giá" Margin="10,0,0,0">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsSidebarExpanded}" Value="False">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </RadioButton>
+                                <RadioButton Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Click="MoQuanLyNguoiDung_Click" ToolTip="Người dùng">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Path Data="M12,5.5A3.5,3.5 0 0,1 15.5,9A3.5,3.5 0 0,1 12,12.5A3.5,3.5 0 0,1 8.5,9A3.5,3.5 0 0,1 12,5.5M5,8C5.56,8 6,8.44 6,9V15H7V22H5V15H4V9C4,8.44 4.44,8 5,8M19,8C19.56,8 20,8.44 20,9V15H21V22H19V15H18V9C18,8.44 18.44,8 19,8M12,14C14.76,14 17,15.12 17,16.5V22H7V16.5C7,15.12 9.24,14 12,14Z" 
+                                              Fill="White" Width="18" Height="18" Stretch="Uniform" VerticalAlignment="Center"/>
+                                        <TextBlock Text=" Người dùng" Margin="10,0,0,0">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsSidebarExpanded}" Value="False">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </RadioButton>
                             </StackPanel>
 
                             <StackPanel x:Name="MenuTools">
-                                <TextBlock Text="SYSTEM" Style="{StaticResource Heading2Style}" Foreground="#B0C4DE" FontSize="11" Margin="10,20,0,10"/>
-                                <RadioButton Content="📷 Camera" Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Click="MoCameraSettings_Click"/>
-                                <RadioButton Content="⚙ C3-200" Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Click="MoC3200Settings_Click"/>
-                                <RadioButton Content="🛠 SQL Tool" Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Click="MoSQLTool_Click"/>
+                                <TextBlock Text="SYSTEM" Style="{StaticResource Heading2Style}" Foreground="#B0C4DE" FontSize="11" Margin="20,20,0,10"
+                                           Visibility="{Binding IsSidebarExpanded, Converter={StaticResource BoolToVis}}"/>
+                                <RadioButton Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Click="MoCameraSettings_Click" ToolTip="Camera">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Path Data="M12,23C17.16,21.74 21,16.55 21,11V5L12,1L3,5V11C3,16.55 6.84,21.74 12,23M12,19.5A2,2 0 0,1 10,17.5A2,2 0 0,1 12,15.5A2,2 0 0,1 14,17.5A2,2 0 0,1 12,19.5M12,13.5C10.62,13.5 9.5,12.38 9.5,11C9.5,9.62 10.62,8.5 12,8.5C13.38,8.5 14.5,9.62 14.5,11C14.5,12.38 13.38,13.5 12,13.5Z" 
+                                              Fill="White" Width="18" Height="18" Stretch="Uniform" VerticalAlignment="Center"/>
+                                        <TextBlock Text=" Camera" Margin="10,0,0,0">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsSidebarExpanded}" Value="False">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </RadioButton>
+                                <RadioButton Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Click="MoC3200Settings_Click" ToolTip="C3-200">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Path Data="M12,15.5A2.5,2.5 0 0,1 9.5,13A2.5,2.5 0 0,1 12,10.5A2.5,2.5 0 0,1 14.5,13A2.5,2.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.97 19.05,5.05L16.56,6.05C16.04,5.66 15.47,5.34 14.86,5.08L14.48,2.42C14.44,2.18 14.24,2 14,2H10C9.76,2 9.56,2.18 9.52,2.42L9.14,5.08C8.53,5.34 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.97 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,13L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.95C7.96,18.34 8.53,18.66 9.14,18.92L9.52,21.58C9.56,21.82 9.76,22 10,22H14C14.24,22 14.44,21.82 14.48,21.58L14.86,18.92C15.47,18.66 16.04,18.34 16.56,17.95L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z" 
+                                              Fill="White" Width="18" Height="18" Stretch="Uniform" VerticalAlignment="Center"/>
+                                        <TextBlock Text=" C3-200" Margin="10,0,0,0">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsSidebarExpanded}" Value="False">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </RadioButton>
+                                <RadioButton Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Click="MoSQLTool_Click" ToolTip="SQL Tool">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Path Data="M12,23C17,23 21,21 21,18.5V9.5C21,7 17,5 12,5C7,5 3,7 3,9.5V18.5C3,21 7,23 12,23M12,7C16.14,7 19,8.28 19,9.5C19,10.72 16.14,12 12,12C7.86,12 5,10.72 5,9.5C5,8.28 7.86,7 12,7M5,12.5C5,13.72 7.86,15 12,15C16.14,15 19,13.72 19,12.5V14.5C19,15.72 16.14,17 12,17C7.86,17 5,15.72 5,14.5V12.5M5,17.5C5,18.72 7.86,20 12,20C16.14,20 19,18.72 19,17.5V18.5C19,19.72 16.14,21 12,21C7.86,21 5,19.72 5,18.5V17.5Z" 
+                                              Fill="White" Width="18" Height="18" Stretch="Uniform" VerticalAlignment="Center"/>
+                                        <TextBlock Text=" SQL Tool" Margin="10,0,0,0">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsSidebarExpanded}" Value="False">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </RadioButton>
                             </StackPanel>
                         </StackPanel>
                     </ScrollViewer>
 
                     <!-- Sidebar Footer -->
-                    <Border Grid.Row="1" Background="#143A7D" Padding="15" CornerRadius="0,0,8,8">
-                        <Grid Cursor="Hand" MouseLeftButtonUp="UserPanel_MouseLeftButtonUp" x:Name="UserPanel">
+                    <Border Grid.Row="1" Background="#143A7D" Padding="12" CornerRadius="0,0,8,8">
+                        <Grid Cursor="Hand" MouseLeftButtonUp="UserPanel_MouseLeftButtonUp" x:Name="UserPanel" ToolTip="Thông tin cá nhân">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
                                 <ColumnDefinition Width="*"/>
                             </Grid.ColumnDefinitions>
                             <Border Width="36" Height="36" Background="#26FFFFFF" CornerRadius="18">
-                                <TextBlock Text="👤" Foreground="White" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                <TextBlock Text="👤" Foreground="White" VerticalAlignment="Center" HorizontalAlignment="Center" FontSize="18"/>
                             </Border>
-                            <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
+                            <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center"
+                                        Visibility="{Binding IsSidebarExpanded, Converter={StaticResource BoolToVis}}">
                                 <TextBlock Text="{Binding CurrentUserTen}" Foreground="White" FontWeight="Bold" FontSize="12"/>
                                 <TextBlock Text="{Binding CurrentUserRole}" Foreground="#B0C4DE" FontSize="10"/>
                             </StackPanel>

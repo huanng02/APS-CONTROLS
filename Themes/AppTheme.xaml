@@ -40,28 +40,38 @@
         </Setter>
     </Style>
 
-    <!-- Sidebar Item Style (Branded) -->
+    <!-- Sidebar Item Style (Branded Premium) -->
     <Style x:Key="SidebarButtonStyle" TargetType="RadioButton">
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="RadioButton">
-                    <Border x:Name="Border" Background="Transparent" Padding="15,12" Margin="5,2" CornerRadius="4">
-                        <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                    <Border x:Name="Border" Background="Transparent" Padding="12,10" Margin="8,2" CornerRadius="8">
+                        <Grid>
+                            <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"/>
+                            <!-- Active Selection Glow -->
+                            <Border x:Name="ActiveLine" Width="3" Height="16" Background="White" HorizontalAlignment="Left" Margin="-12,0,0,0" CornerRadius="2" Visibility="Collapsed"/>
+                        </Grid>
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="Border" Property="Background" Value="#26FFFFFF"/>
+                            <Setter TargetName="Border" Property="Background" Value="#1AFFFFFF"/>
+                            <Setter Property="Opacity" Value="0.9"/>
                         </Trigger>
                         <Trigger Property="IsChecked" Value="True">
-                            <Setter TargetName="Border" Property="Background" Value="#4DFFFFFF"/>
-                            <Setter Property="FontWeight" Value="Bold"/>
+                            <Setter TargetName="Border" Property="Background" Value="#2BFFFFFF"/>
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                            <Setter TargetName="ActiveLine" Property="Visibility" Value="Visible"/>
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
         <Setter Property="Foreground" Value="White"/>
+        <Setter Property="FontSize" Value="13.5"/>
         <Setter Property="Cursor" Value="Hand"/>
+        <Style.Triggers>
+            <!-- Auto ToolTip when sidebar is collapsed (this is tricky in style, better in instances) -->
+        </Style.Triggers>
     </Style>
 
 </ResourceDictionary>

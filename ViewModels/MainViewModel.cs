@@ -231,6 +231,17 @@ namespace QuanLyGiuXe.ViewModels
             set { _isUserPopupOpen = value; OnPropertyChanged(nameof(IsUserPopupOpen)); }
         }
 
+        private bool _isSidebarExpanded = true;
+        public bool IsSidebarExpanded
+        {
+            get => _isSidebarExpanded;
+            set
+            {
+                _isSidebarExpanded = value;
+                OnPropertyChanged(nameof(IsSidebarExpanded));
+            }
+        }
+
         public string CurrentUserTen => QuanLyGiuXe.Models.CurrentUser.Ten ?? "Nhân viên";
         public string CurrentUserRole => QuanLyGiuXe.Models.CurrentUser.Role ?? "Người vận hành";
         public string CurrentUserUsername => QuanLyGiuXe.Models.CurrentUser.Username ?? "user";
@@ -377,6 +388,7 @@ namespace QuanLyGiuXe.ViewModels
         public ICommand ToggleUserPopupCommand { get; }
         public ICommand EditProfileCommand { get; }
         public ICommand ChangePasswordCommand { get; }
+        public ICommand ToggleSidebarCommand { get; }
 
         // ── Constructor ───────────────────────────────────────────────────────────
 
@@ -454,6 +466,8 @@ namespace QuanLyGiuXe.ViewModels
                         MessageBoxImage.Error);
                 }
             });
+
+            ToggleSidebarCommand = new RelayCommand(_ => IsSidebarExpanded = !IsSidebarExpanded);
             LogoutCommand = new RelayCommand(_ => {
                 IsUserPopupOpen = false;
                 UnsubscribeEvents(); // Clean up this VM
