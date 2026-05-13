@@ -28,7 +28,9 @@ namespace QuanLyGiuXe.Services
         public void InsertAppLog(DateTime timestampUtc, string level, string eventType, string source, string userId, string plate, string details, string exception,
             string username = null, string action = null, string entityName = null, string entityId = null,
             string oldValues = null, string newValues = null, string ipAddress = null, string machineName = null,
-            string deviceName = null, string sessionId = null, string correlationId = null)
+            string deviceName = null, string sessionId = null, string correlationId = null,
+            long? durationMs = null, int? retryCount = null, long? fileSize = null, string testName = null,
+            bool? isRecovered = null, string additionalData = null)
         {
             try
             {
@@ -62,7 +64,13 @@ namespace QuanLyGiuXe.Services
                                     MachineName NVARCHAR(200),
                                     DeviceName NVARCHAR(200),
                                     SessionId NVARCHAR(200),
-                                    CorrelationId NVARCHAR(200)
+                                    CorrelationId NVARCHAR(200),
+                                    DurationMs BIGINT,
+                                    RetryCount INT,
+                                    FileSize BIGINT,
+                                    TestName NVARCHAR(255),
+                                    IsRecovered BIT,
+                                    AdditionalData NVARCHAR(MAX)
                                 )
                             END
                             ELSE
@@ -90,6 +98,20 @@ namespace QuanLyGiuXe.Services
                                     ALTER TABLE dbo.AppLogs ADD SessionId NVARCHAR(200);
                                 IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.AppLogs') AND name = 'CorrelationId')
                                     ALTER TABLE dbo.AppLogs ADD CorrelationId NVARCHAR(200);
+                                
+                                -- Phase 4 Monitoring Columns
+                                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.AppLogs') AND name = 'DurationMs')
+                                    ALTER TABLE dbo.AppLogs ADD DurationMs BIGINT;
+                                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.AppLogs') AND name = 'RetryCount')
+                                    ALTER TABLE dbo.AppLogs ADD RetryCount INT;
+                                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.AppLogs') AND name = 'FileSize')
+                                    ALTER TABLE dbo.AppLogs ADD FileSize BIGINT;
+                                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.AppLogs') AND name = 'TestName')
+                                    ALTER TABLE dbo.AppLogs ADD TestName NVARCHAR(255);
+                                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.AppLogs') AND name = 'IsRecovered')
+                                    ALTER TABLE dbo.AppLogs ADD IsRecovered BIT;
+                                IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('dbo.AppLogs') AND name = 'AdditionalData')
+                                    ALTER TABLE dbo.AppLogs ADD AdditionalData NVARCHAR(MAX);
                             END";
 
                         using (SqlCommand cmdCheck = new SqlCommand(sqlCheck, conn))
@@ -101,10 +123,12 @@ namespace QuanLyGiuXe.Services
 
                     string sql = @"INSERT INTO dbo.AppLogs 
                         (TimestampUtc, [Level], EventType, Source, UserId, Plate, Details, Exception, 
-                         Username, [Action], EntityName, EntityId, OldValues, NewValues, IpAddress, MachineName, DeviceName, SessionId, CorrelationId)
+                         Username, [Action], EntityName, EntityId, OldValues, NewValues, IpAddress, MachineName, DeviceName, SessionId, CorrelationId,
+                         DurationMs, RetryCount, FileSize, TestName, IsRecovered, AdditionalData)
                         VALUES 
                         (@ts, @lvl, @evt, @src, @uid, @plate, @details, @ex, 
-                         @user, @action, @entity, @entityId, @old, @new, @ip, @mach, @dev, @sess, @corr)";
+                         @user, @action, @entity, @entityId, @old, @new, @ip, @mach, @dev, @sess, @corr,
+                         @dur, @retry, @fsize, @tname, @recov, @data)";
 
                     using (SqlCommand cmd = new SqlCommand(sql, conn))
                     {
@@ -128,6 +152,13 @@ namespace QuanLyGiuXe.Services
                         cmd.Parameters.AddWithValue("@dev", (object?)deviceName ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("@sess", (object?)sessionId ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("@corr", (object?)correlationId ?? DBNull.Value);
+
+                        cmd.Parameters.AddWithValue("@dur", (object?)durationMs ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@retry", (object?)retryCount ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@fsize", (object?)fileSize ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@tname", (object?)testName ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@recov", (object?)isRecovered ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@data", (object?)additionalData ?? DBNull.Value);
 
                         cmd.ExecuteNonQuery();
                     }
@@ -1631,7 +1662,8 @@ namespace QuanLyGiuXe.Services
                 {
                     conn.Open();
                     string sql = @"SELECT TimestampUtc, [Level], EventType, Source, UserId, Plate, Details, Exception, 
-                                          Username, [Action], EntityName, EntityId, OldValues, NewValues, IpAddress, MachineName, DeviceName, SessionId, CorrelationId
+                                          Username, [Action], EntityName, EntityId, OldValues, NewValues, IpAddress, MachineName, DeviceName, SessionId, CorrelationId,
+                                          DurationMs, RetryCount, FileSize, TestName, IsRecovered, AdditionalData
                                    FROM dbo.AppLogs
                                    WHERE (@from IS NULL OR TimestampUtc >= @from)
                                      AND (@to IS NULL OR TimestampUtc <= @to)
@@ -1672,7 +1704,14 @@ namespace QuanLyGiuXe.Services
                                         MachineName = reader.IsDBNull(15) ? string.Empty : reader.GetString(15),
                                         DeviceName = reader.IsDBNull(16) ? string.Empty : reader.GetString(16),
                                         SessionId = reader.IsDBNull(17) ? string.Empty : reader.GetString(17),
-                                        CorrelationId = reader.IsDBNull(18) ? string.Empty : reader.GetString(18)
+                                        CorrelationId = reader.IsDBNull(18) ? string.Empty : reader.GetString(18),
+
+                                        DurationMs = reader.IsDBNull(19) ? (long?)null : reader.GetInt64(19),
+                                        RetryCount = reader.IsDBNull(20) ? (int?)null : reader.GetInt32(20),
+                                        FileSize = reader.IsDBNull(21) ? (long?)null : reader.GetInt64(21),
+                                        TestName = reader.IsDBNull(22) ? string.Empty : reader.GetString(22),
+                                        IsRecovered = reader.IsDBNull(23) ? (bool?)null : reader.GetBoolean(23),
+                                        AdditionalData = reader.IsDBNull(24) ? string.Empty : reader.GetString(24)
                                     };
                                     list.Add(entry);
                                 }

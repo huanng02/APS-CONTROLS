@@ -2,9 +2,34 @@ using System;
 
 namespace QuanLyGiuXe.Services
 {
+    public enum LogSeverity
+    {
+        Info,
+        Success,
+        Warning,
+        Error,
+        Critical
+    }
+
+    public enum LogEventType
+    {
+        System,
+        Security,
+        Vehicle,
+        Barrier,
+        Reconnect,
+        Backup,
+        Restore,
+        QaTest,
+        Exception,
+        Network,
+        Camera,
+        C3Controller,
+        Health
+    }
+
     public class LogEntry
     {
-        // original fields (kept for backward compatibility)
         public DateTime Timestamp { get; set; }
         public string Level { get; set; }
         public string EventType { get; set; }
@@ -25,5 +50,13 @@ namespace QuanLyGiuXe.Services
         public string SessionId { get; set; }
         public string CorrelationId { get; set; }
         public string IpAddress { get; set; }
+
+        // New tracing & monitoring fields
+        public long? DurationMs { get; set; }
+        public int? RetryCount { get; set; }
+        public long? FileSize { get; set; }
+        public string? TestName { get; set; }
+        public bool? IsRecovered { get; set; }
+        public string? AdditionalData { get; set; } // JSON format
     }
 }

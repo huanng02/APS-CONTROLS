@@ -67,7 +67,21 @@ namespace QuanLyGiuXe.ViewModels
             }
         }
 
-        public ObservableCollection<string> Levels { get; } = new() { "All", "Info", "Warning", "Error", "Security", "Audit" };
+        public ObservableCollection<string> Levels { get; } = new() { "All", "Success", "Info", "Warning", "Error", "Critical" };
+        public ObservableCollection<string> EventTypes { get; } = new() { "All", "System", "Reconnect", "Backup", "Restore", "QaTest", "Vehicle", "Barrier", "Exception" };
+
+        private string _selectedEventType = "All";
+        public string SelectedEventType
+        {
+            get => _selectedEventType;
+            set
+            {
+                _selectedEventType = value;
+                OnPropertyChanged(nameof(SelectedEventType));
+                CurrentPage = 1;
+                RefreshPagedLogs();
+            }
+        }
 
         // ── Paging Properties ──
         private int _pageSize = 50;
@@ -170,7 +184,13 @@ namespace QuanLyGiuXe.ViewModels
                 CorrelationId = entry.CorrelationId,
                 Action = entry.Action,
                 OldValues = entry.OldValues,
-                NewValues = entry.NewValues
+                NewValues = entry.NewValues,
+                DurationMs = entry.DurationMs,
+                RetryCount = entry.RetryCount,
+                FileSize = entry.FileSize,
+                TestName = entry.TestName,
+                IsRecovered = entry.IsRecovered,
+                AdditionalData = entry.AdditionalData
             };
 
             lock (_lockObj)
@@ -207,6 +227,11 @@ namespace QuanLyGiuXe.ViewModels
                 if (SelectedLevel != "All")
                 {
                     query = query.Where(x => string.Equals(x.Level, SelectedLevel, StringComparison.OrdinalIgnoreCase));
+                }
+
+                if (SelectedEventType != "All")
+                {
+                    query = query.Where(x => x.EventType != null && x.EventType.Contains(SelectedEventType, StringComparison.OrdinalIgnoreCase));
                 }
 
                 if (!string.IsNullOrWhiteSpace(SearchText))

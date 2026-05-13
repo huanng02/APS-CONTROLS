@@ -18,7 +18,7 @@ namespace QuanLyGiuXe.Services
         private readonly string _logDir;
         private readonly BlockingCollection<LogEntry> _queue = new(new ConcurrentQueue<LogEntry>());
         private readonly CancellationTokenSource _cts = new();
-        private Task? _worker;
+        private Task? _workerTask;
         private readonly JsonSerializerOptions _jsonOptions = new()
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -47,9 +47,44 @@ namespace QuanLyGiuXe.Services
 
         private LoggingService()
         {
-            _logDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory ?? string.Empty, "logs");
-            try { Directory.CreateDirectory(_logDir); } catch { }
-            _worker = Task.Run(() => ProcessQueueAsync(_cts.Token));
+            _logDir = Path.Combine(AppContext.BaseDirectory, "logs");
+            if (!Directory.Exists(_logDir)) Directory.CreateDirectory(_logDir);
+
+            _queue = new BlockingCollection<LogEntry>(new ConcurrentQueue<LogEntry>(), 5000);
+            _cts = new CancellationTokenSource();
+            _workerTask = Task.Run(() => ProcessQueueAsync(_cts.Token));
+            
+            // Cleanup old logs on startup
+            _ = CleanupOldFileLogsAsync();
+        }
+
+        private async Task CleanupOldFileLogsAsync()
+        {
+            await Task.Run(() =>
+            {
+                try
+                {
+                    int retentionDays = 14; // Default retention
+                    var limitDate = DateTime.Now.AddDays(-retentionDays);
+                    
+                    if (!Directory.Exists(_logDir)) return;
+                    
+                    var subDirs = Directory.GetDirectories(_logDir);
+                    foreach (var dir in subDirs)
+                    {
+                        var files = Directory.GetFiles(dir, "*.jsonl");
+                        foreach (var file in files)
+                        {
+                            var fi = new FileInfo(file);
+                            if (fi.LastWriteTime < limitDate)
+                            {
+                                try { fi.Delete(); } catch { }
+                            }
+                        }
+                    }
+                }
+                catch { }
+            });
         }
 
         // Public API: specialized audit/security/crud/vehicle/barrier logs
@@ -156,26 +191,88 @@ namespace QuanLyGiuXe.Services
 
         public void LogBarrier(string action, string source = "Barrier", string plate = null, object? detailsObj = null)
         {
+            LogGeneric(LogSeverity.Info, LogEventType.Barrier, action, source, plate, detailsObj: detailsObj);
+        }
+
+        // Specialized Monitoring Methods
+        public void LogReconnect(string resource, bool success, int attempts, long durationMs, string details = null)
+        {
+            LogGeneric(success ? LogSeverity.Success : LogSeverity.Error, 
+                LogEventType.Reconnect, 
+                success ? "RECONNECT_SUCCESS" : "RECONNECT_FAILED", 
+                resource, 
+                details: details,
+                durationMs: durationMs,
+                retryCount: attempts);
+        }
+
+        public void LogBackup(string fileName, long fileSize, bool success, string details = null)
+        {
+            LogGeneric(success ? LogSeverity.Success : LogSeverity.Error,
+                LogEventType.Backup,
+                success ? "BACKUP_SUCCESS" : "BACKUP_FAILED",
+                "DatabaseBackup",
+                details: details,
+                fileSize: fileSize,
+                additionalData: fileName);
+        }
+
+        public void LogRestore(string fileName, bool success, string details = null)
+        {
+            LogGeneric(success ? LogSeverity.Success : LogSeverity.Error,
+                LogEventType.Restore,
+                success ? "RESTORE_SUCCESS" : "RESTORE_FAILED",
+                "DatabaseRestore",
+                details: details,
+                additionalData: fileName);
+        }
+
+        public void LogQaTest(string testName, bool success, long durationMs, string details = null, string resultJson = null)
+        {
+            LogGeneric(success ? LogSeverity.Success : LogSeverity.Error,
+                LogEventType.QaTest,
+                success ? "TEST_PASSED" : "TEST_FAILED",
+                "QASystem",
+                details: details,
+                durationMs: durationMs,
+                testName: testName,
+                additionalData: resultJson);
+        }
+
+        private void LogGeneric(LogSeverity severity, LogEventType eventType, string action, string source, 
+            string plate = null, string userId = null, string details = null, Exception ex = null, 
+            object? detailsObj = null, long? durationMs = null, int? retryCount = null, 
+            long? fileSize = null, string testName = null, bool? isRecovered = null, string additionalData = null)
+        {
             try
             {
+                if (_suppressLogging.Value) return;
+
                 var entry = new LogEntry
                 {
                     Timestamp = DateTime.UtcNow,
-                    Level = "Info",
-                    EventType = action,
-                    Source = source,
-                    UserId = string.Empty,
+                    Level = severity.ToString(),
+                    EventType = eventType.ToString(),
+                    Source = source ?? "App",
+                    UserId = userId ?? string.Empty,
                     Plate = plate ?? string.Empty,
-                    Details = SerializeSafe(detailsObj),
-                    Exception = null,
+                    Details = details ?? SerializeSafe(detailsObj),
+                    Exception = ex?.ToString(),
                     Action = action,
                     Username = GetCurrentUsername(),
-                    MachineName = GetMachineName(),
-                    DeviceName = GetDeviceName(),
+                    MachineName = _machineName,
+                    DeviceName = _deviceName,
                     SessionId = _sessionId,
                     CorrelationId = GetOrCreateCorrelationId(),
-                    IpAddress = GetLocalIpAddress()
+                    IpAddress = _localIpAddress,
+                    DurationMs = durationMs,
+                    RetryCount = retryCount,
+                    FileSize = fileSize,
+                    TestName = testName,
+                    IsRecovered = isRecovered,
+                    AdditionalData = additionalData
                 };
+
                 try { if (!_suppressUi.Contains(entry.EventType)) LogEmitted?.Invoke(entry); } catch { }
                 EnqueueAndPersist(entry);
             }
@@ -251,80 +348,17 @@ namespace QuanLyGiuXe.Services
 
         public void LogInfo(string eventType, string source, string details = null, string userId = null, string plate = null)
         {
-            if (_suppressLogging.Value) return;
-
-            var entry = new LogEntry
-            {
-                Timestamp = DateTime.UtcNow,
-                Level = "Info",
-                EventType = eventType,
-                Source = source,
-                UserId = userId ?? string.Empty,
-                Plate = plate ?? string.Empty,
-                Details = details ?? string.Empty,
-                Exception = null,
-                Username = GetCurrentUsername(),
-                MachineName = _machineName,
-                DeviceName = _deviceName,
-                SessionId = _sessionId,
-                CorrelationId = GetOrCreateCorrelationId(),
-                IpAddress = _localIpAddress
-            };
-
-            try { if (!_suppressUi.Contains(entry.EventType)) LogEmitted?.Invoke(entry); } catch { }
-            EnqueueAndPersist(entry);
+            LogGeneric(LogSeverity.Info, LogEventType.System, eventType, source, plate, userId, details);
         }
 
         public void LogWarning(string eventType, string source, string details = null, string userId = null, string plate = null)
         {
-            if (_suppressLogging.Value) return;
-
-            var entry = new LogEntry
-            {
-                Timestamp = DateTime.UtcNow,
-                Level = "Warning",
-                EventType = eventType,
-                Source = source,
-                UserId = userId ?? string.Empty,
-                Plate = plate ?? string.Empty,
-                Details = details ?? string.Empty,
-                Exception = null,
-                Username = GetCurrentUsername(),
-                MachineName = _machineName,
-                DeviceName = _deviceName,
-                SessionId = _sessionId,
-                CorrelationId = GetOrCreateCorrelationId(),
-                IpAddress = _localIpAddress
-            };
-
-            try { if (!_suppressUi.Contains(entry.EventType)) LogEmitted?.Invoke(entry); } catch { }
-            EnqueueAndPersist(entry);
+            LogGeneric(LogSeverity.Warning, LogEventType.System, eventType, source, plate, userId, details);
         }
 
         public void LogError(string eventType, string source, string details = null, Exception ex = null, string userId = null, string plate = null)
         {
-            if (_suppressLogging.Value) return;
-
-            var entry = new LogEntry
-            {
-                Timestamp = DateTime.UtcNow,
-                Level = "Error",
-                EventType = eventType,
-                Source = source,
-                UserId = userId ?? string.Empty,
-                Plate = plate ?? string.Empty,
-                Details = details ?? string.Empty,
-                Exception = ex?.ToString(),
-                Username = GetCurrentUsername(),
-                MachineName = _machineName,
-                DeviceName = _deviceName,
-                SessionId = _sessionId,
-                CorrelationId = GetOrCreateCorrelationId(),
-                IpAddress = _localIpAddress
-            };
-
-            try { if (!_suppressUi.Contains(entry.EventType)) LogEmitted?.Invoke(entry); } catch { }
-            EnqueueAndPersist(entry);
+            LogGeneric(LogSeverity.Error, LogEventType.Exception, eventType, source, plate, userId, details, ex);
         }
 
         public void Shutdown()
@@ -333,15 +367,14 @@ namespace QuanLyGiuXe.Services
             {
                 _queue.CompleteAdding();
                 _cts.Cancel();
-                _worker?.Wait(2000);
+                _workerTask?.Wait(2000);
             }
             catch { }
         }
 
         private async Task ProcessQueueAsync(CancellationToken ct)
         {
-            StreamWriter? writer = null;
-            string? currentFile = null;
+            var writers = new System.Collections.Generic.Dictionary<string, (StreamWriter Writer, string Path)>();
             var dbBatch = new System.Collections.Generic.List<LogEntry>();
             try
             {
@@ -349,21 +382,32 @@ namespace QuanLyGiuXe.Services
                 {
                     try
                     {
-                        var fileName = Path.Combine(_logDir, $"app-log-{entry.Timestamp:yyyy-MM-dd}.jsonl");
-                        if (currentFile != fileName || writer == null)
+                        // Organize by type: app, reconnect, backup, qa
+                        string subDir = entry.EventType.ToLower() switch
                         {
-                            lock (_streamLock)
-                            {
-                                writer?.Dispose();
-                                writer = new StreamWriter(new FileStream(fileName, FileMode.Append, FileAccess.Write, FileShare.Read), System.Text.Encoding.UTF8) { AutoFlush = true };
-                                currentFile = fileName;
-                            }
+                            var t when t.Contains("reconnect") => "reconnect",
+                            var t when t.Contains("backup") || t.Contains("restore") => "backup",
+                            var t when t.Contains("test") || t.Contains("qa") => "qa",
+                            _ => "app"
+                        };
+
+                        var dirPath = Path.Combine(_logDir, subDir);
+                        if (!Directory.Exists(dirPath)) Directory.CreateDirectory(dirPath);
+
+                        var fileName = Path.Combine(dirPath, $"{subDir}-{entry.Timestamp:yyyy-MM-dd}.jsonl");
+                        
+                        if (!writers.TryGetValue(subDir, out var writerInfo) || writerInfo.Path != fileName)
+                        {
+                            writerInfo.Writer?.Dispose();
+                            var sw = new StreamWriter(new FileStream(fileName, FileMode.Append, FileAccess.Write, FileShare.Read), System.Text.Encoding.UTF8) { AutoFlush = true };
+                            writers[subDir] = (sw, fileName);
+                            writerInfo = (sw, fileName);
                         }
 
                         // sanitize sensitive fields before writing
                         var sanitized = SanitizeForLogging(entry);
                         var line = JsonSerializer.Serialize(sanitized, _jsonOptions);
-                        await writer.WriteLineAsync(line).ConfigureAwait(false);
+                        await writerInfo.Writer.WriteLineAsync(line).ConfigureAwait(false);
                     }
                     catch { /* swallow per-entry errors */ }
 
@@ -378,7 +422,7 @@ namespace QuanLyGiuXe.Services
             catch { }
             finally
             {
-                try { writer?.Dispose(); } catch { }
+                foreach (var w in writers.Values) try { w.Writer.Dispose(); } catch { }
                 if (dbBatch.Count > 0) { PersistBatchToDb(dbBatch); }
             }
         }
@@ -397,7 +441,9 @@ namespace QuanLyGiuXe.Services
                         db.InsertAppLog(entry.Timestamp, entry.Level, entry.EventType, entry.Source, entry.UserId, entry.Plate, entry.Details, entry.Exception,
                             username: entry.Username, action: entry.Action, entityName: entry.EntityName, entityId: entry.EntityId,
                             oldValues: entry.OldValues, newValues: entry.NewValues, ipAddress: entry.IpAddress, machineName: entry.MachineName,
-                            deviceName: entry.DeviceName, sessionId: entry.SessionId, correlationId: entry.CorrelationId);
+                            deviceName: entry.DeviceName, sessionId: entry.SessionId, correlationId: entry.CorrelationId,
+                            durationMs: entry.DurationMs, retryCount: entry.RetryCount, fileSize: entry.FileSize, 
+                            testName: entry.TestName, isRecovered: entry.IsRecovered, additionalData: entry.AdditionalData);
                     }
                     catch { }
                 }

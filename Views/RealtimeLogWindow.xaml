@@ -34,11 +34,11 @@
                 
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                     <Border Background="{StaticResource APSBlueBrush}" CornerRadius="4" Padding="10" Margin="0,0,15,0">
-                        <TextBlock Text="📋" FontSize="20" Foreground="White" VerticalAlignment="Center"/>
+                        <TextBlock Text="🚀" FontSize="20" Foreground="White" VerticalAlignment="Center"/>
                     </Border>
                     <StackPanel>
-                        <TextBlock Text="REAL-TIME SYSTEM MONITOR" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}"/>
-                        <TextBlock Text="Live audit trails and system event tracking" Style="{StaticResource SubTitleStyle}"/>
+                        <TextBlock Text="PRODUCTION SYSTEM MONITORING" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}"/>
+                        <TextBlock Text="Live telemetry, health tracking, and automated audit trails" Style="{StaticResource SubTitleStyle}"/>
                     </StackPanel>
                 </StackPanel>
 
@@ -66,26 +66,35 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,20,0">
                     <TextBlock Text="Level:" Style="{StaticResource BaseTextBlockStyle}" Margin="0,0,10,0" Foreground="{StaticResource TextSecondaryBrush}"/>
                     <ComboBox ItemsSource="{Binding Levels}" 
                                 SelectedItem="{Binding SelectedLevel}" 
                                 Style="{StaticResource ModernComboBox}" 
-                                Width="150" Margin="0,0,20,0"/>
+                                Width="120" />
                 </StackPanel>
 
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,20,0">
+                    <TextBlock Text="Type:" Style="{StaticResource BaseTextBlockStyle}" Margin="0,0,10,0" Foreground="{StaticResource TextSecondaryBrush}"/>
+                    <ComboBox ItemsSource="{Binding EventTypes}" 
+                                SelectedItem="{Binding SelectedEventType}" 
+                                Style="{StaticResource ModernComboBox}" 
+                                Width="150" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="Search:" Style="{StaticResource BaseTextBlockStyle}" Margin="0,0,10,0" Foreground="{StaticResource TextSecondaryBrush}"/>
                     <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" 
-                              Style="{StaticResource ModernTextBox}" 
-                              Width="300" />
+                               Style="{StaticResource ModernTextBox}" 
+                               Width="250" />
                 </StackPanel>
                 
-                <StackPanel Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <TextBlock Text="{Binding TotalItems, StringFormat='{}Total Log Count: {0}'}" Style="{StaticResource SubTitleStyle}"/>
+                <StackPanel Grid.Column="3" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding TotalItems, StringFormat='{}Total Entries: {0}'}" Style="{StaticResource SubTitleStyle}" FontWeight="Bold"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -106,20 +115,28 @@
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
                                 
                                 <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                                    <TextBlock Text="System Info" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,5"/>
+                                    <TextBlock Text="Telemetric Info" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}" Margin="0,0,0,8"/>
+                                    <TextBlock Text="{Binding DurationMs, StringFormat='{}⏱ Duration: {0} ms'}" Style="{StaticResource BaseTextBlockStyle}" Margin="0,0,0,4" Visibility="{Binding DurationMs, Converter={StaticResource StringToVisibilityConverter}}"/>
+                                    <TextBlock Text="{Binding RetryCount, StringFormat='{}🔄 Retries: {0}'}" Style="{StaticResource BaseTextBlockStyle}" Margin="0,0,0,4" Visibility="{Binding RetryCount, Converter={StaticResource StringToVisibilityConverter}}"/>
+                                    <TextBlock Text="{Binding FileSize, StringFormat='{}💾 Size: {0} bytes'}" Style="{StaticResource BaseTextBlockStyle}" Visibility="{Binding FileSize, Converter={StaticResource StringToVisibilityConverter}}"/>
+                                    <TextBlock Text="{Binding TestName, StringFormat='{}🧪 Test: {0}'}" Style="{StaticResource BaseTextBlockStyle}" Margin="0,8,0,0" Foreground="{StaticResource APSRedBrush}" Visibility="{Binding TestName, Converter={StaticResource StringToVisibilityConverter}}"/>
+                                </StackPanel>
+                                
+                                <StackPanel Grid.Column="1" Margin="0,0,10,0">
+                                    <TextBlock Text="System Context" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,8"/>
                                     <TextBlock Text="{Binding MachineName, StringFormat='{}Machine: {0}'}" Style="{StaticResource BaseTextBlockStyle}" Margin="0,0,0,2"/>
                                     <TextBlock Text="{Binding IpAddress, StringFormat='{}IP: {0}'}" Style="{StaticResource BaseTextBlockStyle}" Margin="0,0,0,2"/>
                                     <TextBlock Text="{Binding CorrelationId, StringFormat='{}Trace ID: {0}'}" Style="{StaticResource BaseTextBlockStyle}"/>
                                 </StackPanel>
                                 
-                                <StackPanel Grid.Column="1">
-                                    <TextBlock Text="Audit Detail" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,5"/>
-                                    <TextBlock Text="{Binding OldValues, StringFormat='{}Old: {0}'}" Foreground="{StaticResource APSRedBrush}" Margin="0,0,0,2" Visibility="{Binding OldValues, Converter={StaticResource StringToVisibilityConverter}}"/>
-                                    <TextBlock Text="{Binding NewValues, StringFormat='{}New: {0}'}" Foreground="{StaticResource SuccessBrush}" Visibility="{Binding NewValues, Converter={StaticResource StringToVisibilityConverter}}"/>
-                                    <TextBlock Text="{Binding Exception}" Foreground="{StaticResource DangerBrush}" TextWrapping="Wrap" Margin="0,10,0,0" Style="{StaticResource BaseTextBlockStyle}"/>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="Metadata &amp; Errors" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,8"/>
+                                    <TextBlock Text="{Binding AdditionalData, StringFormat='{}Data: {0}'}" Style="{StaticResource BaseTextBlockStyle}" TextWrapping="Wrap" MaxHeight="60" Visibility="{Binding AdditionalData, Converter={StaticResource StringToVisibilityConverter}}"/>
+                                    <TextBlock Text="{Binding Exception}" Foreground="{StaticResource DangerBrush}" TextWrapping="Wrap" Margin="0,10,0,0" FontSize="11" FontFamily="Consolas"/>
                                 </StackPanel>
                             </Grid>
                         </Border>
@@ -132,11 +149,14 @@
                     <DataGridTemplateColumn Header="LEVEL" Width="100">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <Border CornerRadius="12" Padding="8,2" HorizontalAlignment="Left">
+                                <Border CornerRadius="4" Padding="8,2" HorizontalAlignment="Left" MinWidth="80">
                                     <Border.Style>
                                         <Style TargetType="Border">
                                             <Setter Property="Background" Value="{StaticResource BorderLightBrush}"/>
                                             <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Level}" Value="Success">
+                                                    <Setter Property="Background" Value="#E8F5E9"/>
+                                                </DataTrigger>
                                                 <DataTrigger Binding="{Binding Level}" Value="Info">
                                                     <Setter Property="Background" Value="#E3F2FD"/>
                                                 </DataTrigger>
@@ -146,15 +166,21 @@
                                                 <DataTrigger Binding="{Binding Level}" Value="Error">
                                                     <Setter Property="Background" Value="#FFEBEE"/>
                                                 </DataTrigger>
+                                                <DataTrigger Binding="{Binding Level}" Value="Critical">
+                                                    <Setter Property="Background" Value="#212121"/>
+                                                </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
                                     </Border.Style>
                                     
-                                    <TextBlock Text="{Binding Level}" FontWeight="Bold" FontSize="10">
+                                    <TextBlock Text="{Binding Level}" FontWeight="Bold" FontSize="10" HorizontalAlignment="Center">
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock">
                                                 <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
                                                 <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Level}" Value="Success">
+                                                        <Setter Property="Foreground" Value="{StaticResource SuccessBrush}"/>
+                                                    </DataTrigger>
                                                     <DataTrigger Binding="{Binding Level}" Value="Info">
                                                         <Setter Property="Foreground" Value="{StaticResource InfoBrush}"/>
                                                     </DataTrigger>
@@ -163,6 +189,9 @@
                                                     </DataTrigger>
                                                     <DataTrigger Binding="{Binding Level}" Value="Error">
                                                         <Setter Property="Foreground" Value="{StaticResource DangerBrush}"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding Level}" Value="Critical">
+                                                        <Setter Property="Foreground" Value="White"/>
                                                     </DataTrigger>
                                                 </Style.Triggers>
                                             </Style>
@@ -173,8 +202,41 @@
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
 
+                    <DataGridTemplateColumn Header="TYPE" Width="120">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal">
+                                    <Ellipse Width="8" Height="8" Margin="0,0,8,0">
+                                        <Ellipse.Style>
+                                            <Style TargetType="Ellipse">
+                                                <Setter Property="Fill" Value="{StaticResource TextMutedBrush}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding EventType}" Value="Reconnect">
+                                                        <Setter Property="Fill" Value="{StaticResource APSBlueBrush}"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding EventType}" Value="Backup">
+                                                        <Setter Property="Fill" Value="{StaticResource SuccessBrush}"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding EventType}" Value="Restore">
+                                                        <Setter Property="Fill" Value="#9C27B0"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding EventType}" Value="QaTest">
+                                                        <Setter Property="Fill" Value="{StaticResource APSRedBrush}"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding EventType}" Value="Exception">
+                                                        <Setter Property="Fill" Value="{StaticResource DangerBrush}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Ellipse.Style>
+                                    </Ellipse>
+                                    <TextBlock Text="{Binding EventType}" Style="{StaticResource BaseTextBlockStyle}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    
                     <DataGridTextColumn Header="SOURCE" Binding="{Binding Source}" Width="120" />
-                    <DataGridTextColumn Header="EVENT" Binding="{Binding EventType}" Width="150" />
                     <DataGridTextColumn Header="USER" Binding="{Binding Username}" Width="100" />
                     <DataGridTextColumn Header="PLATE" Binding="{Binding Plate}" Width="100" />
                     
@@ -192,7 +254,7 @@
         <!-- PAGING FOOTER -->
         <Border Grid.Row="3" Style="{StaticResource EnterpriseCardBorder}" Margin="0,15,0,0" Padding="15,10">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <TextBlock Text="Logs per page:" Style="{StaticResource SubTitleStyle}" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                <TextBlock Text="Entries per page:" Style="{StaticResource SubTitleStyle}" Margin="0,0,10,0" VerticalAlignment="Center"/>
                 <ComboBox Width="80" Style="{StaticResource ModernComboBox}" SelectedItem="{Binding PageSize, Mode=TwoWay}" Margin="0,0,20,0">
                     <sys:Int32>25</sys:Int32>
                     <sys:Int32>50</sys:Int32>
@@ -211,4 +273,3 @@
         </Border>
     </Grid>
 </Window>
-

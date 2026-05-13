@@ -182,23 +182,17 @@ namespace QuanLyGiuXe.Services
             bool dbChanged = _lastDbStatus != dbOk;
             bool c3Changed = _lastC3Status != c3Ok;
 
-            // ── Ghi log chỉ khi trạng thái thay đổi ──────────────────────────────
+            // ── Ghi log chuyên sâu khi trạng thái thay đổi ──────────────────────────────
             if (dbChanged)
             {
                 _lastDbStatus = dbOk;
-                if (dbOk)
-                    LoggingService.Instance.LogAudit("DB_CONNECTED", "System", details: "Database connected successfully", source: "Monitor");
-                else
-                    LoggingService.Instance.LogAudit("DB_DISCONNECTED", "System", level: "Error", details: "Database connection lost", source: "Monitor");
+                LoggingService.Instance.LogReconnect("SQL_Server", dbOk, 1, 0, dbOk ? "Database connected" : "Database connection lost");
             }
 
             if (c3Changed)
             {
                 _lastC3Status = c3Ok;
-                if (c3Ok)
-                    LoggingService.Instance.LogAudit("C3_CONNECTED", "System", details: "C3-200 connected successfully", source: "Monitor");
-                else
-                    LoggingService.Instance.LogAudit("C3_DISCONNECTED", "System", level: "Error", details: "C3-200 connection lost", source: "Monitor");
+                LoggingService.Instance.LogReconnect("C3_Controller", c3Ok, 1, 0, c3Ok ? "C3-200 connected" : "C3-200 connection lost");
             }
 
             // ── Raise event nếu có thay đổi ──────────────────────────────────────

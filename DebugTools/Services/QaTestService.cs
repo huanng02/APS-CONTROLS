@@ -27,18 +27,19 @@ namespace QuanLyGiuXe.DebugTools.Services
             {
                 await testAction();
                 result.Success = true;
-                LoggingService.Instance.LogAudit("QA_PASS", "System", name, null, null, details: $"Test {name} passed in {sw.ElapsedMilliseconds}ms");
             }
             catch (Exception ex)
             {
                 result.Success = false;
                 result.ErrorMessage = ex.Message;
-                LoggingService.Instance.LogError("QA_FAIL", category, $"Test {name} failed", ex);
             }
             finally
             {
                 sw.Stop();
                 result.Duration = sw.Elapsed;
+                
+                // Specialized monitoring log
+                LoggingService.Instance.LogQaTest(name, result.Success, sw.ElapsedMilliseconds, result.Success ? $"Test passed" : $"Test failed: {result.ErrorMessage}");
                 
                 // Add to results on UI thread
                 System.Windows.Application.Current?.Dispatcher?.Invoke(() => 

@@ -194,7 +194,7 @@ namespace QuanLyGiuXe.Services.Backup
                 }
 
                 long size = fileInfo.Length;
-                LoggingService.Instance.LogAudit("BACKUP_SUCCESS", "System", filePath, null, null, source: "Backup", details: $"Sao lưu thành công vào file: {fileName} ({size / 1024.0 / 1024.0:F2} MB)");
+                LoggingService.Instance.LogBackup(fileName, size, true, $"Sao lưu thành công (Nguồn: {source})");
                 await LogBackupHistoryAsync(fileName, filePath, size, "Success", source);
                 
                 // Cleanup sau khi backup
@@ -204,7 +204,7 @@ namespace QuanLyGiuXe.Services.Backup
             }
             catch (Exception ex) when (!ex.Message.Contains("SQL Server báo lỗi") && !ex.Message.Contains("không tìm thấy file"))
             {
-                LoggingService.Instance.LogError("BACKUP", "Failed", $"Lỗi trong quá trình sao lưu CSDL vào {filePath}", ex);
+                LoggingService.Instance.LogBackup(fileName, 0, false, ex.Message);
                 await LogBackupHistoryAsync(fileName, filePath, 0, "Failed", source, ex.Message);
                 throw new Exception($"Không thể sao lưu Database: {ex.Message}");
             }

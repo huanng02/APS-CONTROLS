@@ -60,7 +60,7 @@ namespace QuanLyGiuXe.Services.Backup
                     }
                 }
 
-                LoggingService.Instance.LogAudit("RESTORE_SUCCESS", "System", backupFilePath, null, null, source: "Restore", details: $"Phục hồi thành công từ file backup.");
+                LoggingService.Instance.LogRestore(backupFilePath, true, "Phục hồi thành công từ file backup.");
 
                 // Bật lại kết nối
                 AutoReconnectService.Instance.Start();
@@ -70,7 +70,7 @@ namespace QuanLyGiuXe.Services.Backup
             }
             catch (Exception ex)
             {
-                LoggingService.Instance.LogError("RESTORE", "Failed", "Lỗi trong quá trình phục hồi", ex);
+                LoggingService.Instance.LogRestore(backupFilePath, false, ex.Message);
 
                 // Cố gắng trả lại Multi User nếu bị lỗi giữa chừng
                 try
