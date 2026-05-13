@@ -99,6 +99,14 @@ namespace QuanLyGiuXe.Services
             }
         }
 
+        /// <summary>
+        /// Ép thực hiện kiểm tra kết nối ngay lập tức (không đợi vòng lặp).
+        /// </summary>
+        public async Task ForceCheckAsync(CancellationToken token = default)
+        {
+            await CheckAndNotifyAsync(token).ConfigureAwait(false);
+        }
+
         private void StartLocked(CancellationToken appToken)
         {
             _cts = CancellationTokenSource.CreateLinkedTokenSource(appToken);

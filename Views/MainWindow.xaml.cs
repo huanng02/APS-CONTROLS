@@ -13,6 +13,9 @@ using QuanLyGiuXe.Models;
 using QuanLyGiuXe.Services;
 using QuanLyGiuXe.ViewModels;
 using QuanLyGiuXe.Views;
+#if DEBUG
+using QuanLyGiuXe.DebugTools.Views;
+#endif
 
 namespace QuanLyGiuXe
 {
@@ -43,6 +46,17 @@ namespace QuanLyGiuXe
             
             // UI RBAC
             ApplyPermissions();
+
+            // Shortcut for QA Panel (DEBUG only)
+#if DEBUG
+            this.KeyDown += (s, e) => {
+                if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift | ModifierKeys.Alt) && e.Key == Key.Q)
+                {
+                    OpenQAPanel();
+                }
+            };
+            if (btnQAPanel != null) btnQAPanel.Visibility = Visibility.Visible;
+#endif
         }
 
         protected override void OnClosed(EventArgs e)
@@ -721,6 +735,29 @@ namespace QuanLyGiuXe
         //        MainContent.Content = new Views.LoaiXeView();
         //    }
         //}
+        private void MoQAPanel_Click(object sender, RoutedEventArgs e)
+        {
+            OpenQAPanel();
+        }
+
+        private void MoBackupRestore_Click(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is MainViewModel vm)
+            {
+                vm.BackupRestoreCommand.Execute(null);
+                RestoreSidebarSelection();
+            }
+        }
+
+        private void OpenQAPanel()
+        {
+#if DEBUG
+            var win = new DebugToolsView { Owner = this };
+            win.Closed += (s, e) => RestoreSidebarSelection();
+            win.Show();
+#endif
+        }
+
         private T FindVisualChild<T>(DependencyObject obj) where T : DependencyObject
         {
             if (obj == null) return null;
