@@ -12,7 +12,8 @@
 
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
-        <conv:ConnectionStatusToBrushConverter x:Key="StatusToBrush"/>
+        <conv:ConnectionStatusToBrushConverter x:Key="LegacyStatusToBrush"/>
+        <ServicesConnection:ConnectionStateToBrushConverter x:Key="StateToBrush" xmlns:ServicesConnection="clr-namespace:QuanLyGiuXe.Services.Connection"/>
     </Window.Resources>
 
     <Grid>
@@ -71,18 +72,28 @@
                     <Border Background="#26FFFFFF" CornerRadius="15" Padding="12,5" Margin="0,0,10,0">
                         <StackPanel Orientation="Horizontal">
                             <Ellipse Width="8" Height="8" Margin="0,0,8,0" VerticalAlignment="Center"
-                                     Fill="{Binding IsDbConnected, Converter={StaticResource StatusToBrush}}"/>
+                                     Fill="{Binding DbState, Converter={StaticResource StateToBrush}}"/>
                             <TextBlock Text="{Binding DbStatusLabel}"
                                        Foreground="White" FontSize="11" FontWeight="Bold" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Border>
 
                     <!-- C3-200 monitor indicator -->
-                    <Border Background="#26FFFFFF" CornerRadius="15" Padding="12,5">
+                    <Border Background="#26FFFFFF" CornerRadius="15" Padding="12,5" Margin="0,0,10,0">
                         <StackPanel Orientation="Horizontal">
                             <Ellipse Width="8" Height="8" Margin="0,0,8,0" VerticalAlignment="Center"
-                                     Fill="{Binding IsC3Connected, Converter={StaticResource StatusToBrush}}"/>
+                                     Fill="{Binding C3State, Converter={StaticResource StateToBrush}}"/>
                             <TextBlock Text="{Binding C3StatusLabel}"
+                                       Foreground="White" FontSize="11" FontWeight="Bold" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+                    
+                    <!-- Camera Làn Vào monitor indicator -->
+                    <Border Background="#26FFFFFF" CornerRadius="15" Padding="12,5">
+                        <StackPanel Orientation="Horizontal" ToolTip="Trạng thái Camera Làn Vào">
+                            <Ellipse Width="8" Height="8" Margin="0,0,8,0" VerticalAlignment="Center"
+                                     Fill="{Binding CamVaoState, Converter={StaticResource StateToBrush}}"/>
+                            <TextBlock Text="Cam Vào"
                                        Foreground="White" FontSize="11" FontWeight="Bold" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Border>

@@ -264,7 +264,35 @@ namespace QuanLyGiuXe.ViewModels
 
 
 
-        // ── Connection status indicators ──────────────────────────────────────────
+        // ── Connection status indicators (Phase 2) ──────────────────────────────────
+
+        private Services.Connection.ConnectionState _dbState = Services.Connection.ConnectionState.Disconnected;
+        public Services.Connection.ConnectionState DbState
+        {
+            get => _dbState;
+            set { _dbState = value; OnPropertyChanged(nameof(DbState)); }
+        }
+
+        private Services.Connection.ConnectionState _c3State = Services.Connection.ConnectionState.Disconnected;
+        public Services.Connection.ConnectionState C3State
+        {
+            get => _c3State;
+            set { _c3State = value; OnPropertyChanged(nameof(C3State)); }
+        }
+
+        private Services.Connection.ConnectionState _camVaoState = Services.Connection.ConnectionState.Disconnected;
+        public Services.Connection.ConnectionState CamVaoState
+        {
+            get => _camVaoState;
+            set { _camVaoState = value; OnPropertyChanged(nameof(CamVaoState)); }
+        }
+
+        private Services.Connection.ConnectionState _camRaState = Services.Connection.ConnectionState.Disconnected;
+        public Services.Connection.ConnectionState CamRaState
+        {
+            get => _camRaState;
+            set { _camRaState = value; OnPropertyChanged(nameof(CamRaState)); }
+        }
 
         private bool _isDbConnected;
         public bool IsDbConnected
@@ -561,6 +589,9 @@ namespace QuanLyGiuXe.ViewModels
                 // 4. Connection monitor: reset UI + restart loop (login lại / VM mới)
                 await Application.Current.Dispatcher.InvokeAsync(ResetStatus);
                 await StartConnectionCheck();
+
+                // 5. Initialize Auto Reconnect (Phase 2)
+                InitializeAutoReconnect(cfg);
                 
                 LoggingService.Instance.LogInfo("VMInit", "MainViewModel", "Async initialization complete");
             }
@@ -568,6 +599,66 @@ namespace QuanLyGiuXe.ViewModels
             {
                 LoggingService.Instance.LogError("VMInitError", "MainViewModel", "Async init failed", ex);
             }
+        }
+
+        private void InitializeAutoReconnect(AppConfig cfg)
+        {
+            var reconnectService = Services.Connection.AutoReconnectService.Instance;
+            
+            // Đăng ký DB và C3
+            reconnectService.RegisterResource(new Services.Connection.DatabaseResource());
+            reconnectService.RegisterResource(new Services.Connection.C3200Resource());
+            
+            // Đăng ký Cameras
+            // Trong project này, mỗi View tự tạo CameraService. 
+            // Ta sẽ dùng một instance chung cho Monitor AutoReconnect.
+            var monitorCamService = new CameraService(); 
+            reconnectService.RegisterResource(new Services.Connection.CameraResource("VaoToanCanh", monitorCamService));
+            reconnectService.RegisterResource(new Services.Connection.CameraResource("VaoBienSo", monitorCamService));
+            reconnectService.RegisterResource(new Services.Connection.CameraResource("RaToanCanh", monitorCamService));
+            reconnectService.RegisterResource(new Services.Connection.CameraResource("RaBienSo", monitorCamService));
+
+            // Lắng nghe thay đổi trạng thái để cập nhật UI
+            Services.Connection.ConnectionStateService.Instance.PropertyChanged += (s, e) =>
+            {
+                Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
+                {
+                    var svc = Services.Connection.ConnectionStateService.Instance;
+                    switch (e.PropertyName)
+                    {
+                        case "Database":
+                            DbState = svc.GetState("Database");
+                            IsDbConnected = DbState == Services.Connection.ConnectionState.Connected;
+                            DbStatusLabel = DbState switch
+                            {
+                                Services.Connection.ConnectionState.Connected => "Database",
+                                Services.Connection.ConnectionState.Reconnecting => "DB (Đang thử lại...)",
+                                _ => "DB (Mất kết nối)"
+                            };
+                            break;
+                        case "C3200":
+                            C3State = svc.GetState("C3200");
+                            IsC3Connected = C3State == Services.Connection.ConnectionState.Connected;
+                            C3StatusLabel = C3State switch
+                            {
+                                Services.Connection.ConnectionState.Connected => "C3-200",
+                                Services.Connection.ConnectionState.Reconnecting => "C3-200 (Đang thử lại...)",
+                                _ => "C3-200 (Mất kết nối)"
+                            };
+                            break;
+                        case "Camera_VaoToanCanh":
+                        case "Camera_VaoBienSo":
+                            // Cập nhật trạng thái cụm camera vào
+                            var s1 = svc.GetState("Camera_VaoToanCanh");
+                            var s2 = svc.GetState("Camera_VaoBienSo");
+                            CamVaoState = (s1 == Services.Connection.ConnectionState.Connected && s2 == Services.Connection.ConnectionState.Connected) 
+                                ? Services.Connection.ConnectionState.Connected : Services.Connection.ConnectionState.Disconnected;
+                            break;
+                    }
+                }));
+            };
+
+            reconnectService.Start();
         }
 
         // ── Connection Monitor handler ─────────────────────────────────────────
@@ -595,18 +686,7 @@ namespace QuanLyGiuXe.ViewModels
         {
             Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
             {
-                // Cập nhật label trạng thái
-                if (status.DatabaseChanged)
-                {
-                    IsDbConnected = status.IsDatabaseConnected;
-                    DbStatusLabel = status.IsDatabaseConnected ? "Database" : "Database";
-                }
-
-                if (status.C3Changed)
-                {
-                    IsC3Connected = status.IsC3Connected;
-                    C3StatusLabel = status.IsC3Connected ? "C3-200" : "C3-200";
-                }
+                // UI cập nhật Label đã được chuyển sang ConnectionStateService PropertyChanged
             }));
 
             // Toast notification (có thể gọi từ bất kỳ thread, service tự marshal)

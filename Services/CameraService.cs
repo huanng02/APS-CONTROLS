@@ -10,8 +10,10 @@ namespace QuanLyGiuXe.Services
 {
     public class CameraService : IDisposable
     {
-        // Dictionary quản lý Token để tắt camera sạch sẽ
+        // Quản lý Token và trạng thái
         private readonly Dictionary<string, CancellationTokenSource> _ipCameraTokens = new();
+        private readonly Dictionary<string, string> _cameraUrls = new();
+        private readonly Dictionary<string, bool> _isCameraConnected = new();
 
         // Sự kiện gửi ảnh về UI
         public event EventHandler<(string CamKey, Bitmap Frame)>? NewFrameReceived;
@@ -23,6 +25,9 @@ namespace QuanLyGiuXe.Services
 
         public void StartIpCamera(string camKey, string url)
         {
+            _cameraUrls[camKey] = url;
+            _isCameraConnected[camKey] = false;
+            
             StopIpCamera(camKey); // Dừng nếu camera này đang chạy
 
             var cts = new CancellationTokenSource();
@@ -32,33 +37,53 @@ namespace QuanLyGiuXe.Services
             {
                 await ErrorHandling.SafeExecutionService.SafeExecuteAsync(async () => 
                 {
-                    // Sử dụng FFMPEG cho RTSP
                     using var capture = new VideoCapture(url, VideoCaptureAPIs.FFMPEG);
 
                     if (!capture.IsOpened())
                     {
+                        _isCameraConnected[camKey] = false;
                         System.Diagnostics.Debug.WriteLine($"Lỗi: Không kết nối được RTSP {camKey}");
                         return;
                     }
 
+                    _isCameraConnected[camKey] = true;
                     using var mat = new Mat();
+                    int failCount = 0;
+
                     while (!cts.Token.IsCancellationRequested)
                     {
                         if (capture.Read(mat) && !mat.Empty())
                         {
-                            // Chuyển đổi Mat sang Bitmap bằng cách gọi trực tiếp để tránh lỗi Extension
+                            failCount = 0;
+                            _isCameraConnected[camKey] = true;
                             Bitmap bitmap = BitmapConverter.ToBitmap(mat);
-
-                            // Gửi ảnh về sự kiện
                             NewFrameReceived?.Invoke(this, (camKey, bitmap));
                         }
-                        // Nghỉ một chút để giảm tải CPU (khoảng 30fps)
+                        else
+                        {
+                            failCount++;
+                            if (failCount > 10) // Mất kết nối quá 10 frame liên tiếp
+                            {
+                                _isCameraConnected[camKey] = false;
+                            }
+                        }
+                        
                         await Task.Delay(30, cts.Token);
                     }
                 }, 
                 source: $"CameraService.{camKey}",
-                friendlyMessage: null); // Không hiện Toast liên tục nếu lỗi luồng camera để tránh làm phiền user
+                friendlyMessage: null);
             }, cts.Token);
+        }
+
+        public bool IsConnected(string camKey)
+        {
+            return _isCameraConnected.TryGetValue(camKey, out var connected) && connected;
+        }
+
+        public string GetUrl(string camKey)
+        {
+            return _cameraUrls.TryGetValue(camKey, out var url) ? url : null;
         }
 
         public void StopIpCamera(string camKey)
