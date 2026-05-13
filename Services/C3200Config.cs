@@ -8,6 +8,7 @@ namespace QuanLyGiuXe.Services
     {
         public ZKTecoConfig ZKTeco { get; set; } = new();
         public CameraConfig Cameras { get; set; } = new();
+        public BackupConfig Backup { get; set; } = new();
         public bool ShowLog { get; set; } = true;
 
         private static AppConfig? _cached;
@@ -151,5 +152,14 @@ namespace QuanLyGiuXe.Services
         public string VaoBienSo { get; set; } = "";
         public string RaToanCanh { get; set; } = "";
         public string RaBienSo { get; set; } = "";
+    }
+
+    public sealed class BackupConfig
+    {
+        public bool AutoBackupEnabled { get; set; } = true;
+        // Format "HH:mm"
+        public string BackupTime { get; set; } = "02:00";
+        public int RetentionDays { get; set; } = 30;
+        public string BackupDirectory { get; set; } = "Backups";
     }
 }

@@ -25,6 +25,9 @@ namespace QuanLyGiuXe
             // Kích hoạt hệ thống xử lý lỗi toàn cục (Global Exception Handling)
             QuanLyGiuXe.Services.ErrorHandling.GlobalExceptionHandler.Initialize();
 
+            // Khởi động Backup Scheduler
+            QuanLyGiuXe.Services.Backup.BackupScheduler.Instance.Start();
+
             StartLoginFlow();
         }
 

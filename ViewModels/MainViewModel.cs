@@ -417,6 +417,7 @@ namespace QuanLyGiuXe.ViewModels
         public ICommand EditProfileCommand { get; }
         public ICommand ChangePasswordCommand { get; }
         public ICommand ToggleSidebarCommand { get; }
+        public ICommand BackupRestoreCommand { get; }
 
         // ── Constructor ───────────────────────────────────────────────────────────
 
@@ -492,6 +493,21 @@ namespace QuanLyGiuXe.ViewModels
                         "Lỗi",
                         MessageBoxButton.OK,
                         MessageBoxImage.Error);
+                }
+            });
+
+            BackupRestoreCommand = new RelayCommand(_ =>
+            {
+                try
+                {
+                    IsUserPopupOpen = false;
+                    var window = new Views.BackupRestoreWindow();
+                    window.ShowDialog();
+                }
+                catch (Exception ex)
+                {
+                    LoggingService.Instance.LogError("OpenBackupWindow", "MainViewModel", "Failed to open backup window", ex);
+                    MessageBox.Show("Không thể mở cửa sổ Quản lý Backup", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
             });
 
@@ -592,6 +608,9 @@ namespace QuanLyGiuXe.ViewModels
 
                 // 5. Initialize Auto Reconnect (Phase 2)
                 InitializeAutoReconnect(cfg);
+                
+                // 6. Khởi động Backup Scheduler
+                Services.Backup.BackupScheduler.Instance.Start();
                 
                 LoggingService.Instance.LogInfo("VMInit", "MainViewModel", "Async initialization complete");
             }

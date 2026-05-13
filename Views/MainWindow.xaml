@@ -427,6 +427,24 @@
                                         </TextBlock>
                                     </StackPanel>
                                 </RadioButton>
+                                <RadioButton Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Command="{Binding BackupRestoreCommand}" ToolTip="Backup &amp; Restore">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Path Data="M19.35,10.03C18.67,6.59 15.64,4 12,4C9.11,4 6.6,5.64 5.35,8.03C2.34,8.36 0,10.9 0,14C0,17.31 2.69,20 6,20H19C21.76,20 24,17.76 24,15C24,12.36 21.95,10.22 19.35,10.03M14,13V17H10V13H7L12,8L17,13H14Z" 
+                                              Fill="White" Width="18" Height="18" Stretch="Uniform" VerticalAlignment="Center"/>
+                                        <TextBlock Text=" Backup / Restore" Margin="10,0,0,0">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsSidebarExpanded}" Value="False">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </RadioButton>
                             </StackPanel>
                         </StackPanel>
                     </ScrollViewer>
