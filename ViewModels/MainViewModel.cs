@@ -612,6 +612,9 @@ namespace QuanLyGiuXe.ViewModels
                 // 6. Khởi động Backup Scheduler
                 Services.Backup.BackupScheduler.Instance.Start();
                 
+                // 7. Khởi động SQL Connectivity Monitoring (New Service)
+                ConnectivityStateService.Instance.Start();
+                
                 LoggingService.Instance.LogInfo("VMInit", "MainViewModel", "Async initialization complete");
             }
             catch (Exception ex)

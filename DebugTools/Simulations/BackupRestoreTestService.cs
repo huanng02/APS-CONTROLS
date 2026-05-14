@@ -8,6 +8,10 @@ namespace QuanLyGiuXe.DebugTools.Simulations
 {
     public class BackupRestoreTestService
     {
+        public async Task TestRealBackup() => await RunBackupTestAsync();
+        public async Task TestFakeBackup() => await CreateFakeBackupFileAsync();
+        public async Task StressTestBackup(int iterations = 5) => await StressTestBackupAsync(iterations);
+
         public async Task<string> RunBackupTestAsync()
         {
             return await DatabaseBackupService.Instance.BackupNowAsync("QA_TEST");

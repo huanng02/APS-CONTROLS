@@ -17,6 +17,11 @@ namespace QuanLyGiuXe.DebugTools.Simulations
 
         public async Task SimulateSqlReconnect()
         {
+            // Reset simulation flags so the real UI monitor recovers
+            ConnectivityStateService.Instance.IsSimulatingOffline = false;
+            ConnectivityStateService.Instance.ForceHeartbeatFail = false;
+            ConnectivityStateService.Instance.ForceTimeout = false;
+
             ConnectionMonitorService.Instance.Start();
             await ConnectionMonitorService.Instance.ForceCheckAsync();
         }

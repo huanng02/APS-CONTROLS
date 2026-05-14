@@ -8,6 +8,7 @@
         xmlns:conv="clr-namespace:QuanLyGiuXe.Converters"
         xmlns:local="clr-namespace:QuanLyGiuXe.Views"
         xmlns:viewmodels="clr-namespace:QuanLyGiuXe.ViewModels"
+        xmlns:comps="clr-namespace:QuanLyGiuXe.Views.Components"
         Background="{StaticResource BgLightBrush}">
 
     <Window.Resources>
@@ -68,15 +69,8 @@
                 <!-- Connection Status Indicators -->
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
 
-                    <!-- Database monitor indicator -->
-                    <Border Background="#26FFFFFF" CornerRadius="15" Padding="12,5" Margin="0,0,10,0">
-                        <StackPanel Orientation="Horizontal">
-                            <Ellipse Width="8" Height="8" Margin="0,0,8,0" VerticalAlignment="Center"
-                                     Fill="{Binding DbState, Converter={StaticResource StateToBrush}}"/>
-                            <TextBlock Text="{Binding DbStatusLabel}"
-                                       Foreground="White" FontSize="11" FontWeight="Bold" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </Border>
+                    <!-- SQL REALTIME STATUS CHIP (NEW) -->
+                    <comps:ConnectivityStatusChip Margin="0,0,15,0"/>
 
                     <!-- C3-200 monitor indicator -->
                     <Border Background="#26FFFFFF" CornerRadius="15" Padding="12,5" Margin="0,0,10,0">

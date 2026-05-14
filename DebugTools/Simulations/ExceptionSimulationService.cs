@@ -38,7 +38,7 @@ namespace QuanLyGiuXe.DebugTools.Simulations
             }
         }
 
-        public void SimulateSpamExceptions(int count = 100)
+        public void SpamExceptions(int count = 100)
         {
             for (int i = 0; i < count; i++)
             {
