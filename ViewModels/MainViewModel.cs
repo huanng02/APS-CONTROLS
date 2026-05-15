@@ -11,6 +11,7 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using QuanLyGiuXe.Models;
 using QuanLyGiuXe.Services;
+using QuanLyGiuXe.Services.OfflineCache;
 
 namespace QuanLyGiuXe.ViewModels
 {
@@ -614,6 +615,9 @@ namespace QuanLyGiuXe.ViewModels
                 
                 // 7. Khởi động SQL Connectivity Monitoring (New Service)
                 ConnectivityStateService.Instance.Start();
+                
+                // 8. Khởi động Auto Sync Engine (Phase 6.2)
+                AutoSyncService.Instance.Start();
                 
                 LoggingService.Instance.LogInfo("VMInit", "MainViewModel", "Async initialization complete");
             }

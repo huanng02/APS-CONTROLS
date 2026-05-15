@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Linq;
 using QuanLyGiuXe.Models;
+using QuanLyGiuXe.Services.OfflineCache;
 
 namespace QuanLyGiuXe.Services
 {
@@ -10,20 +11,23 @@ namespace QuanLyGiuXe.Services
     {
         private readonly DatabaseService _db = new DatabaseService();
 
-        public List<BangGiaKhungGio> GetByBangGiaId(int bangGiaId)
+        public List<BangGiaKhungGio> GetAll()
         {
-            var list = new List<BangGiaKhungGio>();
-            string conn = _db.GetConnectionString();
-            using (var sql = new SqlConnection(conn))
-            {
-                sql.Open();
-                string q = "SELECT Id, BangGiaId, KhungGioId, GiaTien FROM dbo.BangGiaKhungGio WHERE BangGiaId = @bg";
-                using (var cmd = new SqlCommand(q, sql))
+            return System.Threading.Tasks.Task.Run(() => GetAllAsync()).GetAwaiter().GetResult();
+        }
+
+        public async System.Threading.Tasks.Task<List<BangGiaKhungGio>> GetAllAsync()
+        {
+            return await ConnectivityAwareRepository.Instance.ExecuteReadAsync<List<BangGiaKhungGio>>(
+                "LIST_BANG_GIA_KHUNG_GIO",
+                async conn =>
                 {
-                    cmd.Parameters.AddWithValue("@bg", bangGiaId);
-                    using (var r = cmd.ExecuteReader())
+                    var list = new List<BangGiaKhungGio>();
+                    string q = "SELECT Id, BangGiaId, KhungGioId, GiaTien FROM dbo.BangGiaKhungGio ORDER BY Id";
+                    using (var cmd = new SqlCommand(q, conn))
+                    using (var r = await cmd.ExecuteReaderAsync())
                     {
-                        while (r.Read())
+                        while (await r.ReadAsync())
                         {
                             list.Add(new BangGiaKhungGio
                             {
@@ -34,91 +38,121 @@ namespace QuanLyGiuXe.Services
                             });
                         }
                     }
+                    return list;
                 }
-            }
-            return list;
+            ) ?? new List<BangGiaKhungGio>();
+        }
+
+        public List<BangGiaKhungGio> GetByBangGiaId(int bangGiaId)
+        {
+            return System.Threading.Tasks.Task.Run(() => GetByBangGiaIdAsync(bangGiaId)).GetAwaiter().GetResult();
+        }
+
+        public async System.Threading.Tasks.Task<List<BangGiaKhungGio>> GetByBangGiaIdAsync(int bangGiaId)
+        {
+            return await ConnectivityAwareRepository.Instance.ExecuteReadAsync<List<BangGiaKhungGio>>(
+                $"BANG_GIA_KHUNG_GIO_{bangGiaId}",
+                async conn =>
+                {
+                    var list = new List<BangGiaKhungGio>();
+                    string q = "SELECT Id, BangGiaId, KhungGioId, GiaTien FROM dbo.BangGiaKhungGio WHERE BangGiaId = @bg";
+                    using (var cmd = new SqlCommand(q, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@bg", bangGiaId);
+                        using (var r = await cmd.ExecuteReaderAsync())
+                        {
+                            while (await r.ReadAsync())
+                            {
+                                list.Add(new BangGiaKhungGio
+                                {
+                                    Id = r["Id"] != DBNull.Value ? Convert.ToInt32(r["Id"]) : 0,
+                                    BangGiaId = r["BangGiaId"] != DBNull.Value ? Convert.ToInt32(r["BangGiaId"]) : 0,
+                                    KhungGioId = r["KhungGioId"] != DBNull.Value ? Convert.ToInt32(r["KhungGioId"]) : 0,
+                                    GiaTien = r["GiaTien"] != DBNull.Value ? Convert.ToDecimal(r["GiaTien"]) : 0m
+                                });
+                            }
+                        }
+                    }
+                    return list;
+                }
+            ) ?? new List<BangGiaKhungGio>();
         }
 
         public void Insert(BangGiaKhungGio entity)
         {
-            try
-            {
-                if (entity == null) throw new ArgumentNullException(nameof(entity));
-                string conn = _db.GetConnectionString();
-                using (var sql = new SqlConnection(conn))
+            _ = InsertAsync(entity);
+        }
+
+        public async System.Threading.Tasks.Task<bool> InsertAsync(BangGiaKhungGio entity)
+        {
+            if (entity == null) return false;
+
+            return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+                "INSERT_BANG_GIA_KHUNG_GIO",
+                entity,
+                async conn =>
                 {
-                    sql.Open();
                     string q = "INSERT INTO dbo.BangGiaKhungGio (BangGiaId, KhungGioId, GiaTien) VALUES (@bg,@kg,@gt); SELECT SCOPE_IDENTITY();";
-                    using (var cmd = new SqlCommand(q, sql))
+                    using (var cmd = new SqlCommand(q, conn))
                     {
                         cmd.Parameters.AddWithValue("@bg", entity.BangGiaId);
                         cmd.Parameters.AddWithValue("@kg", entity.KhungGioId);
                         cmd.Parameters.AddWithValue("@gt", entity.GiaTien);
-                        var id = cmd.ExecuteScalar();
+                        var id = await cmd.ExecuteScalarAsync();
                         entity.Id = Convert.ToInt32(id);
                     }
                 }
-                try { LoggingService.Instance.LogCrud("CREATE_PRICE_SLOT", "BangGiaKhungGio", entity.Id.ToString(), null, entity, source: "BangGiaKhungGioRepository"); } catch { }
-            }
-            catch (Exception ex)
-            {
-                LoggingService.Instance.LogError("InsertError", "BangGiaKhungGioRepository", $"Lỗi thêm chi tiết bảng giá - khung giờ: {ex.Message}", ex);
-                throw;
-            }
+            );
         }
 
         public void Update(BangGiaKhungGio entity)
         {
-            try
-            {
-                if (entity == null) throw new ArgumentNullException(nameof(entity));
-                if (entity.Id <= 0) throw new ArgumentException("Invalid Id", nameof(entity.Id));
-                string conn = _db.GetConnectionString();
-                using (var sql = new SqlConnection(conn))
+            _ = UpdateAsync(entity);
+        }
+
+        public async System.Threading.Tasks.Task<bool> UpdateAsync(BangGiaKhungGio entity)
+        {
+            if (entity == null || entity.Id <= 0) return false;
+
+            return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+                "UPDATE_BANG_GIA_KHUNG_GIO",
+                entity,
+                async conn =>
                 {
-                    sql.Open();
                     string q = "UPDATE dbo.BangGiaKhungGio SET BangGiaId=@bg, KhungGioId=@kg, GiaTien=@gt WHERE Id=@id";
-                    using (var cmd = new SqlCommand(q, sql))
+                    using (var cmd = new SqlCommand(q, conn))
                     {
                         cmd.Parameters.AddWithValue("@bg", entity.BangGiaId);
                         cmd.Parameters.AddWithValue("@kg", entity.KhungGioId);
                         cmd.Parameters.AddWithValue("@gt", entity.GiaTien);
                         cmd.Parameters.AddWithValue("@id", entity.Id);
-                        cmd.ExecuteNonQuery();
+                        await cmd.ExecuteNonQueryAsync();
                     }
                 }
-                try { LoggingService.Instance.LogCrud("UPDATE_PRICE_SLOT", "BangGiaKhungGio", entity.Id.ToString(), null, entity, source: "BangGiaKhungGioRepository"); } catch { }
-            }
-            catch (Exception ex)
-            {
-                LoggingService.Instance.LogError("UpdateError", "BangGiaKhungGioRepository", $"Lỗi cập nhật chi tiết bảng giá - khung giờ (Id: {entity?.Id}): {ex.Message}", ex);
-                throw;
-            }
+            );
         }
 
         public void Delete(int id)
         {
-            try
-            {
-                if (id <= 0) return;
-                string conn = _db.GetConnectionString();
-                using (var sql = new SqlConnection(conn))
+            _ = DeleteAsync(id);
+        }
+
+        public async System.Threading.Tasks.Task<bool> DeleteAsync(int id)
+        {
+            if (id <= 0) return false;
+            return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+                "DELETE_BANG_GIA_KHUNG_GIO",
+                new { Id = id },
+                async conn =>
                 {
-                    sql.Open();
                     string q = "DELETE FROM dbo.BangGiaKhungGio WHERE Id=@id";
-                    using (var cmd = new SqlCommand(q, sql))
+                    using (var cmd = new SqlCommand(q, conn))
                     {
                         cmd.Parameters.AddWithValue("@id", id);
-                        cmd.ExecuteNonQuery();
+                        await cmd.ExecuteNonQueryAsync();
                     }
                 }
-                try { LoggingService.Instance.LogCrud("DELETE_PRICE_SLOT", "BangGiaKhungGio", id.ToString(), null, null, source: "BangGiaKhungGioRepository"); } catch { }
-            }
-            catch (Exception ex)
-            {
-                LoggingService.Instance.LogError("DeleteError", "BangGiaKhungGioRepository", $"Lỗi xóa chi tiết bảng giá - khung giờ (Id: {id}): {ex.Message}", ex);
-                throw;
-            }
+            );
         }
     }
 }

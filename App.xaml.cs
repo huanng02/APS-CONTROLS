@@ -55,7 +55,11 @@ namespace QuanLyGiuXe
                 ToastNotificationService.Instance.ClearQueue();
                 
                 // 3. Dừng monitor trên luồng nền (tránh block UI ~2s). Login sau sẽ Restart().
-                _ = System.Threading.Tasks.Task.Run(() => ConnectionMonitorService.Instance.Stop());
+                _ = System.Threading.Tasks.Task.Run(() => {
+                    ConnectionMonitorService.Instance.Stop();
+                    ConnectivityStateService.Instance.Stop();
+                    QuanLyGiuXe.Services.OfflineCache.AutoSyncService.Instance.Stop();
+                });
 
                 // 3. Close ALL open windows (including Toasts/Notifications)
                 this.Dispatcher.BeginInvoke(new Action(() => {
@@ -131,6 +135,10 @@ namespace QuanLyGiuXe
         protected override void OnExit(ExitEventArgs e)
         {
             LoggingService.Instance.LogInfo("AppExit", "App", $"Application exiting with code: {e.ApplicationExitCode}");
+            
+            ConnectivityStateService.Instance.Stop();
+            QuanLyGiuXe.Services.OfflineCache.AutoSyncService.Instance.Stop();
+            
             LoggingService.Instance.Shutdown();
             base.OnExit(e);
         }

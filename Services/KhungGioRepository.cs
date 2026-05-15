@@ -11,31 +11,36 @@ namespace QuanLyGiuXe.Services
 
         public List<KhungGio> GetAll()
         {
-            var list = new List<KhungGio>();
-            string conn = _db.GetConnectionString();
-            using (var sql = new SqlConnection(conn))
-            {
-                sql.Open();
-                // Return all khung gio rows; UI will decide which are active. Some databases store TrangThai as string values.
-                string q = "SELECT Id, TenKhungGio, GioBatDau, GioKetThuc, QuaDem, TrangThai FROM dbo.KhungGio ORDER BY Id";
-                using (var cmd = new SqlCommand(q, sql))
-                using (var r = cmd.ExecuteReader())
+            return System.Threading.Tasks.Task.Run(() => GetAllAsync()).GetAwaiter().GetResult();
+        }
+
+        public async System.Threading.Tasks.Task<List<KhungGio>> GetAllAsync()
+        {
+            return await QuanLyGiuXe.Services.OfflineCache.ConnectivityAwareRepository.Instance.ExecuteReadAsync<List<KhungGio>>(
+                "LOOKUP_KHUNGGIO",
+                async conn =>
                 {
-                    while (r.Read())
+                    var list = new List<KhungGio>();
+                    string q = "SELECT Id, TenKhungGio, GioBatDau, GioKetThuc, QuaDem, TrangThai FROM dbo.KhungGio ORDER BY Id";
+                    using (var cmd = new SqlCommand(q, conn))
+                    using (var r = await cmd.ExecuteReaderAsync())
                     {
-                        list.Add(new KhungGio
+                        while (await r.ReadAsync())
                         {
-                            Id = r["Id"] != DBNull.Value ? Convert.ToInt32(r["Id"]) : 0,
-                            TenKhungGio = r["TenKhungGio"]?.ToString() ?? string.Empty,
-                            GioBatDau = r["GioBatDau"] != DBNull.Value ? TimeSpan.Parse(r["GioBatDau"].ToString()) : TimeSpan.Zero,
-                            GioKetThuc = r["GioKetThuc"] != DBNull.Value ? TimeSpan.Parse(r["GioKetThuc"].ToString()) : TimeSpan.Zero,
-                            QuaDem = r["QuaDem"] != DBNull.Value ? Convert.ToBoolean(r["QuaDem"]) : false,
-                            TrangThai = r["TrangThai"] != DBNull.Value ? Convert.ToBoolean(r["TrangThai"]) : false
-                        });
+                            list.Add(new KhungGio
+                            {
+                                Id = r["Id"] != DBNull.Value ? Convert.ToInt32(r["Id"]) : 0,
+                                TenKhungGio = r["TenKhungGio"]?.ToString() ?? string.Empty,
+                                GioBatDau = r["GioBatDau"] != DBNull.Value ? TimeSpan.Parse(r["GioBatDau"].ToString()) : TimeSpan.Zero,
+                                GioKetThuc = r["GioKetThuc"] != DBNull.Value ? TimeSpan.Parse(r["GioKetThuc"].ToString()) : TimeSpan.Zero,
+                                QuaDem = r["QuaDem"] != DBNull.Value ? Convert.ToBoolean(r["QuaDem"]) : false,
+                                TrangThai = r["TrangThai"] != DBNull.Value ? Convert.ToBoolean(r["TrangThai"]) : false
+                            });
+                        }
                     }
+                    return list;
                 }
-            }
-            return list;
+            ) ?? new List<KhungGio>();
         }
 
         public void Update(KhungGio entity)

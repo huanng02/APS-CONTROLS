@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using QuanLyGiuXe.Models;
 
 namespace QuanLyGiuXe.Services
@@ -8,25 +9,26 @@ namespace QuanLyGiuXe.Services
     public class RFIDCardService
     {
         private readonly DatabaseService db = new DatabaseService();
-        // Load all RFID cards from DB and map to UI model (includes display names for LoaiVe/LoaiXe)
-        public System.Collections.Generic.List<RFIDCards> GetAll()
+
+        public async System.Threading.Tasks.Task<System.Collections.Generic.List<RFIDCards>> GetAllAsync()
         {
-            var rows = db.GetRFIDCards(); // returns List<RFIDCard> (DB model)
+            var rows = await db.GetRFIDCardsAsync();
             var list = new System.Collections.Generic.List<RFIDCards>();
             if (rows == null) return list;
 
-            // build lookup maps for display names
             var loaiVeMap = new System.Collections.Generic.Dictionary<int, string>();
             var loaiXeMap = new System.Collections.Generic.Dictionary<int, string>();
+
             try
             {
-                var lvs = new LoaiVeService().GetAll();
+                var lvs = await new LoaiVeService().GetAllAsync();
                 foreach (var lv in lvs) loaiVeMap[lv.Id] = lv.TenLoai ?? string.Empty;
             }
             catch { }
+
             try
             {
-                var lxs = new LoaiXeService().GetAll();
+                var lxs = await new LoaiXeService().GetAllAsync();
                 foreach (var lx in lxs) loaiXeMap[lx.Id] = lx.TenLoai ?? string.Empty;
             }
             catch { }
@@ -51,27 +53,27 @@ namespace QuanLyGiuXe.Services
             return list;
         }
 
-        // Get by LoaiVe filter (includes display names)
-        public System.Collections.Generic.List<RFIDCards> GetByLoaiVe(int loaiVeId)
+        public async System.Threading.Tasks.Task<System.Collections.Generic.List<RFIDCards>> GetByLoaiVeAsync(int loaiVeId)
         {
-            if (loaiVeId <= 0) return GetAll();
+            if (loaiVeId <= 0) return await GetAllAsync();
 
-            var rows = db.GetRFIDCards();
+            var rows = await db.GetRFIDCardsAsync();
             var filtered = rows?.FindAll(x => x.LoaiVeId == loaiVeId) ?? new System.Collections.Generic.List<RFIDCard>();
             var list = new System.Collections.Generic.List<RFIDCards>();
 
-            // build lookup maps for display names
             var loaiVeMap = new System.Collections.Generic.Dictionary<int, string>();
             var loaiXeMap = new System.Collections.Generic.Dictionary<int, string>();
+
             try
             {
-                var lvs = new LoaiVeService().GetAll();
+                var lvs = await new LoaiVeService().GetAllAsync();
                 foreach (var lv in lvs) loaiVeMap[lv.Id] = lv.TenLoai ?? string.Empty;
             }
             catch { }
+
             try
             {
-                var lxs = new LoaiXeService().GetAll();
+                var lxs = await new LoaiXeService().GetAllAsync();
                 foreach (var lx in lxs) loaiXeMap[lx.Id] = lx.TenLoai ?? string.Empty;
             }
             catch { }
@@ -96,78 +98,37 @@ namespace QuanLyGiuXe.Services
             return list;
         }
 
-        public void Add(RFIDCards model)
+        public async System.Threading.Tasks.Task AddAsync(RFIDCards model)
         {
-            try
-            {
-                if (model == null) throw new ArgumentNullException(nameof(model));
-                if (string.IsNullOrWhiteSpace(model.CardUID)) throw new ArgumentException("CardUID không được rỗng", nameof(model.CardUID));
-                if (db.IsRFIDUidExists(model.CardUID)) throw new InvalidOperationException("CardUID đã tồn tại");
+            if (model == null) throw new ArgumentNullException(nameof(model));
+            if (string.IsNullOrWhiteSpace(model.CardUID)) throw new ArgumentException("CardUID không được rỗng");
 
-                // Determine NgayHetHan logic if provided by model (caller should set NgayHetHan when needed)
-                var ngayDangKy = model.NgayDangKy ?? DateTime.Now;
-                var ngayHetHan = model.NgayHetHan;
+            var ngayDangKy = model.NgayDangKy ?? DateTime.Now;
+            var ngayHetHan = model.NgayHetHan;
 
-                db.InsertRFIDCard(model.CardUID, model.BienSo ?? string.Empty, model.CardName ?? string.Empty, model.LoaiVeId ?? 0, model.LoaiXeId ?? 0, model.TrangThai ?? string.Empty, ngayDangKy, ngayHetHan);
-                LoggingService.Instance.LogCrud("CREATE_CARD", "RFIDCard", model.CardUID, null, new { model.CardUID, model.BienSo, model.CardName, model.LoaiVeId, model.LoaiXeId, model.TrangThai, NgayDangKy = ngayDangKy, NgayHetHan = ngayHetHan }, source: "RFIDCardService");
-            }
-            catch (Exception ex)
-            {
-                LoggingService.Instance.LogError("AddError", "RFIDCardService", $"Lỗi thêm thẻ RFID (UID: {model?.CardUID}): {ex.Message}", ex);
-                throw;
-            }
+            await db.InsertRFIDCardAsync(model.CardUID, model.BienSo ?? string.Empty, model.CardName ?? string.Empty, model.LoaiVeId ?? 0, model.LoaiXeId ?? 0, model.TrangThai ?? string.Empty, ngayDangKy, ngayHetHan);
         }
 
-        public void Update(RFIDCards model)
+        public async System.Threading.Tasks.Task UpdateAsync(RFIDCards model)
         {
-            try
-            {
-                if (model == null) throw new ArgumentNullException(nameof(model));
-                if (model.Id <= 0) throw new ArgumentException("ID không hợp lệ", nameof(model.Id));
-                // CardUID is readonly on edit, so we don't allow changing it here; but still ensure it's not empty
-                if (string.IsNullOrWhiteSpace(model.CardUID)) throw new ArgumentException("CardUID không được rỗng", nameof(model.CardUID));
+            if (model == null || model.Id <= 0) throw new ArgumentException("Model không hợp lệ");
 
-                // existing record check
-                var all = db.GetRFIDCards();
-                var existing = all?.Find(x => x.Id == model.Id);
-                if (existing == null) throw new InvalidOperationException("Không tìm thấy thẻ");
-
-                // if CardUID changed (shouldn't), prevent duplicate
-                if (!string.Equals(existing.UID, model.CardUID, StringComparison.OrdinalIgnoreCase) && db.IsRFIDUidExists(model.CardUID))
-                    throw new InvalidOperationException("CardUID đã tồn tại");
-
-                db.UpdateRFIDCard(model.Id, model.CardUID, model.BienSo ?? string.Empty, model.CardName ?? string.Empty, model.LoaiVeId ?? 0, model.LoaiXeId ?? 0, model.TrangThai ?? string.Empty, model.NgayDangKy, model.NgayHetHan);
-                LoggingService.Instance.LogCrud("UPDATE_CARD", "RFIDCard", model.Id.ToString(), existing, model, source: "RFIDCardService");
-            }
-            catch (Exception ex)
-            {
-                LoggingService.Instance.LogError("UpdateError", "RFIDCardService", $"Lỗi cập nhật thẻ RFID (Id: {model?.Id}): {ex.Message}", ex);
-                throw;
-            }
+            await db.UpdateRFIDCardAsync(model.Id, model.CardUID ?? string.Empty, model.BienSo ?? string.Empty, model.CardName ?? string.Empty, model.LoaiVeId ?? 0, model.LoaiXeId ?? 0, model.TrangThai ?? string.Empty, model.NgayDangKy, model.NgayHetHan);
         }
 
-        public void Delete(int id)
+        public async System.Threading.Tasks.Task DeleteAsync(int id)
         {
-            try
-            {
-                if (id <= 0) throw new ArgumentException("ID không hợp lệ", nameof(id));
-                db.DeleteRFIDCard(id);
-                LoggingService.Instance.LogCrud("DELETE_CARD", "RFIDCard", id.ToString(), null, null, source: "RFIDCardService");
-            }
-            catch (Exception ex)
-            {
-                LoggingService.Instance.LogError("DeleteError", "RFIDCardService", $"Lỗi xóa thẻ RFID (Id: {id}): {ex.Message}", ex);
-                throw;
-            }
+            if (id <= 0) throw new ArgumentException("ID không hợp lệ");
+            await db.DeleteRFIDCardAsync(id);
         }
 
-        // Get by id - map DatabaseService RFIDCard to project RFIDCards model
-        public RFIDCards? GetById(int id)
+        public async System.Threading.Tasks.Task<RFIDCards?> GetByIdAsync(int id)
         {
             if (id <= 0) return null;
-            var list = db.GetRFIDCards(); // returns List<RFIDCard>
+            var list = await db.GetRFIDCardsAsync();
             var found = list?.FirstOrDefault(x => x.Id == id);
             if (found == null) return null;
+
             return new RFIDCards
             {
                 Id = found.Id,
@@ -182,21 +143,44 @@ namespace QuanLyGiuXe.Services
             };
         }
 
-        public void GiaHan(int id, int soThang)
+        public async System.Threading.Tasks.Task GiaHanAsync(int id, int soThang)
         {
+            if (id <= 0 || soThang <= 0) throw new ArgumentException("Tham số không hợp lệ");
+            await db.GiaHanRFIDCardAsync(id, soThang);
+
+            // Optimistic offline cache update
             try
             {
-                if (id <= 0) throw new ArgumentException("ID không hợp lệ");
-                if (soThang <= 0) throw new ArgumentException("Số tháng gia hạn phải lớn hơn 0");
-
-                db.GiaHanRFIDCard(id, soThang);
-                LoggingService.Instance.LogCrud("RENEW_CARD", "RFIDCard", id.ToString(), null, new { Months = soThang }, source: "RFIDCardService", details: $"Gia hạn thẻ RFID (Id: {id}, {soThang} tháng)");
+                var cachedCards = await QuanLyGiuXe.Services.OfflineCache.OfflineCacheService.Instance.GetCacheAsync<List<RFIDCard>>("LIST_RFID_CARDS");
+                if (cachedCards != null)
+                {
+                    var card = cachedCards.FirstOrDefault(c => c.Id == id);
+                    if (card != null)
+                    {
+                        var now = DateTime.Now;
+                        if (!card.NgayHetHan.HasValue || card.NgayHetHan.Value < now)
+                            card.NgayHetHan = now.AddMonths(soThang);
+                        else
+                            card.NgayHetHan = card.NgayHetHan.Value.AddMonths(soThang);
+                        
+                        card.TrangThai = "Active";
+                        await QuanLyGiuXe.Services.OfflineCache.OfflineCacheService.Instance.SaveCacheAsync("LIST_RFID_CARDS", cachedCards);
+                    }
+                }
             }
             catch (Exception ex)
             {
-                LoggingService.Instance.LogError("GiaHanError", "RFIDCardService", $"Lỗi gia hạn thẻ RFID (Id: {id}): {ex.Message}", ex);
-                throw;
+                LoggingService.Instance.LogError("OFFLINE_CACHE", "OptimisticUpdate", "Failed to update local cache for GiaHan", ex);
             }
         }
+
+        // Legacy synchronous wrappers for UI compatibility
+        public List<RFIDCards> GetAll() => Task.Run(() => GetAllAsync()).GetAwaiter().GetResult();
+        public List<RFIDCards> GetByLoaiVe(int loaiVeId) => Task.Run(() => GetByLoaiVeAsync(loaiVeId)).GetAwaiter().GetResult();
+        public RFIDCards? GetById(int id) => Task.Run(() => GetByIdAsync(id)).GetAwaiter().GetResult();
+        public void Add(RFIDCards model) => Task.Run(() => AddAsync(model)).GetAwaiter().GetResult();
+        public void Update(RFIDCards model) => Task.Run(() => UpdateAsync(model)).GetAwaiter().GetResult();
+        public void Delete(int id) => Task.Run(() => DeleteAsync(id)).GetAwaiter().GetResult();
+        public void GiaHan(int id, int soThang) => Task.Run(() => GiaHanAsync(id, soThang)).GetAwaiter().GetResult();
     }
 }

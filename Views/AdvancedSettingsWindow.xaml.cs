@@ -17,5 +17,11 @@ namespace QuanLyGiuXe.Views
         {
             await C3200Service.Instance.OpenBarrierAsync(2);
         }
+
+        private void OpenOfflineQA_Click(object sender, RoutedEventArgs e)
+        {
+            var qa = new OfflineQADashboard();
+            qa.Show();
+        }
     }
 }
