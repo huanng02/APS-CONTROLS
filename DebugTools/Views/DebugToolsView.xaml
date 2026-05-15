@@ -165,6 +165,20 @@
                                 <Button Content="RECONNECT" Command="{Binding ForceReconnectCommand}" Style="{StaticResource QAButton}"/>
                                 <Button Content="AUTO RECOVERY" Command="{Binding StartAutoRecoveryCommand}" Style="{StaticResource QAButton}"/>
                             </UniformGrid>
+                            <Button Content="TEST OFFLINE CARD VALIDATION" Command="{Binding TestOfflineCardValidationCommand}" Style="{StaticResource QAButton}" HorizontalAlignment="Stretch" Foreground="{StaticResource NeonAmber}" FontWeight="Bold" Margin="0,5,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Offline Session Engine -->
+                    <Border Style="{StaticResource GlassCard}">
+                        <StackPanel>
+                            <TextBlock Text="📦 OFFLINE SESSION ENGINE" FontWeight="Bold" Margin="0,0,0,15" Foreground="{StaticResource NeonGreen}"/>
+                            <UniformGrid Columns="2">
+                                <Button Content="OFFLINE ENTRY" Command="{Binding TestOfflineEntryCommand}" Style="{StaticResource QAButton}"/>
+                                <Button Content="OFFLINE EXIT" Command="{Binding TestOfflineExitCommand}" Style="{StaticResource QAButton}"/>
+                                <Button Content="DUP ENTRY" Command="{Binding TestDuplicateEntryCommand}" Style="{StaticResource QAButton}"/>
+                                <Button Content="RESTORE" Command="{Binding TestSessionRestoreCommand}" Style="{StaticResource QAButton}"/>
+                            </UniformGrid>
                         </StackPanel>
                     </Border>
 

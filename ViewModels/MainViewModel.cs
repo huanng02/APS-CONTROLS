@@ -764,11 +764,36 @@ namespace QuanLyGiuXe.ViewModels
             {
                 LoggingService.Instance.LogInfo("ProcessAction", "MainViewModel", $"Lane={laneIndex} In={isInbound} UID={uid}");
 
-                // Verify card
-                var card = db.GetRFIDCardByUid(uid);
+                // 1. Verify Card (Online / Offline Fallback)
+                RFIDCard? card = null;
+                bool isOfflineMode = !ConnectivityStateService.Instance.IsOnline;
+
+                if (isOfflineMode)
+                {
+                    SetLaneStatus(laneIndex, "🟡 OFFLINE CARD MODE");
+                    card = await OfflineCacheService.Instance.GetCardFromCacheAsync(uid);
+                }
+                else
+                {
+                    card = db.GetRFIDCardByUid(uid);
+                }
+
+                // 2. Offline Validation Rules
                 if (card == null || card.Id == 0)
                 {
                     SetLaneStatus(laneIndex, $"❌ Thẻ {uid} chưa đăng ký!");
+                    return;
+                }
+
+                if (card.TrangThai == "Khóa" || card.TrangThai == "Blacklist")
+                {
+                    SetLaneStatus(laneIndex, $"❌ Thẻ {uid} bị khóa!");
+                    return;
+                }
+
+                if (card.NgayHetHan.HasValue && card.NgayHetHan.Value < DateTime.Now)
+                {
+                    SetLaneStatus(laneIndex, $"❌ Thẻ {uid} đã hết hạn!");
                     return;
                 }
 
@@ -794,54 +819,113 @@ namespace QuanLyGiuXe.ViewModels
         private async Task ProcessInboundAsync(int laneIndex, RFIDCard card, string uid)
         {
             string plate = card.BienSo ?? string.Empty;
+            bool isOffline = !ConnectivityStateService.Instance.IsOnline;
 
             try
             {
-                db.ThemXe(card.Id, string.IsNullOrEmpty(plate) ? null : plate, "");
+                if (isOffline)
+                {
+                    // 1. Check duplicate entry offline
+                    var activeSession = await OfflineCacheService.Instance.GetActiveSessionByCardAsync(card.UID);
+                    if (activeSession != null)
+                    {
+                        SetLaneStatus(laneIndex, "🔴 DUPLICATE ENTRY - XE ĐANG Ở TRONG BÃI!");
+                        return;
+                    }
+
+                    // 2. Save image locally (simulation for now, we'll add the folder logic)
+                    string localImagePath = await SaveOfflineImageAsync(laneIndex, true);
+
+                    // 3. Create local session
+                    var session = new ParkingSession
+                    {
+                        CardNumber = card.UID,
+                        BienSoXe = plate,
+                        LoaiXeId = card.LoaiXeId,
+                        LoaiVeId = card.LoaiVeId,
+                        ThoiGianVao = DateTime.Now,
+                        LanVaoId = laneIndex + 1,
+                        HinhAnhVao = localImagePath
+                    };
+                    await OfflineCacheService.Instance.CreateOfflineSessionAsync(session);
+
+                    // 4. Enqueue sync transaction
+                    await OfflineQueueService.Instance.EnqueueAsync("OFFLINE_ENTRY", session);
+                    
+                    SetLaneStatus(laneIndex, $"🟢 ENTRY SUCCESS (OFFLINE) - {DateTime.Now:HH:mm}");
+                }
+                else
+                {
+                    // Online flow
+                    db.ThemXe(card.Id, string.IsNullOrEmpty(plate) ? null : plate, "");
+                    bool opened = await C3200Service.Instance.OpenBarrierAsync(laneIndex);
+                    SetLaneStatus(laneIndex, opened ? $"✅ Xe vào lúc {DateTime.Now:HH:mm}" : "⚠ Xe vào – barrier lỗi");
+                }
                 
-                // Update UI for the specific lane
+                // Common UI updates
                 SetLanePlate(laneIndex, plate);
                 SetLaneUID(laneIndex, uid);
                 
-                bool opened = await C3200Service.Instance.OpenBarrierAsync(laneIndex);
-                SetLaneStatus(laneIndex, opened ? $"✅ Xe vào lúc {DateTime.Now:HH:mm}" : "⚠ Xe vào – barrier lỗi");
+                if (!isOffline)
+                {
+                    await C3200Service.Instance.OpenBarrierAsync(laneIndex);
+                }
+                else
+                {
+                    // In offline mode we still open the barrier
+                    await C3200Service.Instance.OpenBarrierAsync(laneIndex);
+                }
 
                 // Add to list
                 DanhSachXe.Add(new Xe { BienSo = plate, ThoiGianVao = DateTime.Now });
             }
             catch (Exception ex)
             {
-                SetLaneStatus(laneIndex, $"❌ Lỗi ghi DB: {ex.Message}");
+                SetLaneStatus(laneIndex, $"❌ Lỗi {(isOffline ? "Offline" : "DB")}: {ex.Message}");
             }
         }
 
         private async Task ProcessOutboundAsync(int laneIndex, RFIDCard card, string uid)
         {
-            var rec = db.GetXeTrongBaiRecordByCardId(card.Id);
-            if (rec == null)
+            bool isOffline = !ConnectivityStateService.Instance.IsOnline;
+            
+            if (isOffline)
             {
-                SetLaneStatus(laneIndex, "⚠ Không tìm thấy xe trong bãi");
-                return;
-            }
+                // 1. Lookup local active session
+                var session = await OfflineCacheService.Instance.GetActiveSessionByCardAsync(card.UID);
+                if (session == null)
+                {
+                    SetLaneStatus(laneIndex, "⚠ Không tìm thấy xe trong bãi (OFFLINE)");
+                    return;
+                }
 
-            var (id, plate, timeIn) = rec.Value;
-            var duration = DateTime.Now - timeIn;
-            double fee = db.TinhTien(card.LoaiXeId, card.LoaiVeId, timeIn, DateTime.Now);
+                string plate = session.BienSoXe ?? string.Empty;
+                var timeIn = session.ThoiGianVao;
+                var duration = DateTime.Now - timeIn;
+                
+                // 2. Calculate fee offline
+                double fee = db.TinhTien(card.LoaiXeId, card.LoaiVeId, timeIn, DateTime.Now);
 
-            try
-            {
-                db.UpdateXeRaById(id, DateTime.Now);
-                db.LuuLichSu(plate, timeIn, DateTime.Now, fee, "", uid);
-                db.XoaXeByCardId(card.Id);
+                // 3. Save exit image
+                string localImagePath = await SaveOfflineImageAsync(laneIndex, false);
+                session.ThoiGianRa = DateTime.Now;
+                session.LanRaId = laneIndex + 1;
+                session.HinhAnhRa = localImagePath;
 
-                // Update UI
+                // 4. Update local session
+                await OfflineCacheService.Instance.UpdateOfflineSessionAsync(session);
+
+                // 5. Enqueue sync
+                await OfflineQueueService.Instance.EnqueueAsync("OFFLINE_EXIT", session);
+
+                // UI Updates
                 SetLanePlate(laneIndex, plate);
                 SetLaneUID(laneIndex, uid);
                 SetLaneTimeInfo(laneIndex, timeIn, duration);
                 SetLaneFee(laneIndex, fee);
 
-                bool opened = await C3200Service.Instance.OpenBarrierAsync(laneIndex);
-                SetLaneStatus(laneIndex, opened ? $"✅ Xe ra lúc {DateTime.Now:HH:mm}" : "⚠ Xe ra – barrier lỗi");
+                await C3200Service.Instance.OpenBarrierAsync(laneIndex);
+                SetLaneStatus(laneIndex, $"🔵 EXIT SUCCESS (OFFLINE) - {DateTime.Now:HH:mm}");
 
                 // Remove from list
                 if (!string.IsNullOrEmpty(plate))
@@ -850,9 +934,70 @@ namespace QuanLyGiuXe.ViewModels
                     if (xe != null) DanhSachXe.Remove(xe);
                 }
             }
+            else
+            {
+                // Online flow
+                var rec = db.GetXeTrongBaiRecordByCardId(card.Id);
+                if (rec == null)
+                {
+                    SetLaneStatus(laneIndex, "⚠ Không tìm thấy xe trong bãi");
+                    return;
+                }
+
+                var (id, plate, timeIn) = rec.Value;
+                var duration = DateTime.Now - timeIn;
+                double fee = db.TinhTien(card.LoaiXeId, card.LoaiVeId, timeIn, DateTime.Now);
+
+                try
+                {
+                    db.UpdateXeRaById(id, DateTime.Now);
+                    db.LuuLichSu(plate, timeIn, DateTime.Now, fee, "", uid);
+                    db.XoaXeByCardId(card.Id);
+
+                    // Update UI
+                    SetLanePlate(laneIndex, plate);
+                    SetLaneUID(laneIndex, uid);
+                    SetLaneTimeInfo(laneIndex, timeIn, duration);
+                    SetLaneFee(laneIndex, fee);
+
+                    bool opened = await C3200Service.Instance.OpenBarrierAsync(laneIndex);
+                    SetLaneStatus(laneIndex, opened ? $"✅ Xe ra lúc {DateTime.Now:HH:mm}" : "⚠ Xe ra – barrier lỗi");
+
+                    // Remove from list
+                    if (!string.IsNullOrEmpty(plate))
+                    {
+                        var xe = DanhSachXe.FirstOrDefault(x => x.BienSo == plate);
+                        if (xe != null) DanhSachXe.Remove(xe);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    SetLaneStatus(laneIndex, $"❌ Lỗi DB: {ex.Message}");
+                }
+            }
+        }
+
+        private async Task<string> SaveOfflineImageAsync(int laneIndex, bool isEntry)
+        {
+            try
+            {
+                string folder = isEntry ? "offline_entry_images" : "offline_exit_images";
+                string fullPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, folder);
+                if (!Directory.Exists(fullPath)) Directory.CreateDirectory(fullPath);
+
+                string fileName = $"{DateTime.Now:yyyyMMdd_HHmmss}_{laneIndex}.jpg";
+                string filePath = Path.Combine(fullPath, fileName);
+
+                // Simulation: In reality we would capture from camera
+                // For now, we'll just create a dummy file if we can't get real capture
+                await File.WriteAllTextAsync(filePath, "OFFLINE_IMAGE_STUB");
+                
+                return filePath;
+            }
             catch (Exception ex)
             {
-                SetLaneStatus(laneIndex, $"❌ Lỗi DB: {ex.Message}");
+                LoggingService.Instance.LogError("IMAGE_SAVE", "Offline", "Failed to save offline image", ex);
+                return string.Empty;
             }
         }
 

@@ -37,6 +37,7 @@ namespace QuanLyGiuXe.ViewModels
         public ICommand TestWriteQueueCommand { get; }
         public ICommand RefreshQueueCommand { get; }
         public ICommand StressTestCommand { get; }
+        public ICommand TestOfflineCardValidationCommand { get; }
 
         public OfflineQAViewModel()
         {
@@ -47,6 +48,7 @@ namespace QuanLyGiuXe.ViewModels
             TestWriteQueueCommand = new RelayCommand(async _ => await RunWriteTest());
             RefreshQueueCommand = new RelayCommand(async _ => await RefreshQueue());
             StressTestCommand = new RelayCommand(async _ => await RunStressTest());
+            TestOfflineCardValidationCommand = new RelayCommand(async _ => await RunOfflineCardValidationTest());
 
             _ = RefreshQueue();
         }
@@ -113,6 +115,59 @@ namespace QuanLyGiuXe.ViewModels
             await Task.WhenAll(tasks);
             AddLog("Stress Test Finished.");
             await RefreshQueue();
+        }
+
+        private async Task RunOfflineCardValidationTest()
+        {
+            AddLog("--- OFFLINE CARD VALIDATION TEST ---");
+            bool wasSimulating = _connService.IsSimulatingOffline;
+            
+            try
+            {
+                // Force online to get a card
+                _connService.IsSimulatingOffline = false;
+                var cards = await new DatabaseService().GetRFIDCardsAsync();
+                if (cards == null || cards.Count == 0)
+                {
+                    AddLog("No cards in DB to test.");
+                    return;
+                }
+
+                var testCard = cards.First();
+                AddLog($"Testing with Card UID: {testCard.UID} (Online mode)");
+                
+                // Simulate MainViewModel logic online
+                var vm = new MainViewModel(); // just for testing logic if needed, or we just call the cache directly
+                var onlineCard = new DatabaseService().GetRFIDCardByUid(testCard.UID);
+                AddLog(onlineCard != null ? "✅ Online: Card found" : "❌ Online: Card not found");
+
+                // Switch to offline
+                _connService.IsSimulatingOffline = true;
+                AddLog($"Switched to Offline Mode. Testing Card UID: {testCard.UID}");
+                
+                var offlineCard = await _cacheService.GetCardFromCacheAsync(testCard.UID);
+                if (offlineCard != null)
+                {
+                    AddLog("✅ Offline: Card found in Cache");
+                    AddLog($"Status: {(offlineCard.TrangThai == "Khóa" ? "Blacklisted" : "Active")}");
+                    AddLog($"Expires: {(offlineCard.NgayHetHan.HasValue ? offlineCard.NgayHetHan.Value.ToString() : "Never")}");
+                }
+                else
+                {
+                    AddLog("❌ Offline: Card NOT found in Cache");
+                }
+
+                // Test unknown card
+                string fakeUid = "UNKNOWN_12345";
+                AddLog($"Testing Unknown Card UID: {fakeUid}");
+                var unknownCard = await _cacheService.GetCardFromCacheAsync(fakeUid);
+                AddLog(unknownCard == null ? "✅ Offline: Unknown card correctly rejected" : "❌ Offline: Unknown card was found!");
+            }
+            finally
+            {
+                // Restore state
+                _connService.IsSimulatingOffline = wasSimulating;
+            }
         }
     }
 }

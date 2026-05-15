@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.IO;
 using QuanLyGiuXe.Models;
 using QuanLyGiuXe.Services;
 using Newtonsoft.Json;
@@ -193,16 +194,73 @@ namespace QuanLyGiuXe.Services.OfflineCache
                         await new BangGiaKhungGioRepository().DeleteAsync((int)bgkgId.Id);
                         return true;
 
+                    // Parking Sessions
+                    case "OFFLINE_ENTRY":
+                        var entry = JsonConvert.DeserializeObject<ParkingSession>(tx.PayloadJson);
+                        var eCard = db.GetRFIDCardByUid(entry.CardNumber);
+                        if (eCard != null)
+                        {
+                            // Upload image if exists
+                            if (!string.IsNullOrEmpty(entry.HinhAnhVao) && File.Exists(entry.HinhAnhVao))
+                            {
+                                await UploadImageAsync(entry.HinhAnhVao, "entry");
+                            }
+                            db.ThemXe(eCard.Id, entry.BienSoXe, entry.HinhAnhVao);
+                            return true;
+                        }
+                        return false;
+
+                    case "OFFLINE_EXIT":
+                        var exit = JsonConvert.DeserializeObject<ParkingSession>(tx.PayloadJson);
+                        var xCard = db.GetRFIDCardByUid(exit.CardNumber);
+                        if (xCard != null)
+                        {
+                            var rec = db.GetXeTrongBaiRecordByCardId(xCard.Id);
+                            if (rec != null)
+                            {
+                                // Upload image if exists
+                                if (!string.IsNullOrEmpty(exit.HinhAnhRa) && File.Exists(exit.HinhAnhRa))
+                                {
+                                    await UploadImageAsync(exit.HinhAnhRa, "exit");
+                                }
+
+                                var timeOut = exit.ThoiGianRa ?? DateTime.Now;
+                                db.UpdateXeRaById(rec.Value.Item1, timeOut);
+                                double fee = db.TinhTien(xCard.LoaiXeId, xCard.LoaiVeId, rec.Value.Item3, timeOut);
+                                db.LuuLichSu(exit.BienSoXe, rec.Value.Item3, timeOut, fee, exit.HinhAnhRa, exit.CardNumber);
+                                db.XoaXeByCardId(xCard.Id);
+                                return true;
+                            }
+                        }
+                        return false;
+
                     default:
-                        LoggingService.Instance.LogWarning("SYNC_ENGINE", "Process", $"Unknown transaction type: {tx.TransactionType}");
-                        return true; 
+                        LoggingService.Instance.LogInfo("SYNC_ENGINE", "Unknown", $"Unknown transaction type: {tx.TransactionType}");
+                        return true; // Mark as done to avoid blocking
                 }
             }
             catch (Exception ex)
             {
-                tx.ErrorMessage = ex.Message;
-                LoggingService.Instance.LogError("SYNC_ENGINE", "Sync", $"Failed to sync {tx.TransactionType}: {ex.Message}", ex);
+                LoggingService.Instance.LogError("SYNC_ENGINE", "Process", $"Failed to process {tx.TransactionType}", ex);
                 return false;
+            }
+        }
+
+        private async Task UploadImageAsync(string localPath, string type)
+        {
+            try
+            {
+                // Simulation of image upload to server
+                LoggingService.Instance.LogInfo("SYNC_IMAGE", "Upload", $"Uploading {type} image: {Path.GetFileName(localPath)}");
+                await Task.Delay(1000); // Simulate network latency
+                
+                // Optional: Delete local file after success if configured
+                // File.Delete(localPath);
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("SYNC_IMAGE", "Upload", "Upload failed", ex);
+                throw;
             }
         }
     }

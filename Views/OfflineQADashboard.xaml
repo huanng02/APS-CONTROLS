@@ -58,6 +58,7 @@
                         <Button Command="{Binding TestReadCacheCommand}" Content="TEST CACHE FALLBACK" Background="#3498DB" Foreground="White" Height="40" Margin="0,5" BorderThickness="0"/>
                         <Button Command="{Binding TestWriteQueueCommand}" Content="TEST QUEUE WRITE" Background="#F39C12" Foreground="White" Height="40" Margin="0,5" BorderThickness="0"/>
                         <Button Command="{Binding StressTestCommand}" Content="TEST MASSIVE QUEUE" Background="#9B59B6" Foreground="White" Height="40" Margin="0,5" BorderThickness="0"/>
+                        <Button Command="{Binding TestOfflineCardValidationCommand}" Content="TEST OFFLINE VALIDATION" Background="#E67E22" Foreground="White" Height="40" Margin="0,5" BorderThickness="0"/>
                     </StackPanel>
                 </Border>
 

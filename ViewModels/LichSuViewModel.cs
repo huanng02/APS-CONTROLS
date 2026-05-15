@@ -11,6 +11,7 @@ using ClosedXML.Excel;
 using Microsoft.Win32;
 using QuanLyGiuXe.Models;
 using QuanLyGiuXe.Services;
+using QuanLyGiuXe.Services.OfflineCache;
 
 namespace QuanLyGiuXe.ViewModels
 {
@@ -157,6 +158,22 @@ namespace QuanLyGiuXe.ViewModels
             try
             {
                 var data = await Task.Run(() => db.LayLichSu().ToList());
+                
+                // Fetch local offline sessions to show as "Pending"
+                var localSessions = await OfflineCacheService.Instance.GetAllLocalSessionsAsync();
+                foreach (var session in localSessions)
+                {
+                    data.Add(new LichSuXe
+                    {
+                        Id = -session.Id, // Use negative ID to distinguish local records
+                        BienSo = session.BienSoXe + " (OFFLINE)",
+                        ThoiGianVao = session.ThoiGianVao,
+                        ThoiGianRa = session.ThoiGianRa,
+                        Tien = 0, // Fee logic might need improvement here
+                        CardId = 0 // CardId mapping needed if possible
+                    });
+                }
+
                 TatCaLichSu = data;
                 CalculateStats(data);
                 await LoadTrangAsync();
