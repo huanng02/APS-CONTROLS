@@ -23,27 +23,21 @@ namespace QuanLyGiuXe
             BarrierBox.Text = _cfg.ZKTeco.BarrierDuration.ToString();
             CooldownBox.Text = _cfg.ZKTeco.CardCooldownMs.ToString();
 
-            // populate group combos (C3-200 reports rawDoor groups 1 or 2)
+            // populate group combos (Lane 1 or Lane 2)
             var gi = this.FindName("GateInCombo") as ComboBox;
             var go = this.FindName("GateOutCombo") as ComboBox;
             if (gi != null && go != null)
             {
                 gi.Items.Clear();
                 go.Items.Clear();
-                var item1 = new ComboBoxItem { Content = "Group A — readers 1+2 (rawDoor=1)", Tag = "1" };
-                var item2 = new ComboBoxItem { Content = "Group B — readers 3+4 (rawDoor=2)", Tag = "2" };
+                var item1 = new ComboBoxItem { Content = "Lane 1", Tag = "1" };
+                var item2 = new ComboBoxItem { Content = "Lane 2", Tag = "2" };
                 gi.Items.Add(item1);
                 gi.Items.Add(item2);
-                go.Items.Add(new ComboBoxItem { Content = "Group A — readers 1+2 (rawDoor=1)", Tag = "1" });
-                go.Items.Add(new ComboBoxItem { Content = "Group B — readers 3+4 (rawDoor=2)", Tag = "2" });
+                go.Items.Add(new ComboBoxItem { Content = "Lane 1", Tag = "1" });
+                go.Items.Add(new ComboBoxItem { Content = "Lane 2", Tag = "2" });
 
-                // pre-select according to CSV config (choose first matching group)
-                var inCsv = _cfg.ZKTeco.GateInDoors ?? _cfg.ZKTeco.GateInDoor.ToString();
-                if (inCsv.Contains("1")) gi.SelectedItem = item1;
-                else if (inCsv.Contains("2")) gi.SelectedItem = item2;
-                var outCsv = _cfg.ZKTeco.GateOutDoors ?? _cfg.ZKTeco.GateOutDoor.ToString();
-                if (outCsv.Contains("1")) go.SelectedIndex = 0;
-                else if (outCsv.Contains("2")) go.SelectedIndex = 1;
+                LoadGroupSelection();
 
                 // show current config in tooltips
                 gi.ToolTip = "Select IN group. Button actions configured in C3-200 Settings.";
@@ -159,7 +153,8 @@ namespace QuanLyGiuXe
                     // auto-select opposite group: if A selected for IN then select B for OUT, and vice versa
                     var sel = ci.Tag?.ToString();
                     if (sel == "1") go.SelectedIndex = 1; // select group B
-                    else if (sel == "2") go.SelectedIndex = 0; // select group A
+                    if (sel == "1") go.SelectedIndex = 1; 
+                    else if (sel == "2") go.SelectedIndex = 0;
                 }
             }
             finally { _suppressGroupSync = false; }
@@ -181,6 +176,39 @@ namespace QuanLyGiuXe
                 }
             }
             finally { _suppressGroupSync = false; }
+        }
+
+        private void LoadGroupSelection()
+        {
+            var mappings = ReaderLaneMappingService.Instance.GetAll();
+            
+            // Find which lane is assigned to Group A (Door 1)
+            var m1 = mappings.FirstOrDefault(m => m.Door == 1);
+            if (m1 != null)
+            {
+                foreach (ComboBoxItem item in GateInCombo.Items)
+                {
+                    if (item.Tag?.ToString() == m1.LaneIndex.ToString())
+                    {
+                        GateInCombo.SelectedItem = item;
+                        break;
+                    }
+                }
+            }
+
+            // Find which lane is assigned to Group B (Door 2)
+            var m2 = mappings.FirstOrDefault(m => m.Door == 2);
+            if (m2 != null)
+            {
+                foreach (ComboBoxItem item in GateOutCombo.Items)
+                {
+                    if (item.Tag?.ToString() == m2.LaneIndex.ToString())
+                    {
+                        GateOutCombo.SelectedItem = item;
+                        break;
+                    }
+                }
+            }
         }
 
         private async void TestConnection_Click(object sender, RoutedEventArgs e)
@@ -264,15 +292,7 @@ namespace QuanLyGiuXe
             _cfg.ZKTeco.Timeout = int.TryParse(TimeoutBox.Text, out var t) ? t : _cfg.ZKTeco.Timeout;
             _cfg.ZKTeco.BarrierDuration = int.TryParse(BarrierBox.Text, out var b) ? b : _cfg.ZKTeco.BarrierDuration;
             _cfg.ZKTeco.CardCooldownMs = int.TryParse(CooldownBox.Text, out var c) ? c : _cfg.ZKTeco.CardCooldownMs;
-            // save selected groups
-            var selIn = this.FindName("GateInCombo") as ComboBox;
-            var selOut = this.FindName("GateOutCombo") as ComboBox;
-            var selInItem = selIn?.SelectedItem as ComboBoxItem;
-            var selOutItem = selOut?.SelectedItem as ComboBoxItem;
-            _cfg.ZKTeco.GateInDoors = selInItem?.Tag?.ToString() ?? _cfg.ZKTeco.GateInDoors;
-            _cfg.ZKTeco.GateOutDoors = selOutItem?.Tag?.ToString() ?? _cfg.ZKTeco.GateOutDoors;
-            if (int.TryParse(_cfg.ZKTeco.GateInDoors?.Split(',')[0], out var legacyIn)) _cfg.ZKTeco.GateInDoor = legacyIn;
-            if (int.TryParse(_cfg.ZKTeco.GateOutDoors?.Split(',')[0], out var legacyOut)) _cfg.ZKTeco.GateOutDoor = legacyOut;
+            
             _cfg.ZKTeco.ForceAllIn = ForceAllInRadio.IsChecked == true;
             _cfg.ZKTeco.ForceAllOut = ForceAllOutRadio.IsChecked == true;
 
@@ -281,12 +301,21 @@ namespace QuanLyGiuXe
             if (b1?.SelectedItem is ComboBoxItem bi1) _cfg.ZKTeco.Button1Action = bi1.Tag?.ToString() ?? _cfg.ZKTeco.Button1Action;
             if (b2?.SelectedItem is ComboBoxItem bi2) _cfg.ZKTeco.Button2Action = bi2.Tag?.ToString() ?? _cfg.ZKTeco.Button2Action;
 
-            // validation: no overlap between selected groups
-            if (selInItem != null && selOutItem != null && selInItem.Tag?.ToString() == selOutItem.Tag?.ToString())
+            // save reader mappings via Service based on Group Selection
+            var selInItem = GateInCombo.SelectedItem as ComboBoxItem;
+            var selOutItem = GateOutCombo.SelectedItem as ComboBoxItem;
+            
+            int laneA = int.Parse(selInItem?.Tag?.ToString() ?? "1");
+            int laneB = int.Parse(selOutItem?.Tag?.ToString() ?? "2");
+
+            if (laneA == laneB)
             {
-                MessageBox.Show($"Selected group for IN and OUT cannot be the same. Please choose different groups.", "Validation error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Group A and Group B cannot be mapped to the same Lane.", "Validation error", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
+
+            ReaderLaneMappingService.Instance.UpdateMapping(1, new List<int> { 1, 2 }, laneA);
+            ReaderLaneMappingService.Instance.UpdateMapping(2, new List<int> { 1, 2 }, laneB);
 
             // compute diffs
             try

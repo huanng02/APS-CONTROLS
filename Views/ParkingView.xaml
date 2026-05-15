@@ -86,7 +86,13 @@
                     <StackPanel Grid.Row="2">
                         <Border Background="{StaticResource BgLightBrush}" Padding="15" CornerRadius="4">
                             <StackPanel>
-                                <TextBlock Text="{Binding DataContext.Lane1InfoLabel, RelativeSource={RelativeSource AncestorType=Window}}" Style="{StaticResource SubTitleStyle}" Margin="0,0,0,10"/>
+                                 <TextBlock Text="{Binding DataContext.Lane1InfoLabel, RelativeSource={RelativeSource AncestorType=Window}}" Style="{StaticResource SubTitleStyle}" Margin="0,0,0,5"/>
+                                 <Border Background="#1A27AE60" BorderBrush="#3327AE60" BorderThickness="1" CornerRadius="3" HorizontalAlignment="Left" Padding="6,2" Margin="0,0,0,10">
+                                     <StackPanel Orientation="Horizontal">
+                                         <Path Data="M12,2C6.48,2,2,6.48,2,12s4.48,10,10,10,10-4.48,10-10S17.52,2,12,2zm-1,14.5v-9l6,4.5-6,4.5z" Fill="#27AE60" Width="10" Height="10" Stretch="Uniform" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                         <TextBlock Text="{Binding DataContext.Lane1ReaderMappingDisplay, RelativeSource={RelativeSource AncestorType=Window}}" FontSize="11" Foreground="#27AE60" FontWeight="Bold" VerticalAlignment="Center"/>
+                                     </StackPanel>
+                                 </Border>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
@@ -196,7 +202,13 @@
                     <StackPanel Grid.Row="2">
                         <Border Background="{StaticResource BgLightBrush}" Padding="15" CornerRadius="4">
                             <StackPanel>
-                                <TextBlock Text="{Binding DataContext.Lane2InfoLabel, RelativeSource={RelativeSource AncestorType=Window}}" Style="{StaticResource SubTitleStyle}" Margin="0,0,0,10"/>
+                                 <TextBlock Text="{Binding DataContext.Lane2InfoLabel, RelativeSource={RelativeSource AncestorType=Window}}" Style="{StaticResource SubTitleStyle}" Margin="0,0,0,5"/>
+                                 <Border Background="#1A27AE60" BorderBrush="#3327AE60" BorderThickness="1" CornerRadius="3" HorizontalAlignment="Left" Padding="6,2" Margin="0,0,0,10">
+                                     <StackPanel Orientation="Horizontal">
+                                         <Path Data="M12,2C6.48,2,2,6.48,2,12s4.48,10,10,10,10-4.48,10-10S17.52,2,12,2zm-1,14.5v-9l6,4.5-6,4.5z" Fill="#27AE60" Width="10" Height="10" Stretch="Uniform" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                                         <TextBlock Text="{Binding DataContext.Lane2ReaderMappingDisplay, RelativeSource={RelativeSource AncestorType=Window}}" FontSize="11" Foreground="#27AE60" FontWeight="Bold" VerticalAlignment="Center"/>
+                                     </StackPanel>
+                                 </Border>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="*"/>
