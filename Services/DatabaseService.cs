@@ -316,6 +316,8 @@ namespace QuanLyGiuXe.Services
                     var loaiVe = GetLoaiVe().FirstOrDefault(x => x.Id == loaiVeId.Value);
                     if (loaiVe != null)  
                     {
+                        if (loaiVe.CoTheGiaHan) return 0.0; // Monthly/Renewable ticket
+
                         var name = (loaiVe.TenLoai ?? string.Empty).ToLowerInvariant();
                         if (name.Contains("thang") || name.Contains("tháng") || name.Contains("month"))
                         {
@@ -332,42 +334,10 @@ namespace QuanLyGiuXe.Services
                     var khungs = GetKhungGio();
                     var prices = GetBangGiaKhungGioByBangGiaId(bangGia.Id);
 
-                    var dayKhung = khungs.FirstOrDefault(k => !k.QuaDem);
-                    var nightKhung = khungs.FirstOrDefault(k => k.QuaDem);
-
-                    var dayGia = dayKhung != null ? prices.FirstOrDefault(x => x.KhungGioId == dayKhung.Id) : null;
-                    var nightGia = nightKhung != null ? prices.FirstOrDefault(x => x.KhungGioId == nightKhung.Id) : null;
-
-                    decimal dayFee = dayGia != null ? dayGia.GiaTien : 0m;
-                    decimal nightFee = nightGia != null ? nightGia.GiaTien : 0m;
-
-                    TimeSpan dayStart = dayKhung != null ? dayKhung.GioBatDau : new TimeSpan(6, 0, 0);
-                    TimeSpan dayEnd = dayKhung != null ? dayKhung.GioKetThuc : new TimeSpan(22, 0, 0);
-
-                    decimal finalPrice = 0m;
-
-                    if (checkIn.Date != checkOut.Date)
-                    {
-                        finalPrice = dayFee + nightFee;
-                    }
-                    else
-                    {
-                        TimeSpan startTime = checkIn.TimeOfDay;
-                        TimeSpan endTime = checkOut.TimeOfDay;
-
-                        bool hasDay = startTime < dayEnd && endTime > dayStart;
-                        bool hasNight = startTime < dayStart || endTime > dayEnd;
-
-                        if (hasDay && !hasNight)
-                        {
-                            finalPrice = dayFee;
-                        }
-                        else
-                        {
-                            finalPrice = nightFee;
-                        }
-                    }
-                    return (double)finalPrice;
+                    var (defs, ps) = QuanLyGiuXe.ViewModels.TimeSlotCalculator.MapFromDb(khungs, prices);
+                    var calcResult = QuanLyGiuXe.ViewModels.TimeSlotCalculator.Calculate(checkIn, checkOut, defs, ps);
+                    
+                    return (double)calcResult.FinalPrice;
                 }
 
                 // Fallback if no BangGia configured
@@ -375,8 +345,9 @@ namespace QuanLyGiuXe.Services
                 double hours = Math.Ceiling(duration.TotalHours <= 0 ? 1 : duration.TotalHours);
                 return defaultRate * hours;
             }
-            catch
+            catch (Exception ex)
             {
+                LoggingService.Instance.LogError("TinhTienError", "DatabaseService", $"Lỗi tính tiền (LoaiXe: {loaiXeId}, LoaiVe: {loaiVeId}): {ex.Message}", ex);
                 // On any failure, fallback to simple rule to preserve compatibility
                 var duration = checkOut - checkIn;
                 double hours = Math.Ceiling(duration.TotalHours <= 0 ? 1 : duration.TotalHours);
@@ -588,7 +559,7 @@ namespace QuanLyGiuXe.Services
             {
                 conn.Open();
                 // New schema: pricing per KhungGio. Keep legacy columns for compatibility but avoid using them.
-                string sql = "SELECT Id, LoaiXeId, LoaiVeId, GiaThang FROM dbo.BangGia";
+                string sql = "SELECT Id, LoaiXeId, LoaiVeId, GiaThang, TrangThai FROM dbo.BangGia";
                 using (SqlCommand cmd = new SqlCommand(sql, conn))
                 using (SqlDataReader r = cmd.ExecuteReader())
                 {

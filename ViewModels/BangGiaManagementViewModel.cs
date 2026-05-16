@@ -102,54 +102,46 @@ namespace QuanLyGiuXe.ViewModels
                     return;
                 }
 
-                // --- ÁP DỤNG LOGIC NGÀY/ĐÊM ---
-                var dayKhung = KhungGioList.FirstOrDefault(k => !k.QuaDem);
-                var nightKhung = KhungGioList.FirstOrDefault(k => k.QuaDem);
+                // --- ÁP DỤNG LOGIC TÍNH GIÁ MỚI ---
+                var bgkRepo = new BangGiaKhungGioRepository();
+                // We use the current state of the UI (KhungGiaItems) instead of DB for preview
+                var defs = KhungGioList.Select(k => new KhungGioDef 
+                { 
+                    Id = k.Id, 
+                    TenKhungGio = k.TenKhungGio, 
+                    GioBatDau = k.GioBatDau, 
+                    GioKetThuc = k.GioKetThuc, 
+                    QuaDem = k.QuaDem 
+                });
+                
+                var ps = KhungGiaItems.Select(p => new KhungPrice 
+                { 
+                    KhungGioId = p.KhungGioId, 
+                    GiaTien = p.GiaTien, 
+                    Unit = PriceUnit.PerHour 
+                });
 
-                var dayGia = dayKhung != null ? KhungGiaItems.FirstOrDefault(x => x.KhungGioId == dayKhung.Id) : null;
-                var nightGia = nightKhung != null ? KhungGiaItems.FirstOrDefault(x => x.KhungGioId == nightKhung.Id) : null;
+                var calcResult = TimeSlotCalculator.Calculate(start, end, defs, ps);
 
-                decimal dayFee = dayGia?.GiaTien ?? 0m;
-                decimal nightFee = nightGia?.GiaTien ?? 0m;
-
-                TimeSpan dayStart = dayKhung != null ? dayKhung.GioBatDau : new TimeSpan(6, 0, 0);
-                TimeSpan dayEnd = dayKhung != null ? dayKhung.GioKetThuc : new TimeSpan(22, 0, 0);
-
-                decimal finalPrice = 0m;
                 var sb = new System.Text.StringBuilder();
-                sb.AppendLine($"Tổng thời gian: {(long)(end - start).TotalSeconds} giây");
-
-                if (start.Date != end.Date)
+                sb.AppendLine($"Thời gian: {calcResult.TotalDuration.Days}d {calcResult.TotalDuration.Hours}h{calcResult.TotalDuration.Minutes:D2}m");
+                
+                if (calcResult.IsCaseA)
                 {
-                    finalPrice = dayFee + nightFee;
-                    sb.AppendLine("RULE 4: Qua ngày -> Tính tổng giá ban đêm hôm trước + ban ngày hôm sau");
+                    sb.AppendLine($"RULE A: Gửi dưới 1 giờ -> Tính theo khung '{calcResult.DominantKhungName}'");
                 }
                 else
                 {
-                    TimeSpan startTime = start.TimeOfDay;
-                    TimeSpan endTime = end.TimeOfDay;
-
-                    bool hasDay = startTime < dayEnd && endTime > dayStart;
-                    bool hasNight = startTime < dayStart || endTime > dayEnd;
-
-                    if (hasDay && !hasNight)
-                    {
-                        finalPrice = dayFee;
-                        sb.AppendLine("RULE 1: Chỉ trong khung ban ngày -> Tính giá ban ngày");
-                    }
-                    else
-                    {
-                        finalPrice = nightFee;
-                        sb.AppendLine("RULE 2 & 3: Có dính ban đêm (hoặc cả ngày + đêm) -> Tính giá ban đêm");
-                    }
+                    var touched = string.Join(", ", calcResult.Segments.Select(s => s.TenKhungGio).Distinct());
+                    sb.AppendLine($"RULE B: Gửi trên 1 giờ -> Cộng dồn các khung: {touched}");
                 }
 
-                sb.AppendLine($"Tổng tiền: {FormatVND(finalPrice)}");
+                sb.AppendLine($"Tổng tiền: {FormatVND(calcResult.FinalPrice)}");
                 ResultText = sb.ToString();
             }
             catch (Exception ex)
             {
-                ResultText = "Lỗi khi tính tiền: kiểm tra cấu hình bảng giá";
+                ResultText = "Lỗi khi tính tiền: " + ex.Message;
                 LoggingService.Instance.LogError("ComputePriceFailed", "BangGiaManagementViewModel", "Failed to compute price", ex);
             }
             OnPropertyChanged(nameof(ResultText));
