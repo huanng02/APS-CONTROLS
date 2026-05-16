@@ -193,6 +193,74 @@ namespace QuanLyGiuXe.Services.OfflineCache
                         await new BangGiaKhungGioRepository().DeleteAsync((int)bgkgId.Id);
                         return true;
 
+                    // ==========================================
+                    // PARKING FLOW - Xe Vào / Xe Ra
+                    // ==========================================
+
+                    case "INSERT_XE_VAO":
+                    {
+                        var p = JsonConvert.DeserializeObject<dynamic>(tx.PayloadJson);
+                        int cardId = (int)p.CardId;
+                        string? bienSo = (string?)p.BienSo;
+                        string? anhXe = (string?)p.AnhXe;
+                        DateTime time = (DateTime)p.Time;
+
+                        // Check không insert trùng
+                        bool alreadyIn = await db.IsXeTrongBaiByCardIdAsync(cardId);
+                        if (!alreadyIn)
+                        {
+                            using var sqlConn = new System.Data.SqlClient.SqlConnection(ConnectionManager.Instance.CurrentConnectionString);
+                            await sqlConn.OpenAsync();
+                            string insertSql = @"INSERT INTO XeTrongBai (CardId, BienSo, ThoiGianVao, AnhXe) 
+                                                VALUES (@cardId, @bienSo, @time, @anhXe)";
+                            using var cmd = new System.Data.SqlClient.SqlCommand(insertSql, sqlConn);
+                            cmd.Parameters.AddWithValue("@cardId", cardId);
+                            cmd.Parameters.AddWithValue("@bienSo", string.IsNullOrEmpty(bienSo) ? (object)DBNull.Value : bienSo);
+                            cmd.Parameters.AddWithValue("@time", time);
+                            cmd.Parameters.AddWithValue("@anhXe", string.IsNullOrEmpty(anhXe) ? (object)DBNull.Value : anhXe);
+                            await cmd.ExecuteNonQueryAsync();
+                        }
+                        return true;
+                    }
+
+                    case "UPDATE_XE_RA":
+                    {
+                        var p = JsonConvert.DeserializeObject<dynamic>(tx.PayloadJson);
+                        int id = (int)p.Id;
+                        DateTime thoiGianRa = (DateTime)p.ThoiGianRa;
+                        await db.UpdateXeRaByIdAsync(id, thoiGianRa);
+                        return true;
+                    }
+
+                    case "DELETE_XE_TRONG_BAI":
+                    {
+                        var p = JsonConvert.DeserializeObject<dynamic>(tx.PayloadJson);
+                        int cardId = (int)p.CardId;
+                        await db.XoaXeByCardIdAsync(cardId);
+                        return true;
+                    }
+
+                    case "DELETE_XE_BY_PLATE":
+                    {
+                        var p = JsonConvert.DeserializeObject<dynamic>(tx.PayloadJson);
+                        string? bienSo = (string?)p.BienSo;
+                        await db.XoaXeAsync(bienSo ?? string.Empty);
+                        return true;
+                    }
+
+                    case "INSERT_LICH_SU":
+                    {
+                        var p = JsonConvert.DeserializeObject<dynamic>(tx.PayloadJson);
+                        string? bienSo = (string?)p.BienSo;
+                        DateTime vao = (DateTime)p.Vao;
+                        DateTime ra = (DateTime)p.Ra;
+                        double tien = (double)p.Tien;
+                        string? anhXe = (string?)p.AnhXe;
+                        string? cardUid = (string?)p.CardUid;
+                        await db.LuuLichSuAsync(bienSo, vao, ra, tien, anhXe ?? string.Empty, cardUid);
+                        return true;
+                    }
+
                     default:
                         LoggingService.Instance.LogWarning("SYNC_ENGINE", "Process", $"Unknown transaction type: {tx.TransactionType}");
                         return true; 
