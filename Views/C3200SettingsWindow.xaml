@@ -52,17 +52,23 @@
                     <TextBlock Grid.Row="5" Grid.Column="0" Text="CARD COOLDOWN (MS)" Style="{StaticResource BaseTextBlockStyle}" VerticalAlignment="Center" Margin="0,8"/>
                     <TextBox Grid.Row="5" Grid.Column="1" x:Name="CooldownBox" Style="{StaticResource ModernTextBox}" Margin="10,5"/>
 
-                    <TextBlock Grid.Row="7" Grid.Column="0" Text="GATE IN GROUP" Style="{StaticResource BaseTextBlockStyle}" VerticalAlignment="Center" Margin="0,8"/>
-                    <ComboBox Grid.Row="7" Grid.Column="1" x:Name="GateInCombo" Style="{StaticResource ModernComboBox}" Margin="10,5" />
+                    <TextBlock Grid.Row="7" Grid.Column="0" Text="GATE GROUP A (Door 1)" Style="{StaticResource BaseTextBlockStyle}" VerticalAlignment="Center" Margin="0,8"/>
+                    <ComboBox Grid.Row="7" Grid.Column="1" x:Name="GateInCombo" Style="{StaticResource ModernComboBox}" Margin="10,5">
+                        <ComboBoxItem Tag="1">Lane 1</ComboBoxItem>
+                        <ComboBoxItem Tag="2">Lane 2</ComboBoxItem>
+                    </ComboBox>
 
-                    <TextBlock Grid.Row="8" Grid.Column="0" Text="GATE OUT GROUP" Style="{StaticResource BaseTextBlockStyle}" VerticalAlignment="Center" Margin="0,8"/>
-                    <ComboBox Grid.Row="8" Grid.Column="1" x:Name="GateOutCombo" Style="{StaticResource ModernComboBox}" Margin="10,5" />
+                    <TextBlock Grid.Row="8" Grid.Column="0" Text="GATE GROUP B (Door 2)" Style="{StaticResource BaseTextBlockStyle}" VerticalAlignment="Center" Margin="0,8"/>
+                    <ComboBox Grid.Row="8" Grid.Column="1" x:Name="GateOutCombo" Style="{StaticResource ModernComboBox}" Margin="10,5">
+                        <ComboBoxItem Tag="1">Lane 1</ComboBoxItem>
+                        <ComboBoxItem Tag="2">Lane 2</ComboBoxItem>
+                    </ComboBox>
 
                     <TextBlock Grid.Row="9" Grid.Column="0" Text="OPERATIONAL MODE" Style="{StaticResource BaseTextBlockStyle}" VerticalAlignment="Center" Margin="0,8"/>
                     <StackPanel Grid.Row="9" Grid.Column="1" Orientation="Vertical" Margin="10,8,0,0">
-                        <RadioButton x:Name="AutomaticRadio" GroupName="ForceMode" Content="Automatic (Map by Gate Group)" Style="{StaticResource ModernRadioButton}" Margin="0,0,0,8" Checked="ForceMode_Checked"/>
-                        <RadioButton x:Name="ForceAllInRadio" GroupName="ForceMode" Content="Force All Inbound" Style="{StaticResource ModernRadioButton}" Margin="0,0,0,8" Checked="ForceMode_Checked"/>
-                        <RadioButton x:Name="ForceAllOutRadio" GroupName="ForceMode" Content="Force All Outbound" Style="{StaticResource ModernRadioButton}" Checked="ForceMode_Checked"/>
+                        <RadioButton x:Name="AutomaticRadio" GroupName="ForceMode" Content="Automatic (Lane 1 &amp; Lane 2)" Style="{StaticResource ModernRadioButton}" Margin="0,0,0,8" Checked="ForceMode_Checked"/>
+                        <RadioButton x:Name="ForceAllInRadio" GroupName="ForceMode" Content="Force All Lane 1" Style="{StaticResource ModernRadioButton}" Margin="0,0,0,8" Checked="ForceMode_Checked"/>
+                        <RadioButton x:Name="ForceAllOutRadio" GroupName="ForceMode" Content="Force All Lane 2" Style="{StaticResource ModernRadioButton}" Checked="ForceMode_Checked"/>
                     </StackPanel>
 
                     <TextBlock Grid.Row="11" Grid.Column="0" Text="BUTTON 1 ACTION" Style="{StaticResource BaseTextBlockStyle}" VerticalAlignment="Center" Margin="0,8"/>

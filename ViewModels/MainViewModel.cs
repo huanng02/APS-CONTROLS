@@ -222,6 +222,19 @@ namespace QuanLyGiuXe.ViewModels
         public Visibility Lane1TimeVisibility => IsLane1Inbound ? Visibility.Collapsed : Visibility.Visible;
         public Visibility Lane2TimeVisibility => IsLane2Inbound ? Visibility.Collapsed : Visibility.Visible;
 
+        public string Lane1ReaderMappingDisplay => GetReaderMappingString(1);
+        public string Lane2ReaderMappingDisplay => GetReaderMappingString(2);
+
+        private string GetReaderMappingString(int laneIndex)
+        {
+            var readers = ReaderLaneMappingService.Instance.GetAll()
+                .Where(m => m.LaneIndex == laneIndex)
+                .Select(m => (m.Door == 2 ? m.ReaderIndex + 2 : m.ReaderIndex)) // Display 1-4 for user
+                .OrderBy(r => r);
+
+            return readers.Any() ? $"MAPPED: Reader {string.Join(" & ", readers)}" : "UNMAPPED";
+        }
+
         private int _totalXeTrongBai = 0;
         public string SoXeTrongBai => $"Xe trong bãi: {_totalXeTrongBai}";
 
@@ -538,42 +551,42 @@ namespace QuanLyGiuXe.ViewModels
 
                 if (cfg.ZKTeco.ForceAllIn)
                 {
-                    Lane1Title = "LÀN VÀO 1";
-                    Lane2Title = "LÀN VÀO 2";
+                    Lane1Title = "LÀN 1";
+                    Lane2Title = "LÀN 2";
                     Lane1Color = blue;
                     Lane2Color = blue;
                     IsLane1Inbound = true;
                     IsLane2Inbound = true;
                     Lane1ButtonText = "MỞ CỔNG 1";
                     Lane2ButtonText = "MỞ CỔNG 2";
-                    Lane1InfoLabel = "THÔNG TIN XE VÀO (1)";
-                    Lane2InfoLabel = "THÔNG TIN XE VÀO (2)";
+                    Lane1InfoLabel = "THÔNG TIN LÀN 1";
+                    Lane2InfoLabel = "THÔNG TIN LÀN 2";
                 }
                 else if (cfg.ZKTeco.ForceAllOut)
                 {
-                    Lane1Title = "LÀN RA 1";
-                    Lane2Title = "LÀN RA 2";
+                    Lane1Title = "LÀN 1";
+                    Lane2Title = "LÀN 2";
                     Lane1Color = red;
                     Lane2Color = red;
                     IsLane1Inbound = false;
                     IsLane2Inbound = false;
                     Lane1ButtonText = "MỞ CỔNG 1";
                     Lane2ButtonText = "MỞ CỔNG 2";
-                    Lane1InfoLabel = "THÔNG TIN XE RA (1)";
-                    Lane2InfoLabel = "THÔNG TIN XE RA (2)";
+                    Lane1InfoLabel = "THÔNG TIN LÀN 1";
+                    Lane2InfoLabel = "THÔNG TIN LÀN 2";
                 }
                 else
                 {
-                    Lane1Title = "LÀN VÀO (INBOUND)";
-                    Lane2Title = "LÀN RA (OUTBOUND)";
+                    Lane1Title = "LÀN 1";
+                    Lane2Title = "LÀN 2";
                     Lane1Color = blue;
                     Lane2Color = red;
                     IsLane1Inbound = true;
                     IsLane2Inbound = false;
-                    Lane1ButtonText = "MỞ CỔNG VÀO";
-                    Lane2ButtonText = "MỞ CỔNG RA";
-                    Lane1InfoLabel = "THÔNG TIN XE VÀO";
-                    Lane2InfoLabel = "THÔNG TIN XE RA";
+                    Lane1ButtonText = "MỞ CỔNG 1";
+                    Lane2ButtonText = "MỞ CỔNG 2";
+                    Lane1InfoLabel = "THÔNG TIN LÀN 1";
+                    Lane2InfoLabel = "THÔNG TIN LÀN 2";
                 }
 
                 // Notify visibility changes
@@ -581,6 +594,10 @@ namespace QuanLyGiuXe.ViewModels
                 OnPropertyChanged(nameof(Lane2FeeVisibility));
                 OnPropertyChanged(nameof(Lane1TimeVisibility));
                 OnPropertyChanged(nameof(Lane2TimeVisibility));
+                // Refresh reader mappings
+                ReaderLaneMappingService.Instance.Load();
+                OnPropertyChanged(nameof(Lane1ReaderMappingDisplay));
+                OnPropertyChanged(nameof(Lane2ReaderMappingDisplay));
             }
             catch { }
         }
