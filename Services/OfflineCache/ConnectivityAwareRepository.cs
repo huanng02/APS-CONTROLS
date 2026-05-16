@@ -56,8 +56,11 @@ namespace QuanLyGiuXe.Services.OfflineCache
 
         /// <summary>
         /// Thực hiện lệnh WRITE. Nếu lỗi hoặc timeout -> Enqueue Offline Queue.
+        /// Tham số localCacheUpdater (tùy chọn): cập nhật SQLite cache ngay sau khi write offline
+        /// để các lần READ sau nhận ra trạng thái mới ngay lập tức.
         /// </summary>
-        public async Task<bool> ExecuteWriteAsync(string transactionType, object payload, Func<SqlConnection, Task> sqlWrite)
+        public async Task<bool> ExecuteWriteAsync(string transactionType, object payload, Func<SqlConnection, Task> sqlWrite,
+            Func<Task>? localCacheUpdater = null)
         {
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2)); // Apply 2s timeout to writes too
             try
@@ -92,6 +95,17 @@ namespace QuanLyGiuXe.Services.OfflineCache
 
                 // Enqueue for background sync
                 await OfflineQueueService.Instance.EnqueueAsync(transactionType, payload, finger);
+
+                // Update local cache immediately so subsequent READs see the new state
+                if (localCacheUpdater != null)
+                {
+                    try { await localCacheUpdater(); }
+                    catch (Exception cacheEx)
+                    {
+                        LoggingService.Instance.LogWarning("CACHE_UPDATE", "Repository", $"Failed to update local cache after offline write: {cacheEx.Message}");
+                    }
+                }
+
                 return false;
             }
         }

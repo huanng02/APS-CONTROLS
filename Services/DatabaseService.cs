@@ -431,23 +431,28 @@ namespace QuanLyGiuXe.Services
         /// </summary>
         public DateTime? GetXeVaoTimeByBienSo(string bienSo)
         {
-            string conn_string = GetWorkingConnection();
-            using (SqlConnection conn = new SqlConnection(conn_string))
-            {
-                conn.Open();
-                string sql = "SELECT ThoiGianVao FROM XeTrongBai WHERE BienSo = @bs";
-                using (SqlCommand cmd = new SqlCommand(sql, conn))
-                {
-                    cmd.Parameters.AddWithValue("@bs", bienSo ?? string.Empty);
-                    var v = cmd.ExecuteScalar();
-                    if (v != null && v != DBNull.Value)
-                    {
-                        return Convert.ToDateTime(v);
-                    }
-                }
-            }
+            return Task.Run(() => GetXeVaoTimeByBienSoAsync(bienSo)).GetAwaiter().GetResult();
+        }
 
-            return null;
+        public async Task<DateTime?> GetXeVaoTimeByBienSoAsync(string bienSo)
+        {
+            return await ConnectivityAwareRepository.Instance.ExecuteReadAsync<DateTime?>(
+                "GET_XE_VAO_TIME",
+                async conn =>
+                {
+                    string sql = "SELECT ThoiGianVao FROM XeTrongBai WHERE BienSo = @bs AND ThoiGianRa IS NULL";
+                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@bs", bienSo ?? string.Empty);
+                        var v = await cmd.ExecuteScalarAsync();
+                        if (v != null && v != DBNull.Value)
+                        {
+                            return Convert.ToDateTime(v);
+                        }
+                    }
+                    return null;
+                }
+            );
         }
 
         private void ExecuteNonQuery(string sql, Action<SqlCommand> addParams)
@@ -1200,6 +1205,9 @@ namespace QuanLyGiuXe.Services
         {
             if (cardId <= 0) return false;
 
+            // Tạo record local để update cache sau khi write offline
+            var newRecord = (Id: 0, BienSo: bienSo ?? string.Empty, ThoiGianVao: DateTime.Now);
+
             return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
                 "INSERT_XE_VAO",
                 new { CardId = cardId, BienSo = bienSo, AnhXe = anhXe, Time = DateTime.Now },
@@ -1223,6 +1231,13 @@ namespace QuanLyGiuXe.Services
                         cmd.Parameters.AddWithValue("@AnhXe", string.IsNullOrEmpty(anhXe) ? (object)DBNull.Value : anhXe);
                         await cmd.ExecuteNonQueryAsync();
                     }
+                },
+                localCacheUpdater: async () =>
+                {
+                    // Ghi vào cache để IsXeTrongBaiByCardId và GetXeTrongBaiRecordByCardId nhận biết xe đang trong bãi
+                    await OfflineCacheService.Instance.SaveCacheAsync($"CHECK_XE_TRONG_BAI", true); // generic key
+                    await OfflineCacheService.Instance.SaveCacheAsync($"CHECK_XE_CARD_{cardId}", true);
+                    await OfflineCacheService.Instance.SaveCacheAsync($"RECORD_XE_CARD_{cardId}", newRecord);
                 }
             );
         }
@@ -1252,120 +1267,160 @@ namespace QuanLyGiuXe.Services
 
         public void XoaXe(string bienSo)
         {
-            string conn_string = GetWorkingConnection();
-            using (SqlConnection conn = new SqlConnection(conn_string))
-            {
-                conn.Open();
+            _ = XoaXeAsync(bienSo);
+        }
 
-                string sql = "DELETE FROM XeTrongBai WHERE BienSo = @bienSo";
-
-                SqlCommand cmd = new SqlCommand(sql, conn);
-                cmd.Parameters.AddWithValue("@bienSo", bienSo ?? string.Empty);
-
-                cmd.ExecuteNonQuery();
-            }
+        public async Task<bool> XoaXeAsync(string bienSo)
+        {
+            return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+                "DELETE_XE_BY_PLATE",
+                new { BienSo = bienSo },
+                async conn =>
+                {
+                    string sql = "DELETE FROM XeTrongBai WHERE BienSo = @bienSo AND ThoiGianRa IS NULL";
+                    using (var cmd = new SqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@bienSo", bienSo ?? string.Empty);
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+                }
+            );
         }
 
         // Delete active entries by CardId (preferred). Do NOT use CardUID in XeTrongBai queries.
         public void XoaXeByCardId(int cardId)
         {
-            string conn_string = GetWorkingConnection();
-            using (SqlConnection conn = new SqlConnection(conn_string))
-            {
-                conn.Open();
-                string sql = "DELETE FROM XeTrongBai WHERE CardId = @cardId";
-                SqlCommand cmd = new SqlCommand(sql, conn);
-                cmd.Parameters.AddWithValue("@cardId", cardId);
-                cmd.ExecuteNonQuery();
-            }
+            _ = XoaXeByCardIdAsync(cardId);
+        }
+
+        public async Task<bool> XoaXeByCardIdAsync(int cardId)
+        {
+            return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+                "DELETE_XE_TRONG_BAI",
+                new { CardId = cardId },
+                async conn =>
+                {
+                    string sql = "DELETE FROM XeTrongBai WHERE CardId = @cardId";
+                    using (var cmd = new SqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@cardId", cardId);
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+                },
+                localCacheUpdater: async () =>
+                {
+                    // Xóa cache xe trong bãi để lần quẹt tiếp theo biết xe đã ra
+                    await OfflineCacheService.Instance.SaveCacheAsync($"CHECK_XE_CARD_{cardId}", false);
+                    await OfflineCacheService.Instance.SaveCacheAsync($"RECORD_XE_CARD_{cardId}", (object?)null);
+                }
+            );
         }
 
         public bool IsXeTrongBaiByCardId(int cardId)
         {
-            string conn_string = GetWorkingConnection();
+            return Task.Run(() => IsXeTrongBaiByCardIdAsync(cardId)).GetAwaiter().GetResult();
+        }
 
-            using (SqlConnection conn = new SqlConnection(conn_string))
-            {
-                conn.Open();
-
-                string sql = @"
+        public async Task<bool> IsXeTrongBaiByCardIdAsync(int cardId)
+        {
+            return await ConnectivityAwareRepository.Instance.ExecuteReadAsync<bool>(
+                $"CHECK_XE_CARD_{cardId}",
+                async conn =>
+                {
+                    string sql = @"
             SELECT COUNT(1)
             FROM XeTrongBai
             WHERE CardId = @cardId
               AND ThoiGianRa IS NULL";
-
-                using (SqlCommand cmd = new SqlCommand(sql, conn))
-                {
-                    cmd.Parameters.AddWithValue("@cardId", cardId);
-                    return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
+                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@cardId", cardId);
+                        var v = await cmd.ExecuteScalarAsync();
+                        return Convert.ToInt32(v) > 0;
+                    }
                 }
-            }
+            );
         }
 
         public int GetXeTrongBaiCountByCardId(int cardId)
         {
-            string conn_string = GetWorkingConnection();
+            return Task.Run(() => GetXeTrongBaiCountByCardIdAsync(cardId)).GetAwaiter().GetResult();
+        }
 
-            using (SqlConnection conn = new SqlConnection(conn_string))
-            {
-                conn.Open();
-
-                string sql = @"
+        public async Task<int> GetXeTrongBaiCountByCardIdAsync(int cardId)
+        {
+            return await ConnectivityAwareRepository.Instance.ExecuteReadAsync<int>(
+                "COUNT_XE_TRONG_BAI",
+                async conn =>
+                {
+                    string sql = @"
             SELECT COUNT(1)
             FROM XeTrongBai
             WHERE CardId = @cardId
               AND ThoiGianRa IS NULL";
-
-                using (var cmd = new SqlCommand(sql, conn))
-                {
-                    cmd.Parameters.AddWithValue("@cardId", cardId);
-                    return Convert.ToInt32(cmd.ExecuteScalar());
+                    using (var cmd = new SqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@cardId", cardId);
+                        var v = await cmd.ExecuteScalarAsync();
+                        return Convert.ToInt32(v);
+                    }
                 }
-            }
+            );
         }
 
         // Get plate from active XeTrongBai by CardId
         public string GetBienSoFromXeTrongBaiByCardId(int cardId)
         {
-            string conn_string = GetWorkingConnection();
-            using (SqlConnection conn = new SqlConnection(conn_string))
-            {
-                conn.Open();
-                string sql = "SELECT BienSo FROM XeTrongBai WHERE CardId = @cardId AND ThoiGianRa IS NULL";
-                using (var cmd = new SqlCommand(sql, conn))
+            return Task.Run(() => GetBienSoFromXeTrongBaiByCardIdAsync(cardId)).GetAwaiter().GetResult();
+        }
+
+        public async Task<string> GetBienSoFromXeTrongBaiByCardIdAsync(int cardId)
+        {
+            return await ConnectivityAwareRepository.Instance.ExecuteReadAsync<string>(
+                "GET_BIENSO_TRONG_BAI",
+                async conn =>
                 {
-                    cmd.Parameters.AddWithValue("@cardId", cardId);
-                    var v = cmd.ExecuteScalar();
-                    return v?.ToString() ?? string.Empty;
+                    string sql = "SELECT BienSo FROM XeTrongBai WHERE CardId = @cardId AND ThoiGianRa IS NULL";
+                    using (var cmd = new SqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@cardId", cardId);
+                        var v = await cmd.ExecuteScalarAsync();
+                        return v?.ToString() ?? string.Empty;
+                    }
                 }
-            }
+            ) ?? string.Empty;
         }
 
         // Return XeTrongBai record for a CardId where ThoiGianRa IS NULL. Returns null if not found.
         public (int Id, string BienSo, DateTime ThoiGianVao)? GetXeTrongBaiRecordByCardId(int cardId)
         {
-            string conn_string = GetWorkingConnection();
-            using (SqlConnection conn = new SqlConnection(conn_string))
-            {
-                conn.Open();
-                string sql = "SELECT TOP 1 Id, BienSo, ThoiGianVao FROM XeTrongBai WHERE CardId = @cardId AND ThoiGianRa IS NULL ORDER BY ThoiGianVao DESC";
-                using (var cmd = new SqlCommand(sql, conn))
+            return Task.Run(() => GetXeTrongBaiRecordByCardIdAsync(cardId)).GetAwaiter().GetResult();
+        }
+
+        public async Task<(int Id, string BienSo, DateTime ThoiGianVao)?> GetXeTrongBaiRecordByCardIdAsync(int cardId)
+        {
+            return await ConnectivityAwareRepository.Instance.ExecuteReadAsync<(int Id, string BienSo, DateTime ThoiGianVao)?>(
+                $"RECORD_XE_CARD_{cardId}",
+                async conn =>
                 {
-                    cmd.Parameters.AddWithValue("@cardId", cardId);
-                    using (var r = cmd.ExecuteReader())
+                    string sql = "SELECT TOP 1 Id, BienSo, ThoiGianVao FROM XeTrongBai WHERE CardId = @cardId AND ThoiGianRa IS NULL ORDER BY ThoiGianVao DESC";
+                    using (var cmd = new SqlCommand(sql, conn))
                     {
-                        if (r.Read())
+                        cmd.Parameters.AddWithValue("@cardId", cardId);
+                        using (var r = await cmd.ExecuteReaderAsync())
                         {
-                            int id = r["Id"] != DBNull.Value ? Convert.ToInt32(r["Id"]) : 0;
-                            string bs = r["BienSo"]?.ToString() ?? string.Empty;
-                            DateTime vao = r["ThoiGianVao"] != DBNull.Value ? Convert.ToDateTime(r["ThoiGianVao"]) : DateTime.MinValue;
-                            return (id, bs, vao);
+                            if (await r.ReadAsync())
+                            {
+                                int id = r["Id"] != DBNull.Value ? Convert.ToInt32(r["Id"]) : 0;
+                                string bs = r["BienSo"]?.ToString() ?? string.Empty;
+                                DateTime vao = r["ThoiGianVao"] != DBNull.Value ? Convert.ToDateTime(r["ThoiGianVao"]) : DateTime.MinValue;
+                                return (id, bs, vao);
+                            }
                         }
                     }
+                    return null;
                 }
-            }
-
-            return null;
+            );
         }
 
         private bool ColumnExists(SqlConnection conn, string tableName, string columnName)
@@ -1465,36 +1520,46 @@ namespace QuanLyGiuXe.Services
 
         public bool CheckCardExists(string uid)
         {
-            string conn_string = GetWorkingConnection();
-            using (SqlConnection conn = new SqlConnection(conn_string))
-            {
-                conn.Open();
+            return Task.Run(() => CheckCardExistsAsync(uid)).GetAwaiter().GetResult();
+        }
 
-                string sql = "SELECT COUNT(*) FROM RFIDCards WHERE CardUID = @uid";
-
-                SqlCommand cmd = new SqlCommand(sql, conn);
-                cmd.Parameters.AddWithValue("@uid", uid);
-
-                return (int)cmd.ExecuteScalar() > 0;
-            }
+        public async Task<bool> CheckCardExistsAsync(string uid)
+        {
+            return await ConnectivityAwareRepository.Instance.ExecuteReadAsync<bool>(
+                $"CHECK_CARD_{uid}",
+                async conn =>
+                {
+                    string sql = "SELECT COUNT(*) FROM RFIDCards WHERE CardUID = @uid";
+                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@uid", uid ?? string.Empty);
+                        var v = await cmd.ExecuteScalarAsync();
+                        return Convert.ToInt32(v) > 0;
+                    }
+                }
+            );
         }
 
         public string GetBienSoFromUID(string uid)
         {
-            string conn_string = GetWorkingConnection();
-            using (SqlConnection conn = new SqlConnection(conn_string))
-            {
-                conn.Open();
+            return Task.Run(() => GetBienSoFromUIDAsync(uid)).GetAwaiter().GetResult();
+        }
 
-                string query = "SELECT BienSo FROM RFIDCards WHERE CardUID = @uid";
-
-                SqlCommand cmd = new SqlCommand(query, conn);
-                cmd.Parameters.AddWithValue("@uid", uid);
-
-                var result = cmd.ExecuteScalar();
-
-                return result?.ToString() ?? string.Empty;
-            }
+        public async Task<string> GetBienSoFromUIDAsync(string uid)
+        {
+            return await ConnectivityAwareRepository.Instance.ExecuteReadAsync<string>(
+                $"BIENSO_FROM_UID_{uid}",
+                async conn =>
+                {
+                    string query = "SELECT BienSo FROM RFIDCards WHERE CardUID = @uid";
+                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@uid", uid ?? string.Empty);
+                        var result = await cmd.ExecuteScalarAsync();
+                        return result?.ToString() ?? string.Empty;
+                    }
+                }
+            ) ?? string.Empty;
         }
 
         public bool AddRFIDCards(string uid, string bienSo, string loaiThe)
