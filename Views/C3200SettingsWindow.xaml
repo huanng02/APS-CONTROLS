@@ -76,7 +76,7 @@
                                                  <!-- Lane 1 Readers (Gate 1) -->
                             <Border Grid.Column="0" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="8" Padding="15">
                                 <StackPanel>
-                                    <TextBlock Text="CỔNG 1 (READER 1 &amp; 2)" FontWeight="Bold" FontSize="14" Foreground="#143A7D" Margin="0,0,0,10"/>
+                                    <TextBlock Text=" READER 1 &amp; 2" FontWeight="Bold" FontSize="14" Foreground="#143A7D" Margin="0,0,0,10"/>
                                     
                                     <Grid Margin="0,0,0,15">
                                         <Grid.ColumnDefinitions>
@@ -127,7 +127,7 @@
                             <!-- Lane 2 Readers (Gate 2) -->
                             <Border Grid.Column="2" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="8" Padding="15">
                                 <StackPanel>
-                                    <TextBlock Text="CỔNG 2 (READER 3 &amp; 4)" FontWeight="Bold" FontSize="14" Foreground="#143A7D" Margin="0,0,0,10"/>
+                                    <TextBlock Text=" READER 3 &amp; 4" FontWeight="Bold" FontSize="14" Foreground="#143A7D" Margin="0,0,0,10"/>
                                     
                                     <Grid Margin="0,0,0,15">
                                         <Grid.ColumnDefinitions>

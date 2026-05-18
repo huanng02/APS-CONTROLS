@@ -126,7 +126,10 @@ namespace QuanLyGiuXe.Services.Connection
                 {
                     ConnectionStateService.Instance.UpdateState(resource.ResourceId, ConnectionState.Connected);
                     _retryCounts[resource.ResourceId] = 0;
-                    ToastNotificationService.Instance.ShowToast($"{resource.ResourceId} đã được kết nối lại.", ToastType.Success);
+                    if (resource.Type != ResourceType.Camera)
+                    {
+                        ToastNotificationService.Instance.ShowToast($"{resource.ResourceId} đã được kết nối lại.", ToastType.Success);
+                    }
                 }
                 else
                 {
@@ -134,7 +137,7 @@ namespace QuanLyGiuXe.Services.Connection
                     {
                         ConnectionStateService.Instance.UpdateState(resource.ResourceId, ConnectionState.Failed);
                         // Chỉ hiện toast cảnh báo định kỳ để không spam
-                        if (retries % 5 == 0)
+                        if (retries % 5 == 0 && resource.Type != ResourceType.Camera)
                         {
                             ToastNotificationService.Instance.ShowToast($"Không thể kết nối lại {resource.ResourceId}. Đang tiếp tục thử trong nền.", ToastType.Warning);
                         }

@@ -741,27 +741,6 @@ namespace QuanLyGiuXe.ViewModels
             {
                 // UI cập nhật Label đã được chuyển sang ConnectionStateService PropertyChanged
             }));
-
-            // Toast notification (có thể gọi từ bất kỳ thread, service tự marshal)
-            if (status.DatabaseChanged)
-            {
-                ToastNotificationService.Instance.ShowToast(
-                    status.IsDatabaseConnected
-                        ? "Database connected successfully"
-                        : "Database connection lost",
-                    status.IsDatabaseConnected ? ToastType.Success : ToastType.Error
-                );
-            }
-
-            if (status.C3Changed)
-            {
-                ToastNotificationService.Instance.ShowToast(
-                    status.IsC3Connected
-                        ? "C3-200 connected successfully"
-                        : "C3-200 disconnected",
-                    status.IsC3Connected ? ToastType.Success : ToastType.Error
-                );
-            }
         }
 
 
