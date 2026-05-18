@@ -20,7 +20,7 @@ namespace QuanLyGiuXe.Services.OfflineCache
         private OfflineCacheService()
         {
             _dbPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "aps_offline.db");
-            _connectionString = $"Data Source={_dbPath};";
+            _connectionString = $"Data Source={_dbPath};Default Timeout=5;";
             InitializeDatabase();
         }
 
@@ -75,6 +75,27 @@ namespace QuanLyGiuXe.Services.OfflineCache
                         ErrorMessage TEXT,
                         TransactionType TEXT,
                         Fingerprint TEXT UNIQUE
+                    );
+
+                    CREATE TABLE IF NOT EXISTS LocalXeTrongBai (
+                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        CardId INTEGER,
+                        BienSo TEXT,
+                        ThoiGianVao DATETIME,
+                        AnhXe TEXT,
+                        IsSynced INTEGER DEFAULT 0
+                    );
+
+                    CREATE INDEX IF NOT EXISTS idx_localxe_cardid ON LocalXeTrongBai(CardId);
+
+                    CREATE TABLE IF NOT EXISTS session_audit_logs (
+                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        SessionId TEXT,
+                        EventType TEXT,
+                        OldState TEXT,
+                        NewState TEXT,
+                        Message TEXT,
+                        CreatedUtc DATETIME
                     );";
 
                 using (var cmd = new SqliteCommand(sql, conn))
@@ -283,6 +304,126 @@ namespace QuanLyGiuXe.Services.OfflineCache
             {
                 LoggingService.Instance.LogError("CACHE_INIT", "Preload", "Preload failed", ex);
             }
+        }
+
+        // --- Local Active Session Management ---
+
+        public async Task SaveActiveSessionLocalAsync(int cardId, string bienSo, DateTime time, string anhXe)
+        {
+            using var conn = new SqliteConnection(_connectionString);
+            await conn.OpenAsync();
+            using var tx = conn.BeginTransaction();
+            try
+            {
+                // First delete existing active session for this card to prevent duplicates during normal flows
+                string delSql = "DELETE FROM LocalXeTrongBai WHERE CardId = @cardId";
+                using (var delCmd = new SqliteCommand(delSql, conn, tx))
+                {
+                    delCmd.Parameters.AddWithValue("@cardId", cardId);
+                    await delCmd.ExecuteNonQueryAsync();
+                }
+
+                string sql = @"INSERT INTO LocalXeTrongBai (CardId, BienSo, ThoiGianVao, AnhXe, IsSynced) 
+                               VALUES (@cardId, @bienSo, @time, @anh, 0)";
+                using var cmd = new SqliteCommand(sql, conn, tx);
+                cmd.Parameters.AddWithValue("@cardId", cardId);
+                cmd.Parameters.AddWithValue("@bienSo", bienSo ?? string.Empty);
+                cmd.Parameters.AddWithValue("@time", time);
+                cmd.Parameters.AddWithValue("@anh", anhXe ?? string.Empty);
+                await cmd.ExecuteNonQueryAsync();
+
+                await tx.CommitAsync();
+
+                // Log audit trail
+                await SessionAuditService.Instance.LogAuditAsync(
+                    cardId.ToString(),
+                    "CREATE",
+                    "None",
+                    "Active",
+                    $"Successfully saved active session locally for card {cardId}"
+                );
+            }
+            catch (Exception ex)
+            {
+                await tx.RollbackAsync();
+                LoggingService.Instance.LogError("OFFLINE_CACHE", "SaveActiveSessionLocalAsync", $"Failed to save session for card {cardId}", ex);
+                throw;
+            }
+        }
+
+        public async Task DeleteActiveSessionLocalAsync(int cardId)
+        {
+            using var conn = new SqliteConnection(_connectionString);
+            await conn.OpenAsync();
+            using var tx = conn.BeginTransaction();
+            try
+            {
+                string sql = "DELETE FROM LocalXeTrongBai WHERE CardId = @cardId";
+                using var cmd = new SqliteCommand(sql, conn, tx);
+                cmd.Parameters.AddWithValue("@cardId", cardId);
+                await cmd.ExecuteNonQueryAsync();
+
+                await tx.CommitAsync();
+
+                // Log audit trail
+                await SessionAuditService.Instance.LogAuditAsync(
+                    cardId.ToString(),
+                    "CLOSE",
+                    "Active",
+                    "None",
+                    $"Successfully closed session locally for card {cardId}"
+                );
+            }
+            catch (Exception ex)
+            {
+                await tx.RollbackAsync();
+                LoggingService.Instance.LogError("OFFLINE_CACHE", "DeleteActiveSessionLocalAsync", $"Failed to delete session for card {cardId}", ex);
+                throw;
+            }
+        }
+
+        public async Task<bool> IsXeTrongBaiLocalAsync(int cardId)
+        {
+            try
+            {
+                using var conn = new SqliteConnection(_connectionString);
+                await conn.OpenAsync();
+                string sql = "SELECT COUNT(*) FROM LocalXeTrongBai WHERE CardId = @cardId";
+                using var cmd = new SqliteCommand(sql, conn);
+                cmd.Parameters.AddWithValue("@cardId", cardId);
+                var val = await cmd.ExecuteScalarAsync();
+                return Convert.ToInt32(val) > 0;
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("OFFLINE_CACHE", "IsXeTrongBaiLocalAsync", $"Failed for card {cardId}", ex);
+                return false;
+            }
+        }
+
+        public async Task<(int Id, string BienSo, DateTime ThoiGianVao)?> GetXeTrongBaiRecordLocalAsync(int cardId)
+        {
+            try
+            {
+                using var conn = new SqliteConnection(_connectionString);
+                await conn.OpenAsync();
+                string sql = "SELECT CardId, BienSo, ThoiGianVao FROM LocalXeTrongBai WHERE CardId = @cardId";
+                using var cmd = new SqliteCommand(sql, conn);
+                cmd.Parameters.AddWithValue("@cardId", cardId);
+                using var r = await cmd.ExecuteReaderAsync();
+                if (await r.ReadAsync())
+                {
+                    int id = r.GetInt32(0);
+                    string bs = r.IsDBNull(1) ? string.Empty : r.GetString(1);
+                    DateTime vao = r.GetDateTime(2);
+                    return (id, bs, vao);
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("OFFLINE_CACHE", "GetXeTrongBaiRecordLocalAsync", $"Failed for card {cardId}", ex);
+            }
+            return null;
         }
     }
 }

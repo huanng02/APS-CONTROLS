@@ -34,6 +34,23 @@ namespace QuanLyGiuXe.Services
             // Initialize default lanes
             _laneStates.TryAdd(1, new LaneRuntimeState { LaneId = 1, CurrentDirection = "IN" });
             _laneStates.TryAdd(2, new LaneRuntimeState { LaneId = 2, CurrentDirection = "OUT" });
+
+            // Start background recovery task to prevent permanent locks (stuck state)
+            System.Threading.Tasks.Task.Run(async () =>
+            {
+                while (true)
+                {
+                    try
+                    {
+                        await System.Threading.Tasks.Task.Delay(1000);
+                        CheckTimeoutAndUnlockLanes(10); // Auto-unlock if locked for more than 10 seconds
+                    }
+                    catch
+                    {
+                        // Prevent thread crash
+                    }
+                }
+            });
         }
 
         public LaneRuntimeState GetLaneState(int laneId)

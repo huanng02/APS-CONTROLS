@@ -800,6 +800,7 @@ namespace QuanLyGiuXe.ViewModels
             if (string.IsNullOrEmpty(uid))
             {
                 SetLaneStatus(laneIndex, "❌ Vui lòng quét thẻ RFID!");
+                LaneRuntimeManager.Instance.UnlockLane(laneIndex);
                 return;
             }
 
@@ -812,6 +813,7 @@ namespace QuanLyGiuXe.ViewModels
                 if (card == null || card.Id == 0)
                 {
                     SetLaneStatus(laneIndex, $"❌ Thẻ {uid} chưa đăng ký!");
+                    LaneRuntimeManager.Instance.UnlockLane(laneIndex);
                     return;
                 }
 
@@ -829,9 +831,9 @@ namespace QuanLyGiuXe.ViewModels
                 UpdateVehicleCount();
                 LastScannedUID = string.Empty;
                 
-                // Simulate vehicle passing after 10s if successful
+                // Simulate vehicle passing after 2s if successful (reduces block time for operators)
                 _ = Task.Run(async () => {
-                    await Task.Delay(10000);
+                    await Task.Delay(2000);
                     LaneRuntimeManager.Instance.UnlockLane(laneIndex);
                 });
             }

@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:QuanLyGiuXe.Views"
         xmlns:converters="clr-namespace:QuanLyGiuXe.Converters"
         mc:Ignorable="d"
-        Title="🚀 OFFLINE MODE QA DASHBOARD" Height="700" Width="1000"
+        Title="🚀 OFFLINE &amp; RESILIENCY ENGINE QA DASHBOARD" Height="800" Width="1250"
         Background="#1E1E2E" WindowStartupLocation="CenterScreen">
     <Window.Resources>
         <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
@@ -19,9 +19,9 @@
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <StackPanel Grid.Row="0" Margin="0,0,0,20">
-            <TextBlock Text="OFFLINE-FIRST QA CENTER" Foreground="White" FontSize="24" FontWeight="Bold"/>
-            <TextBlock Text="Step 6.2 - Production-Grade Resilience Testing" Foreground="#888" FontSize="14"/>
+        <StackPanel Grid.Row="0" Margin="0,0,0,15">
+            <TextBlock Text="OFFLINE-FIRST RESILIENCY QA CENTER" Foreground="White" FontSize="24" FontWeight="Bold"/>
+            <TextBlock Text="Phase 6.5 - Session Consistency &amp; Recovery Engine Testing" Foreground="#888" FontSize="14"/>
         </StackPanel>
 
         <Grid Grid.Row="1">
@@ -30,90 +30,178 @@
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <!-- Control Panel -->
-            <StackPanel Grid.Column="0" Margin="0,0,20,0">
-                <Border Background="#2A2A3D" CornerRadius="10" Padding="15">
-                    <StackPanel>
-                        <TextBlock Text="SYSTEM STATE" Foreground="#CCC" FontWeight="Bold" Margin="0,0,0,10"/>
-                        
-                        <Grid Margin="0,5">
-                            <TextBlock Text="Status:" Foreground="Gray"/>
-                            <TextBlock Text="{Binding Conn.StatusText}" Foreground="{Binding Conn.StatusColor}" HorizontalAlignment="Right" FontWeight="Bold"/>
-                        </Grid>
+            <!-- Column 0: Control Panel & Status -->
+            <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="0,0,15,0">
+                    <Border Background="#2A2A3D" CornerRadius="10" Padding="15">
+                        <StackPanel>
+                            <TextBlock Text="SYSTEM STATE" Foreground="#CCC" FontWeight="Bold" Margin="0,0,0,10"/>
+                            
+                            <Grid Margin="0,5">
+                                <TextBlock Text="Status:" Foreground="Gray"/>
+                                <TextBlock Text="{Binding Conn.StatusText}" Foreground="{Binding Conn.StatusColor}" HorizontalAlignment="Right" FontWeight="Bold"/>
+                            </Grid>
 
-                        <Grid Margin="0,5">
-                            <TextBlock Text="Simulation:" Foreground="Gray"/>
-                            <TextBlock Text="{Binding Conn.IsSimulatingOffline, Converter={StaticResource StringToVisibilityConverter}, ConverterParameter='TRUE:OFFLINE|FALSE:NORMAL'}" 
-                                       Foreground="{Binding Conn.IsSimulatingOffline, Converter={StaticResource StringToVisibilityConverter}, ConverterParameter='TRUE:#E74C3C|FALSE:#27AE60'}" 
-                                       HorizontalAlignment="Right" FontWeight="Bold"/>
-                        </Grid>
+                            <Grid Margin="0,5">
+                                <TextBlock Text="Simulation:" Foreground="Gray"/>
+                                <TextBlock Text="{Binding Conn.IsSimulatingOffline, Converter={StaticResource StringToVisibilityConverter}, ConverterParameter='TRUE:OFFLINE|FALSE:NORMAL'}" 
+                                           Foreground="{Binding Conn.IsSimulatingOffline, Converter={StaticResource StringToVisibilityConverter}, ConverterParameter='TRUE:#E74C3C|FALSE:#27AE60'}" 
+                                           HorizontalAlignment="Right" FontWeight="Bold"/>
+                            </Grid>
 
-                        <Separator Background="#444" Margin="0,15"/>
+                            <Separator Background="#444" Margin="0,15"/>
 
-                        <Button Command="{Binding ForceOfflineCommand}" Content="FORCE SQL OFFLINE" Background="#E74C3C" Foreground="White" Height="40" Margin="0,5" BorderThickness="0"/>
-                        <Button Command="{Binding ForceOnlineCommand}" Content="FORCE SQL ONLINE" Background="#27AE60" Foreground="White" Height="40" Margin="0,5" BorderThickness="0"/>
-                        
-                        <Separator Background="#444" Margin="0,15"/>
-                        
-                        <Button Command="{Binding TestReadCacheCommand}" Content="TEST CACHE FALLBACK" Background="#3498DB" Foreground="White" Height="40" Margin="0,5" BorderThickness="0"/>
-                        <Button Command="{Binding TestWriteQueueCommand}" Content="TEST QUEUE WRITE" Background="#F39C12" Foreground="White" Height="40" Margin="0,5" BorderThickness="0"/>
-                        <Button Command="{Binding StressTestCommand}" Content="TEST MASSIVE QUEUE" Background="#9B59B6" Foreground="White" Height="40" Margin="0,5" BorderThickness="0"/>
-                    </StackPanel>
+                            <Button Command="{Binding ForceOfflineCommand}" Content="FORCE SQL OFFLINE" Background="#E74C3C" Foreground="White" Height="35" Margin="0,4" BorderThickness="0" FontWeight="Bold"/>
+                            <Button Command="{Binding ForceOnlineCommand}" Content="FORCE SQL ONLINE" Background="#27AE60" Foreground="White" Height="35" Margin="0,4" BorderThickness="0" FontWeight="Bold"/>
+                            
+                            <Separator Background="#444" Margin="0,10"/>
+                            <TextBlock Text="RESILIENCE SIMULATION" Foreground="#F39C12" FontWeight="Bold" Margin="0,5,0,5"/>
+
+                            <Button Command="{Binding SimulateEntryCrashCommand}" Content="💥 SIMULATE ENTRY CRASH" Background="#C0392B" Foreground="White" Height="35" Margin="0,4" BorderThickness="0" FontWeight="Bold"/>
+                            <Button Command="{Binding SimulateDuplicateActiveCommand}" Content="👯 SIMULATE DUPLICATE ACTIVE" Background="#8E44AD" Foreground="White" Height="35" Margin="0,4" BorderThickness="0" FontWeight="Bold"/>
+                            <Button Command="{Binding ForceAutoRepairCommand}" Content="🔧 FORCE AUTO-REPAIR" Background="#2980B9" Foreground="White" Height="35" Margin="0,4" BorderThickness="0" FontWeight="Bold"/>
+
+                            <Separator Background="#444" Margin="0,10"/>
+                            
+                            <Button Command="{Binding TestReadCacheCommand}" Content="TEST CACHE FALLBACK" Background="#34495E" Foreground="White" Height="35" Margin="0,4" BorderThickness="0"/>
+                            <Button Command="{Binding TestWriteQueueCommand}" Content="TEST QUEUE WRITE" Background="#D35400" Foreground="White" Height="35" Margin="0,4" BorderThickness="0"/>
+                            <Button Command="{Binding StressTestCommand}" Content="TEST MASSIVE QUEUE" Background="#7F8C8D" Foreground="White" Height="35" Margin="0,4" BorderThickness="0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Background="#2A2A3D" CornerRadius="10" Padding="15" Margin="0,15,0,0">
+                        <StackPanel>
+                            <TextBlock Text="LOG PANEL" Foreground="#CCC" FontWeight="Bold" Margin="0,0,0,10"/>
+                            <TextBox Text="{Binding TestLog}" Height="120" Background="#111" Foreground="#0F0" 
+                                     BorderThickness="0" FontFamily="Consolas" FontSize="11" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" IsReadOnly="True"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Column 1: Telemetry, Queue & Session Audit Logs -->
+            <Grid Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Row 0: Telemetry Cards -->
+                <UniformGrid Rows="1" Columns="4" Grid.Row="0" Margin="0,0,0,15">
+                    <!-- Card 1: Live Vehicle Count -->
+                    <Border Background="#2A2A3D" CornerRadius="8" Padding="15" Margin="0,0,10,0" BorderBrush="#27AE60" BorderThickness="1">
+                        <StackPanel>
+                            <TextBlock Text="LIVE VEHICLE COUNT" Foreground="#AAA" FontSize="11" FontWeight="Bold"/>
+                            <TextBlock Text="{Binding TelemetryLiveVehicleCount}" Foreground="#27AE60" FontSize="28" FontWeight="Bold" Margin="0,5,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Card 2: Active Sessions -->
+                    <Border Background="#2A2A3D" CornerRadius="8" Padding="15" Margin="0,0,10,0" BorderBrush="#2980B9" BorderThickness="1">
+                        <StackPanel>
+                            <TextBlock Text="ACTIVE SESSIONS" Foreground="#AAA" FontSize="11" FontWeight="Bold"/>
+                            <TextBlock Text="{Binding TelemetryActiveSessions}" Foreground="#2980B9" FontSize="28" FontWeight="Bold" Margin="0,5,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Card 3: Suspicious Sessions -->
+                    <Border Background="#2A2A3D" CornerRadius="8" Padding="15" Margin="0,0,10,0" BorderBrush="#E74C3C" BorderThickness="1">
+                        <StackPanel>
+                            <TextBlock Text="SUSPICIOUS SESSIONS" Foreground="#AAA" FontSize="11" FontWeight="Bold"/>
+                            <TextBlock Text="{Binding TelemetrySuspiciousSessions}" Foreground="#E74C3C" FontSize="28" FontWeight="Bold" Margin="0,5,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Card 4: Pending Sync -->
+                    <Border Background="#2A2A3D" CornerRadius="8" Padding="15" Margin="0,0,0,0" BorderBrush="#F1C40F" BorderThickness="1">
+                        <StackPanel>
+                            <TextBlock Text="PENDING OFFLINE SYNC" Foreground="#AAA" FontSize="11" FontWeight="Bold"/>
+                            <TextBlock Text="{Binding TelemetryPendingOfflineSync}" Foreground="#F1C40F" FontSize="28" FontWeight="Bold" Margin="0,5,0,0"/>
+                        </StackPanel>
+                    </Border>
+                </UniformGrid>
+
+                <!-- Row 1: Queue View -->
+                <Border Grid.Row="1" Background="#2A2A3D" CornerRadius="10" Padding="15" Margin="0,0,0,10">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Orientation="Horizontal" Grid.Row="0" Margin="0,0,0,10">
+                            <TextBlock Text="OFFLINE QUEUE" Foreground="#CCC" FontWeight="Bold" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding Transactions.Count, StringFormat='({0} items)'}" Foreground="Gray" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                            <Button Command="{Binding RefreshQueueCommand}" Content="REFRESH" Background="Transparent" Foreground="#3498DB" Margin="20,0,0,0" BorderThickness="0"/>
+                        </StackPanel>
+
+                        <DataGrid Grid.Row="1" ItemsSource="{Binding Transactions}" AutoGenerateColumns="False" 
+                                  Background="Transparent" BorderThickness="0" RowBackground="#222" Foreground="White"
+                                  CanUserAddRows="False" IsReadOnly="True" GridLinesVisibility="None" RowHeaderWidth="0">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Time" Binding="{Binding CreatedUtc, StringFormat='HH:mm:ss'}" Width="80"/>
+                                <DataGridTemplateColumn Header="Type" Width="120">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding TransactionType}" Foreground="#3498DB"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="Status" Width="100">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{Binding StatusColor}" CornerRadius="3" Padding="5,2">
+                                                <TextBlock Text="{Binding SyncStatus}" Foreground="White" FontSize="10" HorizontalAlignment="Center"/>
+                                            </Border>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="Retries" Binding="{Binding RetryCount}" Width="60"/>
+                                <DataGridTextColumn Header="Error" Binding="{Binding ErrorMessage}" Width="*"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
                 </Border>
 
-                <Border Background="#2A2A3D" CornerRadius="10" Padding="15" Margin="0,20,0,0">
-                    <StackPanel>
-                        <TextBlock Text="LOGS" Foreground="#CCC" FontWeight="Bold" Margin="0,0,0,10"/>
-                        <TextBox Text="{Binding TestLog}" Height="200" Background="#111" Foreground="#0F0" 
-                                 BorderThickness="0" FontFamily="Consolas" FontSize="11" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" IsReadOnly="True"/>
-                    </StackPanel>
+                <!-- Row 2: Live Session Audit Logs -->
+                <Border Grid.Row="2" Background="#2A2A3D" CornerRadius="10" Padding="15">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Orientation="Horizontal" Grid.Row="0" Margin="0,0,0,10">
+                            <TextBlock Text="LIVE SESSION AUDIT LOGS" Foreground="#CCC" FontWeight="Bold" VerticalAlignment="Center"/>
+                        </StackPanel>
+
+                        <DataGrid Grid.Row="1" ItemsSource="{Binding AuditLogs}" AutoGenerateColumns="False" 
+                                  Background="Transparent" BorderThickness="0" RowBackground="#222" Foreground="White"
+                                  CanUserAddRows="False" IsReadOnly="True" GridLinesVisibility="None" RowHeaderWidth="0">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Time (UTC)" Binding="{Binding CreatedUtc, StringFormat='HH:mm:ss'}" Width="90"/>
+                                <DataGridTextColumn Header="Card UID / Session" Binding="{Binding SessionId}" Width="150"/>
+                                <DataGridTemplateColumn Header="Event Type" Width="110">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Border Background="#1E1E2E" CornerRadius="3" Padding="5,2">
+                                                <TextBlock Text="{Binding EventType}" Foreground="#2ECC71" FontSize="10" HorizontalAlignment="Center" FontWeight="Bold"/>
+                                            </Border>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="Old State" Binding="{Binding OldState}" Width="100"/>
+                                <DataGridTextColumn Header="New State" Binding="{Binding NewState}" Width="100"/>
+                                <DataGridTextColumn Header="Details / Message" Binding="{Binding Message}" Width="*"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
                 </Border>
-            </StackPanel>
-
-            <!-- Queue View -->
-            <Border Grid.Column="1" Background="#2A2A3D" CornerRadius="10" Padding="15">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-
-                    <StackPanel Orientation="Horizontal" Grid.Row="0" Margin="0,0,0,10">
-                        <TextBlock Text="OFFLINE QUEUE" Foreground="#CCC" FontWeight="Bold" VerticalAlignment="Center"/>
-                        <TextBlock Text="{Binding Transactions.Count, StringFormat='({0} items)'}" Foreground="Gray" Margin="10,0,0,0" VerticalAlignment="Center"/>
-                        <Button Command="{Binding RefreshQueueCommand}" Content="REFRESH" Background="Transparent" Foreground="#3498DB" Margin="20,0,0,0" BorderThickness="0"/>
-                    </StackPanel>
-
-                    <DataGrid Grid.Row="1" ItemsSource="{Binding Transactions}" AutoGenerateColumns="False" 
-                              Background="Transparent" BorderThickness="0" RowBackground="#222" Foreground="White"
-                              CanUserAddRows="False" IsReadOnly="True" GridLinesVisibility="None" RowHeaderWidth="0">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="Time" Binding="{Binding CreatedUtc, StringFormat='HH:mm:ss'}" Width="80"/>
-                            <DataGridTemplateColumn Header="Type" Width="120">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding TransactionType}" Foreground="#3498DB"/>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
-                            <DataGridTemplateColumn Header="Status" Width="100">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <Border Background="{Binding StatusColor}" CornerRadius="3" Padding="5,2">
-                                            <TextBlock Text="{Binding SyncStatus}" Foreground="White" FontSize="10" HorizontalAlignment="Center"/>
-                                        </Border>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
-                            <DataGridTextColumn Header="Retries" Binding="{Binding RetryCount}" Width="60"/>
-                            <DataGridTextColumn Header="Error" Binding="{Binding ErrorMessage}" Width="*"/>
-                        </DataGrid.Columns>
-                    </DataGrid>
-                </Grid>
-            </Border>
+            </Grid>
         </Grid>
 
         <!-- Footer -->
-        <TextBlock Grid.Row="2" Text="Offline Mode Phase 6.2 - APS-CONTROLS" Foreground="#555" HorizontalAlignment="Center" Margin="0,10,0,0"/>
+        <TextBlock Grid.Row="2" Text="Offline Mode Phase 6.5 Resilience Engine - APS-CONTROLS" Foreground="#555" HorizontalAlignment="Center" Margin="0,10,0,0"/>
     </Grid>
 </Window>

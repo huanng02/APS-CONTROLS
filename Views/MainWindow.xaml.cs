@@ -47,16 +47,19 @@ namespace QuanLyGiuXe
             // UI RBAC
             ApplyPermissions();
 
-            // Shortcut for QA Panel (DEBUG only)
-#if DEBUG
+            // Shortcut for QA Panel
             this.KeyDown += (s, e) => {
                 if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift | ModifierKeys.Alt) && e.Key == Key.Q)
                 {
-                    OpenQAPanel();
+                    MoQAPanel_Click(null, null);
+                }
+                else if (e.Key == Key.F9)
+                {
+                    MoQAPanel_Click(null, null);
                 }
             };
             if (btnQAPanel != null) btnQAPanel.Visibility = Visibility.Visible;
-#endif
+
             this.KeyDown += (s, e) => {
                 if (e.Key == Key.F4)
                 {
@@ -91,19 +94,52 @@ namespace QuanLyGiuXe
         {
             string role = CurrentUser.Role?.ToUpper() ?? "";
 
-            // 1. Nhân viên/Hệ thống -> Chỉ ADMIN
-            MenuAdmin.Visibility = (role == "ADMIN") ? Visibility.Visible : Visibility.Collapsed;
+            // --- 1. CATEGORIES LEVEL VISIBILITY ---
 
-            // 2. Báo cáo -> ADMIN + SUPERVISOR + CASHIER
-            MenuBaoCao.Visibility = (role == "ADMIN" || role == "SUPERVISOR" || role == "CASHIER") ? Visibility.Visible : Visibility.Collapsed;
+            // Logs & Monitor (Vận hành) -> Visible to: ADMIN, SUPERVISOR, OPERATOR, TECHNICIAN
+            MenuVanHanh.Visibility = (role == "ADMIN" || role == "SUPERVISOR" || role == "OPERATOR" || role == "TECHNICIAN") 
+                ? Visibility.Visible 
+                : Visibility.Collapsed;
 
-            // 3. Vận hành -> OPERATOR + ADMIN + TECHNICIAN
-            MenuVanHanh.Visibility = (role == "OPERATOR" || role == "ADMIN" || role == "TECHNICIAN") ? Visibility.Visible : Visibility.Collapsed;
+            // History (Báo cáo) -> Visible to: ADMIN, SUPERVISOR, CASHIER
+            MenuBaoCao.Visibility = (role == "ADMIN" || role == "SUPERVISOR" || role == "CASHIER") 
+                ? Visibility.Visible 
+                : Visibility.Collapsed;
+
+            // Management (Nhân viên/Cấu hình) -> Visible to: ADMIN, SUPERVISOR
+            MenuAdmin.Visibility = (role == "ADMIN" || role == "SUPERVISOR") 
+                ? Visibility.Visible 
+                : Visibility.Collapsed;
+
+            // System & Tools (Hệ thống) -> Visible to: ADMIN, SUPERVISOR, TECHNICIAN
+            MenuTools.Visibility = (role == "ADMIN" || role == "SUPERVISOR" || role == "TECHNICIAN") 
+                ? Visibility.Visible 
+                : Visibility.Collapsed;
+
+            // --- 2. GRANULAR BUTTON LEVEL VISIBILITY (Inside Categories) ---
+
+            // Inside MenuAdmin (Management):
+            // - Người dùng (User Management): ONLY Admin can manage users!
+            btnNguoiDung.Visibility = (role == "ADMIN") ? Visibility.Visible : Visibility.Collapsed;
+            // - LoaiXe, LoaiVe, RFID, BangGia: Admin and Supervisor can manage.
+            btnLoaiXe.Visibility = (role == "ADMIN" || role == "SUPERVISOR") ? Visibility.Visible : Visibility.Collapsed;
+            btnLoaiVe.Visibility = (role == "ADMIN" || role == "SUPERVISOR") ? Visibility.Visible : Visibility.Collapsed;
+            btnRFID.Visibility = (role == "ADMIN" || role == "SUPERVISOR") ? Visibility.Visible : Visibility.Collapsed;
+            btnBangGia.Visibility = (role == "ADMIN" || role == "SUPERVISOR") ? Visibility.Visible : Visibility.Collapsed;
+
+            // Inside MenuTools (System & Tools):
+            // - SQL Tool: ONLY Admin can execute direct SQL queries!
+            btnSQLTool.Visibility = (role == "ADMIN") ? Visibility.Visible : Visibility.Collapsed;
             
-            // 4. Công cụ SQL -> Chỉ ADMIN
-            MenuTools.Visibility = (role == "ADMIN") ? Visibility.Visible : Visibility.Collapsed;
-            
-            // CASHIER: Hiện tại chưa có menu riêng trong WPF, nhưng bạn có thể thêm tương tự
+            // - Backup / Restore: Admin and Supervisor can backup/restore!
+            btnBackupRestore.Visibility = (role == "ADMIN" || role == "SUPERVISOR") ? Visibility.Visible : Visibility.Collapsed;
+
+            // - Camera & System Configuration (C3-200): Admin and Technician can configure hardware!
+            btnCameraSettings.Visibility = (role == "ADMIN" || role == "TECHNICIAN") ? Visibility.Visible : Visibility.Collapsed;
+            btnC3200Settings.Visibility = (role == "ADMIN" || role == "TECHNICIAN") ? Visibility.Visible : Visibility.Collapsed;
+
+            // - Resiliency QA (QA Panel): Admin and Technician can view/simulate recoveries!
+            btnQAPanel.Visibility = (role == "ADMIN" || role == "TECHNICIAN") ? Visibility.Visible : Visibility.Collapsed;
         }
 
         private void GenerateTestLogs_Click(object sender, RoutedEventArgs e)
@@ -735,7 +771,9 @@ namespace QuanLyGiuXe
         //}
         private void MoQAPanel_Click(object sender, RoutedEventArgs e)
         {
-            OpenQAPanel();
+            var win = new OfflineQADashboard { Owner = this };
+            win.Closed += (s, ev) => RestoreSidebarSelection();
+            win.Show();
         }
 
         private void MoBackupRestore_Click(object sender, RoutedEventArgs e)

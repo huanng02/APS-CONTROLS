@@ -1205,8 +1205,11 @@ namespace QuanLyGiuXe.Services
         {
             if (cardId <= 0) return false;
 
-            // Tạo record local để update cache sau khi write offline
-            var newRecord = (Id: 0, BienSo: bienSo ?? string.Empty, ThoiGianVao: DateTime.Now);
+            // 1. Transaction-safe local SQLite Save FIRST (Crash-Safe Session Commit!)
+            await OfflineCacheService.Instance.SaveActiveSessionLocalAsync(cardId, bienSo, DateTime.Now, anhXe);
+
+            // 2. Perform write to SQL Server or Queue if offline
+            var newRecord = (Id: cardId, BienSo: bienSo ?? string.Empty, ThoiGianVao: DateTime.Now);
 
             return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
                 "INSERT_XE_VAO",
@@ -1295,6 +1298,10 @@ namespace QuanLyGiuXe.Services
 
         public async Task<bool> XoaXeByCardIdAsync(int cardId)
         {
+            // 1. Transaction-safe local SQLite delete FIRST (Crash-Safe Session Commit!)
+            await OfflineCacheService.Instance.DeleteActiveSessionLocalAsync(cardId);
+
+            // 2. Perform write to SQL Server or Queue if offline
             return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
                 "DELETE_XE_TRONG_BAI",
                 new { CardId = cardId },
@@ -1323,6 +1330,12 @@ namespace QuanLyGiuXe.Services
 
         public async Task<bool> IsXeTrongBaiByCardIdAsync(int cardId)
         {
+            // Fallback to SQLite Local Active sessions if SQL Server is down
+            if (ConnectivityStateService.Instance.IsSimulatingOffline || !ConnectivityStateService.Instance.IsOnline)
+            {
+                return await OfflineCacheService.Instance.IsXeTrongBaiLocalAsync(cardId);
+            }
+
             return await ConnectivityAwareRepository.Instance.ExecuteReadAsync<bool>(
                 $"CHECK_XE_CARD_{cardId}",
                 async conn =>
@@ -1399,6 +1412,11 @@ namespace QuanLyGiuXe.Services
 
         public async Task<(int Id, string BienSo, DateTime ThoiGianVao)?> GetXeTrongBaiRecordByCardIdAsync(int cardId)
         {
+            if (ConnectivityStateService.Instance.IsSimulatingOffline || !ConnectivityStateService.Instance.IsOnline)
+            {
+                return await OfflineCacheService.Instance.GetXeTrongBaiRecordLocalAsync(cardId);
+            }
+
             return await ConnectivityAwareRepository.Instance.ExecuteReadAsync<(int Id, string BienSo, DateTime ThoiGianVao)?>(
                 $"RECORD_XE_CARD_{cardId}",
                 async conn =>

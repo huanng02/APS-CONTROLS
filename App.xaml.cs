@@ -123,6 +123,26 @@ namespace QuanLyGiuXe
                 // Re-enable toasts after new window is ready
                 ToastNotificationService.Instance.IsSuppressed = false;
                 LoggingService.Instance.LogInfo("App", "App", "StartLoginFlow: New MainWindow shown.");
+
+                // Trigger non-blocking Phase 6.5 recovery and health checks
+                System.Threading.Tasks.Task.Run(async () =>
+                {
+                    try
+                    {
+                        // 1. Recover active sessions
+                        await QuanLyGiuXe.Services.OfflineCache.SessionRecoveryService.Instance.RestoreActiveSessionsAsync();
+                        // 2. Restore lane states
+                        await QuanLyGiuXe.Services.OfflineCache.SessionRecoveryService.Instance.RestoreLaneStateAsync();
+                        // 3. Restore pending sync items
+                        await QuanLyGiuXe.Services.OfflineCache.SessionRecoveryService.Instance.RestorePendingQueueAsync();
+                        // 4. Start session health monitor
+                        QuanLyGiuXe.Services.OfflineCache.SessionHealthMonitor.Instance.Start();
+                    }
+                    catch (Exception ex)
+                    {
+                        LoggingService.Instance.LogError("APP_STARTUP_RECOVERY", "Startup", "Startup recovery failed", ex);
+                    }
+                });
             }
             else
             {
