@@ -723,6 +723,7 @@ namespace QuanLyGiuXe.ViewModels
         {
             DbStatusLabel = "Database — Đang kiểm tra";
             C3StatusLabel = "C3-200 — Đang kiểm tra";
+            Services.Connection.ConnectionStateService.Instance.ResetState();
         }
 
         /// <summary>

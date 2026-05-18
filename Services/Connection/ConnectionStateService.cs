@@ -94,6 +94,15 @@ namespace QuanLyGiuXe.Services.Connection
 
         public IReadOnlyDictionary<string, ConnectionState> AllStates => _states;
 
+        public void ResetState()
+        {
+            _states.Clear();
+            _notifiedOffline.Clear();
+            OnPropertyChanged(nameof(AllStates));
+            OnPropertyChanged(nameof(IsDatabaseOnline));
+            OnPropertyChanged(nameof(IsC3Online));
+        }
+
         protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));

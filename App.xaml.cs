@@ -58,6 +58,7 @@ namespace QuanLyGiuXe
                 _ = System.Threading.Tasks.Task.Run(() => {
                     ConnectionMonitorService.Instance.Stop();
                     ConnectivityStateService.Instance.Stop();
+                    QuanLyGiuXe.Services.Connection.AutoReconnectService.Instance.Stop();
                     QuanLyGiuXe.Services.OfflineCache.AutoSyncService.Instance.Stop();
                 });
 
