@@ -8,9 +8,10 @@ namespace QuanLyGiuXe.Services
 {
     public class ReaderLaneMapping
     {
-        public int ReaderIndex { get; set; } // 1-2 (Group A or B)
-        public int Door { get; set; }        // 1 or 2
-        public int LaneIndex { get; set; }   // 1 (Left/In), 2 (Right/Out)
+        public int ReaderNo { get; set; }    // 1, 2, 3, 4
+        public int LaneIndex { get; set; }   // 1, 2...
+        public string Direction { get; set; } // "IN", "OUT"
+        public bool IsEnabled { get; set; } = true;
     }
 
     public class ReaderLaneMappingService
@@ -33,21 +34,36 @@ namespace QuanLyGiuXe.Services
                 {
                     string json = File.ReadAllText(FilePath);
                     _mappings = JsonSerializer.Deserialize<List<ReaderLaneMapping>>(json) ?? new List<ReaderLaneMapping>();
+                    
+                    // Migrate old data if necessary (if ReaderNo is missing/0)
+                    if (_mappings.Any() && _mappings[0].ReaderNo == 0)
+                    {
+                        CreateDefaultMappings();
+                    }
                 }
-                catch { _mappings = new List<ReaderLaneMapping>(); }
+                catch { CreateDefaultMappings(); }
             }
             else
             {
-                // Default mapping: Group A (Door 1) -> Lane 1, Group B (Door 2) -> Lane 2
-                _mappings = new List<ReaderLaneMapping>
-                {
-                    new() { ReaderIndex = 1, Door = 1, LaneIndex = 1 },
-                    new() { ReaderIndex = 2, Door = 1, LaneIndex = 1 },
-                    new() { ReaderIndex = 1, Door = 2, LaneIndex = 2 },
-                    new() { ReaderIndex = 2, Door = 2, LaneIndex = 2 }
-                };
-                Save();
+                CreateDefaultMappings();
             }
+        }
+
+        private void CreateDefaultMappings()
+        {
+            // Default mapping:
+            // Reader 1 (Door 1) -> Lane 1 IN
+            // Reader 2 (Door 1) -> Lane 1 OUT
+            // Reader 3 (Door 2) -> Lane 2 IN
+            // Reader 4 (Door 2) -> Lane 2 OUT
+            _mappings = new List<ReaderLaneMapping>
+            {
+                new() { ReaderNo = 1, LaneIndex = 1, Direction = "IN", IsEnabled = true },
+                new() { ReaderNo = 2, LaneIndex = 1, Direction = "OUT", IsEnabled = true },
+                new() { ReaderNo = 3, LaneIndex = 2, Direction = "IN", IsEnabled = true },
+                new() { ReaderNo = 4, LaneIndex = 2, Direction = "OUT", IsEnabled = true }
+            };
+            Save();
         }
 
         public void Save()
@@ -62,24 +78,14 @@ namespace QuanLyGiuXe.Services
 
         public List<ReaderLaneMapping> GetAll() => _mappings;
 
-        public int MapReaderToLane(int readerIndex, int door)
+        public ReaderLaneMapping GetMappingByReader(int readerNo)
         {
-            var mapping = _mappings.FirstOrDefault(m => m.ReaderIndex == readerIndex && m.Door == door);
-            return mapping?.LaneIndex ?? 0;
+            return _mappings.FirstOrDefault(m => m.ReaderNo == readerNo);
         }
 
-        public void UpdateMapping(int door, List<int> readers, int laneIndex)
+        public void UpdateMappings(List<ReaderLaneMapping> newMappings)
         {
-            // Remove existing mappings for these readers
-            _mappings.RemoveAll(m => m.Door == door && readers.Contains(m.ReaderIndex));
-            
-            // Remove other readers from this lane if it's a exclusive assignment (optional)
-            // _mappings.RemoveAll(m => m.LaneIndex == laneIndex);
-
-            foreach (var r in readers)
-            {
-                _mappings.Add(new ReaderLaneMapping { Door = door, ReaderIndex = r, LaneIndex = laneIndex });
-            }
+            _mappings = new List<ReaderLaneMapping>(newMappings);
             Save();
         }
     }

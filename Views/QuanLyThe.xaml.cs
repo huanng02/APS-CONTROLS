@@ -27,7 +27,7 @@ namespace QuanLyGiuXe.Views
         private void OnCardScanned(string uid) =>
             Dispatcher.BeginInvoke(new Action(() => txtUID.Text = uid));
 
-        private void OnC3200CardScanned(string uid, int door) =>
+        private void OnC3200CardScanned(string uid, int door, int inOutState) =>
             Dispatcher.BeginInvoke(new Action(() => txtUID.Text = uid));
 
         private void SaveCard(object sender, RoutedEventArgs e)

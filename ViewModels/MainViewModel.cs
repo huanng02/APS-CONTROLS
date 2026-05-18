@@ -222,17 +222,53 @@ namespace QuanLyGiuXe.ViewModels
         public Visibility Lane1TimeVisibility => IsLane1Inbound ? Visibility.Collapsed : Visibility.Visible;
         public Visibility Lane2TimeVisibility => IsLane2Inbound ? Visibility.Collapsed : Visibility.Visible;
 
-        public string Lane1ReaderMappingDisplay => GetReaderMappingString(1);
-        public string Lane2ReaderMappingDisplay => GetReaderMappingString(2);
+        public string Lane1ReaderMappingIn => GetReaderMappingIn(1);
+        public string Lane1ReaderMappingOut => GetReaderMappingOut(1);
+        public string Lane1ReaderMappingEmpty => (string.IsNullOrEmpty(Lane1ReaderMappingIn) && string.IsNullOrEmpty(Lane1ReaderMappingOut)) ? "⚠ CHƯA CẤU HÌNH ĐẦU ĐỌC" : "";
+        
+        public string Lane2ReaderMappingIn => GetReaderMappingIn(2);
+        public string Lane2ReaderMappingOut => GetReaderMappingOut(2);
+        public string Lane2ReaderMappingEmpty => (string.IsNullOrEmpty(Lane2ReaderMappingIn) && string.IsNullOrEmpty(Lane2ReaderMappingOut)) ? "⚠ CHƯA CẤU HÌNH ĐẦU ĐỌC" : "";
 
-        private string GetReaderMappingString(int laneIndex)
+        private void SyncLaneUIState(int laneId)
         {
-            var readers = ReaderLaneMappingService.Instance.GetAll()
-                .Where(m => m.LaneIndex == laneIndex)
-                .Select(m => (m.Door == 2 ? m.ReaderIndex + 2 : m.ReaderIndex)) // Display 1-4 for user
-                .OrderBy(r => r);
+            var state = LaneRuntimeManager.Instance.GetLaneState(laneId);
+            bool isInbound = state.CurrentDirection == "IN";
+            
+            if (laneId == 1)
+            {
+                IsLane1Inbound = isInbound;
+                Lane1Title = isInbound ? "LÀN 1 [VÀO]" : "LÀN 1 [RA]";
+                Lane1InfoLabel = isInbound ? "THÔNG TIN XE VÀO" : "THÔNG TIN XE RA";
+                Lane1ButtonText = isInbound ? "MỞ CỔNG 1" : "MỞ CỔNG 1";
+                Lane1Color = (System.Windows.Media.Brush)Application.Current.Resources[isInbound ? "APSBlueBrush" : "APSRedBrush"];
+                
+                OnPropertyChanged(nameof(Lane1FeeVisibility));
+                OnPropertyChanged(nameof(Lane1TimeVisibility));
+            }
+            else if (laneId == 2)
+            {
+                IsLane2Inbound = isInbound;
+                Lane2Title = isInbound ? "LÀN 2 [VÀO]" : "LÀN 2 [RA]";
+                Lane2InfoLabel = isInbound ? "THÔNG TIN XE VÀO" : "THÔNG TIN XE RA";
+                Lane2ButtonText = isInbound ? "MỞ CỔNG 2" : "MỞ CỔNG 2";
+                Lane2Color = (System.Windows.Media.Brush)Application.Current.Resources[isInbound ? "APSBlueBrush" : "APSRedBrush"];
+                
+                OnPropertyChanged(nameof(Lane2FeeVisibility));
+                OnPropertyChanged(nameof(Lane2TimeVisibility));
+            }
+        }
 
-            return readers.Any() ? $"MAPPED: Reader {string.Join(" & ", readers)}" : "UNMAPPED";
+        private string GetReaderMappingIn(int laneIndex)
+        {
+            var inReaders = ReaderLaneMappingService.Instance.GetAll().Where(m => m.LaneIndex == laneIndex && m.IsEnabled && m.Direction == "IN").Select(m => "R" + m.ReaderNo).ToList();
+            return inReaders.Any() ? $"[VÀO: {string.Join(",", inReaders)}]" : "";
+        }
+
+        private string GetReaderMappingOut(int laneIndex)
+        {
+            var outReaders = ReaderLaneMappingService.Instance.GetAll().Where(m => m.LaneIndex == laneIndex && m.IsEnabled && m.Direction == "OUT").Select(m => "R" + m.ReaderNo).ToList();
+            return outReaders.Any() ? $"[RA: {string.Join(",", outReaders)}]" : "";
         }
 
         private int _totalXeTrongBai = 0;
@@ -448,6 +484,12 @@ namespace QuanLyGiuXe.ViewModels
 
             C3200Service.Instance.OnConnectionChanged += OnC3200ConnectionChanged;
             
+            LaneRuntimeManager.Instance.OnLaneDirectionChanged += (laneId) => {
+                Application.Current?.Dispatcher?.BeginInvoke(new Action(() => SyncLaneUIState(laneId)));
+            };
+            SyncLaneUIState(1);
+            SyncLaneUIState(2);
+            
             CurrentView = new TrangChuViewModel();
             
             TrangChuCommand = new RelayCommand(_ => SetView(new TrangChuViewModel()));
@@ -549,45 +591,9 @@ namespace QuanLyGiuXe.ViewModels
                 var blue = (System.Windows.Media.Brush)Application.Current.Resources["APSBlueBrush"];
                 var red = (System.Windows.Media.Brush)Application.Current.Resources["APSRedBrush"];
 
-                if (cfg.ZKTeco.ForceAllIn)
-                {
-                    Lane1Title = "LÀN 1";
-                    Lane2Title = "LÀN 2";
-                    Lane1Color = blue;
-                    Lane2Color = blue;
-                    IsLane1Inbound = true;
-                    IsLane2Inbound = true;
-                    Lane1ButtonText = "MỞ CỔNG 1";
-                    Lane2ButtonText = "MỞ CỔNG 2";
-                    Lane1InfoLabel = "THÔNG TIN LÀN 1";
-                    Lane2InfoLabel = "THÔNG TIN LÀN 2";
-                }
-                else if (cfg.ZKTeco.ForceAllOut)
-                {
-                    Lane1Title = "LÀN 1";
-                    Lane2Title = "LÀN 2";
-                    Lane1Color = red;
-                    Lane2Color = red;
-                    IsLane1Inbound = false;
-                    IsLane2Inbound = false;
-                    Lane1ButtonText = "MỞ CỔNG 1";
-                    Lane2ButtonText = "MỞ CỔNG 2";
-                    Lane1InfoLabel = "THÔNG TIN LÀN 1";
-                    Lane2InfoLabel = "THÔNG TIN LÀN 2";
-                }
-                else
-                {
-                    Lane1Title = "LÀN 1";
-                    Lane2Title = "LÀN 2";
-                    Lane1Color = blue;
-                    Lane2Color = red;
-                    IsLane1Inbound = true;
-                    IsLane2Inbound = false;
-                    Lane1ButtonText = "MỞ CỔNG 1";
-                    Lane2ButtonText = "MỞ CỔNG 2";
-                    Lane1InfoLabel = "THÔNG TIN LÀN 1";
-                    Lane2InfoLabel = "THÔNG TIN LÀN 2";
-                }
+                // Lane UI state is now managed dynamically via LaneRuntimeManager and SyncLaneUIState
+                SyncLaneUIState(1);
+                SyncLaneUIState(2);
 
                 // Notify visibility changes
                 OnPropertyChanged(nameof(Lane1FeeVisibility));
@@ -596,8 +602,12 @@ namespace QuanLyGiuXe.ViewModels
                 OnPropertyChanged(nameof(Lane2TimeVisibility));
                 // Refresh reader mappings
                 ReaderLaneMappingService.Instance.Load();
-                OnPropertyChanged(nameof(Lane1ReaderMappingDisplay));
-                OnPropertyChanged(nameof(Lane2ReaderMappingDisplay));
+                OnPropertyChanged(nameof(Lane1ReaderMappingIn));
+                OnPropertyChanged(nameof(Lane1ReaderMappingOut));
+                OnPropertyChanged(nameof(Lane1ReaderMappingEmpty));
+                OnPropertyChanged(nameof(Lane2ReaderMappingIn));
+                OnPropertyChanged(nameof(Lane2ReaderMappingOut));
+                OnPropertyChanged(nameof(Lane2ReaderMappingEmpty));
             }
             catch { }
         }
@@ -769,6 +779,43 @@ namespace QuanLyGiuXe.ViewModels
 
         // ── Xe Vào / Ra (Dynamic Lane Support) ──────────────────────────────────
 
+        public async Task ProcessScanFromReaderAsync(int readerNo, string uid)
+        {
+            var mapping = ReaderLaneMappingService.Instance.GetMappingByReader(readerNo);
+            if (mapping == null || !mapping.IsEnabled)
+            {
+                LoggingService.Instance.LogWarning("ProcessScan", "MainViewModel", $"Reader {readerNo} is unmapped or disabled.");
+                return;
+            }
+
+            int laneIndex = mapping.LaneIndex;
+            var laneState = LaneRuntimeManager.Instance.GetLaneState(laneIndex);
+
+            if (laneState.CurrentDirection == "DISABLED" || laneState.CurrentDirection == "MAINTENANCE")
+            {
+                SetLaneStatus(laneIndex, $"❌ Làn {laneIndex} đang bảo trì/vô hiệu hóa");
+                return;
+            }
+
+            if (mapping.Direction != laneState.CurrentDirection)
+            {
+                SetLaneStatus(laneIndex, $"❌ Sai luồng thẻ! Làn đang là {laneState.CurrentDirection}");
+                return;
+            }
+
+            if (laneState.IsLocked)
+            {
+                SetLaneStatus(laneIndex, $"⚠ Làn đang bận xử lý xe khác!");
+                return;
+            }
+
+            // Lock the lane
+            LaneRuntimeManager.Instance.LockLane(laneIndex, uid);
+
+            bool isInbound = mapping.Direction == "IN";
+            await ProcessActionAsync(laneIndex, isInbound, uid);
+        }
+
         public async Task ProcessActionAsync(int laneIndex, bool isInbound, string uid)
         {
             if (string.IsNullOrEmpty(uid))
@@ -791,25 +838,41 @@ namespace QuanLyGiuXe.ViewModels
 
                 if (isInbound)
                 {
-                    await ProcessInboundAsync(laneIndex, card, uid);
+                    bool success = await ProcessInboundAsync(laneIndex, card, uid);
+                    if (!success) LaneRuntimeManager.Instance.UnlockLane(laneIndex);
                 }
                 else
                 {
-                    await ProcessOutboundAsync(laneIndex, card, uid);
+                    bool success = await ProcessOutboundAsync(laneIndex, card, uid);
+                    if (!success) LaneRuntimeManager.Instance.UnlockLane(laneIndex);
                 }
 
                 UpdateVehicleCount();
                 LastScannedUID = string.Empty;
+                
+                // Simulate vehicle passing after 10s if successful
+                _ = Task.Run(async () => {
+                    await Task.Delay(10000);
+                    LaneRuntimeManager.Instance.UnlockLane(laneIndex);
+                });
             }
             catch (Exception ex)
             {
                 SetLaneStatus(laneIndex, $"❌ Lỗi xử lý: {ex.Message}");
                 LoggingService.Instance.LogError("ProcessActionError", "MainViewModel", $"Lane={laneIndex}", ex);
+                LaneRuntimeManager.Instance.UnlockLane(laneIndex);
             }
         }
 
-        private async Task ProcessInboundAsync(int laneIndex, RFIDCard card, string uid)
+        private async Task<bool> ProcessInboundAsync(int laneIndex, RFIDCard card, string uid)
         {
+            var existingRec = db.GetXeTrongBaiRecordByCardId(card.Id);
+            if (existingRec != null)
+            {
+                SetLaneStatus(laneIndex, "⚠ Thẻ này đang ở trong bãi!");
+                return false;
+            }
+
             string plate = card.BienSo ?? string.Empty;
 
             try
@@ -825,20 +888,22 @@ namespace QuanLyGiuXe.ViewModels
 
                 // Add to list
                 DanhSachXe.Add(new Xe { BienSo = plate, ThoiGianVao = DateTime.Now });
+                return opened;
             }
             catch (Exception ex)
             {
                 SetLaneStatus(laneIndex, $"❌ Lỗi ghi DB: {ex.Message}");
+                return false;
             }
         }
 
-        private async Task ProcessOutboundAsync(int laneIndex, RFIDCard card, string uid)
+        private async Task<bool> ProcessOutboundAsync(int laneIndex, RFIDCard card, string uid)
         {
             var rec = db.GetXeTrongBaiRecordByCardId(card.Id);
             if (rec == null)
             {
                 SetLaneStatus(laneIndex, "⚠ Không tìm thấy xe trong bãi");
-                return;
+                return false;
             }
 
             var (id, plate, timeIn) = rec.Value;
@@ -860,16 +925,15 @@ namespace QuanLyGiuXe.ViewModels
                 bool opened = await C3200Service.Instance.OpenBarrierAsync(laneIndex);
                 SetLaneStatus(laneIndex, opened ? $"✅ Xe ra lúc {DateTime.Now:HH:mm}" : "⚠ Xe ra – barrier lỗi");
 
-                // Remove from list
-                if (!string.IsNullOrEmpty(plate))
-                {
-                    var xe = DanhSachXe.FirstOrDefault(x => x.BienSo == plate);
-                    if (xe != null) DanhSachXe.Remove(xe);
-                }
+                // Remove from local list
+                var item = DanhSachXe.FirstOrDefault(x => x.BienSo == plate);
+                if (item != null) DanhSachXe.Remove(item);
+                return true;
             }
             catch (Exception ex)
             {
-                SetLaneStatus(laneIndex, $"❌ Lỗi DB: {ex.Message}");
+                SetLaneStatus(laneIndex, $"❌ Lỗi ghi DB: {ex.Message}");
+                return false;
             }
         }
 

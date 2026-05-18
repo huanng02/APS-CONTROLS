@@ -90,7 +90,12 @@
                                  <Border Background="#1A27AE60" BorderBrush="#3327AE60" BorderThickness="1" CornerRadius="3" HorizontalAlignment="Left" Padding="6,2" Margin="0,0,0,10">
                                      <StackPanel Orientation="Horizontal">
                                          <Path Data="M12,2C6.48,2,2,6.48,2,12s4.48,10,10,10,10-4.48,10-10S17.52,2,12,2zm-1,14.5v-9l6,4.5-6,4.5z" Fill="#27AE60" Width="10" Height="10" Stretch="Uniform" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                                         <TextBlock Text="{Binding DataContext.Lane1ReaderMappingDisplay, RelativeSource={RelativeSource AncestorType=Window}}" FontSize="11" Foreground="#27AE60" FontWeight="Bold" VerticalAlignment="Center"/>
+                                         <TextBlock FontSize="11" VerticalAlignment="Center" FontWeight="Bold">
+                                             <Run Text="{Binding DataContext.Lane1ReaderMappingIn, RelativeSource={RelativeSource AncestorType=Window}, Mode=OneWay}" Foreground="#27AE60"/>
+                                             <Run Text=" " />
+                                             <Run Text="{Binding DataContext.Lane1ReaderMappingOut, RelativeSource={RelativeSource AncestorType=Window}, Mode=OneWay}" Foreground="#E74C3C"/>
+                                             <Run Text="{Binding DataContext.Lane1ReaderMappingEmpty, RelativeSource={RelativeSource AncestorType=Window}, Mode=OneWay}" Foreground="#95A5A6"/>
+                                         </TextBlock>
                                      </StackPanel>
                                  </Border>
                                 <Grid>
@@ -206,7 +211,12 @@
                                  <Border Background="#1A27AE60" BorderBrush="#3327AE60" BorderThickness="1" CornerRadius="3" HorizontalAlignment="Left" Padding="6,2" Margin="0,0,0,10">
                                      <StackPanel Orientation="Horizontal">
                                          <Path Data="M12,2C6.48,2,2,6.48,2,12s4.48,10,10,10,10-4.48,10-10S17.52,2,12,2zm-1,14.5v-9l6,4.5-6,4.5z" Fill="#27AE60" Width="10" Height="10" Stretch="Uniform" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                                         <TextBlock Text="{Binding DataContext.Lane2ReaderMappingDisplay, RelativeSource={RelativeSource AncestorType=Window}}" FontSize="11" Foreground="#27AE60" FontWeight="Bold" VerticalAlignment="Center"/>
+                                         <TextBlock FontSize="11" VerticalAlignment="Center" FontWeight="Bold">
+                                             <Run Text="{Binding DataContext.Lane2ReaderMappingIn, RelativeSource={RelativeSource AncestorType=Window}, Mode=OneWay}" Foreground="#27AE60"/>
+                                             <Run Text=" " />
+                                             <Run Text="{Binding DataContext.Lane2ReaderMappingOut, RelativeSource={RelativeSource AncestorType=Window}, Mode=OneWay}" Foreground="#E74C3C"/>
+                                             <Run Text="{Binding DataContext.Lane2ReaderMappingEmpty, RelativeSource={RelativeSource AncestorType=Window}, Mode=OneWay}" Foreground="#95A5A6"/>
+                                         </TextBlock>
                                      </StackPanel>
                                  </Border>
                                 <Grid>

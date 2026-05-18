@@ -1,102 +1,228 @@
 <Window x:Class="QuanLyGiuXe.C3200SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Controller Configuration" SizeToContent="WidthAndHeight" Width="650" MinWidth="500" WindowStartupLocation="CenterOwner"
-        Background="{StaticResource BgLightBrush}">
-    <Grid Margin="12">
+        Title="Cấu hình &amp; Điều khiển C3-200" SizeToContent="Width" Height="850" Width="900" MinWidth="800" WindowStartupLocation="CenterOwner"
+        xmlns:local="clr-namespace:QuanLyGiuXe.Views"
+        Background="#F4F6F8">
+    <Grid Margin="15">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <Border Grid.Row="0" Style="{StaticResource EnterpriseCardBorder}" Padding="25">
-            <StackPanel>
-                <TextBlock Text="C3-200 CONTROLLER SETTINGS" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}" Margin="0,0,0,20"/>
+        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="0,0,10,0">
                 
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="180"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/> <!-- IP -->
-                        <RowDefinition Height="Auto"/> <!-- Port -->
-                        <RowDefinition Height="Auto"/> <!-- Password -->
-                        <RowDefinition Height="Auto"/> <!-- Timeout -->
-                        <RowDefinition Height="Auto"/> <!-- Barrier -->
-                        <RowDefinition Height="Auto"/> <!-- Cooldown -->
-                        <RowDefinition Height="15"/>   <!-- spacer -->
-                        <RowDefinition Height="Auto"/> <!-- Gate In Group -->
-                        <RowDefinition Height="Auto"/> <!-- Gate Out Group -->
-                        <RowDefinition Height="Auto"/> <!-- Mode label + radios -->
-                        <RowDefinition Height="15"/>   <!-- spacer -->
-                        <RowDefinition Height="Auto"/> <!-- Button1 action -->
-                        <RowDefinition Height="Auto"/> <!-- Button2 action -->
-                    </Grid.RowDefinitions>
-
-                    <TextBlock Grid.Row="0" Grid.Column="0" Text="IP ADDRESS" Style="{StaticResource BaseTextBlockStyle}" VerticalAlignment="Center" Margin="0,8"/>
-                    <TextBox Grid.Row="0" Grid.Column="1" x:Name="IpBox" Style="{StaticResource ModernTextBox}" Margin="10,5"/>
-
-                    <TextBlock Grid.Row="1" Grid.Column="0" Text="TCP PORT" Style="{StaticResource BaseTextBlockStyle}" VerticalAlignment="Center" Margin="0,8"/>
-                    <TextBox Grid.Row="1" Grid.Column="1" x:Name="PortBox" Style="{StaticResource ModernTextBox}" Margin="10,5"/>
-
-                    <TextBlock Grid.Row="2" Grid.Column="0" Text="COMM PASSWORD" Style="{StaticResource BaseTextBlockStyle}" VerticalAlignment="Center" Margin="0,8"/>
-                    <TextBox Grid.Row="2" Grid.Column="1" x:Name="PwdBox" Style="{StaticResource ModernTextBox}" Margin="10,5"/>
-
-                    <TextBlock Grid.Row="3" Grid.Column="0" Text="TIMEOUT (MS)" Style="{StaticResource BaseTextBlockStyle}" VerticalAlignment="Center" Margin="0,8"/>
-                    <TextBox Grid.Row="3" Grid.Column="1" x:Name="TimeoutBox" Style="{StaticResource ModernTextBox}" Margin="10,5"/>
-
-                    <TextBlock Grid.Row="4" Grid.Column="0" Text="BARRIER PULSE (S)" Style="{StaticResource BaseTextBlockStyle}" VerticalAlignment="Center" Margin="0,8"/>
-                    <TextBox Grid.Row="4" Grid.Column="1" x:Name="BarrierBox" Style="{StaticResource ModernTextBox}" Margin="10,5"/>
-
-                    <TextBlock Grid.Row="5" Grid.Column="0" Text="CARD COOLDOWN (MS)" Style="{StaticResource BaseTextBlockStyle}" VerticalAlignment="Center" Margin="0,8"/>
-                    <TextBox Grid.Row="5" Grid.Column="1" x:Name="CooldownBox" Style="{StaticResource ModernTextBox}" Margin="10,5"/>
-
-                    <TextBlock Grid.Row="7" Grid.Column="0" Text="GATE GROUP A (Door 1)" Style="{StaticResource BaseTextBlockStyle}" VerticalAlignment="Center" Margin="0,8"/>
-                    <ComboBox Grid.Row="7" Grid.Column="1" x:Name="GateInCombo" Style="{StaticResource ModernComboBox}" Margin="10,5">
-                        <ComboBoxItem Tag="1">Lane 1</ComboBoxItem>
-                        <ComboBoxItem Tag="2">Lane 2</ComboBoxItem>
-                    </ComboBox>
-
-                    <TextBlock Grid.Row="8" Grid.Column="0" Text="GATE GROUP B (Door 2)" Style="{StaticResource BaseTextBlockStyle}" VerticalAlignment="Center" Margin="0,8"/>
-                    <ComboBox Grid.Row="8" Grid.Column="1" x:Name="GateOutCombo" Style="{StaticResource ModernComboBox}" Margin="10,5">
-                        <ComboBoxItem Tag="1">Lane 1</ComboBoxItem>
-                        <ComboBoxItem Tag="2">Lane 2</ComboBoxItem>
-                    </ComboBox>
-
-                    <TextBlock Grid.Row="9" Grid.Column="0" Text="OPERATIONAL MODE" Style="{StaticResource BaseTextBlockStyle}" VerticalAlignment="Center" Margin="0,8"/>
-                    <StackPanel Grid.Row="9" Grid.Column="1" Orientation="Vertical" Margin="10,8,0,0">
-                        <RadioButton x:Name="AutomaticRadio" GroupName="ForceMode" Content="Automatic (Lane 1 &amp; Lane 2)" Style="{StaticResource ModernRadioButton}" Margin="0,0,0,8" Checked="ForceMode_Checked"/>
-                        <RadioButton x:Name="ForceAllInRadio" GroupName="ForceMode" Content="Force All Lane 1" Style="{StaticResource ModernRadioButton}" Margin="0,0,0,8" Checked="ForceMode_Checked"/>
-                        <RadioButton x:Name="ForceAllOutRadio" GroupName="ForceMode" Content="Force All Lane 2" Style="{StaticResource ModernRadioButton}" Checked="ForceMode_Checked"/>
+                <!-- SECTION 1: HARDWARE CONNECTION -->
+                <Border Background="White" CornerRadius="8" Padding="15" Margin="0,0,0,15">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.05"/>
+                    </Border.Effect>
+                    <StackPanel>
+                        <TextBlock Text="🔌 KẾT NỐI PHẦN CỨNG" Style="{StaticResource Heading2Style}" Foreground="#143A7D" Margin="0,0,0,15"/>
+                        <UniformGrid Columns="4" Rows="2">
+                            <StackPanel Margin="0,0,10,10">
+                                <TextBlock Text="IP Address" Foreground="#666" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                                <TextBox x:Name="IpBox" Style="{StaticResource ModernTextBox}" Height="35"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,10,10">
+                                <TextBlock Text="TCP Port" Foreground="#666" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                                <TextBox x:Name="PortBox" Style="{StaticResource ModernTextBox}" Height="35"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,10,10">
+                                <TextBlock Text="Password" Foreground="#666" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                                <TextBox x:Name="PwdBox" Style="{StaticResource ModernTextBox}" Height="35"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,0,10" VerticalAlignment="Bottom">
+                                <Button Content="Test Connection" Style="{StaticResource ModernOutlineButton}" Height="35" Click="TestConnection_Click"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,10,10">
+                                <TextBlock Text="Timeout (ms)" Foreground="#666" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                                <TextBox x:Name="TimeoutBox" Style="{StaticResource ModernTextBox}" Height="35"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,10,10">
+                                <TextBlock Text="Barrier Pulse (s)" Foreground="#666" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                                <TextBox x:Name="BarrierBox" Style="{StaticResource ModernTextBox}" Height="35"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,10,10">
+                                <TextBlock Text="Cooldown (ms)" Foreground="#666" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                                <TextBox x:Name="CooldownBox" Style="{StaticResource ModernTextBox}" Height="35"/>
+                            </StackPanel>
+                            <StackPanel Margin="0,0,0,10" VerticalAlignment="Bottom">
+                                <Button Content="Detailed Log" Style="{StaticResource ModernOutlineButton}" Height="35" Click="TestConnectionDetailed_Click"/>
+                            </StackPanel>
+                        </UniformGrid>
                     </StackPanel>
+                </Border>
 
-                    <TextBlock Grid.Row="11" Grid.Column="0" Text="BUTTON 1 ACTION" Style="{StaticResource BaseTextBlockStyle}" VerticalAlignment="Center" Margin="0,8"/>
-                    <ComboBox Grid.Row="11" Grid.Column="1" x:Name="Button1ActionCombo" Style="{StaticResource ModernComboBox}" Margin="10,5">
-                        <ComboBoxItem Tag="Disabled">Disabled</ComboBoxItem>
-                        <ComboBoxItem Tag="OpenThisDoor">Open Local Relay</ComboBoxItem>
-                        <ComboBoxItem Tag="OpenGroupIn">Trigger IN Group</ComboBoxItem>
-                        <ComboBoxItem Tag="OpenGroupOut">Trigger OUT Group</ComboBoxItem>
-                    </ComboBox>
+                <!-- SECTION 2: RUNTIME CONTROL (Dashboard) -->
+                <local:LaneRuntimeControlView Margin="0,0,0,15"/>
 
-                    <TextBlock Grid.Row="12" Grid.Column="0" Text="BUTTON 2 ACTION" Style="{StaticResource BaseTextBlockStyle}" VerticalAlignment="Center" Margin="0,8"/>
-                    <ComboBox Grid.Row="12" Grid.Column="1" x:Name="Button2ActionCombo" Style="{StaticResource ModernComboBox}" Margin="10,5">
-                        <ComboBoxItem Tag="Disabled">Disabled</ComboBoxItem>
-                        <ComboBoxItem Tag="OpenThisDoor">Open Local Relay</ComboBoxItem>
-                        <ComboBoxItem Tag="OpenGroupIn">Trigger IN Group</ComboBoxItem>
-                        <ComboBoxItem Tag="OpenGroupOut">Trigger OUT Group</ComboBoxItem>
-                    </ComboBox>
-                </Grid>
+                <!-- SECTION 3: READER ASSIGNMENT (Per Lane) -->
+                <Border Background="White" CornerRadius="8" Padding="15" Margin="0,0,0,15">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.05"/>
+                    </Border.Effect>
+                    <StackPanel>
+                        <TextBlock Text="📡 CẤU HÌNH ĐẦU ĐỌC (READER ASSIGNMENT)" Style="{StaticResource Heading2Style}" Foreground="#143A7D" Margin="0,0,0,15"/>
+                        
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="20"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                                                 <!-- Lane 1 Readers (Gate 1) -->
+                            <Border Grid.Column="0" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="8" Padding="15">
+                                <StackPanel>
+                                    <TextBlock Text="CỔNG 1 (READER 1 &amp; 2)" FontWeight="Bold" FontSize="14" Foreground="#143A7D" Margin="0,0,0,10"/>
+                                    
+                                    <Grid Margin="0,0,0,15">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="90"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Gán vào Làn:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#666"/>
+                                        <ComboBox x:Name="Door1LaneCombo" Grid.Column="1" Style="{StaticResource ModernComboBox}" SelectionChanged="Door1LaneCombo_SelectionChanged">
+                                            <ComboBoxItem Tag="1">Làn 1</ComboBoxItem>
+                                            <ComboBoxItem Tag="2">Làn 2</ComboBoxItem>
+                                        </ComboBox>
+                                    </Grid>
+                                    
+                                    <Separator Margin="0,0,0,15" Background="#F0F0F0"/>
+
+                                    <!-- R1 -->
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="80"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="50"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Reader 1" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#666"/>
+                                        <ComboBox x:Name="R1DirCombo" Grid.Column="1" Margin="0,0,5,0" Style="{StaticResource ModernComboBox}">
+                                            <ComboBoxItem Tag="IN">Chiều VÀO</ComboBoxItem>
+                                            <ComboBoxItem Tag="OUT">Chiều RA</ComboBoxItem>
+                                        </ComboBox>
+                                        <CheckBox x:Name="R1EnableCheck" Grid.Column="2" Content="Bật" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                    </Grid>
+ 
+                                    <!-- R2 -->
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="80"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="50"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Reader 2" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#666"/>
+                                        <ComboBox x:Name="R2DirCombo" Grid.Column="1" Margin="0,0,5,0" Style="{StaticResource ModernComboBox}">
+                                            <ComboBoxItem Tag="IN">Chiều VÀO</ComboBoxItem>
+                                            <ComboBoxItem Tag="OUT">Chiều RA</ComboBoxItem>
+                                        </ComboBox>
+                                        <CheckBox x:Name="R2EnableCheck" Grid.Column="2" Content="Bật" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+ 
+                            <!-- Lane 2 Readers (Gate 2) -->
+                            <Border Grid.Column="2" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="8" Padding="15">
+                                <StackPanel>
+                                    <TextBlock Text="CỔNG 2 (READER 3 &amp; 4)" FontWeight="Bold" FontSize="14" Foreground="#143A7D" Margin="0,0,0,10"/>
+                                    
+                                    <Grid Margin="0,0,0,15">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="90"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Gán vào Làn:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#666"/>
+                                        <ComboBox x:Name="Door2LaneCombo" Grid.Column="1" Style="{StaticResource ModernComboBox}" SelectionChanged="Door2LaneCombo_SelectionChanged">
+                                            <ComboBoxItem Tag="1">Làn 1</ComboBoxItem>
+                                            <ComboBoxItem Tag="2">Làn 2</ComboBoxItem>
+                                        </ComboBox>
+                                    </Grid>
+                                    
+                                    <Separator Margin="0,0,0,15" Background="#F0F0F0"/>
+
+                                    <!-- R3 -->
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="80"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="50"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Reader 3" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#666"/>
+                                        <ComboBox x:Name="R3DirCombo" Grid.Column="1" Margin="0,0,5,0" Style="{StaticResource ModernComboBox}">
+                                            <ComboBoxItem Tag="IN">Chiều VÀO</ComboBoxItem>
+                                            <ComboBoxItem Tag="OUT">Chiều RA</ComboBoxItem>
+                                        </ComboBox>
+                                        <CheckBox x:Name="R3EnableCheck" Grid.Column="2" Content="Bật" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                    </Grid>
+ 
+                                    <!-- R4 -->
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="80"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="50"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Reader 4" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#666"/>
+                                        <ComboBox x:Name="R4DirCombo" Grid.Column="1" Margin="0,0,5,0" Style="{StaticResource ModernComboBox}">
+                                            <ComboBoxItem Tag="IN">Chiều VÀO</ComboBoxItem>
+                                            <ComboBoxItem Tag="OUT">Chiều RA</ComboBoxItem>
+                                        </ComboBox>
+                                        <CheckBox x:Name="R4EnableCheck" Grid.Column="2" Content="Bật" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- SECTION 4: ADVANCED RELAY CONFIG -->
+                <Border Background="White" CornerRadius="8" Padding="15" Margin="0,0,0,15">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.05"/>
+                    </Border.Effect>
+                    <StackPanel>
+                        <TextBlock Text="⚙️ NÚT BẤM (HARDWARE BUTTONS)" Style="{StaticResource Heading2Style}" Foreground="#143A7D" Margin="0,0,0,15"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                <TextBlock Text="Button 1 Action (AUX IN 1)" Foreground="#666" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                                <ComboBox x:Name="Button1ActionCombo" Style="{StaticResource ModernComboBox}" Height="35">
+                                    <ComboBoxItem Tag="Disabled">Vô hiệu hóa (Disabled)</ComboBoxItem>
+                                    <ComboBoxItem Tag="OpenThisDoor">Mở Relay Làn hiện tại</ComboBoxItem>
+                                    <ComboBoxItem Tag="OpenGroupIn">Mở toàn bộ Làn VÀO</ComboBoxItem>
+                                    <ComboBoxItem Tag="OpenGroupOut">Mở toàn bộ Làn RA</ComboBoxItem>
+                                </ComboBox>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                <TextBlock Text="Button 2 Action (AUX IN 2)" Foreground="#666" FontWeight="SemiBold" Margin="0,0,0,5"/>
+                                <ComboBox x:Name="Button2ActionCombo" Style="{StaticResource ModernComboBox}" Height="35">
+                                    <ComboBoxItem Tag="Disabled">Vô hiệu hóa (Disabled)</ComboBoxItem>
+                                    <ComboBoxItem Tag="OpenThisDoor">Mở Relay Làn hiện tại</ComboBoxItem>
+                                    <ComboBoxItem Tag="OpenGroupIn">Mở toàn bộ Làn VÀO</ComboBoxItem>
+                                    <ComboBoxItem Tag="OpenGroupOut">Mở toàn bộ Làn RA</ComboBoxItem>
+                                </ComboBox>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
             </StackPanel>
-        </Border>
+        </ScrollViewer>
 
-        <UniformGrid Grid.Row="1" Columns="5" Margin="0,20,0,0">
-            <Button Style="{StaticResource ModernOutlineButton}" Margin="5" Click="TestConnection_Click">Test Connection</Button>
-            <Button Style="{StaticResource ModernOutlineButton}" Margin="5" Click="TestConnectionDetailed_Click">Detailed Log</Button>
-            <Button Style="{StaticResource ModernOutlineButton}" Margin="5" Click="Reset_Click">Reset Defaults</Button>
-            <Button Style="{StaticResource ModernButton}" Background="{StaticResource SuccessBrush}" Margin="5" Click="Save_Click">SAVE CONFIG</Button>
-            <Button Style="{StaticResource ModernOutlineButton}" Margin="5" Click="Close_Click">CLOSE</Button>
-        </UniformGrid>
+        <!-- FOOTER: SAVE BUTTONS -->
+        <Border Grid.Row="1" Background="White" BorderBrush="#E0E0E0" BorderThickness="0,1,0,0" Padding="15,10" Margin="-15,0,-15,-15">
+            <UniformGrid Columns="3" HorizontalAlignment="Right" Width="450">
+                <Button Style="{StaticResource ModernOutlineButton}" Margin="5" Click="Reset_Click" Content="Reset Mặc Định"/>
+                <Button Style="{StaticResource ModernOutlineButton}" Margin="5" Click="Close_Click" Content="Đóng"/>
+                <Button Style="{StaticResource ModernButton}" Background="#4CAF50" Foreground="White" FontWeight="Bold" Margin="5" Click="Save_Click" Content="💾 LƯU CẤU HÌNH"/>
+            </UniformGrid>
+        </Border>
     </Grid>
 </Window>
-    

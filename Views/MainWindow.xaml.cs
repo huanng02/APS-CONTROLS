@@ -57,6 +57,12 @@ namespace QuanLyGiuXe
             };
             if (btnQAPanel != null) btnQAPanel.Visibility = Visibility.Visible;
 #endif
+            this.KeyDown += (s, e) => {
+                if (e.Key == Key.F4)
+                {
+                    MoC3200Settings_Click(null, null);
+                }
+            };
         }
 
         protected override void OnClosed(EventArgs e)
@@ -190,36 +196,25 @@ namespace QuanLyGiuXe
             }
         }
 
-        private void OnRfidScanned(string uid) => XuLyQuetThe(uid);
-        private void OnC3200Scanned(string uid, int door) => XuLyQuetThe(uid, door);
+        private void OnRfidScanned(string uid) => XuLyQuetThe(uid, 1);
+        private void OnC3200Scanned(string uid, int door, int inOutState) 
+        {
+            int readerNo = (door - 1) * 2 + (inOutState == 1 ? 2 : 1);
+            XuLyQuetThe(uid, readerNo);
+        }
 
         // ── Xử lý quẹt thẻ (dùng chung cho RFID USB + C3-200) ───────────────────
 
-        private void XuLyQuetThe(string uid, int door = 0)
+        private void XuLyQuetThe(string uid, int readerNo = 1)
         {
             Dispatcher.BeginInvoke(new Action(async () =>
             {
                 if (DataContext is not MainViewModel vm) return;
 
-                var cfg = AppConfig.Load();
-
-                // 1. Determine UI Lane (1 = Left, 2 = Right)
-                int laneIndex = (door == 2) ? 2 : 1;
-
-                // 2. Determine Direction (Inbound or Outbound)
-                bool isInbound = true;
-                if (cfg.ZKTeco.ForceAllIn) isInbound = true;
-                else if (cfg.ZKTeco.ForceAllOut) isInbound = false;
-                else
-                {
-                    // Automatic Mode: Lane 1 = In, Lane 2 = Out
-                    isInbound = (laneIndex == 1);
-                }
-
                 try
                 {
                     uid = RFIDService.ChuanHoaUID(uid);
-
+                    var cfg = AppConfig.Load();
                     int cooldown = cfg.ZKTeco.CardCooldownMs > 0 ? cfg.ZKTeco.CardCooldownMs : 2000;
                     if (!_lastScanByUid.TryGetValue(uid, out var last)) last = DateTime.MinValue;
                     if ((DateTime.Now - last).TotalMilliseconds < cooldown) return;
@@ -228,27 +223,30 @@ namespace QuanLyGiuXe
                 }
                 catch { }
 
-                // 3. Snapshot logic (based on physical lane)
-                Task.Run(() => {
-                    try {
-                        string cam1 = (laneIndex == 1) ? "Vao1" : "Ra1";
-                        string cam2 = (laneIndex == 1) ? "Vao2" : "Ra2";
-                        
-                        lock (_currentFrames) {
-                            if (_currentFrames.TryGetValue(cam1, out var bmp1)) {
-                                var img1 = ConvertBitmap((System.Drawing.Bitmap)bmp1.Clone());
-                                Dispatcher.BeginInvoke(new Action(() => vm.UpdateLaneSnapshot(laneIndex, 1, img1)));
+                var mapping = ReaderLaneMappingService.Instance.GetMappingByReader(readerNo);
+                if (mapping != null)
+                {
+                    int laneIndex = mapping.LaneIndex;
+                    Task.Run(() => {
+                        try {
+                            string cam1 = (laneIndex == 1) ? "Vao1" : "Ra1";
+                            string cam2 = (laneIndex == 1) ? "Vao2" : "Ra2";
+                            
+                            lock (_currentFrames) {
+                                if (_currentFrames.TryGetValue(cam1, out var bmp1)) {
+                                    var img1 = ConvertBitmap((System.Drawing.Bitmap)bmp1.Clone());
+                                    Dispatcher.BeginInvoke(new Action(() => vm.UpdateLaneSnapshot(laneIndex, 1, img1)));
+                                }
+                                if (_currentFrames.TryGetValue(cam2, out var bmp2)) {
+                                    var img2 = ConvertBitmap((System.Drawing.Bitmap)bmp2.Clone());
+                                    Dispatcher.BeginInvoke(new Action(() => vm.UpdateLaneSnapshot(laneIndex, 2, img2)));
+                                }
                             }
-                            if (_currentFrames.TryGetValue(cam2, out var bmp2)) {
-                                var img2 = ConvertBitmap((System.Drawing.Bitmap)bmp2.Clone());
-                                Dispatcher.BeginInvoke(new Action(() => vm.UpdateLaneSnapshot(laneIndex, 2, img2)));
-                            }
-                        }
-                    } catch { }
-                });
+                        } catch { }
+                    });
+                }
 
-                // 4. Process action in ViewModel
-                await vm.ProcessActionAsync(laneIndex, isInbound, uid);
+                await vm.ProcessScanFromReaderAsync(readerNo, uid);
             }));
         }
 

@@ -67,8 +67,8 @@ namespace QuanLyGiuXe.Services
         public bool IsConnected => _handle != IntPtr.Zero;
         public string LastError { get; private set; } = "";
 
-        /// <summary>Sự kiện quẹt thẻ: (cardNo, doorNumber).</summary>
-        public event Action<string, int>? OnCardScanned;
+        /// <summary>Sự kiện quẹt thẻ: (cardNo, doorNumber, inOutState).</summary>
+        public event Action<string, int, int>? OnCardScanned;
 
         /// <summary>Sự kiện đầy đủ từ RTLog (bao gồm tất cả dữ liệu).</summary>
         public event Action<C3200Event>? OnEvent;
@@ -296,7 +296,7 @@ namespace QuanLyGiuXe.Services
                 OnEvent?.Invoke(evt);
 
                 if (!string.IsNullOrEmpty(evt.CardNo) && evt.CardNo != "0")
-                    OnCardScanned?.Invoke(evt.CardNo, evt.Door);
+                    OnCardScanned?.Invoke(evt.CardNo, evt.Door, evt.InOutState);
             }
         }
 
