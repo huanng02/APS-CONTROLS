@@ -17,23 +17,79 @@ namespace QuanLyGiuXe.ViewModels
         public string CurrentDirection
         {
             get => _currentDirection;
-            set { _currentDirection = value; OnPropertyChanged(nameof(CurrentDirection)); OnPropertyChanged(nameof(StatusColor)); }
+            set 
+            { 
+                _currentDirection = value; 
+                OnPropertyChanged(nameof(CurrentDirection)); 
+                OnPropertyChanged(nameof(DirectionText)); 
+                OnPropertyChanged(nameof(DirectionColor)); 
+                OnPropertyChanged(nameof(StatusColor)); 
+                OnPropertyChanged(nameof(ProcessingStatusText)); 
+            }
         }
 
         private bool _isLocked;
         public bool IsLocked
         {
             get => _isLocked;
-            set { _isLocked = value; OnPropertyChanged(nameof(IsLocked)); OnPropertyChanged(nameof(StatusColor)); }
+            set 
+            { 
+                _isLocked = value; 
+                OnPropertyChanged(nameof(IsLocked)); 
+                OnPropertyChanged(nameof(StatusColor)); 
+                OnPropertyChanged(nameof(ProcessingStatusText)); 
+            }
+        }
+
+        public string DirectionText
+        {
+            get
+            {
+                switch (CurrentDirection?.ToUpper())
+                {
+                    case "IN": return "CHIỀU VÀO";
+                    case "OUT": return "CHIỀU RA";
+                    case "MAINTENANCE": return "BẢO TRÌ";
+                    case "DISABLED": return "VÔ HIỆU HÓA";
+                    default: return CurrentDirection;
+                }
+            }
+        }
+
+        public string DirectionColor
+        {
+            get
+            {
+                switch (CurrentDirection?.ToUpper())
+                {
+                    case "IN": return "#4CAF50";         // Green
+                    case "OUT": return "#2196F3";        // Blue
+                    case "MAINTENANCE": return "#FF9800";  // Orange
+                    case "DISABLED": return "#9E9E9E";     // Grey
+                    default: return "#4CAF50";
+                }
+            }
+        }
+
+        public string ProcessingStatusText
+        {
+            get
+            {
+                if (CurrentDirection == "DISABLED") return "Vô hiệu hóa (Tạm dừng)";
+                if (CurrentDirection == "MAINTENANCE") return "Đang bảo trì";
+                if (IsLocked) return "Đang bận (Đang xử lý)";
+                return "Sẵn sàng (Rảnh)";
+            }
         }
 
         public string StatusColor
         {
             get
             {
-                if (CurrentDirection == "DISABLED" || CurrentDirection == "MAINTENANCE") return "#FFC107"; // Yellow
-                if (IsLocked) return "#F44336"; // Red (Busy)
-                return "#4CAF50"; // Green (Ready)
+                if (CurrentDirection == "DISABLED") return "#9E9E9E";    // Grey
+                if (CurrentDirection == "MAINTENANCE") return "#FF9800"; // Orange
+                if (IsLocked) return "#F44336";                          // Red (Busy)
+                return "#4CAF50";                                        // Green (Ready)
             }
         }
 

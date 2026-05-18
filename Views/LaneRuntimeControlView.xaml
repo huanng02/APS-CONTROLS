@@ -34,14 +34,14 @@
                         <StackPanel>
                             <Grid>
                                 <TextBlock Text="{Binding LaneId, StringFormat='LÀN SỐ {0}'}" FontWeight="Bold" FontSize="18" Foreground="#333"/>
-                                <Border HorizontalAlignment="Right" Background="{Binding StatusColor}" CornerRadius="12" Padding="10,5">
-                                    <TextBlock Text="{Binding CurrentDirection}" Foreground="White" FontWeight="Bold" FontSize="12"/>
+                                <Border HorizontalAlignment="Right" Background="{Binding DirectionColor}" CornerRadius="12" Padding="10,5">
+                                    <TextBlock Text="{Binding DirectionText}" Foreground="White" FontWeight="Bold" FontSize="12"/>
                                 </Border>
                             </Grid>
                             
                             <StackPanel Margin="0,15,0,0" Orientation="Horizontal">
                                 <TextBlock Text="Trạng thái xử lý: " Foreground="#666"/>
-                                <TextBlock Text="{Binding IsLocked, StringFormat='{}{0}'}" 
+                                <TextBlock Text="{Binding ProcessingStatusText}" 
                                            FontWeight="Bold" 
                                            Foreground="{Binding StatusColor}"/>
                             </StackPanel>
