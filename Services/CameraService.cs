@@ -1,177 +1,98 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using QuanLyGiuXe.Services;
 using System.Drawing;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using AForge.Video;
 using OpenCvSharp;
 using OpenCvSharp.Extensions;
 
-namespace QuanLyGiuXe.Services
+public class CameraData
 {
-    public class CameraData
+    public string CamKey { get; set; }
+    public Bitmap Frame { get; set; }
+    public BitmapSource FrameForUI { get; set; }
+}
+public class CameraService : IDisposable
+{
+    private readonly Dictionary<string, CancellationTokenSource> _ipCameraTokens = new();
+
+    public event EventHandler<CameraData> NewFrameReceived;
+
+    public void StartIpCamera(string camKey, string url)
     {
-        public string CamKey { get; set; }
-        public Bitmap Frame { get; set; }
-        public BitmapSource FrameForUI { get; set; }
-    }
-    public class CameraService : IDisposable
-    {
-        public string CamKey { get; set; }
-        // Dictionary quản lý Token để tắt camera sạch sẽ
-        private readonly Dictionary<string, CancellationTokenSource> _ipCameraTokens = new();
+        StopIpCamera(camKey);
 
-        // Sự kiện gửi ảnh về UI
-        public event EventHandler<CameraData> NewFrameReceived;
+        var cts = new CancellationTokenSource();
+        _ipCameraTokens[camKey] = cts;
 
-        public void Initialize()
+        Task.Run(() =>
         {
-            // Không cần khởi tạo AForge nữa
-        }
+            using var capture = new VideoCapture(url, VideoCaptureAPIs.FFMPEG);
+            if (!capture.IsOpened()) return;
 
-        private static BitmapSource ConvertToBitmapSource(Bitmap bitmap)
-        {
-            if (bitmap == null) return null;
-
-            try
+            using var mat = new Mat();
+            while (!cts.Token.IsCancellationRequested)
             {
-                var bitmapData = bitmap.LockBits(
-                    new Rectangle(0, 0, bitmap.Width, bitmap.Height),
-                    System.Drawing.Imaging.ImageLockMode.ReadOnly,
-                    bitmap.PixelFormat);
-
-                // Tự động chọn định dạng WPF tương ứng với Bitmap gốc
-                System.Windows.Media.PixelFormat wpfFormat;
-                switch (bitmap.PixelFormat)
+                if (capture.Read(mat) && !mat.Empty())
                 {
-                    case System.Drawing.Imaging.PixelFormat.Format24bppRgb:
-                        wpfFormat = PixelFormats.Bgr24;
-                        break;
-                    case System.Drawing.Imaging.PixelFormat.Format32bppArgb:
-                    case System.Drawing.Imaging.PixelFormat.Format32bppPArgb:
-                    case System.Drawing.Imaging.PixelFormat.Format32bppRgb:
-                        wpfFormat = PixelFormats.Bgr32;
-                        break;
-                    case System.Drawing.Imaging.PixelFormat.Format8bppIndexed:
-                        wpfFormat = PixelFormats.Gray8;
-                        break;
-                    default:
-                        // Nếu là định dạng lạ, ta ép về Bgr24 nhưng có thể gây sọc
-                        wpfFormat = PixelFormats.Bgr24;
-                        break;
-                }
-
-                var bitmapSource = BitmapSource.Create(
-                    bitmapData.Width, bitmapData.Height,
-                    bitmap.HorizontalResolution, bitmap.VerticalResolution,
-                    wpfFormat,
-                    null,
-                    bitmapData.Scan0,
-                    bitmapData.Stride * bitmapData.Height,
-                    bitmapData.Stride);
-
-                bitmap.UnlockBits(bitmapData);
-
-                bitmapSource.Freeze();
-                return bitmapSource;
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine("Lỗi Convert: " + ex.Message);
-                return null;
-            }
-        }
-
-        public void StartIpCamera(string camKey, string url)
-        {
-            StopIpCamera(camKey);
-
-            var cts = new CancellationTokenSource();
-            _ipCameraTokens[camKey] = cts;
-
-            Task.Run(() =>
-            {
-                try
-                {
-                    using var capture = new VideoCapture(url, VideoCaptureAPIs.FFMPEG);
-
-                    if (!capture.IsOpened())
+                    using (Bitmap bitmap = BitmapConverter.ToBitmap(mat))
                     {
-                        System.Diagnostics.Debug.WriteLine($"Lỗi: Không kết nối được RTSP {camKey}");
-                        return;
-                    }
+                        var uiSource = ConvertToBitmapSource(bitmap);
 
-                    using var mat = new Mat();
-                    while (!cts.Token.IsCancellationRequested)
-                    {
-                        if (capture.Read(mat) && !mat.Empty())
+                        var data = new CameraData
                         {
-                            // 1. CHỈNH SỬA: Chuyển màu từ BGR sang RGB trước khi tạo Bitmap
-                            using Mat rgbMat = new Mat();
-                            Cv2.CvtColor(mat, rgbMat, ColorConversionCodes.BGR2RGB);
-                            Bitmap bitmap = BitmapConverter.ToBitmap(rgbMat);
-
-                            // 2. Chuyển cho UI (WPF dùng RGB nên ảnh sẽ đẹp hơn)
-                            var uiSource = ConvertToBitmapSource(bitmap);
-
-                            var data = new CameraData
-                            {
-                                CamKey = camKey,
-                                Frame = bitmap,
-                                FrameForUI = uiSource
-                            };
-
-                            NewFrameReceived?.Invoke(this, data);
-                        }
-                        Thread.Sleep(5);
+                            CamKey = camKey,
+                            Frame = (Bitmap)bitmap.Clone(),
+                            FrameForUI = uiSource
+                        };
+                        NewFrameReceived?.Invoke(this, data);
                     }
                 }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"Lỗi luồng {camKey}: {ex.Message}");
-                }
-            }, cts.Token);
-        }
-        private void OnNewFrame(object sender, NewFrameEventArgs eventArgs)
-        {
-            try
-            {
-                // Lấy ảnh từ eventArgs
-                Bitmap bmp = (Bitmap)eventArgs.Frame.Clone();
-
-                // 3. Đóng gói vào class CameraData (KHÔNG dùng dấu ngoặc đơn kiểu Tuple)
-                var data = new CameraData
-                {
-                    CamKey = this.CamKey, // Sử dụng Property đã khai báo ở bước 1
-                    Frame = bmp,
-                    FrameForUI = ConvertToBitmapSource(bmp) // Hàm convert bạn đã chuyển sang
-                };
-
-                // 4. Phát sự kiện
-                NewFrameReceived?.Invoke(this, data);
+                Thread.Sleep(30);
             }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine("Lỗi CameraService: " + ex.Message);
-            }
-        }
-        public void StopIpCamera(string camKey)
-        {
-            if (_ipCameraTokens.TryGetValue(camKey, out var cts))
-            {
-                cts.Cancel();
-                _ipCameraTokens.Remove(camKey);
-            }
-        }
+        }, cts.Token);
+    }
 
-        public void StopAll()
+    private static BitmapSource ConvertToBitmapSource(Bitmap bitmap)
+    {
+        if (bitmap == null) return null;
+        try
         {
-            foreach (var cts in _ipCameraTokens.Values) cts.Cancel();
-            _ipCameraTokens.Clear();
-        }
+            var rect = new Rectangle(0, 0, bitmap.Width, bitmap.Height);
+            var bitmapData = bitmap.LockBits(rect, System.Drawing.Imaging.ImageLockMode.ReadOnly, bitmap.PixelFormat);
 
-        public void Dispose() => StopAll();
+            var bitmapSource = BitmapSource.Create(
+                bitmapData.Width, bitmapData.Height,
+                96, 96, // DPI chuẩn
+                PixelFormats.Bgr24,
+                null,
+                bitmapData.Scan0,
+                bitmapData.Stride * bitmapData.Height,
+                bitmapData.Stride);
+
+            bitmap.UnlockBits(bitmapData);
+            bitmapSource.Freeze();
+            return bitmapSource;
+        }
+        catch { return null; }
+    }
+
+    public void StopIpCamera(string camKey)
+    {
+        if (_ipCameraTokens.TryGetValue(camKey, out var cts))
+        {
+            cts.Cancel();
+            cts.Dispose();
+            _ipCameraTokens.Remove(camKey);
+        }
+    }
+
+    public void Dispose()
+    {
+        foreach (var token in _ipCameraTokens.Values)
+        {
+            token.Cancel();
+            token.Dispose();
+        }
+        _ipCameraTokens.Clear();
     }
 }

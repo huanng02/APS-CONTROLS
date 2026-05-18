@@ -1,84 +1,121 @@
 <Window x:Class="QuanLyGiuXe.Views.CameraSettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="⚙ Cài đặt Camera"
-        Width="520"
-        Height="420"
+        Title="⚙ Cấu hình hệ thống Camera IP"
+        Width="600" Height="500" 
         WindowStartupLocation="CenterOwner"
-        ResizeMode="NoResize">
+        ResizeMode="NoResize" Background="#F4F7F9">
 
     <Grid Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <!-- Tiêu đề -->
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
+            <!-- Thông tin đăng nhập chung -->
             <RowDefinition Height="*"/>
+            <!-- Danh sách IP -->
             <RowDefinition Height="Auto"/>
+            <!-- Footer -->
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0" Text="Chọn camera cho mỗi vị trí"
-                   FontSize="16" FontWeight="Bold" Margin="0,0,0,12"/>
+        <!-- Tiêu đề -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,15">
+            <TextBlock Text="THIẾT LẬP CAMERA IP" FontSize="18" FontWeight="Bold" Foreground="#2C3E50"/>
+            <Separator Background="#BDC3C7" Margin="0,5,0,0"/>
+        </StackPanel>
 
-        <!-- Vào Toàn cảnh -->
-        <Grid Grid.Row="1" Margin="0,0,0,8">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="160"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-            <TextBlock Text="🟢 Vào – Toàn cảnh:" FontSize="13" FontWeight="SemiBold"
-                       Foreground="#27AE60" VerticalAlignment="Center"/>
-            <ComboBox x:Name="cbVaoToanCanh" Grid.Column="1" Height="28" FontSize="12"/>
-        </Grid>
+        <!-- Thông tin đăng nhập chung: Giúp bạn nhập cực nhanh -->
+        <GroupBox Grid.Row="1" Header="Thông tin đăng nhập chung" Margin="0,0,0,15" Padding="10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="Tài khoản:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                <TextBox x:Name="txtCamUser" Grid.Column="1" Text="admin" Height="25" VerticalContentAlignment="Center"/>
 
-        <!-- Vào Biển số -->
-        <Grid Grid.Row="2" Margin="0,0,0,8">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="160"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-            <TextBlock Text="🟢 Vào – Biển số:" FontSize="13" FontWeight="SemiBold"
-                       Foreground="#27AE60" VerticalAlignment="Center"/>
-            <ComboBox x:Name="cbVaoBienSo" Grid.Column="1" Height="28" FontSize="12"/>
-        </Grid>
+                <TextBlock Text="Mật khẩu:" Grid.Column="2" VerticalAlignment="Center" Margin="15,0,5,0"/>
+                <PasswordBox x:Name="txtCamPass" Grid.Column="3" Height="25" VerticalContentAlignment="Center"/>
 
-        <!-- Ra Toàn cảnh -->
-        <Grid Grid.Row="3" Margin="0,0,0,8">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="160"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-            <TextBlock Text="🔴 Ra – Toàn cảnh:" FontSize="13" FontWeight="SemiBold"
-                       Foreground="#E74C3C" VerticalAlignment="Center"/>
-            <ComboBox x:Name="cbRaToanCanh" Grid.Column="1" Height="28" FontSize="12"/>
-        </Grid>
+                <Button Content="🔍 Quét nhanh IP" x:Name="btnScanIP" Click="BtnScanIP_Click" Grid.Column="4" Margin="15,0,0,0" Padding="10,0" Background="#3498DB" Foreground="White" BorderThickness="0"/>
+            </Grid>
+        </GroupBox>
 
-        <!-- Ra Biển số -->
-        <Grid Grid.Row="4" Margin="0,0,0,8">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="160"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-            <TextBlock Text="🔴 Ra – Biển số:" FontSize="13" FontWeight="SemiBold"
-                       Foreground="#E74C3C" VerticalAlignment="Center"/>
-            <ComboBox x:Name="cbRaBienSo" Grid.Column="1" Height="28" FontSize="12"/>
-        </Grid>
+        <!-- Danh sách Camera IP -->
+        <GroupBox Grid.Row="2" Header="Danh sách địa chỉ IP Camera" Padding="10">
+            <StackPanel>
+                <!-- Header Cột -->
+                <Grid Margin="0,0,0,5">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="150"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="80"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Vị trí lắp đặt" FontWeight="Bold" Foreground="#7F8C8D"/>
+                    <TextBlock Text="Địa chỉ IP (Ví dụ: 192.168.1.121)" Grid.Column="1" FontWeight="Bold" Foreground="#7F8C8D"/>
+                </Grid>
 
-        <TextBlock Grid.Row="5" x:Name="txtCameraCount"
-                   FontSize="12" Foreground="#888" Margin="0,5,0,0"/>
+                <!-- Vào - Biển số -->
+                <Grid Margin="0,5">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="150"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="80"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="🟢 Làn VÀO - Biển số" VerticalAlignment="Center"/>
+                    <TextBox x:Name="txtVaoBienSoIP" Grid.Column="1" Height="30" VerticalContentAlignment="Center" FontSize="14"/>
+                    <Button Content="Thử" Grid.Column="2" Margin="5,0,0,0" Background="#ECF0F1"/>
+                </Grid>
 
-        <TextBlock Grid.Row="6"
-                   Text="💡 Chọn &quot;(Tự động)&quot; = camera theo thứ tự mặc định.&#x0a;Cần khởi động lại app sau khi thay đổi."
-                   FontSize="12" Foreground="#666" TextWrapping="Wrap"
-                   VerticalAlignment="Bottom" Margin="0,0,0,10"/>
+                <!-- Vào - Toàn cảnh -->
+                <Grid Margin="0,5">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="150"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="80"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="🟢 Làn VÀO - Toàn cảnh" VerticalAlignment="Center"/>
+                    <TextBox x:Name="txtVaoToanCanhIP" Grid.Column="1" Height="30" VerticalContentAlignment="Center" FontSize="14"/>
+                    <Button Content="Thử" Grid.Column="2" Margin="5,0,0,0" Background="#ECF0F1"/>
+                </Grid>
 
-        <StackPanel Grid.Row="7" Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button Content="💾 Lưu" Width="100" Height="32"
-                    Background="#27AE60" Foreground="White" FontWeight="Bold"
-                    Click="Save_Click" Margin="0,0,10,0"/>
-            <Button Content="Đóng" Width="80" Height="32" Click="Close_Click"/>
+                <Separator Margin="0,10"/>
+
+                <!-- Ra - Biển số -->
+                <Grid Margin="0,5">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="150"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="80"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="🔴 Làn RA - Biển số" VerticalAlignment="Center"/>
+                    <TextBox x:Name="txtRaBienSoIP" Grid.Column="1" Height="30" VerticalContentAlignment="Center" FontSize="14"/>
+                    <Button Content="Thử" Grid.Column="2" Margin="5,0,0,0" Background="#ECF0F1"/>
+                </Grid>
+
+                <!-- Ra - Toàn cảnh -->
+                <Grid Margin="0,5">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="150"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="80"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="🔴 Làn RA - Toàn cảnh" VerticalAlignment="Center"/>
+                    <TextBox x:Name="txtRaToanCanhIP" Grid.Column="1" Height="30" VerticalContentAlignment="Center" FontSize="14"/>
+                    <Button Content="Thử" Grid.Column="2" Margin="5,0,0,0" Background="#ECF0F1"/>
+                </Grid>
+            </StackPanel>
+        </GroupBox>
+
+        <!-- Footer -->
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
+            <TextBlock x:Name="txtCameraCount" FontSize="12" Foreground="#888" Margin="0,5,0,10" VerticalAlignment="Top"/>
+            <TextBlock Text="⚠️ Lưu ý: Các camera nên đặt IP tĩnh để tránh mất kết nối." VerticalAlignment="Center" Foreground="#E67E22" Margin="0,0,20,0" FontSize="11"/>
+            <Button Content="💾 LƯU CẤU HÌNH" Width="130" Height="35" Background="#27AE60" Foreground="White" FontWeight="Bold" Click="Save_Click"/>
+            <Button Content="Đóng" Width="80" Height="35" Margin="10,0,0,0" Click="Close_Click"/>
         </StackPanel>
     </Grid>
 </Window>

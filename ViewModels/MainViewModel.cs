@@ -19,9 +19,9 @@ namespace QuanLyGiuXe.ViewModels
     internal class MainViewModel : INotifyPropertyChanged
     {
         private readonly DatabaseService db = new();
-        private readonly AnprService _anprService = new AnprService();
+        private static readonly System.Net.Http.HttpClient _sharedClient = new System.Net.Http.HttpClient();
+        private readonly AnprService _anprService = new AnprService(_sharedClient);
         public event PropertyChangedEventHandler? PropertyChanged;
-        private readonly DatabaseService _dbService = new DatabaseService();
         private readonly C3200Service _plcService = C3200Service.Instance;
 
         // ── Field & Properties (Đã dọn dẹp trùng lặp) ────────────────────────────────
@@ -225,7 +225,7 @@ namespace QuanLyGiuXe.ViewModels
                     TrangThaiKetNoi = online ? "C3200: Online ●" : "C3200: Offline ○");
 
             SetView(new TrangChuViewModel());
-            LoadXeTrongBai();
+            _ = InitializeAsync();
 
             TrangChuCommand = new RelayCommand(_ => SetView(new TrangChuViewModel()));
             TimKiemCommand = new RelayCommand(_ => SetView(new TimKiemViewModel()));
@@ -274,6 +274,18 @@ namespace QuanLyGiuXe.ViewModels
             }
         }
 
+        private async Task InitializeAsync()
+        {
+            try
+            {
+                // Chạy nạp dữ liệu ở luồng phụ để không treo giao diện
+                await Task.Run(() => LoadXeTrongBai());
+            }
+            catch (Exception ex)
+            {
+                ThongBao = "Lỗi kết nối dữ liệu ban đầu!";
+            }
+        }
         private void ThemLog(string dir, string bienSo, string status)
         {
             var entry = new LogEntry
@@ -314,7 +326,7 @@ namespace QuanLyGiuXe.ViewModels
             {
                 string pathAnhRong = "";
 
-                _dbService.InsertXeVao(bienSo, cardUid, loaiXe, loaiVe, pathAnhRong);
+                db.InsertXeVao(bienSo, cardUid, loaiXe, loaiVe, pathAnhRong);
 
                 ThongBao = "Đã ghi nhận xe vào bãi (Không ảnh).";
             }
@@ -326,7 +338,7 @@ namespace QuanLyGiuXe.ViewModels
 
         public async void ProcessCardSwipe(string cardUid)
         {
-            var card = _dbService.GetRFIDCardByUid(cardUid);
+            var card = db.GetRFIDCardByUid(cardUid);
             if (card == null)
             {
                 ThongBao = "THẺ CHƯA ĐĂNG KÝ!";

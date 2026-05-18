@@ -1,6 +1,7 @@
 <Window x:Class="QuanLyGiuXe.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vlc="clr-namespace:LibVLCSharp.WPF;assembly=LibVLCSharp.WPF"
         Title="APS - Quản Lý Xe Ra/Vào"
         Height="800"
         Width="1280"
@@ -253,10 +254,9 @@
                     <!-- Header -->
                     <Border Background="{StaticResource PositiveBrush}" CornerRadius="4" Padding="10,6" Margin="0,0,0,6">
                         <TextBlock Text="🟢 LUỒNG XE VÀO  ─  Gate 1 Reader 1"
-                       FontSize="14" FontWeight="Bold" Foreground="White"/>
+               FontSize="14" FontWeight="Bold" Foreground="White"/>
                     </Border>
 
-                    <!-- 2 Cameras side by side -->
                     <Grid Grid.Row="1" Margin="0,0,0,2">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
@@ -266,24 +266,24 @@
 
                         <Border Background="#0D1117" CornerRadius="4">
                             <Grid>
-                                <Image x:Name="CameraVao1" Stretch="Uniform"/>
-                                <TextBlock Text="CAM 1 • Toàn cảnh"
-                               VerticalAlignment="Top" HorizontalAlignment="Left"
-                               Foreground="#666" FontSize="10" Margin="4,2"/>
+                                <vlc:VideoView x:Name="videoView" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+
+                                <TextBlock Text="CAM 1 • Toàn cảnh (LIVE)"
+                       VerticalAlignment="Top" HorizontalAlignment="Left"
+                       Foreground="White" Opacity="0.5" FontSize="10" Margin="4,2"/>
                             </Grid>
                         </Border>
 
                         <Border Grid.Column="2" Background="#0D1117" CornerRadius="4">
                             <Grid>
-                                <Image x:Name="CameraVao2" Stretch="Uniform"/>
-                                <TextBlock Text="CAM 2 • Biển số"
-                               VerticalAlignment="Top" HorizontalAlignment="Left"
-                               Foreground="#666" FontSize="10" Margin="4,2"/>
-                                <!-- moved open gate button down under plate image -->
+                                <vlc:VideoView x:Name="videoView2" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+
+                                <TextBlock Text="CAM 2 • Biển số (LIVE)"
+                       VerticalAlignment="Top" HorizontalAlignment="Left"
+                       Foreground="White" Opacity="0.5" FontSize="10" Margin="4,2"/>
                             </Grid>
                         </Border>
                     </Grid>
-
                     <!-- Ảnh chụp 2 cam (xe vừa vào) -->
                     <Grid Grid.Row="4" Margin="0,0,0,2">
                         <Grid.ColumnDefinitions>

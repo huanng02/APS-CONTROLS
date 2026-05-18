@@ -3,7 +3,7 @@
 <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
-    <Nullable>enable</Nullable>
+    <Nullable>disable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <PlatformTarget>x64</PlatformTarget>
@@ -12,14 +12,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="LibVLCSharp.WPF" Version="3.9.7.1" />
     <PackageReference Include="LiveCharts.Wpf" Version="0.9.7" />
     <PackageReference Include="OpenCvSharp4.Extensions" Version="4.13.0.20260330" />
     <PackageReference Include="OpenCvSharp4.Windows" Version="4.13.0.20260302" />
     <PackageReference Include="Serilog" Version="2.12.0" />
     <PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />
     <PackageReference Include="Serilog.Sinks.MSSqlServer" Version="5.7.0" />
-    <PackageReference Include="AForge.Video" Version="2.2.5" />
-    <PackageReference Include="AForge.Video.DirectShow" Version="2.2.5" />
     <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.24.3" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="System.Data.SqlClient" Version="4.9.1" />
@@ -31,6 +30,7 @@
     <PackageReference Include="QuestPDF" Version="2024.6.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.0" />
+    <PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.23.1" />
   </ItemGroup>
 
   <ItemGroup>

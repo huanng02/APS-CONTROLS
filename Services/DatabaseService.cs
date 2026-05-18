@@ -42,39 +42,36 @@ namespace QuanLyGiuXe.Services
 
         private string GetWorkingConnection()
         {
-            // Try primary connection first
             try
             {
                 using (SqlConnection conn = new SqlConnection(primaryConnection))
                 {
-                    conn.Open();
-                    return primaryConnection;
+                    conn.Open(); return primaryConnection;
                 }
             }
-            catch
-            {
-                // fallback to backup
-            }
+            catch {}
 
+            // Thử Backup
             try
             {
                 using (SqlConnection conn = new SqlConnection(backupConnection))
                 {
-                    conn.Open();
-                    return backupConnection;
+                    conn.Open(); return backupConnection;
                 }
             }
             catch
             {
-                throw new Exception("Database connection failed. Both primary and backup servers are unavailable.");
+                System.Diagnostics.Debug.WriteLine("Cả hai Server DB đều không kết nối được.");
+                return null; 
             }
         }
+        
         /// <summary>
         /// Lookup an RFIDCard by plate (BienSo). Returns null if not found.
         /// </summary>
         public RFIDCard GetRFIDCardByBienSo(string bienSo)
         {
-            using (SqlConnection conn = new SqlConnection(GetConnectionString()))
+            using (SqlConnection conn = new SqlConnection(GetWorkingConnection()))
             {
                 conn.Open();
                 string sql = "SELECT Id, CardUID, BienSo, LoaiVeId, LoaiXeId, TrangThai, NgayDangKy FROM RFIDCards WHERE BienSo = @bs";

@@ -123,5 +123,8 @@ namespace QuanLyGiuXe.Services
         public string VaoBienSo { get; set; } = "";
         public string RaToanCanh { get; set; } = "";
         public string RaBienSo { get; set; } = "";
+
+        public string CameraUser { get; set; } = "admin";
+        public string CameraPass { get; set; } = "admin123";
     }
 }

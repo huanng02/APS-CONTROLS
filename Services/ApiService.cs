@@ -21,7 +21,7 @@ public class ApiService
 
         try
         {
-            // Bước 1: Tạo bản sao an toàn (Deep Copy) để tránh lỗi AccessViolation trong .NET 8
+            //Tạo bản sao an toàn (Deep Copy) để tránh lỗi AccessViolation trong .NET 8
             using (Bitmap frameToProcess = new Bitmap(bitmap))
             using (Bitmap resized = new Bitmap(640, 480))
             {
@@ -33,7 +33,7 @@ public class ApiService
 
                 using (var ms = new MemoryStream())
                 {
-                    // Bước 2: Ép lưu định dạng Jpeg chuẩn
+                    //lưu định dạng Jpeg
                     resized.Save(ms, ImageFormat.Jpeg);
                     byte[] byteArray = ms.ToArray();
 
@@ -47,7 +47,7 @@ public class ApiService
                         // "image" phải khớp với request.files['image'] bên Python
                         content.Add(imageContent, "image", "frame.jpg");
 
-                        // Bước 3: Gọi API và đợi phản hồi
+                        // Gọi API 
                         var response = await client.PostAsync("http://127.0.0.1:5000/process_plate", content);
 
                         if (response.IsSuccessStatusCode)
@@ -75,7 +75,7 @@ public class ApiService
     {
         try
         {
-            string url = "http://127.0.0.1:5000/static/debug/last_roi.jpg"; // Thay bằng URL thực tế của bạn
+            string url = "http://127.0.0.1:5000/static/debug/last_roi.jpg";
             using (HttpClient client = new HttpClient())
             {
                 byte[] imageBytes = await client.GetByteArrayAsync(url);
@@ -84,9 +84,9 @@ public class ApiService
                     BitmapImage bitmap = new BitmapImage();
                     bitmap.BeginInit();
                     bitmap.StreamSource = ms;
-                    bitmap.CacheOption = BitmapCacheOption.OnLoad; // Đọc xong nhả bộ nhớ ngay
+                    bitmap.CacheOption = BitmapCacheOption.OnLoad; 
                     bitmap.EndInit();
-                    bitmap.Freeze(); // Cho phép dùng ở nhiều Thread
+                    bitmap.Freeze(); 
                     return bitmap;
                 }
             }
