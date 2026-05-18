@@ -859,7 +859,7 @@ namespace QuanLyGiuXe.ViewModels
 
             try
             {
-                db.ThemXe(card.Id, string.IsNullOrEmpty(plate) ? null : plate, "");
+                        await db.ThemXeAsync(card.Id, string.IsNullOrEmpty(plate) ? null : plate, "");
                 
                 // Update UI for the specific lane
                 SetLanePlate(laneIndex, plate);
@@ -894,9 +894,9 @@ namespace QuanLyGiuXe.ViewModels
 
             try
             {
-                db.UpdateXeRaById(id, DateTime.Now);
-                db.LuuLichSu(plate, timeIn, DateTime.Now, fee, "", uid);
-                db.XoaXeByCardId(card.Id);
+                await db.UpdateXeRaByIdAsync(id, DateTime.Now);
+                await db.LuuLichSuAsync(plate, timeIn, DateTime.Now, fee, "", uid);
+                await db.XoaXeByCardIdAsync(card.Id);
 
                 // Update UI
                 SetLanePlate(laneIndex, plate);
