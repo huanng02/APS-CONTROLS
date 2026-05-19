@@ -56,16 +56,14 @@ namespace QuanLyGiuXe.Services
                         _appLogsTableChecked = true;
                     }
 
-                    string sql = @"INSERT INTO dbo.AppLogs 
+                    using (SqlCommand cmd = new SqlCommand( @"INSERT INTO dbo.AppLogs 
                         (TimestampUtc, [Level], EventType, Source, UserId, Plate, Details, Exception, 
                          Username, [Action], EntityName, EntityId, OldValues, NewValues, IpAddress, MachineName, DeviceName, SessionId, CorrelationId,
                          DurationMs, RetryCount, FileSize, TestName, IsRecovered, AdditionalData)
                         VALUES 
                         (@ts, @lvl, @evt, @src, @uid, @plate, @details, @ex, 
                          @user, @action, @entity, @entityId, @old, @new, @ip, @mach, @dev, @sess, @corr,
-                         @dur, @retry, @fsize, @tname, @recov, @data)";
-
-                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                         @dur, @retry, @fsize, @tname, @recov, @data)", conn))
                     {
                         cmd.Parameters.AddWithValue("@ts", timestampUtc);
                         cmd.Parameters.AddWithValue("@lvl", level ?? string.Empty);
@@ -173,8 +171,7 @@ namespace QuanLyGiuXe.Services
                 $"RFID_BIENSO_{bienSo}",
                 async conn =>
                 {
-                    string sql = "SELECT Id, CardUID, BienSo, LoaiVeId, LoaiXeId, TrangThai, NgayDangKy FROM RFIDCards WHERE BienSo = @bs";
-                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    using (SqlCommand cmd = new SqlCommand( @"SELECT Id, CardUID, BienSo, LoaiVeId, LoaiXeId, TrangThai, NgayDangKy FROM RFIDCards WHERE BienSo = @bs", conn))
                     {
                         cmd.Parameters.AddWithValue("@bs", bienSo ?? string.Empty);
                         using (var r = await cmd.ExecuteReaderAsync())
@@ -211,8 +208,7 @@ namespace QuanLyGiuXe.Services
                 new { Id = id, ThoiGianRa = thoiGianRa },
                 async conn =>
                 {
-                    string sql = "UPDATE XeTrongBai SET ThoiGianRa = @ra WHERE Id = @id";
-                    using (var cmd = new SqlCommand(sql, conn))
+                    using (var cmd = new SqlCommand( @"UPDATE XeTrongBai SET ThoiGianRa = @ra WHERE Id = @id", conn))
                     {
                         cmd.Parameters.AddWithValue("@ra", thoiGianRa);
                         cmd.Parameters.AddWithValue("@id", id);
@@ -233,8 +229,7 @@ namespace QuanLyGiuXe.Services
                 "STATS_XE_TRONG_BAI",
                 async conn =>
                 {
-                    string sql = "SELECT COUNT(*) FROM XeTrongBai WHERE ThoiGianRa IS NULL";
-                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    using (SqlCommand cmd = new SqlCommand( @"SELECT COUNT(*) FROM XeTrongBai WHERE ThoiGianRa IS NULL", conn))
                     {
                         var result = await cmd.ExecuteScalarAsync();
                         return result != null ? Convert.ToInt32(result) : 0;
@@ -367,8 +362,7 @@ namespace QuanLyGiuXe.Services
             using (var sql = new SqlConnection(conn))
             {
                 sql.Open();
-                const string q = @"SELECT COUNT(1) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = @table AND COLUMN_NAME = @col";
-                using (var cmd = new SqlCommand(q, sql))
+                using (var cmd = new SqlCommand( @"SELECT COUNT(1) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = @table AND COLUMN_NAME = @col", sql))
                 {
                     cmd.Parameters.AddWithValue("@schema", schema);
                     cmd.Parameters.AddWithValue("@table", table);
@@ -399,8 +393,7 @@ namespace QuanLyGiuXe.Services
                 $"RFID_UID_{uid}",
                 async conn =>
                 {
-                    string sql = "SELECT Id, CardUID, BienSo, LoaiVeId, LoaiXeId, TrangThai, NgayDangKy FROM RFIDCards WHERE CardUID = @uid";
-                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    using (SqlCommand cmd = new SqlCommand( @"SELECT Id, CardUID, BienSo, LoaiVeId, LoaiXeId, TrangThai, NgayDangKy FROM RFIDCards WHERE CardUID = @uid", conn))
                     {
                         cmd.Parameters.AddWithValue("@uid", uid ?? string.Empty);
                         using (var r = await cmd.ExecuteReaderAsync())
@@ -440,8 +433,7 @@ namespace QuanLyGiuXe.Services
                 "GET_XE_VAO_TIME",
                 async conn =>
                 {
-                    string sql = "SELECT ThoiGianVao FROM XeTrongBai WHERE BienSo = @bs AND ThoiGianRa IS NULL";
-                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    using (SqlCommand cmd = new SqlCommand( @"SELECT ThoiGianVao FROM XeTrongBai WHERE BienSo = @bs AND ThoiGianRa IS NULL", conn))
                     {
                         cmd.Parameters.AddWithValue("@bs", bienSo ?? string.Empty);
                         var v = await cmd.ExecuteScalarAsync();
@@ -485,9 +477,7 @@ namespace QuanLyGiuXe.Services
                 async conn =>
                 {
                     var list = new List<LoaiXe>();
-                    string sql = "SELECT Id, TenLoai, TrangThai FROM LoaiXe";
-
-                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    using (SqlCommand cmd = new SqlCommand( @"SELECT Id, TenLoai, TrangThai FROM LoaiXe", conn))
                     using (SqlDataReader r = await cmd.ExecuteReaderAsync())
                     {
                         while (await r.ReadAsync())
@@ -545,8 +535,7 @@ namespace QuanLyGiuXe.Services
                 async conn =>
                 {
                     var list = new List<BangGia>();
-                    string sql = "SELECT Id, LoaiXeId, LoaiVeId, GiaThang, TrangThai FROM dbo.BangGia";
-                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    using (SqlCommand cmd = new SqlCommand( @"SELECT Id, LoaiXeId, LoaiVeId, GiaThang, TrangThai FROM dbo.BangGia", conn))
                     using (SqlDataReader r = await cmd.ExecuteReaderAsync())
                     {
                         while (await r.ReadAsync())
@@ -576,8 +565,7 @@ namespace QuanLyGiuXe.Services
                 using (SqlConnection conn = new SqlConnection(conn_string))
                 {
                     conn.Open();
-                    string sql = "UPDATE dbo.BangGia SET GiaThang=@gt, TrangThai=@tt WHERE Id=@id";
-                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    using (SqlCommand cmd = new SqlCommand( @"UPDATE dbo.BangGia SET GiaThang=@gt, TrangThai=@tt WHERE Id=@id", conn))
                     {
                         cmd.Parameters.AddWithValue("@gt", (object?)giaThang ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("@tt", (object?)trangThai ?? DBNull.Value);
@@ -607,8 +595,7 @@ namespace QuanLyGiuXe.Services
                 new { TenLoai = tenLoai, TrangThai = trangThai },
                 async conn =>
                 {
-                    string sql = "INSERT INTO LoaiXe (TenLoai, TrangThai) VALUES (@ten, @tt)";
-                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    using (SqlCommand cmd = new SqlCommand( @"INSERT INTO LoaiXe (TenLoai, TrangThai) VALUES (@ten, @tt)", conn))
                     {
                         cmd.Parameters.AddWithValue("@ten", tenLoai);
                         cmd.Parameters.AddWithValue("@tt", trangThai ?? "Active");
@@ -630,8 +617,7 @@ namespace QuanLyGiuXe.Services
                 new { Id = id, TenLoai = tenLoai, TrangThai = trangThai },
                 async conn =>
                 {
-                    string sql = "UPDATE LoaiXe SET TenLoai=@ten, TrangThai=@tt WHERE Id=@id";
-                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    using (SqlCommand cmd = new SqlCommand( @"UPDATE LoaiXe SET TenLoai=@ten, TrangThai=@tt WHERE Id=@id", conn))
                     {
                         cmd.Parameters.AddWithValue("@id", id);
                         cmd.Parameters.AddWithValue("@ten", tenLoai);
@@ -654,8 +640,7 @@ namespace QuanLyGiuXe.Services
                 new { Id = id },
                 async conn =>
                 {
-                    string sql = "DELETE FROM LoaiXe WHERE Id=@id";
-                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    using (SqlCommand cmd = new SqlCommand( @"DELETE FROM LoaiXe WHERE Id=@id", conn))
                     {
                         cmd.Parameters.AddWithValue("@id", id);
                         await cmd.ExecuteNonQueryAsync();
@@ -679,9 +664,7 @@ namespace QuanLyGiuXe.Services
                 async conn =>
                 {
                     var list = new List<LoaiThe>();
-                    string sql = "SELECT Id, TenLoai, TrangThai, Detail FROM LoaiVe";
-
-                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    using (SqlCommand cmd = new SqlCommand( @"SELECT Id, TenLoai, TrangThai, Detail FROM LoaiVe", conn))
                     using (SqlDataReader r = await cmd.ExecuteReaderAsync())
                     {
                         while (await r.ReadAsync())
@@ -707,9 +690,7 @@ namespace QuanLyGiuXe.Services
                 using (SqlConnection conn = new SqlConnection(GetConnectionString()))
                 {
                     conn.Open();
-                    string sql = "INSERT INTO LoaiVe (TenLoai, TrangThai) VALUES (@ten, @trang)";
-
-                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    using (SqlCommand cmd = new SqlCommand( @"INSERT INTO LoaiVe (TenLoai, TrangThai) VALUES (@ten, @trang)", conn))
                     {
                         cmd.Parameters.AddWithValue("@ten", tenLoaiThe ?? string.Empty);
                         cmd.Parameters.AddWithValue("@trang", trangThai ?? string.Empty);
@@ -732,9 +713,7 @@ namespace QuanLyGiuXe.Services
                 using (SqlConnection conn = new SqlConnection(GetConnectionString()))
                 {
                     conn.Open();
-                    string sql = "UPDATE LoaiVe SET TenLoai=@ten, TrangThai=@trang WHERE Id=@id";
-
-                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    using (SqlCommand cmd = new SqlCommand( @"UPDATE LoaiVe SET TenLoai=@ten, TrangThai=@trang WHERE Id=@id", conn))
                     {
                         cmd.Parameters.AddWithValue("@ten", tenLoaiThe ?? string.Empty);
                         cmd.Parameters.AddWithValue("@trang", trangThai ?? string.Empty);
@@ -758,9 +737,7 @@ namespace QuanLyGiuXe.Services
                 using (SqlConnection conn = new SqlConnection(GetConnectionString()))
                 {
                     conn.Open();
-                    string sql = "DELETE FROM LoaiVe WHERE Id=@id";
-
-                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    using (SqlCommand cmd = new SqlCommand( @"DELETE FROM LoaiVe WHERE Id=@id", conn))
                     {
                         cmd.Parameters.AddWithValue("@id", id);
                         cmd.ExecuteNonQuery();
@@ -794,8 +771,7 @@ namespace QuanLyGiuXe.Services
                 new { TenLoai = tenLoaiVe, TrangThai = trangThai, Detail = detail },
                 async conn =>
                 {
-                    string sql = "INSERT INTO LoaiVe (TenLoai, TrangThai, Detail) VALUES (@ten, @trang, @detail)";
-                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    using (SqlCommand cmd = new SqlCommand( @"INSERT INTO LoaiVe (TenLoai, TrangThai, Detail) VALUES (@ten, @trang, @detail)", conn))
                     {
                         cmd.Parameters.AddWithValue("@ten", tenLoaiVe ?? string.Empty);
                         cmd.Parameters.AddWithValue("@trang", trangThai ?? string.Empty);
@@ -818,8 +794,7 @@ namespace QuanLyGiuXe.Services
                 new { Id = id, TenLoai = tenLoaiVe, TrangThai = trangThai, Detail = detail },
                 async conn =>
                 {
-                    string sql = "UPDATE LoaiVe SET TenLoai=@ten, TrangThai=@trang, Detail=@detail WHERE Id=@id";
-                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    using (SqlCommand cmd = new SqlCommand( @"UPDATE LoaiVe SET TenLoai=@ten, TrangThai=@trang, Detail=@detail WHERE Id=@id", conn))
                     {
                         cmd.Parameters.AddWithValue("@ten", tenLoaiVe ?? string.Empty);
                         cmd.Parameters.AddWithValue("@trang", trangThai ?? string.Empty);
@@ -843,8 +818,7 @@ namespace QuanLyGiuXe.Services
                 new { Id = id },
                 async conn =>
                 {
-                    string sql = "DELETE FROM LoaiVe WHERE Id=@id";
-                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    using (SqlCommand cmd = new SqlCommand( @"DELETE FROM LoaiVe WHERE Id=@id", conn))
                     {
                         cmd.Parameters.AddWithValue("@id", id);
                         await cmd.ExecuteNonQueryAsync();
@@ -866,8 +840,7 @@ namespace QuanLyGiuXe.Services
                 async conn =>
                 {
                     var list = new List<RFIDCard>();
-                    string sql = @"SELECT Id, CardUID, BienSo, CardName, LoaiVeId, LoaiXeId, TrangThai, NgayDangKy, NgayHetHan FROM RFIDCards";
-                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    using (SqlCommand cmd = new SqlCommand( @"SELECT Id, CardUID, BienSo, CardName, LoaiVeId, LoaiXeId, TrangThai, NgayDangKy, NgayHetHan FROM RFIDCards", conn))
                     using (SqlDataReader r = await cmd.ExecuteReaderAsync())
                     {
                         while (await r.ReadAsync())
@@ -903,10 +876,8 @@ namespace QuanLyGiuXe.Services
                 new { UID = uid, BienSo = bienSo, CardName = cardName },
                 async conn =>
                 {
-                    string sql = @"INSERT INTO RFIDCards (CardUID, BienSo, CardName, LoaiVeId, LoaiXeId, TrangThai, NgayDangKy, NgayHetHan)
-                                   VALUES (@uid, @bien, @card, @loaive, @loaixe, @trang, @ngay, @ngayhh)";
-
-                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    using (SqlCommand cmd = new SqlCommand( @"INSERT INTO RFIDCards (CardUID, BienSo, CardName, LoaiVeId, LoaiXeId, TrangThai, NgayDangKy, NgayHetHan)
+                                   VALUES (@uid, @bien, @card, @loaive, @loaixe, @trang, @ngay, @ngayhh)", conn))
                     {
                         cmd.Parameters.AddWithValue("@uid", uid ?? string.Empty);
                         cmd.Parameters.AddWithValue("@bien", bienSo ?? string.Empty);
@@ -934,8 +905,7 @@ namespace QuanLyGiuXe.Services
                 new { Id = id, UID = uid, BienSo = bienSo },
                 async conn =>
                 {
-                    string sql = @"UPDATE RFIDCards SET CardUID=@uid, BienSo=@bien, CardName=@name, LoaiVeId=@loaive, LoaiXeId=@loaixe, TrangThai=@trang, NgayDangKy=@ngay, NgayHetHan=@ngayhh WHERE Id=@id";
-                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    using (SqlCommand cmd = new SqlCommand( @"UPDATE RFIDCards SET CardUID=@uid, BienSo=@bien, CardName=@name, LoaiVeId=@loaive, LoaiXeId=@loaixe, TrangThai=@trang, NgayDangKy=@ngay, NgayHetHan=@ngayhh WHERE Id=@id", conn))
                     {
                         cmd.Parameters.AddWithValue("@uid", uid ?? string.Empty);
                         cmd.Parameters.AddWithValue("@bien", bienSo ?? string.Empty);
@@ -964,8 +934,7 @@ namespace QuanLyGiuXe.Services
                 new { Id = id },
                 async conn =>
                 {
-                    string sql = "DELETE FROM RFIDCards WHERE Id=@id";
-                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    using (SqlCommand cmd = new SqlCommand( @"DELETE FROM RFIDCards WHERE Id=@id", conn))
                     {
                         cmd.Parameters.AddWithValue("@id", id);
                         await cmd.ExecuteNonQueryAsync();
@@ -991,17 +960,15 @@ namespace QuanLyGiuXe.Services
                 new { Id = id, Months = soThang },
                 async conn =>
                 {
-                    string sql = @"
+                    DateTime newExpiry;
+                    using (SqlCommand cmd = new SqlCommand( @"
                         UPDATE r 
                         SET r.NgayHetHan = DATEADD(MONTH, @months, CASE WHEN r.NgayHetHan < GETDATE() OR r.NgayHetHan IS NULL THEN GETDATE() ELSE r.NgayHetHan END),
                             r.TrangThai = 'Active'
                         OUTPUT INSERTED.NgayHetHan
                         FROM RFIDCards r
                         INNER JOIN LoaiVe lv ON r.LoaiVeId = lv.Id
-                        WHERE r.Id = @id AND lv.CoTheGiaHan = 1";
-
-                    DateTime newExpiry;
-                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                        WHERE r.Id = @id AND lv.CoTheGiaHan = 1", conn))
                     {
                         cmd.Parameters.AddWithValue("@id", id);
                         cmd.Parameters.AddWithValue("@months", soThang);
@@ -1009,8 +976,7 @@ namespace QuanLyGiuXe.Services
                         if (result == null || result == DBNull.Value) return;
                         newExpiry = (DateTime)result;
                     }
-
-                    string logSql = @"
+                    using (SqlCommand cmd = new SqlCommand( @"
                         IF OBJECT_ID('dbo.GiaHanRFIDLog') IS NULL
                         BEGIN
                             CREATE TABLE dbo.GiaHanRFIDLog (
@@ -1022,9 +988,7 @@ namespace QuanLyGiuXe.Services
                             )
                         END
                         INSERT INTO GiaHanRFIDLog (CardId, SoThang, NgayGiaHan, NgayHetHanMoi)
-                        VALUES (@cardId, @soThang, GETDATE(), @newExpiry)";
-
-                    using (SqlCommand cmd = new SqlCommand(logSql, conn))
+                        VALUES (@cardId, @soThang, GETDATE(), @newExpiry)", conn))
                     {
                         cmd.Parameters.AddWithValue("@cardId", id);
                         cmd.Parameters.AddWithValue("@soThang", soThang);
@@ -1043,7 +1007,7 @@ namespace QuanLyGiuXe.Services
                 conn.Open();
                 
                 // Ensure table exists
-                string checkTableSql = @"
+                using (SqlCommand checkCmd = new SqlCommand( @"
                     IF OBJECT_ID('dbo.GiaHanRFIDLog') IS NULL
                     BEGIN
                         CREATE TABLE dbo.GiaHanRFIDLog (
@@ -1053,10 +1017,9 @@ namespace QuanLyGiuXe.Services
                             NgayGiaHan DATETIME DEFAULT GETDATE(),
                             NgayHetHanMoi DATETIME
                         )
-                    END";
-                using (SqlCommand checkCmd = new SqlCommand(checkTableSql, conn)) checkCmd.ExecuteNonQuery();
+                    END", conn)) checkCmd.ExecuteNonQuery();
 
-                string sql = @"
+                using (SqlCommand cmd = new SqlCommand( @"
                     SELECT l.Id, l.CardId, l.SoThang, l.NgayGiaHan, l.NgayHetHanMoi,
                            c.CardUID, c.CardName, c.BienSo
                     FROM GiaHanRFIDLog l
@@ -1064,9 +1027,7 @@ namespace QuanLyGiuXe.Services
                     WHERE (@searchTerm IS NULL OR c.CardUID LIKE @searchTerm OR c.BienSo LIKE @searchTerm OR CAST(l.CardId AS NVARCHAR) LIKE @searchTerm)
                       AND (@fromDate IS NULL OR l.NgayGiaHan >= @fromDate)
                       AND (@toDate IS NULL OR l.NgayGiaHan <= @toDate)
-                    ORDER BY l.NgayGiaHan DESC";
-
-                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    ORDER BY l.NgayGiaHan DESC", conn))
                 {
                     cmd.Parameters.AddWithValue("@searchTerm", string.IsNullOrEmpty(searchTerm) ? DBNull.Value : $"%{searchTerm}%");
                     cmd.Parameters.AddWithValue("@fromDate", (object?)fromDate ?? DBNull.Value);
@@ -1105,8 +1066,7 @@ namespace QuanLyGiuXe.Services
             using (SqlConnection conn = new SqlConnection(GetConnectionString()))
             {
                 conn.Open();
-                string sql = "SELECT COUNT(1) FROM RFIDCards WHERE CardUID = @uid";
-                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                using (SqlCommand cmd = new SqlCommand( @"SELECT COUNT(1) FROM RFIDCards WHERE CardUID = @uid", conn))
                 {
                     cmd.Parameters.AddWithValue("@uid", uid ?? string.Empty);
                     var v = cmd.ExecuteScalar();
@@ -1133,12 +1093,10 @@ namespace QuanLyGiuXe.Services
                 new { Timestamp = timestamp, Action = action, Door = door },
                 async conn =>
                 {
-                    string sql = @"INSERT INTO dbo.ButtonPressLog
+                    using (var cmd = new SqlCommand( @"INSERT INTO dbo.ButtonPressLog
                         (Timestamp, Door, EventType, InOutState, CardNo, Pin, RawData, Action, BarrierResult, PlateImagePath, FullImagePath, Operator, SourceIp, Notes)
                         VALUES
-                        (@ts, @door, @evt, @inout, @card, @pin, @raw, @action, @barrier, @plate, @full, @op, @srcip, @notes)";
-
-                    using (var cmd = new SqlCommand(sql, conn))
+                        (@ts, @door, @evt, @inout, @card, @pin, @raw, @action, @barrier, @plate, @full, @op, @srcip, @notes)", conn))
                     {
                         cmd.Parameters.AddWithValue("@ts", timestamp);
                         cmd.Parameters.AddWithValue("@door", (object?)door ?? DBNull.Value);
@@ -1176,12 +1134,10 @@ namespace QuanLyGiuXe.Services
                 new { Timestamp = rtTimestamp, Door = door, Result = barrierResult },
                 async conn =>
                 {
-                    string sql = @"UPDATE dbo.ButtonPressLog
+                    using (SqlCommand cmd = new SqlCommand( @"UPDATE dbo.ButtonPressLog
                                     SET BarrierResult = @barrier, Notes = COALESCE(Notes,'') + @append
                                     WHERE Door = @door AND Action = 'MANUAL_OPEN' AND (BarrierResult IS NULL OR BarrierResult = 0)
-                                      AND ABS(DATEDIFF(SECOND, Timestamp, @ts)) <= @window";
-
-                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                                      AND ABS(DATEDIFF(SECOND, Timestamp, @ts)) <= @window", conn))
                     {
                         cmd.Parameters.AddWithValue("@barrier", (object?)barrierResult ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("@append", appendNote ?? string.Empty);
@@ -1217,16 +1173,13 @@ namespace QuanLyGiuXe.Services
                 async conn =>
                 {
                     // Check if already in lot
-                    string checkSql = "SELECT COUNT(1) FROM XeTrongBai WHERE CardId = @cardId AND ThoiGianRa IS NULL";
-                    using (SqlCommand checkCmd = new SqlCommand(checkSql, conn))
+                    using (SqlCommand checkCmd = new SqlCommand( @"SELECT COUNT(1) FROM XeTrongBai WHERE CardId = @cardId AND ThoiGianRa IS NULL", conn))
                     {
                         checkCmd.Parameters.AddWithValue("@cardId", cardId);
                         int exists = Convert.ToInt32(await checkCmd.ExecuteScalarAsync());
                         if (exists > 0) return;
                     }
-
-                    string sql = @"INSERT INTO XeTrongBai (CardId, BienSo, ThoiGianVao, AnhXe) VALUES (@CardId, @BienSo, @Time, @AnhXe)";
-                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    using (SqlCommand cmd = new SqlCommand( @"INSERT INTO XeTrongBai (CardId, BienSo, ThoiGianVao, AnhXe) VALUES (@CardId, @BienSo, @Time, @AnhXe)", conn))
                     {
                         cmd.Parameters.AddWithValue("@CardId", cardId);
                         cmd.Parameters.AddWithValue("@BienSo", string.IsNullOrEmpty(bienSo) ? (object)DBNull.Value : bienSo);
@@ -1257,8 +1210,7 @@ namespace QuanLyGiuXe.Services
                 "LIST_XE_TRONG_BAI",
                 async conn =>
                 {
-                    string sql = "SELECT * FROM XeTrongBai WHERE ThoiGianRa IS NULL";
-                    using (var adapter = new SqlDataAdapter(sql, conn))
+                    using (var adapter = new SqlDataAdapter( @"SELECT * FROM XeTrongBai WHERE ThoiGianRa IS NULL", conn))
                     {
                         var table = new DataTable();
                         adapter.Fill(table);
@@ -1280,8 +1232,7 @@ namespace QuanLyGiuXe.Services
                 new { BienSo = bienSo },
                 async conn =>
                 {
-                    string sql = "DELETE FROM XeTrongBai WHERE BienSo = @bienSo AND ThoiGianRa IS NULL";
-                    using (var cmd = new SqlCommand(sql, conn))
+                    using (var cmd = new SqlCommand( @"DELETE FROM XeTrongBai WHERE BienSo = @bienSo AND ThoiGianRa IS NULL", conn))
                     {
                         cmd.Parameters.AddWithValue("@bienSo", bienSo ?? string.Empty);
                         await cmd.ExecuteNonQueryAsync();
@@ -1307,8 +1258,7 @@ namespace QuanLyGiuXe.Services
                 new { CardId = cardId },
                 async conn =>
                 {
-                    string sql = "DELETE FROM XeTrongBai WHERE CardId = @cardId";
-                    using (var cmd = new SqlCommand(sql, conn))
+                    using (var cmd = new SqlCommand( @"DELETE FROM XeTrongBai WHERE CardId = @cardId", conn))
                     {
                         cmd.Parameters.AddWithValue("@cardId", cardId);
                         await cmd.ExecuteNonQueryAsync();
@@ -1340,12 +1290,11 @@ namespace QuanLyGiuXe.Services
                 $"CHECK_XE_CARD_{cardId}",
                 async conn =>
                 {
-                    string sql = @"
+                    using (SqlCommand cmd = new SqlCommand( @"
             SELECT COUNT(1)
             FROM XeTrongBai
             WHERE CardId = @cardId
-              AND ThoiGianRa IS NULL";
-                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+              AND ThoiGianRa IS NULL", conn))
                     {
                         cmd.Parameters.AddWithValue("@cardId", cardId);
                         var v = await cmd.ExecuteScalarAsync();
@@ -1366,12 +1315,11 @@ namespace QuanLyGiuXe.Services
                 "COUNT_XE_TRONG_BAI",
                 async conn =>
                 {
-                    string sql = @"
+                    using (var cmd = new SqlCommand( @"
             SELECT COUNT(1)
             FROM XeTrongBai
             WHERE CardId = @cardId
-              AND ThoiGianRa IS NULL";
-                    using (var cmd = new SqlCommand(sql, conn))
+              AND ThoiGianRa IS NULL", conn))
                     {
                         cmd.Parameters.AddWithValue("@cardId", cardId);
                         var v = await cmd.ExecuteScalarAsync();
@@ -1393,8 +1341,7 @@ namespace QuanLyGiuXe.Services
                 "GET_BIENSO_TRONG_BAI",
                 async conn =>
                 {
-                    string sql = "SELECT BienSo FROM XeTrongBai WHERE CardId = @cardId AND ThoiGianRa IS NULL";
-                    using (var cmd = new SqlCommand(sql, conn))
+                    using (var cmd = new SqlCommand( @"SELECT BienSo FROM XeTrongBai WHERE CardId = @cardId AND ThoiGianRa IS NULL", conn))
                     {
                         cmd.Parameters.AddWithValue("@cardId", cardId);
                         var v = await cmd.ExecuteScalarAsync();
@@ -1421,8 +1368,7 @@ namespace QuanLyGiuXe.Services
                 $"RECORD_XE_CARD_{cardId}",
                 async conn =>
                 {
-                    string sql = "SELECT TOP 1 Id, BienSo, ThoiGianVao FROM XeTrongBai WHERE CardId = @cardId AND ThoiGianRa IS NULL ORDER BY ThoiGianVao DESC";
-                    using (var cmd = new SqlCommand(sql, conn))
+                    using (var cmd = new SqlCommand( @"SELECT TOP 1 Id, BienSo, ThoiGianVao FROM XeTrongBai WHERE CardId = @cardId AND ThoiGianRa IS NULL ORDER BY ThoiGianVao DESC", conn))
                     {
                         cmd.Parameters.AddWithValue("@cardId", cardId);
                         using (var r = await cmd.ExecuteReaderAsync())
@@ -1443,7 +1389,7 @@ namespace QuanLyGiuXe.Services
 
         private bool ColumnExists(SqlConnection conn, string tableName, string columnName)
         {
-            using (var cmd = new SqlCommand("SELECT COUNT(1) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = @table AND COLUMN_NAME = @col", conn))
+            using (var cmd = new SqlCommand( @"SELECT COUNT(1) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = @table AND COLUMN_NAME = @col", conn))
             {
                 cmd.Parameters.AddWithValue("@table", tableName);
                 cmd.Parameters.AddWithValue("@col", columnName);
@@ -1467,7 +1413,7 @@ namespace QuanLyGiuXe.Services
                     int? cardId = null;
                     if (!string.IsNullOrEmpty(cardUid))
                     {
-                        using (var lookup = new SqlCommand("SELECT Id FROM RFIDCards WHERE CardUID = @uid", conn))
+                        using (var lookup = new SqlCommand( @"SELECT Id FROM RFIDCards WHERE CardUID = @uid", conn))
                         {
                             lookup.Parameters.AddWithValue("@uid", cardUid);
                             var v = await lookup.ExecuteScalarAsync();
@@ -1475,17 +1421,15 @@ namespace QuanLyGiuXe.Services
                         }
                     }
                     else if (!string.IsNullOrEmpty(bienSo))
-                    {
-                        using (var lookup = new SqlCommand("SELECT Id FROM RFIDCards WHERE BienSo = @bs", conn))
+                    { 
+                        using (var lookup = new SqlCommand( @"SELECT Id FROM RFIDCards WHERE BienSo = @bs", conn))
                         {
                             lookup.Parameters.AddWithValue("@bs", bienSo);
                             var v = await lookup.ExecuteScalarAsync();
                             if (v != null && v != DBNull.Value) cardId = Convert.ToInt32(v);
                         }
                     }
-
-                    string sql = "INSERT INTO LichSuXe (CardId, BienSo, ThoiGianVao, ThoiGianRa, Tien, AnhRa) VALUES (@cardId, @bs, @vao, @ra, @tien, @anh)";
-                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    using (SqlCommand cmd = new SqlCommand( @"INSERT INTO LichSuXe (CardId, BienSo, ThoiGianVao, ThoiGianRa, Tien, AnhRa) VALUES (@cardId, @bs, @vao, @ra, @tien, @anh)", conn))
                     {
                         cmd.Parameters.AddWithValue("@cardId", (object?)cardId ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("@bs", string.IsNullOrEmpty(bienSo) ? (object?)DBNull.Value : bienSo);
@@ -1511,8 +1455,7 @@ namespace QuanLyGiuXe.Services
                 async conn =>
                 {
                     var list = new List<LichSuXe>();
-                    string query = @"SELECT TOP 1000 Id, CardId, BienSo, ThoiGianVao, ThoiGianRa, Tien, TrangThai, AnhVao, AnhRa FROM LichSuXe ORDER BY ThoiGianVao DESC";
-                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    using (SqlCommand cmd = new SqlCommand( @"SELECT TOP 1000 Id, CardId, BienSo, ThoiGianVao, ThoiGianRa, Tien, TrangThai, AnhVao, AnhRa FROM LichSuXe ORDER BY ThoiGianVao DESC", conn))
                     using (SqlDataReader reader = await cmd.ExecuteReaderAsync())
                     {
                         while (await reader.ReadAsync())
@@ -1547,8 +1490,7 @@ namespace QuanLyGiuXe.Services
                 $"CHECK_CARD_{uid}",
                 async conn =>
                 {
-                    string sql = "SELECT COUNT(*) FROM RFIDCards WHERE CardUID = @uid";
-                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    using (SqlCommand cmd = new SqlCommand( @"SELECT COUNT(*) FROM RFIDCards WHERE CardUID = @uid", conn))
                     {
                         cmd.Parameters.AddWithValue("@uid", uid ?? string.Empty);
                         var v = await cmd.ExecuteScalarAsync();
@@ -1569,8 +1511,7 @@ namespace QuanLyGiuXe.Services
                 $"BIENSO_FROM_UID_{uid}",
                 async conn =>
                 {
-                    string query = "SELECT BienSo FROM RFIDCards WHERE CardUID = @uid";
-                    using (SqlCommand cmd = new SqlCommand(query, conn))
+                    using (SqlCommand cmd = new SqlCommand( @"SELECT BienSo FROM RFIDCards WHERE CardUID = @uid", conn))
                     {
                         cmd.Parameters.AddWithValue("@uid", uid ?? string.Empty);
                         var result = await cmd.ExecuteScalarAsync();
@@ -1586,10 +1527,7 @@ namespace QuanLyGiuXe.Services
             using (SqlConnection conn = new SqlConnection(conn_string))
             {
                 conn.Open();
-
-                string insertQuery = "INSERT INTO RFIDCards(CardUID,BienSo,LoaiThe) VALUES(@uid,@bs,@lt)";
-
-                SqlCommand cmd = new SqlCommand(insertQuery, conn);
+                SqlCommand cmd = new SqlCommand( @"INSERT INTO RFIDCards(CardUID,BienSo,LoaiThe) VALUES(@uid,@bs,@lt)", conn);
                 cmd.Parameters.AddWithValue("@uid", uid);
                 cmd.Parameters.AddWithValue("@bs", bienSo);
                 cmd.Parameters.AddWithValue("@lt", loaiThe);
@@ -1615,8 +1553,7 @@ namespace QuanLyGiuXe.Services
             using (SqlConnection conn = new SqlConnection(conn_string))
             {
                 conn.Open();
-
-                string sql = @"
+                using (SqlCommand cmd = new SqlCommand( @"
                     SELECT 
                         r.Id,
                         r.CardUID,
@@ -1627,9 +1564,7 @@ namespace QuanLyGiuXe.Services
                     FROM RFIDCards r
                     LEFT JOIN LoaiXe lx ON r.LoaiXeId = lx.Id
                     LEFT JOIN LoaiVe lv ON r.LoaiVeId = lv.Id
-                    ";
-
-                using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    ", conn))
                 using (SqlDataReader reader = cmd.ExecuteReader())
                 {
                     while (reader.Read())
@@ -1662,15 +1597,13 @@ namespace QuanLyGiuXe.Services
                 using (SqlConnection conn = new SqlConnection(conn_string))
                 {
                     conn.Open();
-                    string sql = @"SELECT TimestampUtc, [Level], EventType, Source, UserId, Plate, Details, Exception, 
+                    using (SqlCommand cmd = new SqlCommand( @"SELECT TimestampUtc, [Level], EventType, Source, UserId, Plate, Details, Exception, 
                                           Username, [Action], EntityName, EntityId, OldValues, NewValues, IpAddress, MachineName, DeviceName, SessionId, CorrelationId,
                                           DurationMs, RetryCount, FileSize, TestName, IsRecovered, AdditionalData
                                    FROM dbo.AppLogs
                                    WHERE (@from IS NULL OR TimestampUtc >= @from)
                                      AND (@to IS NULL OR TimestampUtc <= @to)
-                                   ORDER BY TimestampUtc DESC";
-
-                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                                   ORDER BY TimestampUtc DESC", conn))
                     {
                         cmd.Parameters.AddWithValue("@from", (object?)fromUtc ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("@to", (object?)toUtc ?? DBNull.Value);
