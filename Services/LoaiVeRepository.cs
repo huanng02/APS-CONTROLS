@@ -23,8 +23,7 @@ namespace QuanLyGiuXe.Services
                 async conn =>
                 {
                     var list = new List<LoaiVe>();
-                    string q = "SELECT Id, TenLoai, TrangThai, Detail, CoTheGiaHan FROM LoaiVe";
-                    using (var cmd = new SqlCommand(q, conn))
+                    using (var cmd = new SqlCommand( @"SELECT Id, TenLoai, TrangThai, Detail, CoTheGiaHan FROM LoaiVe", conn))
                     using (var rdr = await cmd.ExecuteReaderAsync())
                     {
                         while (await rdr.ReadAsync())
@@ -59,8 +58,7 @@ namespace QuanLyGiuXe.Services
                 lv,
                 async conn =>
                 {
-                    string q = @"INSERT INTO LoaiVe (TenLoai, TrangThai, Detail) VALUES (@ten, @trang, @detail)";
-                    using (var cmd = new SqlCommand(q, conn))
+                    using (var cmd = new SqlCommand( @"INSERT INTO LoaiVe (TenLoai, TrangThai, Detail) VALUES (@ten, @trang, @detail)", conn))
                     {
                         cmd.Parameters.AddWithValue("@ten", lv.TenLoai ?? string.Empty);
                         cmd.Parameters.AddWithValue("@trang", lv.TrangThai ?? string.Empty);
@@ -86,8 +84,7 @@ namespace QuanLyGiuXe.Services
                 lv,
                 async conn =>
                 {
-                    string q = @"UPDATE LoaiVe SET TenLoai=@ten, TrangThai=@trang, Detail=@detail WHERE Id=@id";
-                    using (var cmd = new SqlCommand(q, conn))
+                    using (var cmd = new SqlCommand( @"UPDATE LoaiVe SET TenLoai=@ten, TrangThai=@trang, Detail=@detail WHERE Id=@id", conn))
                     {
                         cmd.Parameters.AddWithValue("@ten", lv.TenLoai ?? string.Empty);
                         cmd.Parameters.AddWithValue("@trang", lv.TrangThai ?? string.Empty);
@@ -111,8 +108,7 @@ namespace QuanLyGiuXe.Services
                 new { Id = id },
                 async conn =>
                 {
-                    string q = "DELETE FROM LoaiVe WHERE Id=@id";
-                    using (var cmd = new SqlCommand(q, conn))
+                    using (var cmd = new SqlCommand( @"DELETE FROM LoaiVe WHERE Id=@id", conn))
                     {
                         cmd.Parameters.AddWithValue("@id", id);
                         await cmd.ExecuteNonQueryAsync();

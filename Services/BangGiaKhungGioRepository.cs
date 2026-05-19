@@ -23,8 +23,7 @@ namespace QuanLyGiuXe.Services
                 async conn =>
                 {
                     var list = new List<BangGiaKhungGio>();
-                    string q = "SELECT Id, BangGiaId, KhungGioId, GiaTien FROM dbo.BangGiaKhungGio ORDER BY Id";
-                    using (var cmd = new SqlCommand(q, conn))
+                    using (var cmd = new SqlCommand( @"SELECT Id, BangGiaId, KhungGioId, GiaTien FROM dbo.BangGiaKhungGio ORDER BY Id", conn))
                     using (var r = await cmd.ExecuteReaderAsync())
                     {
                         while (await r.ReadAsync())
@@ -55,8 +54,7 @@ namespace QuanLyGiuXe.Services
                 async conn =>
                 {
                     var list = new List<BangGiaKhungGio>();
-                    string q = "SELECT Id, BangGiaId, KhungGioId, GiaTien FROM dbo.BangGiaKhungGio WHERE BangGiaId = @bg";
-                    using (var cmd = new SqlCommand(q, conn))
+                    using (var cmd = new SqlCommand( @"SELECT Id, BangGiaId, KhungGioId, GiaTien FROM dbo.BangGiaKhungGio WHERE BangGiaId = @bg", conn))
                     {
                         cmd.Parameters.AddWithValue("@bg", bangGiaId);
                         using (var r = await cmd.ExecuteReaderAsync())
@@ -92,8 +90,7 @@ namespace QuanLyGiuXe.Services
                 entity,
                 async conn =>
                 {
-                    string q = "INSERT INTO dbo.BangGiaKhungGio (BangGiaId, KhungGioId, GiaTien) VALUES (@bg,@kg,@gt); SELECT SCOPE_IDENTITY();";
-                    using (var cmd = new SqlCommand(q, conn))
+                    using (var cmd = new SqlCommand( @"INSERT INTO dbo.BangGiaKhungGio (BangGiaId, KhungGioId, GiaTien) VALUES (@bg,@kg,@gt); SELECT SCOPE_IDENTITY();", conn))
                     {
                         cmd.Parameters.AddWithValue("@bg", entity.BangGiaId);
                         cmd.Parameters.AddWithValue("@kg", entity.KhungGioId);
@@ -119,8 +116,7 @@ namespace QuanLyGiuXe.Services
                 entity,
                 async conn =>
                 {
-                    string q = "UPDATE dbo.BangGiaKhungGio SET BangGiaId=@bg, KhungGioId=@kg, GiaTien=@gt WHERE Id=@id";
-                    using (var cmd = new SqlCommand(q, conn))
+                    using (var cmd = new SqlCommand( @"UPDATE dbo.BangGiaKhungGio SET BangGiaId=@bg, KhungGioId=@kg, GiaTien=@gt WHERE Id=@id", conn))
                     {
                         cmd.Parameters.AddWithValue("@bg", entity.BangGiaId);
                         cmd.Parameters.AddWithValue("@kg", entity.KhungGioId);
@@ -145,8 +141,7 @@ namespace QuanLyGiuXe.Services
                 new { Id = id },
                 async conn =>
                 {
-                    string q = "DELETE FROM dbo.BangGiaKhungGio WHERE Id=@id";
-                    using (var cmd = new SqlCommand(q, conn))
+                    using (var cmd = new SqlCommand( @"DELETE FROM dbo.BangGiaKhungGio WHERE Id=@id", conn))
                     {
                         cmd.Parameters.AddWithValue("@id", id);
                         await cmd.ExecuteNonQueryAsync();

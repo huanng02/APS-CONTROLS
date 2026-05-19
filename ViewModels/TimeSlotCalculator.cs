@@ -60,11 +60,11 @@ namespace QuanLyGiuXe.ViewModels
         }
 
         public static CalculationResult Calculate(
-            DateTime checkIn,
-            DateTime checkOut,
-            IEnumerable<KhungGioDef> khungDefs,
-            IEnumerable<KhungPrice> prices,
-            PriceUnit defaultUnit = PriceUnit.PerHour)
+    DateTime checkIn,
+    DateTime checkOut,
+    IEnumerable<KhungGioDef> khungDefs,
+    IEnumerable<KhungPrice> prices,
+    PriceUnit defaultUnit = PriceUnit.PerHour)
         {
             if (khungDefs == null) throw new ArgumentNullException(nameof(khungDefs));
             if (prices == null) throw new ArgumentNullException(nameof(prices));
@@ -186,21 +186,30 @@ namespace QuanLyGiuXe.ViewModels
             }
 
             // =========================
-            // CASE B: >= 1 giờ
+            // CASE B: >= 1 giờ (HIGHEST PRICE WINS)
             // =========================
             result.IsCaseA = false;
 
-            var uniqueKhungs = segments
-                .Select(x => x.KhungGioId)
-                .Distinct()
-                .ToList();
-
             decimal totalPrice = 0m;
 
-            foreach (var id in uniqueKhungs)
+            // gom theo từng ngày
+            var groupedByDay = segments
+                .GroupBy(x => x.Start.Date);
+
+            foreach (var dayGroup in groupedByDay)
             {
-                if (priceMap.TryGetValue(id, out var p))
-                    totalPrice += p.GiaTien;
+                decimal maxPrice = 0m;
+
+                foreach (var seg in dayGroup)
+                {
+                    if (!priceMap.TryGetValue(seg.KhungGioId, out var p))
+                        continue;
+
+                    if (p.GiaTien > maxPrice)   
+                        maxPrice = p.GiaTien;
+                }
+
+                totalPrice += maxPrice;
             }
 
             result.FinalPrice = Math.Round(totalPrice, 2);

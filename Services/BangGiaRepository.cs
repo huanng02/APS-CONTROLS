@@ -24,8 +24,7 @@ namespace QuanLyGiuXe.Services
                 async conn =>
                 {
                     var list = new List<BangGia>();
-                    string q = "SELECT Id, LoaiXeId, LoaiVeId, GiaThang, TrangThai FROM dbo.BangGia ORDER BY Id";
-                    using (var cmd = new SqlCommand(q, conn))
+                    using (var cmd = new SqlCommand( @"SELECT Id, LoaiXeId, LoaiVeId, GiaThang, TrangThai FROM dbo.BangGia ORDER BY Id", conn))
                     using (var r = await cmd.ExecuteReaderAsync())
                     {
                         while (await r.ReadAsync())
@@ -57,8 +56,7 @@ namespace QuanLyGiuXe.Services
                 $"BANG_GIA_{id}",
                 async conn =>
                 {
-                    string q = "SELECT Id, LoaiXeId, LoaiVeId, GiaThang, TrangThai FROM dbo.BangGia WHERE Id = @id";
-                    using (var cmd = new SqlCommand(q, conn))
+                    using (var cmd = new SqlCommand( @"SELECT Id, LoaiXeId, LoaiVeId, GiaThang, TrangThai FROM dbo.BangGia WHERE Id = @id", conn))
                     {
                         cmd.Parameters.AddWithValue("@id", id);
                         using (var r = await cmd.ExecuteReaderAsync())
@@ -93,8 +91,7 @@ namespace QuanLyGiuXe.Services
                 $"BANG_GIA_LX_{loaiXeId}_LV_{loaiVeId}",
                 async conn =>
                 {
-                    string q = "SELECT TOP(1) Id, LoaiXeId, LoaiVeId, GiaThang, TrangThai FROM dbo.BangGia WHERE LoaiXeId = @lx AND LoaiVeId = @lv ORDER BY Id DESC";
-                    using (var cmd = new SqlCommand(q, conn))
+                    using (var cmd = new SqlCommand( @"SELECT TOP(1) Id, LoaiXeId, LoaiVeId, GiaThang, TrangThai FROM dbo.BangGia WHERE LoaiXeId = @lx AND LoaiVeId = @lv ORDER BY Id DESC", conn))
                     {
                         cmd.Parameters.AddWithValue("@lx", loaiXeId);
                         cmd.Parameters.AddWithValue("@lv", loaiVeId);
@@ -133,8 +130,7 @@ namespace QuanLyGiuXe.Services
                 entity,
                 async conn =>
                 {
-                    string q = @"INSERT INTO dbo.BangGia (LoaiXeId, LoaiVeId, GiaThang, TrangThai) VALUES (@lx,@lv,@gt,@tt)";
-                    using (var cmd = new SqlCommand(q, conn))
+                    using (var cmd = new SqlCommand( @"INSERT INTO dbo.BangGia (LoaiXeId, LoaiVeId, GiaThang, TrangThai) VALUES (@lx,@lv,@gt,@tt)", conn))
                     {
                         cmd.Parameters.AddWithValue("@lx", entity.LoaiXeId);
                         cmd.Parameters.AddWithValue("@lv", entity.LoaiVeId);
@@ -161,8 +157,7 @@ namespace QuanLyGiuXe.Services
                 entity,
                 async conn =>
                 {
-                    string q = @"UPDATE dbo.BangGia SET LoaiXeId=@lx, LoaiVeId=@lv, GiaThang=@gt, TrangThai=@tt WHERE Id=@id";
-                    using (var cmd = new SqlCommand(q, conn))
+                    using (var cmd = new SqlCommand( @"UPDATE dbo.BangGia SET LoaiXeId=@lx, LoaiVeId=@lv, GiaThang=@gt, TrangThai=@tt WHERE Id=@id", conn))
                     {
                         cmd.Parameters.AddWithValue("@lx", entity.LoaiXeId);
                         cmd.Parameters.AddWithValue("@lv", entity.LoaiVeId);
@@ -188,8 +183,7 @@ namespace QuanLyGiuXe.Services
                 new { Id = id },
                 async conn =>
                 {
-                    const string q = "DELETE FROM dbo.BangGia WHERE Id=@id";
-                    using (var cmd = new SqlCommand(q, conn))
+                    using (var cmd = new SqlCommand( @"DELETE FROM dbo.BangGia WHERE Id=@id", conn))
                     {
                         cmd.Parameters.AddWithValue("@id", id);
                         await cmd.ExecuteNonQueryAsync();
@@ -210,8 +204,7 @@ namespace QuanLyGiuXe.Services
                 $"BANG_GIA_EXISTS_{loaiXeId}_{loaiVeId}",
                 async conn =>
                 {
-                    const string q = "SELECT COUNT(1) FROM dbo.BangGia WHERE LoaiXeId=@lx AND LoaiVeId=@lv";
-                    using (var cmd = new SqlCommand(q, conn))
+                    using (var cmd = new SqlCommand( @"SELECT COUNT(1) FROM dbo.BangGia WHERE LoaiXeId=@lx AND LoaiVeId=@lv", conn))
                     {
                         cmd.Parameters.AddWithValue("@lx", loaiXeId);
                         cmd.Parameters.AddWithValue("@lv", loaiVeId);

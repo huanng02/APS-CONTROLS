@@ -34,15 +34,13 @@ namespace QuanLyGiuXe.Services
                 async conn =>
                 {
                     var kpi = new DashboardKpi();
-                    string sql = @"
+                    using (var cmd = new SqlCommand(@"
                         SELECT 
                             (SELECT COUNT(*) FROM XeTrongBai WHERE ThoiGianRa IS NULL) AS XeTrongBai,
                             (SELECT COUNT(*) FROM LichSuXe WHERE ThoiGianVao >= @Start AND ThoiGianVao <= @End) AS LuotXeVao,
                             (SELECT ISNULL(SUM(Tien), 0) FROM LichSuXe WHERE ThoiGianRa >= @Start AND ThoiGianRa <= @End) AS DoanhThu,
                             (SELECT COUNT(*) FROM RFIDCards WHERE TrangThai = 'Active' AND (NgayHetHan IS NULL OR NgayHetHan >= GETDATE())) AS VeActive;
-                    ";
-
-                    using (var cmd = new SqlCommand(sql, conn))
+                    ", conn))
                     {
                         cmd.Parameters.AddWithValue("@Start", startDate);
                         cmd.Parameters.AddWithValue("@End", endDate);
@@ -70,15 +68,13 @@ namespace QuanLyGiuXe.Services
                 async conn =>
                 {
                     var dt = new DataTable();
-                    string sql = @"
+                    using (var cmd = new SqlCommand(@"
                         SELECT CAST(ThoiGianRa AS DATE) AS Ngay, SUM(Tien) AS DoanhThu
                         FROM LichSuXe
                         WHERE ThoiGianRa >= @Start AND ThoiGianRa <= @End AND Tien > 0
                         GROUP BY CAST(ThoiGianRa AS DATE)
                         ORDER BY Ngay;
-                    ";
-
-                    using (var cmd = new SqlCommand(sql, conn))
+                    ", conn))
                     {
                         cmd.Parameters.AddWithValue("@Start", startDate);
                         cmd.Parameters.AddWithValue("@End", endDate);
@@ -100,15 +96,13 @@ namespace QuanLyGiuXe.Services
                 async conn =>
                 {
                     var dt = new DataTable();
-                    string sql = @"
+                    using (var cmd = new SqlCommand(@"
                         SELECT DATEPART(HOUR, ThoiGianVao) AS Gio, COUNT(*) AS SoLuot
                         FROM LichSuXe
                         WHERE ThoiGianVao >= @Start AND ThoiGianVao <= @End
                         GROUP BY DATEPART(HOUR, ThoiGianVao)
                         ORDER BY Gio;
-                    ";
-
-                    using (var cmd = new SqlCommand(sql, conn))
+                    ", conn))
                     {
                         cmd.Parameters.AddWithValue("@Start", startDate);
                         cmd.Parameters.AddWithValue("@End", endDate);
@@ -130,13 +124,12 @@ namespace QuanLyGiuXe.Services
                 async conn =>
                 {
                     var result = new List<HoatDongGhiNhan>();
-                    string sql = @"
+
+                    using (var cmd = new SqlCommand(@"
                         SELECT TOP 10 BienSo, ThoiGianVao, ThoiGianRa, Tien
                         FROM LichSuXe
                         ORDER BY Id DESC;
-                    ";
-
-                    using (var cmd = new SqlCommand(sql, conn))
+                    ", conn))
                     using (var reader = await cmd.ExecuteReaderAsync())
                     {
                         while (await reader.ReadAsync())
@@ -175,7 +168,7 @@ namespace QuanLyGiuXe.Services
                 async conn =>
                 {
                     var dt = new DataTable();
-                    string sql = @"
+                    using (var cmd = new SqlCommand(@"
                         SELECT 
                             ThoiGianVao AS [Giờ Vào],
                             ThoiGianRa AS [Giờ Ra],
@@ -186,9 +179,7 @@ namespace QuanLyGiuXe.Services
                         WHERE (ThoiGianVao >= @Start AND ThoiGianVao <= @End)
                            OR (ThoiGianRa >= @Start AND ThoiGianRa <= @End)
                         ORDER BY Id DESC;
-                    ";
- 
-                    using (var cmd = new SqlCommand(sql, conn))
+                    ", conn))
                     {
                         cmd.Parameters.AddWithValue("@Start", startDate);
                         cmd.Parameters.AddWithValue("@End", endDate);
