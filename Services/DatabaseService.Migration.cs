@@ -47,33 +47,46 @@ namespace QuanLyGiuXe.Services
 
                     await conn.OpenAsync();
 
-                    LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Starting SQL Server topology migrations...");
+                    LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Starting SQL Server migrations...");
 
-                    // Read migration SQL script
-                    string scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260519_multi_zone_topology.sql");
-                    string sql = string.Empty;
-
-                    if (File.Exists(scriptPath))
+                    // Execute all migration scripts in the Migrations directory (alphabetical order)
+                    string migrationsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations");
+                    
+                    if (Directory.Exists(migrationsDir))
                     {
-                        sql = await File.ReadAllTextAsync(scriptPath);
+                        var scripts = Directory.GetFiles(migrationsDir, "*.sql").OrderBy(f => f).ToArray();
+                        foreach (var scriptFile in scripts)
+                        {
+                            string sql = await File.ReadAllTextAsync(scriptFile);
+                            string fileName = Path.GetFileName(scriptFile);
+                            try
+                            {
+                                using (var cmd = new SqlCommand(sql, conn))
+                                {
+                                    cmd.CommandTimeout = 60;
+                                    await cmd.ExecuteNonQueryAsync();
+                                }
+                                LoggingService.Instance.LogInfo("MIGRATION", "Execute", $"Migration '{fileName}' applied successfully.");
+                            }
+                            catch (Exception scriptEx)
+                            {
+                                LoggingService.Instance.LogWarning("MIGRATION", "Execute", $"Migration '{fileName}' skipped or partially applied: {scriptEx.Message}");
+                            }
+                        }
                     }
                     else
                     {
                         // Fallback embedded script
-                        sql = GetEmbeddedMigrationSql();
-                    }
-
-                    // SQL Server SqlCommand cannot run 'GO' or transaction scripts with GO, but our script
-                    // uses standard SQL with BEGIN TRANSACTION/COMMIT TRANSACTION without GO.
-                    // Execute the migration SQL script
-                    using (var cmd = new SqlCommand(sql, conn))
-                    {
-                        cmd.CommandTimeout = 60; // Allow enough time for migration
-                        await cmd.ExecuteNonQueryAsync();
+                        string sql = GetEmbeddedMigrationSql();
+                        using (var cmd = new SqlCommand(sql, conn))
+                        {
+                            cmd.CommandTimeout = 60;
+                            await cmd.ExecuteNonQueryAsync();
+                        }
                     }
 
                     _migrationsApplied = true;
-                    LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "SQL Server topology migrations applied successfully.");
+                    LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "All SQL Server migrations applied successfully.");
                 }
             }
             catch (Exception ex)

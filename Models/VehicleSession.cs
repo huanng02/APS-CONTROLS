@@ -19,6 +19,8 @@ namespace QuanLyGiuXe.Models
         public int? ZoneId { get; set; }
         public int? EntryLaneId { get; set; }
         public int? ExitLaneId { get; set; }
+        public int? EntryReaderId { get; set; }
+        public int? ExitReaderId { get; set; }
 
         public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
 

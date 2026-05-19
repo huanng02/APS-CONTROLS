@@ -170,5 +170,58 @@ namespace QuanLyGiuXe.Services.OfflineCache
             int activeCount = await GetActiveCountAsync(zoneId);
             return activeCount >= zone.MaxCapacity;
         }
+
+        /// <summary>Gets vehicle count for a specific zone (alias for GetActiveCountAsync with zoneId).</summary>
+        public async Task<int> GetVehicleCountByZoneAsync(int zoneId) => await GetActiveCountAsync(zoneId);
+
+        /// <summary>Gets vehicle count for a specific site across all its zones.</summary>
+        public async Task<int> GetVehicleCountBySiteAsync(int siteId)
+        {
+            // Try SQL Server
+            if (ConnectivityStateService.Instance.IsOnline && !ConnectivityStateService.Instance.IsSimulatingOffline)
+            {
+                try
+                {
+                    string connStr = ConnectionManager.Instance.CurrentConnectionString;
+                    using (var conn = new SqlConnection(connStr))
+                    {
+                        await conn.OpenAsync();
+                        string sql = "SELECT COUNT(*) FROM dbo.VehicleSessions WHERE ThoiGianRa IS NULL AND SiteId = @siteId";
+                        using (var cmd = new SqlCommand(sql, conn))
+                        {
+                            cmd.Parameters.AddWithValue("@siteId", siteId);
+                            return Convert.ToInt32(await cmd.ExecuteScalarAsync());
+                        }
+                    }
+                }
+                catch { }
+            }
+
+            // Fallback SQLite
+            try
+            {
+                using (var conn = new SqliteConnection(_connectionString))
+                {
+                    await conn.OpenAsync();
+                    string sql = "SELECT COUNT(*) FROM VehicleSessions WHERE ThoiGianRa IS NULL AND SiteId = @siteId";
+                    using (var cmd = new SqliteCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@siteId", siteId);
+                        return Convert.ToInt32(await cmd.ExecuteScalarAsync());
+                    }
+                }
+            }
+            catch { return 0; }
+        }
+
+        /// <summary>Gets occupancy percentage for a zone (0-100).</summary>
+        public async Task<double> GetOccupancyPercentageAsync(int zoneId)
+        {
+            var zone = await ParkingTopologyService.Instance.GetZoneAsync(zoneId);
+            if (zone == null || zone.MaxCapacity <= 0) return 0;
+
+            int count = await GetActiveCountAsync(zoneId);
+            return Math.Min(100.0, (double)count / zone.MaxCapacity * 100.0);
+        }
     }
 }

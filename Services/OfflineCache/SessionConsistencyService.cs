@@ -159,6 +159,154 @@ namespace QuanLyGiuXe.Services.OfflineCache
             }
             return list;
         }
+
+        // ──────────────────────────────────────────────
+        // Phase 8.2: Zone-Aware Session Consistency
+        // ──────────────────────────────────────────────
+
+        /// <summary>Detects duplicate active sessions in VehicleSessions table (same CardId, multiple Active rows).</summary>
+        public async Task<List<InconsistentSessionModel>> DetectDuplicateVehicleSessionsAsync()
+        {
+            var list = new List<InconsistentSessionModel>();
+            try
+            {
+                using var conn = new SqliteConnection(_connectionString);
+                await conn.OpenAsync();
+                string sql = @"SELECT CardId, COUNT(*) as cnt
+                               FROM VehicleSessions 
+                               WHERE ThoiGianRa IS NULL AND TrangThai = 'Active'
+                               GROUP BY CardId HAVING cnt > 1";
+                using var cmd = new SqliteCommand(sql, conn);
+                using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    int cardId = reader.GetInt32(0);
+                    int count = reader.GetInt32(1);
+                    list.Add(new InconsistentSessionModel
+                    {
+                        CardId = cardId,
+                        IssueType = "DuplicateVehicleSession",
+                        Severity = "High",
+                        Description = $"Card {cardId} has {count} active sessions in VehicleSessions table.",
+                        CreatedUtc = DateTime.UtcNow
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("CONSISTENCY_CHECK", "DetectDuplicateVehicleSessions", "Failed", ex);
+            }
+            return list;
+        }
+
+        /// <summary>Detects orphan sessions (active > specified hours with no exit).</summary>
+        public async Task<List<InconsistentSessionModel>> DetectOrphanSessionsAsync(int maxAgeHours = 24)
+        {
+            var list = new List<InconsistentSessionModel>();
+            try
+            {
+                using var conn = new SqliteConnection(_connectionString);
+                await conn.OpenAsync();
+                string sql = @"SELECT CardId, BienSo, ThoiGianVao, ZoneId
+                               FROM VehicleSessions 
+                               WHERE ThoiGianRa IS NULL AND TrangThai = 'Active'
+                               AND (julianday('now') - julianday(ThoiGianVao)) * 24 > @maxAge";
+                using var cmd = new SqliteCommand(sql, conn);
+                cmd.Parameters.AddWithValue("@maxAge", maxAgeHours);
+                using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    int cardId = reader.IsDBNull(0) ? 0 : reader.GetInt32(0);
+                    string plate = reader.IsDBNull(1) ? "" : reader.GetString(1);
+                    string entryTime = reader.IsDBNull(2) ? "?" : reader.GetString(2);
+                    list.Add(new InconsistentSessionModel
+                    {
+                        CardId = cardId,
+                        IssueType = "OrphanSession",
+                        Severity = "Medium",
+                        Description = $"Card {cardId} ({plate}) entered at {entryTime}, active for >{maxAgeHours}h without exit.",
+                        CreatedUtc = DateTime.UtcNow
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("CONSISTENCY_CHECK", "DetectOrphanSessions", "Failed", ex);
+            }
+            return list;
+        }
+
+        /// <summary>Detects invalid exits (ThoiGianRa before ThoiGianVao).</summary>
+        public async Task<List<InconsistentSessionModel>> DetectInvalidExitsAsync()
+        {
+            var list = new List<InconsistentSessionModel>();
+            try
+            {
+                using var conn = new SqliteConnection(_connectionString);
+                await conn.OpenAsync();
+                string sql = @"SELECT CardId, ThoiGianVao, ThoiGianRa
+                               FROM VehicleSessions 
+                               WHERE ThoiGianRa IS NOT NULL AND ThoiGianRa < ThoiGianVao";
+                using var cmd = new SqliteCommand(sql, conn);
+                using var reader = await cmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    int cardId = reader.IsDBNull(0) ? 0 : reader.GetInt32(0);
+                    list.Add(new InconsistentSessionModel
+                    {
+                        CardId = cardId,
+                        IssueType = "InvalidExit",
+                        Severity = "High",
+                        Description = $"Card {cardId} has exit time before entry time (clock skew or data corruption).",
+                        CreatedUtc = DateTime.UtcNow
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("CONSISTENCY_CHECK", "DetectInvalidExits", "Failed", ex);
+            }
+            return list;
+        }
+
+        /// <summary>Full zone-aware validation: combines all checks.</summary>
+        public async Task<List<InconsistentSessionModel>> ValidateAllZoneAwareAsync()
+        {
+            var issues = await ValidateSessionsAsync();
+            issues.AddRange(await DetectDuplicateVehicleSessionsAsync());
+            issues.AddRange(await DetectOrphanSessionsAsync());
+            issues.AddRange(await DetectInvalidExitsAsync());
+            return issues;
+        }
+
+        /// <summary>Self-healing: resolves duplicates by keeping only the latest active session per card.</summary>
+        public async Task<int> HealDuplicateSessionsAsync()
+        {
+            int healed = 0;
+            try
+            {
+                using var conn = new SqliteConnection(_connectionString);
+                await conn.OpenAsync();
+
+                // Close all but the most recent active session per CardId
+                string sql = @"UPDATE VehicleSessions SET TrangThai = 'DuplicateClosed', ThoiGianRa = datetime('now')
+                               WHERE Id NOT IN (
+                                   SELECT MAX(Id) FROM VehicleSessions 
+                                   WHERE ThoiGianRa IS NULL AND TrangThai = 'Active'
+                                   GROUP BY CardId
+                               ) AND ThoiGianRa IS NULL AND TrangThai = 'Active'";
+                using var cmd = new SqliteCommand(sql, conn);
+                healed = await cmd.ExecuteNonQueryAsync();
+
+                if (healed > 0)
+                    LoggingService.Instance.LogWarning("CONSISTENCY", "HealDuplicates", $"Closed {healed} duplicate sessions.");
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("CONSISTENCY", "HealDuplicates", "Failed", ex);
+            }
+            return healed;
+        }
     }
 
     public class InconsistentSessionModel

@@ -154,6 +154,8 @@ namespace QuanLyGiuXe.Services.OfflineCache
                         ZoneId INTEGER,
                         EntryLaneId INTEGER,
                         ExitLaneId INTEGER,
+                        EntryReaderId INTEGER,
+                        ExitReaderId INTEGER,
                         CreatedUtc DATETIME,
                         FOREIGN KEY (SiteId) REFERENCES ParkingSites(Id),
                         FOREIGN KEY (ZoneId) REFERENCES ParkingZones(Id),
@@ -163,6 +165,7 @@ namespace QuanLyGiuXe.Services.OfflineCache
 
                     CREATE INDEX IF NOT EXISTS idx_sessions_siteid ON VehicleSessions(SiteId);
                     CREATE INDEX IF NOT EXISTS idx_sessions_zoneid ON VehicleSessions(ZoneId);
+                    CREATE INDEX IF NOT EXISTS idx_sessions_cardid ON VehicleSessions(CardId);
                     CREATE INDEX IF NOT EXISTS idx_lanes_zoneid ON Lanes(ZoneId);
                 ";
 
