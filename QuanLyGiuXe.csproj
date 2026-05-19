@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -77,6 +77,12 @@
     <None Include="Libs\C3SDK\x64\plusbcomm.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <TargetPath>plusbcomm.dll</TargetPath>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Migrations\**\*.sql">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 

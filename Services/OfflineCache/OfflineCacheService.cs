@@ -96,9 +96,99 @@ namespace QuanLyGiuXe.Services.OfflineCache
                         NewState TEXT,
                         Message TEXT,
                         CreatedUtc DATETIME
-                    );";
+                    );
+
+                    CREATE TABLE IF NOT EXISTS ParkingSites (
+                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        SiteCode TEXT NOT NULL UNIQUE,
+                        SiteName TEXT NOT NULL,
+                        Description TEXT,
+                        IsActive INTEGER DEFAULT 1,
+                        CreatedUtc DATETIME
+                    );
+
+                    CREATE TABLE IF NOT EXISTS ParkingZones (
+                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        SiteId INTEGER NOT NULL,
+                        ZoneCode TEXT NOT NULL UNIQUE,
+                        ZoneName TEXT NOT NULL,
+                        Description TEXT,
+                        MaxCapacity INTEGER DEFAULT 100,
+                        IsActive INTEGER DEFAULT 1,
+                        CreatedUtc DATETIME,
+                        FOREIGN KEY (SiteId) REFERENCES ParkingSites(Id)
+                    );
+
+                    CREATE TABLE IF NOT EXISTS C3Controllers (
+                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        ControllerName TEXT NOT NULL,
+                        IpAddress TEXT NOT NULL UNIQUE,
+                        ZoneId INTEGER NOT NULL,
+                        IsActive INTEGER DEFAULT 1,
+                        CreatedUtc DATETIME,
+                        FOREIGN KEY (ZoneId) REFERENCES ParkingZones(Id)
+                    );
+
+                    CREATE TABLE IF NOT EXISTS Lanes (
+                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        LaneCode TEXT NOT NULL UNIQUE,
+                        LaneName TEXT NOT NULL,
+                        Direction TEXT NOT NULL,
+                        ZoneId INTEGER,
+                        IsActive INTEGER DEFAULT 1,
+                        CreatedUtc DATETIME,
+                        FOREIGN KEY (ZoneId) REFERENCES ParkingZones(Id)
+                    );
+
+                    CREATE TABLE IF NOT EXISTS VehicleSessions (
+                        Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        CardId INTEGER,
+                        BienSo TEXT,
+                        ThoiGianVao DATETIME NOT NULL,
+                        ThoiGianRa DATETIME,
+                        Tien REAL,
+                        TrangThai TEXT,
+                        AnhVao TEXT,
+                        AnhRa TEXT,
+                        SiteId INTEGER,
+                        ZoneId INTEGER,
+                        EntryLaneId INTEGER,
+                        ExitLaneId INTEGER,
+                        CreatedUtc DATETIME,
+                        FOREIGN KEY (SiteId) REFERENCES ParkingSites(Id),
+                        FOREIGN KEY (ZoneId) REFERENCES ParkingZones(Id),
+                        FOREIGN KEY (EntryLaneId) REFERENCES Lanes(Id),
+                        FOREIGN KEY (ExitLaneId) REFERENCES Lanes(Id)
+                    );
+
+                    CREATE INDEX IF NOT EXISTS idx_sessions_siteid ON VehicleSessions(SiteId);
+                    CREATE INDEX IF NOT EXISTS idx_sessions_zoneid ON VehicleSessions(ZoneId);
+                    CREATE INDEX IF NOT EXISTS idx_lanes_zoneid ON Lanes(ZoneId);
+                ";
 
                 using (var cmd = new SqliteCommand(sql, conn))
+                {
+                    cmd.ExecuteNonQuery();
+                }
+
+                // Seed SQLite data
+                string seedSql = @"
+                    INSERT OR IGNORE INTO ParkingSites (SiteCode, SiteName, Description, IsActive, CreatedUtc)
+                    VALUES ('DEFAULT-SITE', 'Default Parking Site', 'Auto-seeded default site', 1, CURRENT_TIMESTAMP);
+
+                    INSERT OR IGNORE INTO ParkingZones (SiteId, ZoneCode, ZoneName, Description, MaxCapacity, IsActive, CreatedUtc)
+                    VALUES (
+                        (SELECT Id FROM ParkingSites WHERE SiteCode = 'DEFAULT-SITE'),
+                        'DEFAULT-ZONE', 'Default Parking Zone', 'Auto-seeded default zone', 500, 1, CURRENT_TIMESTAMP
+                    );
+
+                    INSERT OR IGNORE INTO Lanes (LaneCode, LaneName, Direction, ZoneId, IsActive, CreatedUtc)
+                    VALUES 
+                    ('LANE-1', 'Cổng Vào 1', 'IN', (SELECT Id FROM ParkingZones WHERE ZoneCode = 'DEFAULT-ZONE'), 1, CURRENT_TIMESTAMP),
+                    ('LANE-2', 'Cổng Ra 1', 'OUT', (SELECT Id FROM ParkingZones WHERE ZoneCode = 'DEFAULT-ZONE'), 1, CURRENT_TIMESTAMP);
+                ";
+
+                using (var cmd = new SqliteCommand(seedSql, conn))
                 {
                     cmd.ExecuteNonQuery();
                 }
@@ -265,6 +355,12 @@ namespace QuanLyGiuXe.Services.OfflineCache
                 // 1. Sync Base Data
                 await SaveCacheAsync("LIST_LOAI_XE", await new DatabaseService().GetLoaiXeAsync());
                 await SaveCacheAsync("LIST_LOAI_VE", await new LoaiVeRepository().GetAllAsync());
+                
+                // Sync Topology Data
+                await SaveCacheAsync("LIST_SITES", await ParkingTopologyService.Instance.GetSitesAsync());
+                await SaveCacheAsync("LIST_ZONES", await ParkingTopologyService.Instance.GetZonesAsync());
+                await SaveCacheAsync("LIST_CONTROLLERS", await ParkingTopologyService.Instance.GetControllersAsync());
+                await SaveCacheAsync("LIST_LANES", await ParkingTopologyService.Instance.GetLanesAsync());
                 
                 // 2. Sync Pricing Data (Critical for validations)
                 await SaveCacheAsync("LIST_BANG_GIA", await new BangGiaRepository().GetAllAsync());

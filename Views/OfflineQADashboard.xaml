@@ -6,11 +6,88 @@
         xmlns:local="clr-namespace:QuanLyGiuXe.Views"
         xmlns:converters="clr-namespace:QuanLyGiuXe.Converters"
         mc:Ignorable="d"
-        Title="🚀 OFFLINE &amp; RESILIENCY ENGINE QA DASHBOARD" Height="800" Width="1250"
-        Background="#1E1E2E" WindowStartupLocation="CenterScreen">
+        Title="🚀 OFFLINE &amp; MULTI-ZONE RESILIENCY ENGINE QA DASHBOARD" Height="820" Width="1280"
+        Background="#12121E" WindowStartupLocation="CenterScreen">
     <Window.Resources>
         <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
+        
+        <!-- Premium dark scrollbar and visual overrides -->
+        <Style TargetType="TabItem">
+            <Setter Property="Background" Value="#1A1A28"/>
+            <Setter Property="Foreground" Value="#AAA"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="20,10"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border x:Name="Border" Background="{TemplateBinding Background}" BorderThickness="0,0,0,3" BorderBrush="Transparent" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter x:Name="ContentSite" ContentSource="Header" RecognizesAccessKey="True" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="#222235"/>
+                                <Setter Property="Foreground" Value="#3498DB"/>
+                                <Setter TargetName="Border" Property="BorderBrush" Value="#3498DB"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#2E2E42"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <Style TargetType="DataGrid">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="RowBackground" Value="#181825"/>
+            <Setter Property="AlternatingRowBackground" Value="#1E1E2E"/>
+            <Setter Property="Foreground" Value="#E0E0E0"/>
+            <Setter Property="GridLinesVisibility" Value="None"/>
+            <Setter Property="HeadersVisibility" Value="Column"/>
+            <Setter Property="CanUserAddRows" Value="False"/>
+            <Setter Property="IsReadOnly" Value="True"/>
+            <Setter Property="RowHeaderWidth" Value="0"/>
+        </Style>
+        
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#252538"/>
+            <Setter Property="Foreground" Value="#8F94FB"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="BorderThickness" Value="0"/>
+        </Style>
+
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#3498DB"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="15,8"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="5" BorderThickness="{TemplateBinding BorderThickness}" BorderBrush="{TemplateBinding BorderBrush}" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Opacity" Value="0.9"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Opacity" Value="0.75"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
+    
     <Grid Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -18,190 +95,453 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Header -->
-        <StackPanel Grid.Row="0" Margin="0,0,0,15">
-            <TextBlock Text="OFFLINE-FIRST RESILIENCY QA CENTER" Foreground="White" FontSize="24" FontWeight="Bold"/>
-            <TextBlock Text="Phase 6.5 - Session Consistency &amp; Recovery Engine Testing" Foreground="#888" FontSize="14"/>
-        </StackPanel>
-
-        <Grid Grid.Row="1">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="300"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-
-            <!-- Column 0: Control Panel & Status -->
-            <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
-                <StackPanel Margin="0,0,15,0">
-                    <Border Background="#2A2A3D" CornerRadius="10" Padding="15">
-                        <StackPanel>
-                            <TextBlock Text="SYSTEM STATE" Foreground="#CCC" FontWeight="Bold" Margin="0,0,0,10"/>
-                            
-                            <Grid Margin="0,5">
-                                <TextBlock Text="Status:" Foreground="Gray"/>
-                                <TextBlock Text="{Binding Conn.StatusText}" Foreground="{Binding Conn.StatusColor}" HorizontalAlignment="Right" FontWeight="Bold"/>
-                            </Grid>
-
-                            <Grid Margin="0,5">
-                                <TextBlock Text="Simulation:" Foreground="Gray"/>
-                                <TextBlock Text="{Binding Conn.IsSimulatingOffline, Converter={StaticResource StringToVisibilityConverter}, ConverterParameter='TRUE:OFFLINE|FALSE:NORMAL'}" 
-                                           Foreground="{Binding Conn.IsSimulatingOffline, Converter={StaticResource StringToVisibilityConverter}, ConverterParameter='TRUE:#E74C3C|FALSE:#27AE60'}" 
-                                           HorizontalAlignment="Right" FontWeight="Bold"/>
-                            </Grid>
-
-                            <Separator Background="#444" Margin="0,15"/>
-
-                            <Button Command="{Binding ForceOfflineCommand}" Content="FORCE SQL OFFLINE" Background="#E74C3C" Foreground="White" Height="35" Margin="0,4" BorderThickness="0" FontWeight="Bold"/>
-                            <Button Command="{Binding ForceOnlineCommand}" Content="FORCE SQL ONLINE" Background="#27AE60" Foreground="White" Height="35" Margin="0,4" BorderThickness="0" FontWeight="Bold"/>
-                            
-                            <Separator Background="#444" Margin="0,10"/>
-                            <TextBlock Text="RESILIENCE SIMULATION" Foreground="#F39C12" FontWeight="Bold" Margin="0,5,0,5"/>
-
-                            <Button Command="{Binding SimulateEntryCrashCommand}" Content="💥 SIMULATE ENTRY CRASH" Background="#C0392B" Foreground="White" Height="35" Margin="0,4" BorderThickness="0" FontWeight="Bold"/>
-                            <Button Command="{Binding SimulateDuplicateActiveCommand}" Content="👯 SIMULATE DUPLICATE ACTIVE" Background="#8E44AD" Foreground="White" Height="35" Margin="0,4" BorderThickness="0" FontWeight="Bold"/>
-                            <Button Command="{Binding ForceAutoRepairCommand}" Content="🔧 FORCE AUTO-REPAIR" Background="#2980B9" Foreground="White" Height="35" Margin="0,4" BorderThickness="0" FontWeight="Bold"/>
-
-                            <Separator Background="#444" Margin="0,10"/>
-                            
-                            <Button Command="{Binding TestReadCacheCommand}" Content="TEST CACHE FALLBACK" Background="#34495E" Foreground="White" Height="35" Margin="0,4" BorderThickness="0"/>
-                            <Button Command="{Binding TestWriteQueueCommand}" Content="TEST QUEUE WRITE" Background="#D35400" Foreground="White" Height="35" Margin="0,4" BorderThickness="0"/>
-                            <Button Command="{Binding StressTestCommand}" Content="TEST MASSIVE QUEUE" Background="#7F8C8D" Foreground="White" Height="35" Margin="0,4" BorderThickness="0"/>
-                        </StackPanel>
-                    </Border>
-
-                    <Border Background="#2A2A3D" CornerRadius="10" Padding="15" Margin="0,15,0,0">
-                        <StackPanel>
-                            <TextBlock Text="LOG PANEL" Foreground="#CCC" FontWeight="Bold" Margin="0,0,0,10"/>
-                            <TextBox Text="{Binding TestLog}" Height="120" Background="#111" Foreground="#0F0" 
-                                     BorderThickness="0" FontFamily="Consolas" FontSize="11" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" IsReadOnly="True"/>
+        <!-- HEADER -->
+        <Border Grid.Row="0" Background="#1D1D30" CornerRadius="10" Padding="20,15" Margin="0,0,0,15" BorderBrush="#2F2F4A" BorderThickness="1">
+            <Grid>
+                <StackPanel>
+                    <TextBlock Text="OFFLINE-FIRST RESILIENCY &amp; MULTI-ZONE TOPO COCKPIT" Foreground="White" FontSize="22" FontWeight="ExtraBold"/>
+                    <TextBlock Text="Phase 8.1 - Enterprise Relational Multi-Zone Architecture, Failover Validation, &amp; Integrity Assurances" Foreground="#8F94FB" FontSize="12" FontWeight="SemiBold" Margin="0,3,0,0"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Border Background="#26FFFFFF" CornerRadius="15" Padding="12,5" Margin="0,0,10,0">
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse Width="8" Height="8" Margin="0,0,8,0" VerticalAlignment="Center"
+                                     Fill="{Binding Conn.IsOnline, Converter={StaticResource StringToVisibilityConverter}, ConverterParameter='TRUE:#2ECC71|FALSE:#E74C3C'}"/>
+                            <TextBlock Text="{Binding Conn.StatusText}" Foreground="White" FontSize="11" FontWeight="Bold" VerticalAlignment="Center"/>
                         </StackPanel>
                     </Border>
                 </StackPanel>
-            </ScrollViewer>
+            </Grid>
+        </Border>
 
-            <!-- Column 1: Telemetry, Queue & Session Audit Logs -->
-            <Grid Grid.Column="1">
+        <!-- MAIN LAYOUT -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="320"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- LEFT CONTROL PANEL (RESILIENCY AND LOGS) -->
+            <Grid Grid.Column="0" Margin="0,0,15,0">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
-                    <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                <!-- Row 0: Telemetry Cards -->
-                <UniformGrid Rows="1" Columns="4" Grid.Row="0" Margin="0,0,0,15">
-                    <!-- Card 1: Live Vehicle Count -->
-                    <Border Background="#2A2A3D" CornerRadius="8" Padding="15" Margin="0,0,10,0" BorderBrush="#27AE60" BorderThickness="1">
-                        <StackPanel>
-                            <TextBlock Text="LIVE VEHICLE COUNT" Foreground="#AAA" FontSize="11" FontWeight="Bold"/>
-                            <TextBlock Text="{Binding TelemetryLiveVehicleCount}" Foreground="#27AE60" FontSize="28" FontWeight="Bold" Margin="0,5,0,0"/>
-                        </StackPanel>
-                    </Border>
+                <!-- System State controls -->
+                <Border Grid.Row="0" Background="#1D1D30" CornerRadius="10" Padding="15" BorderBrush="#2F2F4A" BorderThickness="1">
+                    <StackPanel>
+                        <TextBlock Text="FAILOVER &amp; EMERGENCIES" Foreground="#FF5722" FontWeight="Bold" FontSize="13" Margin="0,0,0,10"/>
 
-                    <!-- Card 2: Active Sessions -->
-                    <Border Background="#2A2A3D" CornerRadius="8" Padding="15" Margin="0,0,10,0" BorderBrush="#2980B9" BorderThickness="1">
-                        <StackPanel>
-                            <TextBlock Text="ACTIVE SESSIONS" Foreground="#AAA" FontSize="11" FontWeight="Bold"/>
-                            <TextBlock Text="{Binding TelemetryActiveSessions}" Foreground="#2980B9" FontSize="28" FontWeight="Bold" Margin="0,5,0,0"/>
-                        </StackPanel>
-                    </Border>
+                        <Button Command="{Binding ForceOfflineCommand}" Content="⚡ FORCE DISCONNECT (OFFLINE)" Background="#E74C3C" Margin="0,0,0,8" Height="36"/>
+                        <Button Command="{Binding ForceOnlineCommand}" Content="🔌 RESTORE CONNECTION (ONLINE)" Background="#2ECC71" Margin="0,0,0,12" Height="36"/>
 
-                    <!-- Card 3: Suspicious Sessions -->
-                    <Border Background="#2A2A3D" CornerRadius="8" Padding="15" Margin="0,0,10,0" BorderBrush="#E74C3C" BorderThickness="1">
-                        <StackPanel>
-                            <TextBlock Text="SUSPICIOUS SESSIONS" Foreground="#AAA" FontSize="11" FontWeight="Bold"/>
-                            <TextBlock Text="{Binding TelemetrySuspiciousSessions}" Foreground="#E74C3C" FontSize="28" FontWeight="Bold" Margin="0,5,0,0"/>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- Card 4: Pending Sync -->
-                    <Border Background="#2A2A3D" CornerRadius="8" Padding="15" Margin="0,0,0,0" BorderBrush="#F1C40F" BorderThickness="1">
-                        <StackPanel>
-                            <TextBlock Text="PENDING OFFLINE SYNC" Foreground="#AAA" FontSize="11" FontWeight="Bold"/>
-                            <TextBlock Text="{Binding TelemetryPendingOfflineSync}" Foreground="#F1C40F" FontSize="28" FontWeight="Bold" Margin="0,5,0,0"/>
-                        </StackPanel>
-                    </Border>
-                </UniformGrid>
-
-                <!-- Row 1: Queue View -->
-                <Border Grid.Row="1" Background="#2A2A3D" CornerRadius="10" Padding="15" Margin="0,0,0,10">
-                    <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="*"/>
-                        </Grid.RowDefinitions>
-
-                        <StackPanel Orientation="Horizontal" Grid.Row="0" Margin="0,0,0,10">
-                            <TextBlock Text="OFFLINE QUEUE" Foreground="#CCC" FontWeight="Bold" VerticalAlignment="Center"/>
-                            <TextBlock Text="{Binding Transactions.Count, StringFormat='({0} items)'}" Foreground="Gray" Margin="10,0,0,0" VerticalAlignment="Center"/>
-                            <Button Command="{Binding RefreshQueueCommand}" Content="REFRESH" Background="Transparent" Foreground="#3498DB" Margin="20,0,0,0" BorderThickness="0"/>
-                        </StackPanel>
-
-                        <DataGrid Grid.Row="1" ItemsSource="{Binding Transactions}" AutoGenerateColumns="False" 
-                                  Background="Transparent" BorderThickness="0" RowBackground="#222" Foreground="White"
-                                  CanUserAddRows="False" IsReadOnly="True" GridLinesVisibility="None" RowHeaderWidth="0">
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="Time" Binding="{Binding CreatedUtc, StringFormat='HH:mm:ss'}" Width="80"/>
-                                <DataGridTemplateColumn Header="Type" Width="120">
-                                    <DataGridTemplateColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <TextBlock Text="{Binding TransactionType}" Foreground="#3498DB"/>
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
-                                <DataGridTemplateColumn Header="Status" Width="100">
-                                    <DataGridTemplateColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <Border Background="{Binding StatusColor}" CornerRadius="3" Padding="5,2">
-                                                <TextBlock Text="{Binding SyncStatus}" Foreground="White" FontSize="10" HorizontalAlignment="Center"/>
-                                            </Border>
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
-                                <DataGridTextColumn Header="Retries" Binding="{Binding RetryCount}" Width="60"/>
-                                <DataGridTextColumn Header="Error" Binding="{Binding ErrorMessage}" Width="*"/>
-                            </DataGrid.Columns>
-                        </DataGrid>
-                    </Grid>
+                        <TextBlock Text="RECOVERY CONTROLS" Foreground="#3498DB" FontWeight="Bold" FontSize="13" Margin="0,5,0,8"/>
+                        <Button Command="{Binding ForceAutoRepairCommand}" Content="🔧 TRIGGER SESSION AUTO-REPAIR" Background="#8E44AD" Margin="0,0,0,8" Height="36"/>
+                        <Button Command="{Binding TestWriteQueueCommand}" Content="📝 WRITE TEST TRANSACTION" Background="#D35400" Margin="0,0,0,8" Height="36"/>
+                        <Button Command="{Binding StressTestCommand}" Content="💥 MASSIVE QUEUE STRESS TEST" Background="#7F8C8D" Margin="0,0,0,0" Height="36"/>
+                    </StackPanel>
                 </Border>
 
-                <!-- Row 2: Live Session Audit Logs -->
-                <Border Grid.Row="2" Background="#2A2A3D" CornerRadius="10" Padding="15">
+                <!-- Live Test Logging panel -->
+                <Border Grid.Row="1" Background="#1D1D30" CornerRadius="10" Padding="15" Margin="0,15,0,0" BorderBrush="#2F2F4A" BorderThickness="1">
                     <Grid>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-
-                        <StackPanel Orientation="Horizontal" Grid.Row="0" Margin="0,0,0,10">
-                            <TextBlock Text="LIVE SESSION AUDIT LOGS" Foreground="#CCC" FontWeight="Bold" VerticalAlignment="Center"/>
-                        </StackPanel>
-
-                        <DataGrid Grid.Row="1" ItemsSource="{Binding AuditLogs}" AutoGenerateColumns="False" 
-                                  Background="Transparent" BorderThickness="0" RowBackground="#222" Foreground="White"
-                                  CanUserAddRows="False" IsReadOnly="True" GridLinesVisibility="None" RowHeaderWidth="0">
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="Time (UTC)" Binding="{Binding CreatedUtc, StringFormat='HH:mm:ss'}" Width="90"/>
-                                <DataGridTextColumn Header="Card UID / Session" Binding="{Binding SessionId}" Width="150"/>
-                                <DataGridTemplateColumn Header="Event Type" Width="110">
-                                    <DataGridTemplateColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <Border Background="#1E1E2E" CornerRadius="3" Padding="5,2">
-                                                <TextBlock Text="{Binding EventType}" Foreground="#2ECC71" FontSize="10" HorizontalAlignment="Center" FontWeight="Bold"/>
-                                            </Border>
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
-                                <DataGridTextColumn Header="Old State" Binding="{Binding OldState}" Width="100"/>
-                                <DataGridTextColumn Header="New State" Binding="{Binding NewState}" Width="100"/>
-                                <DataGridTextColumn Header="Details / Message" Binding="{Binding Message}" Width="*"/>
-                            </DataGrid.Columns>
-                        </DataGrid>
+                        <TextBlock Grid.Row="0" Text="INTEGRATION TEST TRACE" Foreground="#2ECC71" FontWeight="Bold" FontSize="13" Margin="0,0,0,10"/>
+                        <TextBox Grid.Row="1" Text="{Binding TestLog}" Background="#0B0B14" Foreground="#2ECC71" 
+                                 BorderThickness="1" BorderBrush="#1F1F35" FontFamily="Consolas" FontSize="11" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" IsReadOnly="True"/>
                     </Grid>
                 </Border>
             </Grid>
+
+            <!-- RIGHT TABBED WORKSPACE -->
+            <TabControl Grid.Column="1" Background="#1D1D30" BorderThickness="1" BorderBrush="#2F2F4A">
+                
+                <!-- TAB 1: TELEMETRY & OFFLINE ENGINE -->
+                <TabItem Header="🛰️  RESILIENCY TELEMETRY">
+                    <Grid Margin="15">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Telemetry Cards -->
+                        <UniformGrid Rows="1" Columns="4" Grid.Row="0" Margin="0,0,0,15">
+                            <Border Background="#161626" CornerRadius="8" Padding="15" Margin="0,0,10,0" BorderBrush="#2ECC71" BorderThickness="1">
+                                <StackPanel>
+                                    <TextBlock Text="LIVE VEHICLES" Foreground="#AAA" FontSize="11" FontWeight="Bold"/>
+                                    <TextBlock Text="{Binding TelemetryLiveVehicleCount}" Foreground="#2ECC71" FontSize="26" FontWeight="Bold" Margin="0,5,0,0"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Background="#161626" CornerRadius="8" Padding="15" Margin="0,0,10,0" BorderBrush="#3498DB" BorderThickness="1">
+                                <StackPanel>
+                                    <TextBlock Text="ACTIVE SESSIONS" Foreground="#AAA" FontSize="11" FontWeight="Bold"/>
+                                    <TextBlock Text="{Binding TelemetryActiveSessions}" Foreground="#3498DB" FontSize="26" FontWeight="Bold" Margin="0,5,0,0"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Background="#161626" CornerRadius="8" Padding="15" Margin="0,0,10,0" BorderBrush="#E74C3C" BorderThickness="1">
+                                <StackPanel>
+                                    <TextBlock Text="CORRUPTED SESSIONS" Foreground="#AAA" FontSize="11" FontWeight="Bold"/>
+                                    <TextBlock Text="{Binding TelemetrySuspiciousSessions}" Foreground="#E74C3C" FontSize="26" FontWeight="Bold" Margin="0,5,0,0"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Background="#161626" CornerRadius="8" Padding="15" Margin="0,0,0,0" BorderBrush="#F1C40F" BorderThickness="1">
+                                <StackPanel>
+                                    <TextBlock Text="LOCAL QUEUE SIZE" Foreground="#AAA" FontSize="11" FontWeight="Bold"/>
+                                    <TextBlock Text="{Binding TelemetryPendingOfflineSync}" Foreground="#F1C40F" FontSize="26" FontWeight="Bold" Margin="0,5,0,0"/>
+                                </StackPanel>
+                            </Border>
+                        </UniformGrid>
+
+                        <!-- Offline Queue Grid -->
+                        <Border Grid.Row="1" Background="#161626" CornerRadius="8" Padding="15" Margin="0,0,0,10">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <StackPanel Orientation="Horizontal" Grid.Row="0" Margin="0,0,0,8">
+                                    <TextBlock Text="LOCAL OFFLINE TRANSACTION QUEUE (SQLite)" Foreground="#8F94FB" FontWeight="Bold"/>
+                                    <TextBlock Text="{Binding Transactions.Count, StringFormat='({0} items)'}" Foreground="Gray" Margin="10,0,0,0" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <DataGrid Grid.Row="1" ItemsSource="{Binding Transactions}" AutoGenerateColumns="False">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Time (UTC)" Binding="{Binding CreatedUtc, StringFormat='yyyy-MM-dd HH:mm:ss'}" Width="150"/>
+                                        <DataGridTextColumn Header="Type" Binding="{Binding TransactionType}" Width="150"/>
+                                        <DataGridTemplateColumn Header="Status" Width="120">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Border Background="{Binding StatusColor}" CornerRadius="3" Padding="6,2">
+                                                        <TextBlock Text="{Binding SyncStatus}" Foreground="White" FontSize="10" HorizontalAlignment="Center" FontWeight="Bold"/>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                        <DataGridTextColumn Header="Retries" Binding="{Binding RetryCount}" Width="70"/>
+                                        <DataGridTextColumn Header="Errors / Reason" Binding="{Binding ErrorMessage}" Width="*"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Grid>
+                        </Border>
+
+                        <!-- Session Consistency Audit logs -->
+                        <Border Grid.Row="2" Background="#161626" CornerRadius="8" Padding="15">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Text="LIVE SESSION CONSISTENCY AUDIT LOGS" Foreground="#3498DB" FontWeight="Bold" Margin="0,0,0,8"/>
+                                <DataGrid Grid.Row="1" ItemsSource="{Binding AuditLogs}" AutoGenerateColumns="False">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Time (UTC)" Binding="{Binding CreatedUtc, StringFormat='yyyy-MM-dd HH:mm:ss'}" Width="150"/>
+                                        <DataGridTextColumn Header="Session ID / Card" Binding="{Binding SessionId}" Width="150"/>
+                                        <DataGridTextColumn Header="Event Code" Binding="{Binding EventType}" Width="120"/>
+                                        <DataGridTextColumn Header="Old" Binding="{Binding OldState}" Width="80"/>
+                                        <DataGridTextColumn Header="New" Binding="{Binding NewState}" Width="80"/>
+                                        <DataGridTextColumn Header="Resolution / Audit Details" Binding="{Binding Message}" Width="*"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </TabItem>
+
+                <!-- TAB 2: PARKING TOPOLOGY CONFIG -->
+                <TabItem Header="📐  PARKING TOPOLOGY CONFIG">
+                    <Grid Margin="15">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Top-Left: Sites Panel -->
+                        <Border Grid.Row="0" Grid.Column="0" Background="#161626" CornerRadius="8" Padding="15" Margin="0,0,10,10">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Text="1. PARKING SITES" Foreground="#8F94FB" FontWeight="Bold" Margin="0,0,0,8"/>
+                                <DataGrid Grid.Row="1" ItemsSource="{Binding Sites}" AutoGenerateColumns="False">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Id" Binding="{Binding Id}" Width="40"/>
+                                        <DataGridTextColumn Header="Site Code" Binding="{Binding SiteCode}" Width="100"/>
+                                        <DataGridTextColumn Header="Site Name" Binding="{Binding SiteName}" Width="130"/>
+                                        <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="*"/>
+                                        <DataGridTemplateColumn Header="Action" Width="60">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Button Command="{Binding DataContext.DeleteSiteCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                                            CommandParameter="{Binding}" Content="Del" Background="#E74C3C" Padding="6,2" FontSize="10"/>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                                <Grid Grid.Row="2" Margin="0,8,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="80"/>
+                                        <ColumnDefinition Width="100"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="60"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Text="{Binding NewSiteCode, UpdateSourceTrigger=PropertyChanged}" Grid.Column="0" Margin="0,0,4,0" Tag="Code" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26"/>
+                                    <TextBox Text="{Binding NewSiteName, UpdateSourceTrigger=PropertyChanged}" Grid.Column="1" Margin="0,0,4,0" Tag="Name" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26"/>
+                                    <TextBox Text="{Binding NewSiteDesc, UpdateSourceTrigger=PropertyChanged}" Grid.Column="2" Margin="0,0,4,0" Tag="Description" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26"/>
+                                    <Button Command="{Binding SaveSiteCommand}" Content="Add" Grid.Column="3" Height="26" Padding="5,0" FontSize="11"/>
+                                </Grid>
+                            </Grid>
+                        </Border>
+
+                        <!-- Top-Right: Zones Panel -->
+                        <Border Grid.Row="0" Grid.Column="1" Background="#161626" CornerRadius="8" Padding="15" Margin="0,0,0,10">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Text="2. PARKING ZONES (CAPACITIES)" Foreground="#8F94FB" FontWeight="Bold" Margin="0,0,0,8"/>
+                                <DataGrid Grid.Row="1" ItemsSource="{Binding Zones}" AutoGenerateColumns="False">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Site" Binding="{Binding SiteId}" Width="40"/>
+                                        <DataGridTextColumn Header="Zone Code" Binding="{Binding ZoneCode}" Width="100"/>
+                                        <DataGridTextColumn Header="Zone Name" Binding="{Binding ZoneName}" Width="130"/>
+                                        <DataGridTextColumn Header="Max Cap" Binding="{Binding MaxCapacity}" Width="70"/>
+                                        <DataGridTemplateColumn Header="Action" Width="60">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Button Command="{Binding DataContext.DeleteZoneCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                                            CommandParameter="{Binding}" Content="Del" Background="#E74C3C" Padding="6,2" FontSize="10"/>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                                <Grid Grid.Row="2" Margin="0,8,0,0">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="100"/>
+                                        <ColumnDefinition Width="80"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="50"/>
+                                        <ColumnDefinition Width="50"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ComboBox ItemsSource="{Binding Sites}" SelectedItem="{Binding SelectedZoneSite}" Grid.Row="0" Grid.ColumnSpan="2" Margin="0,0,4,4" DisplayMemberPath="SiteCode" Background="#222" BorderThickness="1" BorderBrush="#444" Height="26"/>
+                                    <TextBox Text="{Binding NewZoneCode, UpdateSourceTrigger=PropertyChanged}" Grid.Row="0" Grid.Column="2" Margin="0,0,4,4" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26"/>
+                                    <TextBox Text="{Binding NewZoneName, UpdateSourceTrigger=PropertyChanged}" Grid.Row="0" Grid.Column="3" Grid.ColumnSpan="2" Margin="0,0,0,4" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26"/>
+                                    
+                                    <TextBox Text="{Binding NewZoneDesc, UpdateSourceTrigger=PropertyChanged}" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26"/>
+                                    <TextBox Text="{Binding NewZoneCapacity, UpdateSourceTrigger=PropertyChanged}" Grid.Row="1" Grid.Column="3" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26"/>
+                                    <Button Command="{Binding SaveZoneCommand}" Content="Add" Grid.Row="1" Grid.Column="4" Height="26" Padding="5,0" FontSize="11"/>
+                                </Grid>
+                            </Grid>
+                        </Border>
+
+                        <!-- Bottom-Left: Lanes Assignment -->
+                        <Border Grid.Row="1" Grid.Column="0" Background="#161626" CornerRadius="8" Padding="15" Margin="0,10,10,0">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Text="3. LANES ZONE ASSIGNMENT" Foreground="#8F94FB" FontWeight="Bold" Margin="0,0,0,8"/>
+                                <DataGrid Grid.Row="1" ItemsSource="{Binding Lanes}" AutoGenerateColumns="False">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Lane Code" Binding="{Binding LaneCode}" Width="100"/>
+                                        <DataGridTextColumn Header="Lane Name" Binding="{Binding LaneName}" Width="130"/>
+                                        <DataGridTextColumn Header="Direction" Binding="{Binding Direction}" Width="80"/>
+                                        <DataGridTextColumn Header="Assigned Zone" Binding="{Binding ZoneName}" Width="*"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                                <Grid Grid.Row="2" Margin="0,8,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="130"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="70"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ComboBox ItemsSource="{Binding Lanes}" SelectedItem="{Binding SelectedLane}" DisplayMemberPath="LaneName" Grid.Column="0" Margin="0,0,4,0" Background="#222" Height="28"/>
+                                    <ComboBox ItemsSource="{Binding Zones}" SelectedItem="{Binding SelectedLaneZone}" DisplayMemberPath="ZoneName" Grid.Column="1" Margin="0,0,4,0" Background="#222" Height="28"/>
+                                    <Button Command="{Binding AssignLaneCommand}" Content="Map" Grid.Column="2" Height="28" Padding="5,0"/>
+                                </Grid>
+                            </Grid>
+                        </Border>
+
+                        <!-- Bottom-Right: C3 Controller configs -->
+                        <Border Grid.Row="1" Grid.Column="1" Background="#161626" CornerRadius="8" Padding="15" Margin="0,10,0,0">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Text="4. C3 CONTROLLERS PLACEMENT" Foreground="#8F94FB" FontWeight="Bold" Margin="0,0,0,8"/>
+                                <DataGrid Grid.Row="1" ItemsSource="{Binding Controllers}" AutoGenerateColumns="False">
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Header="Name" Binding="{Binding ControllerName}" Width="120"/>
+                                        <DataGridTextColumn Header="IP Address" Binding="{Binding IpAddress}" Width="120"/>
+                                        <DataGridTextColumn Header="Assigned Zone ID" Binding="{Binding ZoneId}" Width="*"/>
+                                        <DataGridTemplateColumn Header="Action" Width="60">
+                                            <DataGridTemplateColumn.CellTemplate>
+                                                <DataTemplate>
+                                                    <Button Command="{Binding DataContext.DeleteControllerCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                                            CommandParameter="{Binding}" Content="Del" Background="#E74C3C" Padding="6,2" FontSize="10"/>
+                                                </DataTemplate>
+                                            </DataGridTemplateColumn.CellTemplate>
+                                        </DataGridTemplateColumn>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                                <Grid Grid.Row="2" Margin="0,8,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="100"/>
+                                        <ColumnDefinition Width="100"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="50"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Text="{Binding NewControllerName, UpdateSourceTrigger=PropertyChanged}" Grid.Column="0" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26"/>
+                                    <TextBox Text="{Binding NewControllerIp, UpdateSourceTrigger=PropertyChanged}" Grid.Column="1" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26"/>
+                                    <ComboBox ItemsSource="{Binding Zones}" SelectedItem="{Binding SelectedControllerZone}" DisplayMemberPath="ZoneCode" Grid.Column="2" Margin="0,0,4,0" Background="#222" Height="26"/>
+                                    <Button Command="{Binding SaveControllerCommand}" Content="Add" Grid.Column="3" Height="26" Padding="5,0" FontSize="11"/>
+                                </Grid>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </TabItem>
+
+                <!-- TAB 3: RESILIENCY & MULTI-ZONE INTEGRATION QA -->
+                <TabItem Header="🏆  MULTI-ZONE QA AUTOMATED SUITE">
+                    <Grid Margin="15">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Automated Test Controller Header -->
+                        <Border Grid.Row="0" Background="#161626" CornerRadius="8" Padding="20" Margin="0,0,0,15" BorderBrush="#8E44AD" BorderThickness="1">
+                            <Grid>
+                                <StackPanel>
+                                    <TextBlock Text="INTEGRATION RESILIENCY CERTIFICATION ENGINE" Foreground="White" FontSize="16" FontWeight="Bold"/>
+                                    <TextBlock Text="Pressing the master button below will automatically run all 5 complex failover topologies, dynamic mapping, and SQLite offline recovery tests sequentially." Foreground="#AAA" FontSize="11" Margin="0,5,0,0"/>
+                                </StackPanel>
+                                <Button Command="{Binding RunAllTestsCommand}" Content="🚀 RUN FULL INTEGRATION QA SUITE" Background="#8E44AD" HorizontalAlignment="Right" VerticalAlignment="Center" Padding="25,12" FontSize="13" FontWeight="Bold"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Cards detailing the 5 Scenarios -->
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                            <StackPanel>
+                                <UniformGrid Columns="2" Rows="3">
+                                    
+                                    <!-- Scenario 1 Card -->
+                                    <Border Background="#161626" CornerRadius="8" Padding="15" Margin="0,0,10,10" BorderBrush="#2F2F4A" BorderThickness="1">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="100"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0">
+                                                <TextBlock Text="TEST SCENARIO 1: Site &amp; Zone Initialization" Foreground="#F39C12" FontWeight="Bold" FontSize="13" Margin="0,0,0,5"/>
+                                                <TextBlock Text="Verifies relational schema creation, seeding of VINHOME/B1/B2 default topologies, and setting maximum capacities." TextWrapping="Wrap" Foreground="#AAA" FontSize="11"/>
+                                            </StackPanel>
+                                            <Button Command="{Binding RunTest1Command}" Content="Run T1" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right" Background="#34495E" Padding="12,8" FontSize="11"/>
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- Scenario 2 Card -->
+                                    <Border Background="#161626" CornerRadius="8" Padding="15" Margin="0,0,0,10" BorderBrush="#2F2F4A" BorderThickness="1">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="100"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0">
+                                                <TextBlock Text="TEST SCENARIO 2: Lane &amp; Controller Assignment" Foreground="#F39C12" FontWeight="Bold" FontSize="13" Margin="0,0,0,5"/>
+                                                <TextBlock Text="Maps physical checkpoints (LANE-1, LANE-2) and C3-200 controllers directly to logical zones without hardcoding." TextWrapping="Wrap" Foreground="#AAA" FontSize="11"/>
+                                            </StackPanel>
+                                            <Button Command="{Binding RunTest2Command}" Content="Run T2" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right" Background="#34495E" Padding="12,8" FontSize="11"/>
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- Scenario 3 Card -->
+                                    <Border Background="#161626" CornerRadius="8" Padding="15" Margin="0,0,10,10" BorderBrush="#2F2F4A" BorderThickness="1">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="100"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0">
+                                                <TextBlock Text="TEST SCENARIO 3: Live Scan Dynamic Derivation" Foreground="#F39C12" FontWeight="Bold" FontSize="13" Margin="0,0,0,5"/>
+                                                <TextBlock Text="Performs simulated entry swipes and asserts that vehicle count is calculated dynamically strictly from active sessions (never increments)." TextWrapping="Wrap" Foreground="#AAA" FontSize="11"/>
+                                            </StackPanel>
+                                            <Button Command="{Binding RunTest3Command}" Content="Run T3" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right" Background="#34495E" Padding="12,8" FontSize="11"/>
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- Scenario 4 Card -->
+                                    <Border Background="#161626" CornerRadius="8" Padding="15" Margin="0,0,0,10" BorderBrush="#2F2F4A" BorderThickness="1">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="100"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0">
+                                                <TextBlock Text="TEST SCENARIO 4: Zone Capacity Enforcement" Foreground="#F39C12" FontWeight="Bold" FontSize="13" Margin="0,0,0,5"/>
+                                                <TextBlock Text="Fills the zone to capacity limit, asserts 'Zone Full' warning, and blocks subsequently swiped cards automatically." TextWrapping="Wrap" Foreground="#AAA" FontSize="11"/>
+                                            </StackPanel>
+                                            <Button Command="{Binding RunTest4Command}" Content="Run T4" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right" Background="#34495E" Padding="12,8" FontSize="11"/>
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- Scenario 5 Card -->
+                                    <Border Background="#161626" CornerRadius="8" Padding="15" Margin="0,0,10,0" BorderBrush="#2F2F4A" BorderThickness="1">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="100"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0">
+                                                <TextBlock Text="TEST SCENARIO 5: Offline-First Failover Sync" Foreground="#F39C12" FontWeight="Bold" FontSize="13" Margin="0,0,0,5"/>
+                                                <TextBlock Text="Forces SQL offline, scans card to write transaction to SQLite queue, re-connects SQL server, and verifies auto-sync of active session." TextWrapping="Wrap" Foreground="#AAA" FontSize="11"/>
+                                            </StackPanel>
+                                            <Button Command="{Binding RunTest5Command}" Content="Run T5" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right" Background="#34495E" Padding="12,8" FontSize="11"/>
+                                        </Grid>
+                                    </Border>
+
+                                    <!-- Help & Info Card -->
+                                    <Border Background="#1A1A28" CornerRadius="8" Padding="15" Margin="0,0,0,0" BorderBrush="#2F2F4A" BorderThickness="1">
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="💡 RESILIENCY ENGINE COMPLIANCE INFO" Foreground="#3498DB" FontWeight="Bold" FontSize="12" Margin="0,0,0,3"/>
+                                            <TextBlock Text="All database migrations are verified self-healing. WAL journaling prevents locking. Synchronizations utilize SQLite memory fallback paths safely." TextWrapping="Wrap" Foreground="#888" FontSize="10"/>
+                                        </StackPanel>
+                                    </Border>
+
+                                </UniformGrid>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
+                </TabItem>
+                
+            </TabControl>
         </Grid>
 
-        <!-- Footer -->
-        <TextBlock Grid.Row="2" Text="Offline Mode Phase 6.5 Resilience Engine - APS-CONTROLS" Foreground="#555" HorizontalAlignment="Center" Margin="0,10,0,0"/>
+        <!-- FOOTER -->
+        <TextBlock Grid.Row="2" Text="Offline Resiliency &amp; Topology Dashboard • Powered by Antigravity Recovery Engine V2" Foreground="#4E4E6A" HorizontalAlignment="Center" Margin="0,12,0,0" FontSize="10" FontWeight="Bold"/>
     </Grid>
 </Window>

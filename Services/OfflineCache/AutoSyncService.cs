@@ -273,5 +273,36 @@ namespace QuanLyGiuXe.Services.OfflineCache
                 return false;
             }
         }
+
+        public async Task TriggerSyncNowAsync()
+        {
+            try
+            {
+                LoggingService.Instance.LogInfo("SYNC_ENGINE", "TriggerSyncNow", "Programmatic sync trigger activated.");
+                if (!ConnectivityStateService.Instance.IsOnline) return;
+
+                // 1. Sync lookup tables
+                await OfflineCacheService.Instance.SyncLookupTablesAsync();
+
+                // 2. Process pending queue
+                var pending = await OfflineQueueService.Instance.GetPendingAsync();
+                foreach (var tx in pending)
+                {
+                    bool success = await ProcessTransactionAsync(tx);
+                    if (success)
+                    {
+                        await OfflineQueueService.Instance.MarkCompletedAsync(tx.Id);
+                    }
+                    else
+                    {
+                        await OfflineQueueService.Instance.MarkFailedAsync(tx.Id, tx.ErrorMessage ?? "Manual sync failed");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("SYNC_ENGINE", "TriggerSyncNow", "Failed", ex);
+            }
+        }
     }
 }

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Data.Sqlite;
+using System.Data.SqlClient;
 
 namespace QuanLyGiuXe.Services.OfflineCache
 {
@@ -95,6 +96,79 @@ namespace QuanLyGiuXe.Services.OfflineCache
             {
                 return 0;
             }
+        }
+
+        // ──────────────────────────────────────────────
+        // Multi-Zone Additions
+        // ──────────────────────────────────────────────
+
+        public int GetActiveCount(int? zoneId = null) => Task.Run(() => GetActiveCountAsync(zoneId)).GetAwaiter().GetResult();
+
+        public async Task<int> GetActiveCountAsync(int? zoneId = null)
+        {
+            // 1. Try SQL Server if online
+            try
+            {
+                if (ConnectivityStateService.Instance.IsOnline && !ConnectivityStateService.Instance.IsSimulatingOffline)
+                {
+                    string connStr = ConnectionManager.Instance.CurrentConnectionString;
+                    using (var conn = new SqlConnection(connStr))
+                    {
+                        // Set short timeout to avoid blocking
+                        if (!connStr.Contains("Connect Timeout") && !connStr.Contains("Connection Timeout"))
+                        {
+                            conn.ConnectionString += ";Connect Timeout=3;";
+                        }
+
+                        await conn.OpenAsync();
+                        string sql = "SELECT COUNT(*) FROM dbo.VehicleSessions WHERE ThoiGianRa IS NULL";
+                        if (zoneId.HasValue) sql += " AND ZoneId = @zoneId";
+
+                        using (var cmd = new SqlCommand(sql, conn))
+                        {
+                            if (zoneId.HasValue) cmd.Parameters.AddWithValue("@zoneId", zoneId.Value);
+                            return Convert.ToInt32(await cmd.ExecuteScalarAsync());
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogWarning("GARAGE_STATE", "GetActiveCountAsync", $"SQL error, falling back to SQLite: {ex.Message}");
+            }
+
+            // 2. Fallback to SQLite
+            try
+            {
+                using (var conn = new SqliteConnection(_connectionString))
+                {
+                    await conn.OpenAsync();
+                    string sql = "SELECT COUNT(*) FROM VehicleSessions WHERE ThoiGianRa IS NULL";
+                    if (zoneId.HasValue) sql += " AND ZoneId = @zoneId";
+
+                    using (var cmd = new SqliteCommand(sql, conn))
+                    {
+                        if (zoneId.HasValue) cmd.Parameters.AddWithValue("@zoneId", zoneId.Value);
+                        return Convert.ToInt32(await cmd.ExecuteScalarAsync());
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("GARAGE_STATE", "GetActiveCountAsync", "SQLite fallback failed", ex);
+                return 0;
+            }
+        }
+
+        public bool IsZoneFull(int zoneId) => Task.Run(() => IsZoneFullAsync(zoneId)).GetAwaiter().GetResult();
+
+        public async Task<bool> IsZoneFullAsync(int zoneId)
+        {
+            var zone = await ParkingTopologyService.Instance.GetZoneAsync(zoneId);
+            if (zone == null) return false;
+
+            int activeCount = await GetActiveCountAsync(zoneId);
+            return activeCount >= zone.MaxCapacity;
         }
     }
 }

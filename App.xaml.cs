@@ -106,6 +106,12 @@ namespace QuanLyGiuXe
             {
                 LoggingService.Instance.LogInfo("App", "App", "StartLoginFlow: Login successful.");
                 
+                // Run SQL Server schema migrations AFTER login (DB connection confirmed)
+                System.Threading.Tasks.Task.Run(async () =>
+                {
+                    await DatabaseService.EnsureMigrationsAppliedAsync();
+                });
+                
                 // Now we can safely close the old window
                 windowToClose?.Close();
                 
