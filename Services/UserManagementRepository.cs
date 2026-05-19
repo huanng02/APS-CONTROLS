@@ -19,8 +19,7 @@ namespace QuanLyGiuXe.Services
                 async conn =>
                 {
                     var list = new List<RoleOption>();
-                    const string sql = "SELECT Id, Name, TrangThai FROM Roles ORDER BY Name;";
-                    using (var cmd = new SqlCommand(sql, conn))
+                    using (var cmd = new SqlCommand( @"SELECT Id, Name, TrangThai FROM Roles ORDER BY Name;", conn))
                     using (var reader = await cmd.ExecuteReaderAsync())
                     {
                         while (await reader.ReadAsync())
@@ -105,8 +104,7 @@ namespace QuanLyGiuXe.Services
                 $"USER_EXISTS_{username}",
                 async conn =>
                 {
-                    const string sql = "SELECT COUNT(1) FROM NhanVien WHERE Username = @Username AND (@ExcludeUserId IS NULL OR Id <> @ExcludeUserId);";
-                    using (var cmd = new SqlCommand(sql, conn))
+                    using (var cmd = new SqlCommand( @"SELECT COUNT(1) FROM NhanVien WHERE Username = @Username AND (@ExcludeUserId IS NULL OR Id <> @ExcludeUserId);", conn))
                     {
                         cmd.Parameters.AddWithValue("@Username", username.Trim());
                         cmd.Parameters.AddWithValue("@ExcludeUserId", (object?)excludeUserId ?? DBNull.Value);
@@ -125,12 +123,10 @@ namespace QuanLyGiuXe.Services
                 model,
                 async conn =>
                 {
-                    const string sql = @"
+                    using (var cmd = new SqlCommand( @"
                         INSERT INTO NhanVien (Ten, Username, [Password], TrangThai, RoleId, CreatedAt)
                         VALUES (@Ten, @Username, @Password, @TrangThai, @RoleId, SYSUTCDATETIME());
-                        SELECT CAST(SCOPE_IDENTITY() AS INT);";
-
-                    using (var cmd = new SqlCommand(sql, conn))
+                        SELECT CAST(SCOPE_IDENTITY() AS INT);", conn))
                     {
                         cmd.Parameters.AddWithValue("@Ten", model.Ten.Trim());
                         cmd.Parameters.AddWithValue("@Username", model.Username.Trim());
@@ -151,8 +147,7 @@ namespace QuanLyGiuXe.Services
                 new { Id = id, Ten = ten, RoleId = roleId, TrangThai = trangThai },
                 async conn =>
                 {
-                    const string sql = "UPDATE NhanVien SET Ten = @Ten, RoleId = @RoleId, TrangThai = @TrangThai WHERE Id = @Id;";
-                    using (var cmd = new SqlCommand(sql, conn))
+                    using (var cmd = new SqlCommand( @"UPDATE NhanVien SET Ten = @Ten, RoleId = @RoleId, TrangThai = @TrangThai WHERE Id = @Id;", conn))
                     {
                         cmd.Parameters.AddWithValue("@Id", id);
                         cmd.Parameters.AddWithValue("@Ten", ten.Trim());
@@ -171,8 +166,7 @@ namespace QuanLyGiuXe.Services
                 new { Id = id },
                 async conn =>
                 {
-                    const string sql = "UPDATE NhanVien SET TrangThai = 'Disabled' WHERE Id = @Id;";
-                    using (var cmd = new SqlCommand(sql, conn))
+                    using (var cmd = new SqlCommand( @"UPDATE NhanVien SET TrangThai = 'Disabled' WHERE Id = @Id;", conn))
                     {
                         cmd.Parameters.AddWithValue("@Id", id);
                         await cmd.ExecuteNonQueryAsync();
@@ -188,8 +182,7 @@ namespace QuanLyGiuXe.Services
                 new { Id = id },
                 async conn =>
                 {
-                    const string sql = "UPDATE NhanVien SET [Password] = @Password WHERE Id = @Id;";
-                    using (var cmd = new SqlCommand(sql, conn))
+                    using (var cmd = new SqlCommand( @"UPDATE NhanVien SET [Password] = @Password WHERE Id = @Id;", conn))
                     {
                         cmd.Parameters.AddWithValue("@Id", id);
                         cmd.Parameters.AddWithValue("@Password", newPassword);
@@ -206,8 +199,7 @@ namespace QuanLyGiuXe.Services
                 new { Id = id, Ten = ten, Username = username },
                 async conn =>
                 {
-                    const string sql = "UPDATE NhanVien SET Ten = @Ten, Username = @Username WHERE Id = @Id;";
-                    using (var cmd = new SqlCommand(sql, conn))
+                    using (var cmd = new SqlCommand( @"UPDATE NhanVien SET Ten = @Ten, Username = @Username WHERE Id = @Id;", conn))
                     {
                         cmd.Parameters.AddWithValue("@Id", id);
                         cmd.Parameters.AddWithValue("@Ten", ten.Trim());
@@ -225,8 +217,7 @@ namespace QuanLyGiuXe.Services
                 new { Id = userId },
                 async conn =>
                 {
-                    const string sql = "UPDATE NhanVien SET [Password] = @Password WHERE Id = @Id;";
-                    using (var cmd = new SqlCommand(sql, conn))
+                    using (var cmd = new SqlCommand( @"UPDATE NhanVien SET [Password] = @Password WHERE Id = @Id;", conn))
                     {
                         cmd.Parameters.AddWithValue("@Id", userId);
                         cmd.Parameters.AddWithValue("@Password", newPassword);
@@ -242,8 +233,7 @@ namespace QuanLyGiuXe.Services
                 $"USER_BY_ID_{id}",
                 async conn =>
                 {
-                    const string sql = "SELECT Id, Ten, Username, [Password], TrangThai, RoleId, CreatedAt, LastLogin FROM NhanVien WHERE Id = @Id;";
-                    using (var cmd = new SqlCommand(sql, conn))
+                    using (var cmd = new SqlCommand( @"SELECT Id, Ten, Username, [Password], TrangThai, RoleId, CreatedAt, LastLogin FROM NhanVien WHERE Id = @Id;", conn))
                     {
                         cmd.Parameters.AddWithValue("@Id", id);
                         using (var reader = await cmd.ExecuteReaderAsync())
@@ -276,8 +266,7 @@ namespace QuanLyGiuXe.Services
                 new { Id = id },
                 async conn =>
                 {
-                    const string sql = "UPDATE NhanVien SET TrangThai = 'Active' WHERE Id = @Id;";
-                    using (var cmd = new SqlCommand(sql, conn))
+                    using (var cmd = new SqlCommand( @"UPDATE NhanVien SET TrangThai = 'Active' WHERE Id = @Id;", conn))
                     {
                         cmd.Parameters.AddWithValue("@Id", id);
                         await cmd.ExecuteNonQueryAsync();
@@ -293,8 +282,7 @@ namespace QuanLyGiuXe.Services
                 new { Id = id },
                 async conn =>
                 {
-                    const string sql = "DELETE FROM NhanVien WHERE Id = @Id;";
-                    using (var cmd = new SqlCommand(sql, conn))
+                    using (var cmd = new SqlCommand( @"DELETE FROM NhanVien WHERE Id = @Id;", conn))
                     {
                         cmd.Parameters.AddWithValue("@Id", id);
                         await cmd.ExecuteNonQueryAsync();
