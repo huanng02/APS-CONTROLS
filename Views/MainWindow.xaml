@@ -403,6 +403,24 @@
                                         </TextBlock>
                                     </StackPanel>
                                 </RadioButton>
+                                <RadioButton x:Name="btnTopologySettings" Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Click="MoTopologySettings_Click" ToolTip="Topology / Hardware">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Path Data="M19,15H15A3,3 0 0,1 12,12A3,3 0 0,1 15,9H19M19,15V9H21V15H19M5,9H9A3,3 0 0,1 12,12A3,3 0 0,1 9,15H5M5,15V9H3V15H5M15,5H9V3H15V5M15,19H9V21H15V19Z" 
+                                              Fill="White" Width="18" Height="18" Stretch="Uniform" VerticalAlignment="Center"/>
+                                        <TextBlock Text=" Topology / Hardware" Margin="10,0,0,0">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsSidebarExpanded}" Value="False">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </RadioButton>
                                 <RadioButton x:Name="btnSQLTool" Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Click="MoSQLTool_Click" ToolTip="SQL Tool">
                                     <StackPanel Orientation="Horizontal">
                                         <Path Data="M12,23C17,23 21,21 21,18.5V9.5C21,7 17,5 12,5C7,5 3,7 3,9.5V18.5C3,21 7,23 12,23M12,7C16.14,7 19,8.28 19,9.5C19,10.72 16.14,12 12,12C7.86,12 5,10.72 5,9.5C5,8.28 7.86,7 12,7M5,12.5C5,13.72 7.86,15 12,15C16.14,15 19,13.72 19,12.5V14.5C19,15.72 16.14,17 12,17C7.86,17 5,15.72 5,14.5V12.5M5,17.5C5,18.72 7.86,20 12,20C16.14,20 19,18.72 19,17.5V18.5C19,19.72 16.14,21 12,21C7.86,21 5,19.72 5,18.5V17.5Z" 
@@ -492,6 +510,9 @@
                     </DataTemplate>
                     <DataTemplate DataType="{x:Type viewmodels:DashboardViewModel}">
                         <local:DashboardView/>
+                    </DataTemplate>
+                    <DataTemplate DataType="{x:Type viewmodels:ParkingTopologyViewModel}">
+                        <local:ParkingTopologyView/>
                     </DataTemplate>
                 </ContentControl.Resources>
             </ContentControl>

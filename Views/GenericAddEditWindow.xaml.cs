@@ -42,7 +42,7 @@ namespace QuanLyGiuXe.Views
         {
             FieldsPanel.Children.Clear();
             var props = _model.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                .Where(p => p.Name != "Id" && p.CanWrite && (p.PropertyType == typeof(string) || p.PropertyType == typeof(int) || p.PropertyType == typeof(decimal) || p.PropertyType == typeof(DateTime) || p.PropertyType == typeof(int?)));
+                .Where(p => p.Name != "Id" && p.CanWrite && (p.PropertyType == typeof(string) || p.PropertyType == typeof(int) || p.PropertyType == typeof(decimal) || p.PropertyType == typeof(DateTime) || p.PropertyType == typeof(int?) || p.PropertyType == typeof(bool)));
 
             // Special handling: if property name is TrangThai, render ComboBox with predefined values
             foreach (var p in props)
@@ -77,6 +77,8 @@ namespace QuanLyGiuXe.Views
                     input = new TextBox { Width = 150, HorizontalAlignment = HorizontalAlignment.Left, Style = (Style)Application.Current.FindResource("ModernTextBox") };
                 else if (p.PropertyType == typeof(DateTime)) 
                     input = new DatePicker { Width = 220, HorizontalAlignment = HorizontalAlignment.Left };
+                else if (p.PropertyType == typeof(bool))
+                    input = new CheckBox { Margin = new Thickness(0, 5, 0, 0) };
 
                 if (input != null)
                 {
@@ -84,6 +86,7 @@ namespace QuanLyGiuXe.Views
                     var val = p.GetValue(_model);
                     if (input is TextBox tb) tb.Text = val?.ToString() ?? string.Empty;
                     if (input is DatePicker dp && val is DateTime dt) dp.SelectedDate = dt;
+                    if (input is CheckBox chk && val is bool b) chk.IsChecked = b;
                     if (input is ComboBox cbb && val != null) SelectedTrangThai = val.ToString();
                     sp.Children.Add(input);
                 }
@@ -139,6 +142,10 @@ namespace QuanLyGiuXe.Views
                         return;
                     }
                     prop.SetValue(_model, dp.SelectedDate.Value);
+                }
+                else if (input is CheckBox chk)
+                {
+                    prop.SetValue(_model, chk.IsChecked ?? false);
                 }
             }
 

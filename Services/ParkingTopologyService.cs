@@ -493,6 +493,102 @@ namespace QuanLyGiuXe.Services
             );
         }
 
+        public async Task<bool> SaveLaneAsync(LaneConfig lane)
+        {
+            bool isNew = lane.Id == 0;
+            return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+                isNew ? "CREATE_LANE" : "UPDATE_LANE",
+                lane,
+                async conn =>
+                {
+                    string sql;
+                    if (isNew)
+                    {
+                        sql = "INSERT INTO dbo.Lanes (LaneCode, LaneName, Direction, ZoneId, IsActive, CreatedUtc) VALUES (@code, @name, @dir, @zoneId, @active, @created)";
+                    }
+                    else
+                    {
+                        sql = "UPDATE dbo.Lanes SET LaneCode = @code, LaneName = @name, Direction = @dir, ZoneId = @zoneId, IsActive = @active WHERE Id = @id";
+                    }
+
+                    using (var cmd = new SqlCommand(sql, conn))
+                    {
+                        if (!isNew) cmd.Parameters.AddWithValue("@id", lane.Id);
+                        cmd.Parameters.AddWithValue("@code", lane.LaneCode);
+                        cmd.Parameters.AddWithValue("@name", lane.LaneName);
+                        cmd.Parameters.AddWithValue("@dir", lane.Direction);
+                        cmd.Parameters.AddWithValue("@zoneId", (object?)lane.ZoneId ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@active", lane.IsActive);
+                        cmd.Parameters.AddWithValue("@created", lane.CreatedUtc);
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+                },
+                async () =>
+                {
+                    var lanes = await GetLanesAsync();
+                    if (isNew)
+                    {
+                        lane.Id = lanes.Any() ? lanes.Max(l => l.Id) + 1 : 1;
+                        if (lane.ZoneId.HasValue)
+                        {
+                            var zone = await GetZoneAsync(lane.ZoneId.Value);
+                            if (zone != null) lane.ZoneName = zone.ZoneName;
+                        }
+                        lanes.Add(lane);
+                    }
+                    else
+                    {
+                        var existing = lanes.FirstOrDefault(l => l.Id == lane.Id);
+                        if (existing != null)
+                        {
+                            existing.LaneCode = lane.LaneCode;
+                            existing.LaneName = lane.LaneName;
+                            existing.Direction = lane.Direction;
+                            existing.ZoneId = lane.ZoneId;
+                            existing.IsActive = lane.IsActive;
+                            if (lane.ZoneId.HasValue)
+                            {
+                                var zone = await GetZoneAsync(lane.ZoneId.Value);
+                                if (zone != null) existing.ZoneName = zone.ZoneName;
+                            }
+                            else
+                            {
+                                existing.ZoneName = string.Empty;
+                            }
+                        }
+                    }
+                    await OfflineCacheService.Instance.SaveCacheAsync("LIST_LANES", lanes);
+                }
+            );
+        }
+
+        public async Task<bool> DeleteLaneAsync(int id)
+        {
+            return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+                "DELETE_LANE",
+                new { Id = id },
+                async conn =>
+                {
+                    string sql = "DELETE FROM dbo.Lanes WHERE Id = @id";
+                    using (var cmd = new SqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@id", id);
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+                },
+                async () =>
+                {
+                    var lanes = await GetLanesAsync();
+                    var existing = lanes.FirstOrDefault(l => l.Id == id);
+                    if (existing != null)
+                    {
+                        lanes.Remove(existing);
+                        await OfflineCacheService.Instance.SaveCacheAsync("LIST_LANES", lanes);
+                    }
+                }
+            );
+        }
+
         public async Task<bool> AssignLaneToZoneAsync(int laneId, int? zoneId)
         {
             return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
