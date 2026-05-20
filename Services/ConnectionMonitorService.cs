@@ -36,7 +36,9 @@ namespace QuanLyGiuXe.Services
         // ── State (anti-spam) ─────────────────────────────────────────────────────
         private bool? _lastDbStatus = null;
         private bool? _lastC3Status = null;
-        private string? _cachedC3Ip = null;
+        private string? _cachedC3Ip;
+        public string? CurrentC3Ip => _cachedC3Ip;
+
 
         // ── Lifecycle ─────────────────────────────────────────────────────────────
         private readonly object _lifecycleLock = new();
@@ -259,7 +261,13 @@ namespace QuanLyGiuXe.Services
                 using var ping = new Ping();
                 var reply = await ping.SendPingAsync(ip, PingTimeoutMs)
                                       .ConfigureAwait(false);
-                return reply.Status == IPStatus.Success;
+                if (reply.Status == IPStatus.Success)
+                {
+                    // cache the reachable IP (may have been updated from config)
+                    _cachedC3Ip = ip;
+                    return true;
+                }
+                return false;
             }
             catch
             {
