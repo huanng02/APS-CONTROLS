@@ -1,3 +1,4 @@
+using System;
 using System.Windows.Controls;
 using QuanLyGiuXe.ViewModels;
 
@@ -8,12 +9,23 @@ namespace QuanLyGiuXe.Views
         public KhungGioView()
         {
             InitializeComponent();
-            // Initialize DataContext on UI thread asynchronously to avoid any heavy work during construction
-            System.Windows.Threading.Dispatcher.CurrentDispatcher.BeginInvoke(new Action(() =>
+
+            Loaded += KhungGioView_Loaded;
+        }
+
+        private void KhungGioView_Loaded(object sender, System.Windows.RoutedEventArgs e)
+        {
+            try
             {
-                try { this.DataContext = new KhungGioManagementViewModel(); }
-                catch (Exception ex) { System.Diagnostics.Debug.WriteLine("Set DataContext failed: " + ex); }
-            }));
+                if (DataContext == null)
+                {
+                    DataContext = new KhungGioManagementViewModel();
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Set DataContext failed: " + ex);
+            }
         }
     }
 }

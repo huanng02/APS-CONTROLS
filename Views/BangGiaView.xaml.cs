@@ -26,10 +26,23 @@ namespace QuanLyGiuXe.Views
                 var wnd = new Window
                 {
                     Title = "Quản lý khung giờ",
+
                     Content = new KhungGioView(),
-                    SizeToContent = SizeToContent.WidthAndHeight,
-                    WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                    Owner = Window.GetWindow(this)
+
+                    Width = 1200,
+                    Height = 700,
+
+                    MinWidth = 1000,
+                    MinHeight = 600,
+
+                    ResizeMode = ResizeMode.CanResize,
+
+                    WindowStartupLocation = WindowStartupLocation.CenterScreen,
+
+                    // QUAN TRỌNG
+                    Owner = null,
+
+                    Background = System.Windows.Media.Brushes.White
                 };
 
                 wnd.ShowDialog();
@@ -37,10 +50,17 @@ namespace QuanLyGiuXe.Views
                 // refresh pricing VM so updated KhungGio are reflected
                 if (this.DataContext is BangGiaManagementViewModel vm)
                 {
-                    try { vm.Load(); } catch { }
+                    try
+                    {
+                        vm.Load();
+                    }
+                    catch { }
                 }
             }
-            catch { }
+            catch (System.Exception ex)
+            {
+                MessageBox.Show(ex.Message);
+            }
         }
 
         // Allow only numeric input (digits and optional decimal separator)

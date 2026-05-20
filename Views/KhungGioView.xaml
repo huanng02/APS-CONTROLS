@@ -2,70 +2,223 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              Background="{StaticResource BgLightBrush}">
-    <Grid Margin="15">
+
+    <!-- RESOURCES -->
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+    </UserControl.Resources>
+
+    <Grid Margin="20"
+          HorizontalAlignment="Center"
+          VerticalAlignment="Stretch"
+          MaxWidth="1400">
+
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <Border Style="{StaticResource EnterpriseCardBorder}" Padding="20" Margin="0,0,0,15">
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                <Border Background="{StaticResource APSBlueBrush}" CornerRadius="4" Padding="8" Margin="0,0,15,0">
-                    <TextBlock Text="⏰" Foreground="White" FontSize="16"/>
+        <!-- ================= HEADER ================= -->
+        <Border Grid.Row="0"
+                Style="{StaticResource EnterpriseCardBorder}"
+                Padding="20"
+                Margin="0,0,0,18"
+                HorizontalAlignment="Stretch">
+
+            <StackPanel Orientation="Horizontal"
+                        VerticalAlignment="Center">
+
+                <Border Background="{StaticResource APSBlueBrush}"
+                        CornerRadius="8"
+                        Padding="10"
+                        Margin="0,0,15,0">
+
+                    <TextBlock Text="⏰"
+                               Foreground="White"
+                               FontSize="18"
+                               FontWeight="Bold"/>
                 </Border>
-                <TextBlock Text="TIME SLOT CONFIGURATION" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}" />
+
+                <StackPanel>
+                    <TextBlock Text="TIME SLOT CONFIGURATION"
+                               Style="{StaticResource Heading2Style}"
+                               Foreground="{StaticResource APSBlueBrush}"/>
+
+                    <TextBlock Text="Quản lý khung giờ hoạt động"
+                               Foreground="#64748B"
+                               FontSize="13"
+                               Margin="0,4,0,0"/>
+                </StackPanel>
             </StackPanel>
         </Border>
 
-        <!-- DataGrid -->
-        <DataGrid Grid.Row="1" ItemsSource="{Binding Items}" SelectedItem="{Binding Selected}" 
-                  Style="{StaticResource ModernDataGrid}"
-                  AutoGenerateColumns="False" CanUserAddRows="False">
+        <!-- ================= TABLE ================= -->
+        <Border Grid.Row="1"
+                Style="{StaticResource EnterpriseCardBorder}"
+                Padding="12">
 
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="SLOT NAME" Binding="{Binding TenKhungGio, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*" />
-                
-                <DataGridTemplateColumn Header="START TIME" Width="150">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding GioBatDauText}" VerticalAlignment="Center" Margin="10,0" FontWeight="SemiBold" Foreground="{StaticResource APSBlueBrush}"/>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                    <DataGridTemplateColumn.CellEditingTemplate>
-                        <DataTemplate>
-                            <TextBox Text="{Binding GioBatDauText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ModernTextBox}" Height="30"/>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellEditingTemplate>
-                </DataGridTemplateColumn>
-
-                <DataGridTemplateColumn Header="END TIME" Width="150">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding GioKetThucText}" VerticalAlignment="Center" Margin="10,0" FontWeight="SemiBold" Foreground="{StaticResource APSBlueBrush}"/>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                    <DataGridTemplateColumn.CellEditingTemplate>
-                        <DataTemplate>
-                            <TextBox Text="{Binding GioKetThucText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ModernTextBox}" Height="30"/>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellEditingTemplate>
-                </DataGridTemplateColumn>
-
-                <DataGridCheckBoxColumn Header="OVERNIGHT" Binding="{Binding QuaDem, Mode=OneWay}" IsReadOnly="True" Width="120" />
-                <DataGridCheckBoxColumn Header="ACTIVE" Binding="{Binding TrangThai, Mode=TwoWay}" Width="100" />
-            </DataGrid.Columns>
-        </DataGrid>
-
-        <!-- Actions -->
-        <Border Grid.Row="2" Style="{StaticResource EnterpriseCardBorder}" Padding="15" Margin="0,15,0,0">
             <Grid>
-                <TextBlock Text="{Binding StatusMessage}" Foreground="{StaticResource SuccessBrush}" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Left" />
-                
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button Content="➕ ADD SLOT" Command="{Binding AddCommand}" Style="{StaticResource ModernButton}" Background="{StaticResource SuccessBrush}" Width="140" Height="36" Margin="0,0,10,0" />
-                    <Button Content="💾 SAVE CHANGES" Command="{Binding UpdateCommand}" Style="{StaticResource ModernButton}" Background="{StaticResource APSBlueBrush}" Width="160" Height="36" Margin="0,0,10,0" />
-                    <Button Content="🗑️ DELETE" Command="{Binding DeleteCommand}" Style="{StaticResource DangerButton}" Width="120" Height="36" />
+                <DataGrid ItemsSource="{Binding Items}"
+                          SelectedItem="{Binding Selected}"
+                          Style="{StaticResource ModernDataGrid}"
+                          AutoGenerateColumns="False"
+                          CanUserAddRows="False"
+                          HeadersVisibility="Column"
+                          GridLinesVisibility="None"
+                          RowHeight="48"
+                          ColumnHeaderHeight="45"
+                          HorizontalAlignment="Stretch"
+                          HorizontalContentAlignment="Stretch"
+                          ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                          ScrollViewer.VerticalScrollBarVisibility="Auto">
+
+                    <DataGrid.Columns>
+
+                        <!-- SLOT NAME -->
+                        <DataGridTextColumn Header="SLOT NAME"
+                                            Width="2*"
+                                            MinWidth="240"
+                                            Binding="{Binding TenKhungGio, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="Margin" Value="10,0"/>
+                                    <Setter Property="FontWeight" Value="SemiBold"/>
+                                    <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+
+                            <DataGridTextColumn.EditingElementStyle>
+                                <Style TargetType="TextBox">
+                                    <Setter Property="Height" Value="34"/>
+                                    <Setter Property="VerticalContentAlignment" Value="Center"/>
+                                    <Setter Property="Padding" Value="8,0"/>
+                                </Style>
+                            </DataGridTextColumn.EditingElementStyle>
+                        </DataGridTextColumn>
+
+                        <!-- START TIME -->
+                        <DataGridTemplateColumn Header="START TIME"
+                                                Width="1.3*"
+                                                MinWidth="160">
+
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding GioBatDauText}"
+                                               VerticalAlignment="Center"
+                                               HorizontalAlignment="Center"
+                                               FontWeight="SemiBold"
+                                               Foreground="{StaticResource APSBlueBrush}"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+
+                            <DataGridTemplateColumn.CellEditingTemplate>
+                                <DataTemplate>
+                                    <TextBox Text="{Binding GioBatDauText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource ModernTextBox}"
+                                             Height="34"
+                                             VerticalContentAlignment="Center"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellEditingTemplate>
+                        </DataGridTemplateColumn>
+
+                        <!-- END TIME -->
+                        <DataGridTemplateColumn Header="END TIME"
+                                                Width="1.3*"
+                                                MinWidth="160">
+
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding GioKetThucText}"
+                                               VerticalAlignment="Center"
+                                               HorizontalAlignment="Center"
+                                               FontWeight="SemiBold"
+                                               Foreground="{StaticResource APSBlueBrush}"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+
+                            <DataGridTemplateColumn.CellEditingTemplate>
+                                <DataTemplate>
+                                    <TextBox Text="{Binding GioKetThucText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource ModernTextBox}"
+                                             Height="34"
+                                             VerticalContentAlignment="Center"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellEditingTemplate>
+                        </DataGridTemplateColumn>
+
+                        <!-- OVERNIGHT -->
+                        <DataGridCheckBoxColumn Header="OVERNIGHT"
+                                                Width="130"
+                                                IsReadOnly="True"
+                                                Binding="{Binding QuaDem, Mode=OneWay}"/>
+
+                        <!-- ACTIVE -->
+                        <DataGridCheckBoxColumn Header="ACTIVE"
+                                                Width="110"
+                                                Binding="{Binding TrangThai, Mode=TwoWay}"/>
+
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
+        </Border>
+
+        <!-- ================= ACTIONS ================= -->
+        <Border Grid.Row="2"
+                Style="{StaticResource EnterpriseCardBorder}"
+                Padding="16"
+                Margin="0,18,0,0">
+
+            <Grid VerticalAlignment="Center">
+
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- STATUS MESSAGE -->
+                <Border Background="#ECFDF5"
+                        BorderBrush="#10B981"
+                        BorderThickness="1"
+                        CornerRadius="6"
+                        Padding="10,6"
+                        VerticalAlignment="Center"
+                        Visibility="{Binding HasStatusMessage, Converter={StaticResource BoolToVisibilityConverter}}">
+
+                    <TextBlock Text="{Binding StatusMessage}"
+                               Foreground="#059669"
+                               FontWeight="SemiBold"
+                               TextWrapping="Wrap"/>
+                </Border>
+
+                <!-- BUTTONS -->
+                <StackPanel Grid.Column="1"
+                            Orientation="Horizontal"
+                            HorizontalAlignment="Right">
+
+                    <Button Content="➕ ADD SLOT"
+                            Command="{Binding AddCommand}"
+                            Style="{StaticResource ModernButton}"
+                            Background="{StaticResource SuccessBrush}"
+                            Width="145"
+                            Height="40"
+                            Margin="0,0,10,0"/>
+
+                    <Button Content="💾 SAVE"
+                            Command="{Binding UpdateCommand}"
+                            Style="{StaticResource ModernButton}"
+                            Background="{StaticResource APSBlueBrush}"
+                            Width="140"
+                            Height="40"
+                            Margin="0,0,10,0"/>
+
+                    <Button Content="🗑️ DELETE"
+                            Command="{Binding DeleteCommand}"
+                            Style="{StaticResource DangerButton}"
+                            Width="120"
+                            Height="40"/>
                 </StackPanel>
             </Grid>
         </Border>

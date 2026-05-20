@@ -14,7 +14,19 @@ namespace QuanLyGiuXe.ViewModels
         private readonly KhungGioRepository _repo = new KhungGioRepository();
 
         private string _statusMessage = string.Empty;
-        public string StatusMessage { get => _statusMessage; set { _statusMessage = value; OnPropertyChanged(nameof(StatusMessage)); } }
+
+        public string StatusMessage
+        {
+            get => _statusMessage;
+            set
+            {
+                _statusMessage = value;
+                OnPropertyChanged(nameof(StatusMessage));
+                OnPropertyChanged(nameof(HasStatusMessage));
+            }
+        }
+
+        public bool HasStatusMessage => !string.IsNullOrWhiteSpace(StatusMessage);
 
         public ObservableCollection<KhungGioItemVM> Items { get; } = new ObservableCollection<KhungGioItemVM>();
 
@@ -52,14 +64,18 @@ namespace QuanLyGiuXe.ViewModels
                 var list = await System.Threading.Tasks.Task.Run(() => _repo.GetAll());
 
                 // build temp list trước
-                var temp = list.Select(k => new KhungGioItemVM
+                var temp = list
+                .OrderBy(x => x.GioBatDau)
+                .ThenBy(x => x.GioKetThuc)
+                .Select(k => new KhungGioItemVM
                 {
                     Id = k.Id,
                     TenKhungGio = k.TenKhungGio,
                     GioBatDau = k.GioBatDau,
                     GioKetThuc = k.GioKetThuc,
                     TrangThai = k.TrangThai
-                }).ToList();
+                })
+                .ToList();
 
                 // update UI trên UI thread
                 Application.Current.Dispatcher.Invoke(() =>
