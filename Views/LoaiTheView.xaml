@@ -1,0 +1,66 @@
+<UserControl x:Class="QuanLyGiuXe.Views.LoaiTheView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             Height="Auto" Width="Auto">
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- TOOLBAR -->
+        <Border Grid.Row="0" Style="{StaticResource EnterpriseCardBorder}" Padding="15" Margin="0,0,0,15">
+            <StackPanel Orientation="Horizontal">
+                <StackPanel Orientation="Vertical" Margin="0,0,15,0">
+                    <TextBlock Text="CATEGORY NAME" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold" Margin="0,0,0,6"/>
+                    <TextBox Width="250" Style="{StaticResource ModernTextBox}" Text="{Binding TenLoaiThe, UpdateSourceTrigger=PropertyChanged}" />
+                </StackPanel>
+
+                <StackPanel Orientation="Vertical" Margin="0,0,15,0">
+                    <TextBlock Text="UNIT PRICE" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold" Margin="0,0,0,6"/>
+                    <TextBox Width="150" Style="{StaticResource ModernTextBox}" Text="{Binding GiaTien, UpdateSourceTrigger=PropertyChanged}" />
+                </StackPanel>
+
+                <StackPanel Orientation="Vertical" Margin="0,0,20,0">
+                    <TextBlock Text="STATUS" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold" Margin="0,0,0,6"/>
+                    <TextBox Width="150" Style="{StaticResource ModernTextBox}" Text="{Binding TrangThai, UpdateSourceTrigger=PropertyChanged}" />
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom">
+                    <Button Content="➕ ADD" Command="{Binding AddCommand}" Style="{StaticResource ModernButton}" Background="{StaticResource SuccessBrush}" Width="90" Margin="0,0,8,0"/>
+                    <Button Content="💾 SAVE" Command="{Binding UpdateCommand}" Style="{StaticResource ModernButton}" Background="{StaticResource APSBlueBrush}" Width="90" Margin="0,0,8,0"/>
+                    <Button Content="🗑️ DELETE" Command="{Binding DeleteCommand}" Style="{StaticResource DangerButton}" Width="90" Margin="0,0,15,0"/>
+                    
+                    <Border Width="1" Background="{StaticResource BorderLightBrush}" Margin="0,5,15,5"/>
+                    
+                    <Button Content="↻ RELOAD" Command="{Binding LoadCommand}" Style="{StaticResource ModernOutlineButton}" Width="100" Margin="0,0,8,0"/>
+                    <Button Content="🧹 CLEAR" Command="{Binding ClearCommand}" Style="{StaticResource ModernOutlineButton}" Width="90"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- DATA GRID -->
+        <Border Grid.Row="1" Style="{StaticResource EnterpriseCardBorder}" Padding="0">
+            <DataGrid ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem, Mode=TwoWay}" 
+                      Style="{StaticResource ModernDataGrid}"
+                      AutoGenerateColumns="False" IsReadOnly="True">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="IDENTIFIER" Binding="{Binding Id}" Width="100"/>
+                    <DataGridTextColumn Header="CATEGORY NAME" Binding="{Binding TenLoaiThe}" Width="*"/>
+                    <DataGridTextColumn Header="BASE PRICE" Binding="{Binding GiaTien, StringFormat=N0}" Width="150">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="FontWeight" Value="Bold"/>
+                                <Setter Property="Foreground" Value="{StaticResource SuccessBrush}"/>
+                                <Setter Property="HorizontalAlignment" Value="Right"/>
+                                <Setter Property="Margin" Value="0,0,15,0"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="STATUS" Binding="{Binding TrangThai}" Width="180"/>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+    </Grid>
+</UserControl>
+

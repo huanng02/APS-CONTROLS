@@ -1,0 +1,167 @@
+<UserControl x:Class="QuanLyGiuXe.Views.RFIDCardView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:QuanLyGiuXe.ViewModels"
+             xmlns:svc="clr-namespace:QuanLyGiuXe.Services">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        <svc:RFIDColumnVisibilityConverter x:Key="ColVisConv"/>
+        <svc:ExpirationToColorConverter x:Key="ExpColorConv"/>
+        <svc:LoaiVeToVisibilityConverter x:Key="LoaiVeToVis"/>
+    </UserControl.Resources>
+
+    <UserControl.DataContext>
+        <vm:RFIDCardViewModel />
+    </UserControl.DataContext>
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Search Bar -->
+        <Border Grid.Row="0" Style="{StaticResource EnterpriseCardBorder}" Margin="0,0,0,16" Padding="15,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                
+                <TextBlock Text="🔍" VerticalAlignment="Center" Margin="0,0,15,0" Foreground="{StaticResource TextMutedBrush}" FontSize="16"/>
+                
+                <Grid Grid.Column="1">
+                    <TextBox x:Name="txtSearch" 
+                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource ModernTextBox}"
+                             Padding="10,0" Height="36"/>
+                             
+                    <TextBlock IsHitTestVisible="False" Text="Search by Card UID or Plate Number..." 
+                               VerticalAlignment="Center" HorizontalAlignment="Left" Margin="12,0,0,0">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock" BasedOn="{StaticResource SubTitleStyle}">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Text, ElementName=txtSearch}" Value="">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Grid>
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="1" Style="{StaticResource EnterpriseCardBorder}" Padding="15">
+            <TabControl ItemsSource="{Binding Tabs}" SelectedItem="{Binding SelectedTab, Mode=TwoWay}" BorderThickness="0,1,0,0" Background="Transparent">
+                <TabControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Padding="20,10">
+                            <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="13"/>
+                        </Border>
+                    </DataTemplate>
+                </TabControl.ItemTemplate>
+
+                <TabControl.ContentTemplate>
+                    <DataTemplate>
+                        <DockPanel Margin="0,20,0,0">
+                            <!-- Toolbar -->
+                            <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Margin="0,0,0,20">
+                                <Button Content="Add New" Command="{Binding DataContext.AddCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        Style="{StaticResource ModernButton}" Margin="0,0,10,0"
+                                        Visibility="{Binding DataContext.CanAdd, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVis}}"/>
+                                
+                                <Button Content="Delete Selected" Command="{Binding DataContext.DeleteSelectedCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        Style="{StaticResource DangerButton}" Margin="0,0,10,0"/>
+                                
+                                <Button Content="Reload" Command="{Binding DataContext.LoadCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        Style="{StaticResource ModernOutlineButton}" Margin="0,0,10,0"/>
+
+                                <Separator Margin="10,5" Width="1" Background="{StaticResource BorderLightBrush}"/>
+                                
+                                <Button Content="Export Excel" Command="{Binding DataContext.ExportCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        Style="{StaticResource ModernButton}" Background="{StaticResource SuccessBrush}" Margin="10,0,10,0"/>
+                                
+                                <Button Content="Import Excel" Click="OpenImportExport_Click"
+                                        Style="{StaticResource ModernOutlineButton}" Margin="0,0,10,0"/>
+                                
+                                <Button Content="Download Template" Command="{Binding DataContext.DownloadTemplateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        Style="{StaticResource ModernOutlineButton}"/>
+                            </StackPanel>
+
+                            <!-- DataGrid -->
+                            <DataGrid ItemsSource="{Binding Items}" 
+                                      SelectedItem="{Binding DataContext.SelectedItem, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay}"
+                                      Style="{StaticResource ModernDataGrid}">
+                                <DataGrid.RowStyle>
+                                    <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                                        <Setter Property="Background" Value="{Binding NgayHetHan, Converter={StaticResource ExpColorConv}}"/>
+                                    </Style>
+                                </DataGrid.RowStyle>
+
+                                <DataGrid.Columns>
+                                    <DataGridTemplateColumn Width="45">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+
+                                    <DataGridTextColumn Header="Card UID" Binding="{Binding CardUID}" Width="150" FontWeight="SemiBold"/>
+                                    
+                                    <DataGridTextColumn Header="Biển số" Binding="{Binding BienSo}" Width="120"
+                                                        Visibility="{Binding DataContext.SelectedTab.Id, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource ColVisConv}, ConverterParameter=MonthlyOnly}"/>
+                                    
+                                    <DataGridTextColumn Header="Chủ xe/Tên xe" Binding="{Binding CardName}" Width="180"/>
+                                    
+                                    <DataGridTextColumn Header="Loại xe" Binding="{Binding LoaiXe}" Width="120"
+                                                        Visibility="{Binding DataContext.SelectedTab.Id, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource ColVisConv}, ConverterParameter=TransientOnly}"/>
+                                    
+                                    <DataGridTextColumn Header="Ngày hết hạn" Binding="{Binding NgayHetHan, StringFormat=dd/MM/yyyy}" Width="130"
+                                                        Visibility="{Binding DataContext.SelectedTab.Id, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource ColVisConv}, ConverterParameter=MonthlyOnly}"/>
+                                    
+                                    <DataGridTemplateColumn Header="STATUS" Width="120">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Border CornerRadius="12" Padding="10,2" HorizontalAlignment="Left" Background="{StaticResource BgLightBrush}" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1">
+                                                    <TextBlock Text="{Binding TrangThai}" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                                </Border>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+
+                                    <DataGridTemplateColumn Header="ACTIONS" Width="220">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                    <Button Content="Renew" Style="{StaticResource ModernButton}" Background="{StaticResource SuccessBrush}" 
+                                                            Height="28" Padding="10,0" Margin="2,0" FontSize="11"
+                                                            Command="{Binding DataContext.GiaHanCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding}"
+                                                            Visibility="{Binding LoaiVeId, Converter={StaticResource LoaiVeToVis}}"/>
+
+                                                    <Button Content="Edit" Style="{StaticResource ModernButton}" Background="{StaticResource APSBlueBrush}" 
+                                                            Height="28" Padding="10,0" Margin="2,0" FontSize="11"
+                                                            Command="{Binding DataContext.UpdateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding}" />
+
+                                                    <Button Content="Delete" Style="{StaticResource DangerButton}" 
+                                                            Height="28" Padding="10,0" Margin="2,0" FontSize="11"
+                                                            Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                            CommandParameter="{Binding}" />
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </DockPanel>
+                    </DataTemplate>
+                </TabControl.ContentTemplate>
+            </TabControl>
+        </Border>
+    </Grid>
+</UserControl>

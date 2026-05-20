@@ -1,19 +1,17 @@
-﻿using System.Windows;
-using QuanLyGiuXe.Services;
+using System.Windows;
 using QuanLyGiuXe.ViewModels;
 
 namespace QuanLyGiuXe
 {
-    /// <summary>
-    /// Interaction logic for HistoryWindow.xaml
-    /// </summary>
     public partial class HistoryWindow : Window
     {
-        DatabaseService db = new DatabaseService();
+        private readonly LichSuViewModel VM;
+
         public HistoryWindow()
         {
             InitializeComponent();
-            DataContext = new LichSuViewModel();
+            VM = new LichSuViewModel();
+            DataContext = VM;
         }
     }
 }

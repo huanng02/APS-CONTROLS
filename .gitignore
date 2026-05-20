@@ -22,6 +22,12 @@ mono_crash.*
 [Rr]elease/
 [Rr]eleases/
 x64/
+
+# Allow C3SDK native DLLs to be checked in (override the global x64/ ignore)
+!Libs/
+!Libs/C3SDK/
+!Libs/C3SDK/x64/
+!Libs/C3SDK/x64/*.dll
 x86/
 [Ww][Ii][Nn]32/
 [Aa][Rr][Mm]/
@@ -255,7 +261,7 @@ Generated_Code/
 # to a newer Visual Studio version. Backup files are not needed,
 # because we have git ;-)
 _UpgradeReport_Files/
-Backup*/
+# Backup*/
 UpgradeLog*.XML
 UpgradeLog*.htm
 ServiceFabricBackup/

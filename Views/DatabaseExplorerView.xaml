@@ -1,0 +1,279 @@
+<UserControl x:Class="QuanLyGiuXe.Views.DatabaseExplorerView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" 
+             d:DesignHeight="700" d:DesignWidth="1100" Background="{StaticResource BgLightBrush}" FontFamily="Segoe UI">
+    
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+    </UserControl.Resources>
+
+    <Grid Margin="15">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="280" />
+            <ColumnDefinition Width="15" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Sidebar -->
+        <Border Grid.Column="0" Style="{StaticResource EnterpriseCardBorder}" Padding="15">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="15" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                
+                <Grid Grid.Row="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="🗄️" FontSize="18" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="TABLES" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}" VerticalAlignment="Center" />
+                    </StackPanel>
+                    <Button Grid.Column="1" Command="{Binding RefreshCommand}" Style="{StaticResource ModernOutlineButton}" Padding="8,4" ToolTip="Reload table list">
+                        <TextBlock Text="↻ Reload" FontSize="11" FontWeight="SemiBold"/>
+                    </Button>
+                </Grid>
+
+                <TextBlock Grid.Row="1" Text="{Binding ConnectedServerInfo}"
+                           Foreground="{StaticResource SuccessBrush}" FontSize="11" FontWeight="SemiBold"
+                           Margin="0,5,0,0" TextWrapping="Wrap" />
+
+                <Button Grid.Row="2" Command="{Binding ChangeConnectionCommand}" Style="{StaticResource ModernButton}"
+                        Background="{StaticResource APSBlueBrush}" Padding="10,8" Margin="0,15,0,0">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="🔌" FontSize="13" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="SWITCH CONNECTION" FontSize="12" FontWeight="Bold" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+
+                <Grid Grid.Row="3" Margin="0,15,0,0" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVis}}">
+                    <ProgressBar IsIndeterminate="True" Height="4" Background="{StaticResource BgLightBrush}" Foreground="{StaticResource APSBlueBrush}"/>
+                </Grid>
+                
+                <ListBox Grid.Row="4" ItemsSource="{Binding Tables}" SelectedItem="{Binding SelectedTable}"
+                         Background="Transparent" BorderThickness="0" Margin="0,10,0,0" Style="{StaticResource ModernListBox}">
+                </ListBox>
+            </Grid>
+        </Border>
+
+        <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Center" Background="Transparent" />
+
+        <!-- Main Content -->
+        <Border Grid.Column="2" Style="{StaticResource EnterpriseCardBorder}" Padding="0">
+            <TabControl Background="Transparent" Style="{StaticResource EnterpriseTabControl}">
+                <!-- DATA TAB -->
+                <TabItem Header="TABLE DATA" FontSize="13" FontWeight="Bold">
+                    <Grid Margin="0,10,0,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <!-- Header + Search -->
+                        <Grid Grid.Row="0" Margin="15,15,15,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="300"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Border Background="{StaticResource APSBlueBrush}" CornerRadius="4" Padding="8" Margin="0,0,15,0">
+                                    <TextBlock Text="📄" Foreground="White" FontSize="14"/>
+                                </Border>
+                                <TextBlock Text="{Binding SelectedTable, StringFormat='TABLE: {0}'}" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}"/>
+                            </StackPanel>
+
+                            <Grid Grid.Column="1">
+                                <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" 
+                                         Style="{StaticResource ModernTextBox}"
+                                         Padding="35,0,10,0" Height="36"/>
+                                <TextBlock Text="🔍" VerticalAlignment="Center" HorizontalAlignment="Left" Margin="12,0,0,0" Foreground="{StaticResource TextMutedBrush}"/>
+                            </Grid>
+                        </Grid>
+
+                        <!-- Index Warning -->
+                        <Border Grid.Row="1" Visibility="{Binding HasIndexWarning, Converter={StaticResource BoolToVis}}"
+                                Background="#FFF1F0" BorderBrush="{StaticResource APSRedBrush}" BorderThickness="1,0,0,0" CornerRadius="0" Padding="15,10" Margin="0,0,0,10">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="⚠️" Margin="0,0,10,0"/>
+                                <TextBlock Text="{Binding IndexWarning}" FontSize="12" Foreground="{StaticResource APSRedBrush}" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Loading Indicator -->
+                        <Grid Grid.Row="2" Visibility="{Binding IsDataLoading, Converter={StaticResource BoolToVis}}">
+                            <ProgressBar IsIndeterminate="True" Height="2" Background="Transparent" Foreground="{StaticResource APSBlueBrush}"/>
+                        </Grid>
+
+                        <!-- Data Grid -->
+                        <DataGrid Grid.Row="3" ItemsSource="{Binding CurrentData.DefaultView}" IsReadOnly="True"
+                                  AutoGenerateColumns="True"
+                                  Style="{StaticResource ModernDataGrid}" Margin="10,0"/>
+
+                        <!-- Pagination Bar -->
+                        <Border Grid.Row="4" Background="{StaticResource BgLightBrush}" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,1,0,0" Padding="15,10">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Page Nav -->
+                                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <Button Content="⏮" Command="{Binding FirstPageCommand}" Style="{StaticResource ModernOutlineButton}" Width="40" Margin="0,0,5,0"/>
+                                    <Button Content="◀" Command="{Binding PrevPageCommand}" Style="{StaticResource ModernOutlineButton}" Width="40" Margin="0,0,15,0"/>
+                                    
+                                    <TextBlock VerticalAlignment="Center" FontSize="13">
+                                        <Run Text="Page " Foreground="{StaticResource TextMutedBrush}"/>
+                                        <Run Text="{Binding CurrentPageDisplay, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}"/>
+                                        <Run Text=" of " Foreground="{StaticResource TextMutedBrush}"/>
+                                        <Run Text="{Binding TotalPages, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}"/>
+                                    </TextBlock>
+                                    
+                                    <Button Content="▶" Command="{Binding NextPageCommand}" Style="{StaticResource ModernOutlineButton}" Width="40" Margin="15,0,5,0"/>
+                                    <Button Content="⏭" Command="{Binding LastPageCommand}" Style="{StaticResource ModernOutlineButton}" Width="40"/>
+                                </StackPanel>
+
+                                <!-- Total Records -->
+                                <Border Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center" Background="{StaticResource BgLightBrush}" CornerRadius="12" Padding="12,4" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1">
+                                    <TextBlock FontSize="12">
+                                        <Run Text="TOTAL: " Foreground="{StaticResource TextMutedBrush}" FontWeight="Bold"/>
+                                        <Run Text="{Binding TotalRecordsDisplay, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}"/>
+                                        <Run Text=" ROWS" Foreground="{StaticResource TextMutedBrush}" FontWeight="Bold"/>
+                                    </TextBlock>
+                                </Border>
+
+                                <!-- Page Size -->
+                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="Show:" VerticalAlignment="Center" Style="{StaticResource SubTitleStyle}" Margin="0,0,8,0"/>
+                                    <ComboBox ItemsSource="{Binding PageSizeOptions}" SelectedItem="{Binding PageSize}" Width="70" Style="{StaticResource ModernComboBox}"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                </TabItem>
+
+                <!-- SCHEMA TAB -->
+                <TabItem Header="TABLE SCHEMA" FontSize="13" FontWeight="Bold">
+                    <Grid Margin="15">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <Border Grid.Row="0" Background="{StaticResource APSBlueBrush}" CornerRadius="4" Padding="15,10" Margin="0,0,0,15">
+                            <TextBlock Text="{Binding SelectedTable, StringFormat='SCHEMA DEFINITION: {0}'}" FontSize="14" Foreground="White" FontWeight="Bold" />
+                        </Border>
+                        <DataGrid Grid.Row="1" ItemsSource="{Binding CurrentSchema.DefaultView}" IsReadOnly="True" 
+                                  AutoGenerateColumns="True"
+                                  Style="{StaticResource ModernDataGrid}" />
+                    </Grid>
+                </TabItem>
+
+                <!-- QUERY EDITOR TAB -->
+                <TabItem Header="SQL QUERY CONSOLE" FontSize="13" FontWeight="Bold">
+                    <Grid Margin="15">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="10" />
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <!-- Action Bar -->
+                        <Border Grid.Row="0" Style="{StaticResource EnterpriseCardBorder}" Padding="10" Margin="0,0,0,15">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="GENERATORS:" VerticalAlignment="Center" Margin="0,0,15,0" Style="{StaticResource SubTitleStyle}" FontWeight="Bold" />
+                                    <Button Content="SELECT" Command="{Binding GenerateSelectCommand}" Style="{StaticResource ModernButton}" Background="{StaticResource APSBlueBrush}" Margin="0,0,5,0" Height="32" Padding="15,0"/>
+                                    <Button Content="INSERT" Command="{Binding GenerateInsertCommand}" Style="{StaticResource ModernButton}" Background="{StaticResource APSBlueBrush}" Margin="0,0,5,0" Height="32" Padding="15,0"/>
+                                    <Button Content="UPDATE" Command="{Binding GenerateUpdateCommand}" Style="{StaticResource ModernButton}" Background="{StaticResource APSBlueBrush}" Margin="0,0,5,0" Height="32" Padding="15,0"/>
+                                    <Button Content="DELETE" Command="{Binding GenerateDeleteCommand}" Style="{StaticResource DangerButton}" Height="32" Padding="15,0"/>
+                                </StackPanel>
+                                <Button Grid.Column="2" Command="{Binding ExecuteQueryCommand}" Style="{StaticResource ModernButton}" Background="{StaticResource SuccessBrush}" Height="36" Padding="20,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="▶" Margin="0,0,10,0"/>
+                                        <TextBlock Text="RUN QUERY (F5)" FontWeight="Bold"/>
+                                    </StackPanel>
+                                </Button>
+                            </Grid>
+                        </Border>
+
+                        <!-- Editor -->
+                        <Border Grid.Row="1" BorderBrush="{StaticResource BorderMediumBrush}" BorderThickness="1" CornerRadius="4" Background="#1E1E1E">
+                            <TextBox Text="{Binding QueryText, UpdateSourceTrigger=PropertyChanged}" 
+                                     AcceptsReturn="True" AcceptsTab="True" 
+                                     FontFamily="Consolas" FontSize="15" Foreground="#D4D4D4"
+                                     Background="Transparent" BorderThickness="0"
+                                     VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" 
+                                     Padding="15" CaretBrush="White" />
+                        </Border>
+
+                        <GridSplitter Grid.Row="2" Height="5" HorizontalAlignment="Stretch" VerticalAlignment="Center" Background="Transparent" />
+
+                        <!-- Result Grid -->
+                        <Border Grid.Row="3" Style="{StaticResource EnterpriseCardBorder}" Padding="0">
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <Border Background="{StaticResource APSBlueBrush}" Padding="15,8" CornerRadius="4,4,0,0">
+                                    <TextBlock Text="QUERY RESULTS" Foreground="White" FontWeight="Bold" FontSize="12"/>
+                                </Border>
+                                <Grid Grid.Row="1" Visibility="{Binding IsQueryLoading, Converter={StaticResource BoolToVis}}">
+                                    <ProgressBar IsIndeterminate="True" Height="2" Background="Transparent" Foreground="{StaticResource APSBlueBrush}"/>
+                                </Grid>
+                                <DataGrid Grid.Row="2" ItemsSource="{Binding QueryResult.DefaultView}" IsReadOnly="True" 
+                                          AutoGenerateColumns="True"
+                                          Style="{StaticResource ModernDataGrid}"/>
+                            </Grid>
+                        </Border>
+
+                        <!-- Query Pagination -->
+                        <Border Grid.Row="4" Background="{StaticResource BgLightBrush}" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,1,0,0" Padding="15,10" Margin="0,10,0,0">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <Button Content="⏮" Command="{Binding QueryFirstPageCommand}" Style="{StaticResource ModernOutlineButton}" Width="40" Margin="0,0,5,0"/>
+                                <Button Content="◀" Command="{Binding QueryPrevPageCommand}" Style="{StaticResource ModernOutlineButton}" Width="40" Margin="0,0,15,0"/>
+                                <TextBlock VerticalAlignment="Center" FontSize="12">
+                                    <Run Text="Page " Foreground="{StaticResource TextMutedBrush}"/>
+                                    <Run Text="{Binding QueryCurrentPageDisplay, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}"/>
+                                    <Run Text=" of " Foreground="{StaticResource TextMutedBrush}"/>
+                                    <Run Text="{Binding QueryTotalPages, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}"/>
+                                </TextBlock>
+                                <Button Content="▶" Command="{Binding QueryNextPageCommand}" Style="{StaticResource ModernOutlineButton}" Width="40" Margin="15,0,5,0"/>
+                                <Button Content="⏭" Command="{Binding QueryLastPageCommand}" Style="{StaticResource ModernOutlineButton}" Width="40" Margin="0,0,20,0"/>
+                                <Border Background="{StaticResource BgLightBrush}" CornerRadius="12" Padding="12,4" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1">
+                                    <TextBlock FontSize="11">
+                                        <Run Text="TOTAL: " Foreground="{StaticResource TextMutedBrush}" FontWeight="Bold"/>
+                                        <Run Text="{Binding QueryTotalRecordsDisplay, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}"/>
+                                        <Run Text=" ROWS" Foreground="{StaticResource TextMutedBrush}" FontWeight="Bold"/>
+                                    </TextBlock>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </TabItem>
+            </TabControl>
+        </Border>
+    </Grid>
+</UserControl>
+

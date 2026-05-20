@@ -1,4 +1,4 @@
-﻿<Window x:Class="QuanLyGiuXe.Views.QuanLyThe"
+<Window x:Class="QuanLyGiuXe.Views.QuanLyThe"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -10,22 +10,22 @@
 
         <StackPanel>
 
-            <TextBlock Text="UID thẻ"/>
-            <TextBox x:Name="txtUID" Height="30"/>
+            <TextBlock Text="UID th?"/>
+            <TextBox x:Name="txtUID" Height="30" TextChanged="txtUID_TextChanged"/>
 
-            <TextBlock Text="Biển số" Margin="0,10,0,0"/>
+            <TextBlock Text="Bi?n s?" Margin="0,10,0,0"/>
             <TextBox x:Name="txtBienSo" Height="30"
                      PreviewTextInput="txtBienSo_PreviewTextInput"
                      TextChanged="txtBienSo_TextChanged"/>
 
-            <TextBlock Text="Loại thẻ" Margin="0,10,0,0"/>
+            <TextBlock Text="Lo?i th?" Margin="0,10,0,0"/>
 
             <ComboBox x:Name="cbLoaiThe" Height="30">
                 <ComboBoxItem Content="Thang"/>
                 <ComboBoxItem Content="VangLai"/>
             </ComboBox>
 
-            <Button Content="Lưu thẻ"
+            <Button Content="Luu th?"
                     Margin="0,20,0,0"
                     Height="35"
                     Click="SaveCard"/>
@@ -34,3 +34,4 @@
 
     </Grid>
 </Window>
+

@@ -1,0 +1,32 @@
+{
+  "ZKTeco": {
+    "Protocol": "TCP",
+    "IpAddress": "192.168.1.201",
+    "TcpPort": 4370,
+    "Timeout": 1000,
+    "Password": "",
+    "BarrierDuration": 5,
+    "CardCooldownMs": 2000,
+    "GateInDoor": 1,
+    "GateOutDoor": 2,
+    "GateInDoors": "1",
+    "GateOutDoors": "2",
+    "Button1Action": "OpenThisDoor",
+    "Button2Action": "OpenThisDoor",
+    "ForceAllIn": false,
+    "ForceAllOut": false
+  },
+  "Cameras": {
+    "VaoToanCanh": "",
+    "VaoBienSo": "",
+    "RaToanCanh": "",
+    "RaBienSo": ""
+  },
+  "Backup": {
+    "AutoBackupEnabled": true,
+    "BackupTime": "02:00",
+    "RetentionDays": 30,
+    "BackupDirectory": "Backups"
+  },
+  "ShowLog": true
+}

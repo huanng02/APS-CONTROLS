@@ -1,44 +1,98 @@
-﻿using System.Net.Http;
-using System.Net.Http.Headers;
-using Newtonsoft.Json;
+﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 using QuanLyGiuXe.Services;
 
 public class ApiService
 {
-    private static readonly HttpClient client = new HttpClient();
+    // Tăng timeout lên 15 giây và dùng static để tránh nghẽn socket
+    private static readonly HttpClient client = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
 
     public static async Task<string> SendImageAsync(Bitmap bitmap)
     {
+        if (bitmap == null) return "Bitmap Null";
+
         try
         {
-            using (var content = new MultipartFormDataContent())
-            using (var ms = new MemoryStream())
+            // Bước 1: Tạo bản sao an toàn (Deep Copy) để tránh lỗi AccessViolation trong .NET 8
+            using (Bitmap frameToProcess = new Bitmap(bitmap))
+            using (Bitmap resized = new Bitmap(640, 480))
             {
-                // resize để nhẹ hơn
-                Bitmap resized = new Bitmap(bitmap, new Size(640, 480));
+                using (Graphics g = Graphics.FromImage(resized))
+                {
+                    g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                    g.DrawImage(frameToProcess, 0, 0, 640, 480);
+                }
 
-                resized.Save(ms, System.Drawing.Imaging.ImageFormat.Jpeg);
-                var byteArray = ms.ToArray();
+                using (var ms = new MemoryStream())
+                {
+                    // Bước 2: Ép lưu định dạng Jpeg chuẩn
+                    resized.Save(ms, ImageFormat.Jpeg);
+                    byte[] byteArray = ms.ToArray();
 
-                var imageContent = new ByteArrayContent(byteArray);
-                imageContent.Headers.ContentType = MediaTypeHeaderValue.Parse("image/jpeg");
+                    if (byteArray.Length == 0) return "Lỗi nén ảnh";
 
-                content.Add(imageContent, "image", "frame.jpg");
+                    using (var content = new MultipartFormDataContent())
+                    {
+                        var imageContent = new ByteArrayContent(byteArray);
+                        imageContent.Headers.ContentType = MediaTypeHeaderValue.Parse("image/jpeg");
 
-                var response = await client.PostAsync("http://127.0.0.1:5000/recognize", content);
+                        // "image" phải khớp với request.files['image'] bên Python
+                        content.Add(imageContent, "image", "frame.jpg");
 
-                var json = await response.Content.ReadAsStringAsync();
-                var result = JsonConvert.DeserializeObject<PlateResponse>(json);
+                        // Bước 3: Gọi API và đợi phản hồi
+                        var response = await client.PostAsync("http://127.0.0.1:5000/process_plate", content);
 
-                return result.plate;
+                        if (response.IsSuccessStatusCode)
+                        {
+                            var json = await response.Content.ReadAsStringAsync();
+                            var result = JsonConvert.DeserializeObject<PlateResponse>(json);
+
+                            if (result?.results != null && result.results.Count > 0)
+                            {
+                                return result.results[0].plate;
+                            }
+                            return "Không thấy biển";
+                        }
+                        return $"Lỗi Server: {response.StatusCode}";
+                    }
+                }
             }
         }
-        catch
+        catch (Exception ex)
         {
-            return "";
+            return $"Lỗi: {ex.Message}";
         }
+    }
+    // Cấu trúc Class để hứng dữ liệu từ Flask
+    public class PlateResponse
+    {
+        // Thêm JsonProperty để chắc chắn nó khớp với từ "results" trong JSON của Python
+        [JsonProperty("results")]
+        public List<PlateResult> results { get; set; }
+
+        [JsonProperty("status")]
+        public string status { get; set; }
+
+        [JsonProperty("debug_url")]
+        public string debug_url { get; set; }
+    }
+
+    public class PlateResult
+    {
+        [JsonProperty("plate")]
+        public string plate { get; set; }
+
+        [JsonProperty("confidence_yolo")]
+        public double confidence_yolo { get; set; }
+
+        [JsonProperty("box")]
+        public List<int> box { get; set; }
     }
 }

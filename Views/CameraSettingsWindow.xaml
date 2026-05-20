@@ -1,0 +1,92 @@
+<Window x:Class="QuanLyGiuXe.Views.CameraSettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Camera Configuration"
+        Width="600"
+        Height="500"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="{StaticResource BgLightBrush}">
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Style="{StaticResource EnterpriseCardBorder}" Padding="25">
+            <StackPanel>
+                <TextBlock Text="CAMERA ASSIGNMENT" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}" Margin="0,0,0,20"/>
+
+                <!-- Vào Toàn cảnh -->
+                <Grid Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="180"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="INBOUND – PANORAMA" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold"
+                               Foreground="{StaticResource SuccessBrush}" VerticalAlignment="Center"/>
+                    <ComboBox x:Name="cbVaoToanCanh" Grid.Column="1" Style="{StaticResource ModernComboBox}"/>
+                </Grid>
+
+                <!-- Vào Biển số -->
+                <Grid Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="180"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="INBOUND – PLATE" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold"
+                               Foreground="{StaticResource SuccessBrush}" VerticalAlignment="Center"/>
+                    <ComboBox x:Name="cbVaoBienSo" Grid.Column="1" Style="{StaticResource ModernComboBox}"/>
+                </Grid>
+
+                <Separator Margin="0,10" Background="{StaticResource BorderLightBrush}"/>
+
+                <!-- Ra Toàn cảnh -->
+                <Grid Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="180"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="OUTBOUND – PANORAMA" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold"
+                               Foreground="{StaticResource APSRedBrush}" VerticalAlignment="Center"/>
+                    <ComboBox x:Name="cbRaToanCanh" Grid.Column="1" Style="{StaticResource ModernComboBox}"/>
+                </Grid>
+
+                <!-- Ra Biển số -->
+                <Grid Margin="0,0,0,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="180"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="OUTBOUND – PLATE" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold"
+                               Foreground="{StaticResource APSRedBrush}" VerticalAlignment="Center"/>
+                    <ComboBox x:Name="cbRaBienSo" Grid.Column="1" Style="{StaticResource ModernComboBox}"/>
+                </Grid>
+
+                <TextBlock x:Name="txtCameraCount" Style="{StaticResource SubTitleStyle}" Margin="0,10,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="1" Background="{StaticResource BgLightBrush}" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,1,0,0" Padding="0,20,0,0">
+            <Grid>
+                <TextBlock Text="💡 Tip: Select '(Auto)' to use default system order. Changes require app restart."
+                           Style="{StaticResource SubTitleStyle}" FontStyle="Italic" TextWrapping="Wrap"
+                           VerticalAlignment="Center" HorizontalAlignment="Left" Width="300"/>
+                
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Content="SAVE SETTINGS" Style="{StaticResource ModernButton}" Background="{StaticResource SuccessBrush}"
+                            Width="150" Height="36" Click="Save_Click" Margin="0,0,10,0"/>
+                    <Button Content="CLOSE" Style="{StaticResource ModernOutlineButton}" Width="100" Height="36" Click="Close_Click"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
+

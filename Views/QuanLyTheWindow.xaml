@@ -1,0 +1,128 @@
+<Window x:Class="QuanLyGiuXe.Views.QuanLyTheWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="RFID Access Management"
+        Height="750"
+        Width="1250"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource BgLightBrush}">
+
+	<Grid Margin="15">
+
+		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="*"/>
+			<RowDefinition Height="Auto"/>
+		</Grid.RowDefinitions>
+
+		<!-- ================= TITLE BAR ================= -->
+		<Border Style="{StaticResource EnterpriseCardBorder}" Padding="15" Margin="0,0,0,15">
+			<DockPanel>
+				<StackPanel>
+					<TextBlock Text="📡 RFID CARD MANAGEMENT" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}"/>
+					<TextBlock Text="Manage vehicle cards, permissions, statuses, and plate assignments" Style="{StaticResource SubTitleStyle}"/>
+				</StackPanel>
+			</DockPanel>
+		</Border>
+
+		<!-- ================= TOOLBAR ================= -->
+		<Border Grid.Row="1" Style="{StaticResource EnterpriseCardBorder}" Padding="15" Margin="0,0,0,15">
+
+			<Grid>
+
+				<Grid.ColumnDefinitions>
+					<ColumnDefinition Width="*"/>
+					<ColumnDefinition Width="Auto"/>
+				</Grid.ColumnDefinitions>
+
+				<!-- FILTER AREA -->
+				<StackPanel Orientation="Horizontal">
+
+					<!-- SEARCH -->
+					<TextBox Width="250" Style="{StaticResource ModernTextBox}" Margin="0,0,12,0" 
+                             Text="{Binding TuKhoa, UpdateSourceTrigger=PropertyChanged}" 
+                             Tag="Search UID / Plate / Type..."/>
+
+					<!-- UID -->
+					<TextBox Width="150" Style="{StaticResource ModernTextBox}" Margin="0,0,12,0"
+                             Text="{Binding FilterUID, UpdateSourceTrigger=PropertyChanged}" 
+                             Tag="Filter UID..."/>
+
+					<!-- BIỂN SỐ -->
+					<TextBox Width="150" Style="{StaticResource ModernTextBox}" Margin="0,0,12,0"
+                             Text="{Binding FilterBienSo, UpdateSourceTrigger=PropertyChanged}" 
+                             Tag="Filter Plate..."/>
+
+					<!-- TYPE -->
+					<ComboBox Width="120"
+                              Margin="0,0,10,0"
+                              SelectedItem="{Binding FilterLoaiThe}">
+						<ComboBoxItem Content="All"/>
+						<ComboBoxItem Content="Xe máy"/>
+						<ComboBoxItem Content="Ô tô"/>
+						<ComboBoxItem Content="VIP"/>
+					</ComboBox>
+
+					<!-- STATUS -->
+					<ComboBox Width="120"
+                              Margin="0,0,10,0"
+                              SelectedItem="{Binding FilterTrangThai}">
+						<ComboBoxItem Content="All"/>
+						<ComboBoxItem Content="Active"/>
+						<ComboBoxItem Content="Blocked"/>
+					</ComboBox>
+
+				</StackPanel>
+
+				<!-- ACTION BUTTONS -->
+				<StackPanel Grid.Column="1" Orientation="Horizontal">
+					<Button Content="➕ Add Card" Style="{StaticResource ModernButton}" Background="{StaticResource SuccessBrush}"
+                            Width="130" Margin="5,0" Click="ThemThe_Click"/>
+
+					<Button Content="🔄 Refresh" Style="{StaticResource ModernButton}" Background="{StaticResource APSBlueBrush}"
+                            Width="110" Margin="5,0" Click="Refresh_Click"/>
+
+					<Button Content="🧹 Reset" Style="{StaticResource ModernOutlineButton}"
+                            Width="100" Margin="5,0" Click="ResetFilter_Click"/>
+				</StackPanel>
+
+			</Grid>
+		</Border>
+
+		<!-- ================= TABLE ================= -->
+		<Border Grid.Row="2" Style="{StaticResource EnterpriseCardBorder}" Padding="10">
+			<DataGrid ItemsSource="{Binding DanhSachRFID}" Style="{StaticResource ModernDataGrid}">
+				<DataGrid.Columns>
+					<DataGridTextColumn Header="RFID UID" Binding="{Binding CardUID}" Width="2*"/>
+					<DataGridTextColumn Header="PLATE NUMBER" Binding="{Binding BienSo}" Width="2*"/>
+					<DataGridTextColumn Header="CARD TYPE" Binding="{Binding LoaiThe}" Width="*"/>
+					<DataGridTextColumn Header="STATUS" Binding="{Binding TrangThai}" Width="*"/>
+
+					<DataGridTemplateColumn Header="ACTIONS" Width="1.5*">
+						<DataGridTemplateColumn.CellTemplate>
+							<DataTemplate>
+								<StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+									<Button Content="Edit" Style="{StaticResource ModernButton}" Background="{StaticResource APSBlueBrush}"
+                                            Width="70" Height="28" Margin="3" FontSize="11" Click="SuaThe_Click"/>
+
+									<Button Content="Delete" Style="{StaticResource DangerButton}"
+                                            Width="70" Height="28" Margin="3" FontSize="11" Click="XoaThe_Click"/>
+								</StackPanel>
+							</DataTemplate>
+						</DataGridTemplateColumn.CellTemplate>
+					</DataGridTemplateColumn>
+				</DataGrid.Columns>
+			</DataGrid>
+		</Border>
+
+		<!-- ================= FOOTER ================= -->
+		<Border Grid.Row="3" Style="{StaticResource EnterpriseCardBorder}" Padding="15" Margin="0,15,0,0">
+			<DockPanel>
+				<TextBlock Text="{Binding DanhSachRFID.Count, StringFormat=Total Cards: {0}}" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold" DockPanel.Dock="Left"/>
+				<TextBlock Text="APS RFID Control v2.0" Style="{StaticResource SubTitleStyle}" HorizontalAlignment="Right"/>
+			</DockPanel>
+		</Border>
+
+	</Grid>
+</Window>
