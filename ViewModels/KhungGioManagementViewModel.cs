@@ -28,41 +28,61 @@ namespace QuanLyGiuXe.ViewModels
 
         public KhungGioManagementViewModel()
         {
-            LoadCommand = new RelayCommand(_ => Load());
+            LoadCommand = new RelayCommand(async _ => await LoadAsync());
             AddCommand = new RelayCommand(_ => Add());
             UpdateCommand = new RelayCommand(_ => Update(), _ => Selected != null);
             DeleteCommand = new RelayCommand(_ => Delete(), _ => Selected != null);
 
             // defer initial load slightly to avoid UI freeze at startup
-            System.Threading.Tasks.Task.Run(() => Load());
+            _ = LoadAsync();
         }
 
         // Load data asynchronously to avoid blocking the UI thread
-        public async void Load()
+        private bool _isLoading = false;
+
+        public async System.Threading.Tasks.Task LoadAsync()
         {
+            if (_isLoading)
+                return;
+
+            _isLoading = true;
+
             try
             {
-                Items.Clear();
                 var list = await System.Threading.Tasks.Task.Run(() => _repo.GetAll());
-                foreach(var k in list)
+
+                // build temp list trước
+                var temp = list.Select(k => new KhungGioItemVM
                 {
-                    Items.Add(new KhungGioItemVM
+                    Id = k.Id,
+                    TenKhungGio = k.TenKhungGio,
+                    GioBatDau = k.GioBatDau,
+                    GioKetThuc = k.GioKetThuc,
+                    TrangThai = k.TrangThai
+                }).ToList();
+
+                // update UI trên UI thread
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    Items.Clear();
+
+                    foreach (var item in temp)
                     {
-                        Id = k.Id,
-                        TenKhungGio = k.TenKhungGio,
-                        GioBatDau = k.GioBatDau,
-                        GioKetThuc = k.GioKetThuc,
-                        TrangThai = k.TrangThai
-                    });
-                }
+                        Items.Add(item);
+                    }
+                });
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Load KhungGio failed: {ex}");
             }
+            finally
+            {
+                _isLoading = false;
+            }
         }
 
-        private void Add()
+        private async void Add()
         {
             var dialog = new QuanLyGiuXe.Views.KhungGioAddDialog();
             
@@ -98,7 +118,7 @@ namespace QuanLyGiuXe.ViewModels
                     };
                     
                     _repo.Insert(entity);
-                    Load();
+                    await LoadAsync();
                     StatusMessage = "Thêm khung giờ thành công.";
                     try { MessageBox.Show("Thêm khung giờ thành công.", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information); } catch { }
                 }
@@ -109,7 +129,7 @@ namespace QuanLyGiuXe.ViewModels
             }
         }
 
-        private void Update()
+        private async void Update()
         {
             if (Selected == null) return;
             try
@@ -118,7 +138,7 @@ namespace QuanLyGiuXe.ViewModels
                 if (CheckOverlap(Selected, Selected.Id)) throw new ArgumentException("Time range overlaps existing slot");
                 var entity = new KhungGio { Id = Selected.Id, TenKhungGio = Selected.TenKhungGio, GioBatDau = Selected.GioBatDau, GioKetThuc = Selected.GioKetThuc, QuaDem = Selected.QuaDem, TrangThai = Selected.TrangThai };
                 _repo.Update(entity);
-                Load();
+                await LoadAsync();
                 StatusMessage = "Cập nhật khung giờ thành công.";
                 try { MessageBox.Show("Cập nhật khung giờ thành công.", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information); } catch { }
             }
@@ -128,14 +148,14 @@ namespace QuanLyGiuXe.ViewModels
             }
         }
 
-        private void Delete()
+        private async void Delete()
         {
             if (Selected == null) return;
             if (MessageBox.Show($"Bạn có chắc muốn xóa khung '{Selected.TenKhungGio}'?", "Xác nhận", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
             try
             {
                 _repo.Delete(Selected.Id);
-                Load();
+                await LoadAsync();
                 StatusMessage = "Xóa khung giờ thành công.";
                 try { MessageBox.Show("Xóa khung giờ thành công.", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information); } catch { }
             }
