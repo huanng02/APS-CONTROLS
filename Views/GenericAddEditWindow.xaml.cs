@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Reflection;
 using System.Windows;
@@ -89,6 +91,21 @@ namespace QuanLyGiuXe.Views
                     if (input is CheckBox chk && val is bool b) chk.IsChecked = b;
                     if (input is ComboBox cbb && val != null) SelectedTrangThai = val.ToString();
                     sp.Children.Add(input);
+                    
+                    // Add Hint/Description below the control
+                    var descAttr = p.GetCustomAttribute<DescriptionAttribute>();
+                    if (descAttr != null && !string.IsNullOrEmpty(descAttr.Description))
+                    {
+                        sp.Children.Add(new TextBlock 
+                        { 
+                            Text = descAttr.Description, 
+                            FontSize = 10, 
+                            FontStyle = FontStyles.Italic,
+                            Foreground = (System.Windows.Media.Brush)Application.Current.FindResource("TextMutedBrush"),
+                            Margin = new Thickness(0, 3, 0, 0),
+                            TextWrapping = TextWrapping.Wrap
+                        });
+                    }
                 }
 
                 FieldsPanel.Children.Add(sp);
@@ -97,51 +114,86 @@ namespace QuanLyGiuXe.Views
 
         private void Save_Click(object sender, RoutedEventArgs e)
         {
-            // simple validation: no empty strings
             foreach (var child in FieldsPanel.Children.OfType<StackPanel>())
             {
-                var input = child.Children.OfType<Control>().LastOrDefault();
+                var input = child.Children.OfType<Control>().FirstOrDefault();
                 if (input == null) continue;
                 var prop = (PropertyInfo)input.Tag;
+                if (prop == null) continue;
+
+                var reqAttr = prop.GetCustomAttribute<RequiredAttribute>();
+                string errorMsg = reqAttr?.ErrorMessage ?? $"Field {prop.Name} is required";
+                bool isRequired = reqAttr != null || prop.Name != "Detail";
+
                 if (input is TextBox tb)
                 {
-                    // Allow Detail to be optional
-                    if (prop.Name != "Detail" && string.IsNullOrWhiteSpace(tb.Text))
+                    if (isRequired && string.IsNullOrWhiteSpace(tb.Text))
                     {
-                        MessageBox.Show($"Field {prop.Name} is required", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        MessageBox.Show(errorMsg, "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
                         return;
                     }
+
                     object value = null;
-                    if (prop.PropertyType == typeof(int) || prop.PropertyType == typeof(int?)) value = int.Parse(tb.Text);
-                    else if (prop.PropertyType == typeof(decimal)) value = decimal.Parse(tb.Text);
-                    else value = tb.Text;
+                    if (prop.PropertyType == typeof(int) || prop.PropertyType == typeof(int?))
+                    {
+                        if (string.IsNullOrWhiteSpace(tb.Text) && prop.PropertyType == typeof(int?))
+                        {
+                            value = null;
+                        }
+                        else if (int.TryParse(tb.Text, out int parsedInt))
+                        {
+                            value = parsedInt;
+                        }
+                        else
+                        {
+                            MessageBox.Show($"Field {prop.Name} phải là số nguyên hợp lệ.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                            return;
+                        }
+                    }
+                    else if (prop.PropertyType == typeof(decimal))
+                    {
+                        if (decimal.TryParse(tb.Text, out decimal parsedDec))
+                        {
+                            value = parsedDec;
+                        }
+                        else
+                        {
+                            MessageBox.Show($"Field {prop.Name} phải là số hợp lệ.", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        value = tb.Text;
+                    }
                     prop.SetValue(_model, value);
                 }
                 else if (input is ComboBox cb)
                 {
-                    // SelectedItem may be string or object; require selection
-                    if (cb.SelectedItem == null || string.IsNullOrWhiteSpace(cb.SelectedItem.ToString()))
+                    if (isRequired && (cb.SelectedItem == null || string.IsNullOrWhiteSpace(cb.SelectedItem.ToString())))
                     {
-                        MessageBox.Show($"Field {prop.Name} is required", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        MessageBox.Show(errorMsg, "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
                         return;
                     }
-                    // set as string
-                    if (prop.PropertyType == typeof(string)) prop.SetValue(_model, cb.SelectedItem.ToString());
-                    else
+                    if (cb.SelectedItem != null)
                     {
-                        // try convert
-                        var targetType = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
-                        prop.SetValue(_model, Convert.ChangeType(cb.SelectedItem, targetType));
+                        if (prop.PropertyType == typeof(string)) prop.SetValue(_model, cb.SelectedItem.ToString());
+                        else
+                        {
+                            var targetType = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
+                            prop.SetValue(_model, Convert.ChangeType(cb.SelectedItem, targetType));
+                        }
                     }
                 }
                 else if (input is DatePicker dp)
                 {
-                    if (!dp.SelectedDate.HasValue)
+                    if (isRequired && !dp.SelectedDate.HasValue)
                     {
-                        MessageBox.Show($"Field {prop.Name} is required", "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        MessageBox.Show(errorMsg, "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
                         return;
                     }
-                    prop.SetValue(_model, dp.SelectedDate.Value);
+                    if (dp.SelectedDate.HasValue)
+                        prop.SetValue(_model, dp.SelectedDate.Value);
                 }
                 else if (input is CheckBox chk)
                 {

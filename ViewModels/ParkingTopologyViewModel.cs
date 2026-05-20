@@ -114,8 +114,15 @@ namespace QuanLyGiuXe.ViewModels
         {
             if (MessageBox.Show("Bạn có chắc muốn xóa site này?", "Xác nhận", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
             {
-                await ParkingTopologyService.Instance.DeleteSiteAsync(SelectedSite.Id);
-                await LoadDataAsync();
+                try
+                {
+                    await ParkingTopologyService.Instance.DeleteSiteAsync(SelectedSite.Id);
+                    await LoadDataAsync();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Lỗi xóa", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
             }
         }
 
@@ -145,8 +152,15 @@ namespace QuanLyGiuXe.ViewModels
         {
             if (MessageBox.Show("Bạn có chắc muốn xóa zone này?", "Xác nhận", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
             {
-                await ParkingTopologyService.Instance.DeleteZoneAsync(SelectedZone.Id);
-                await LoadDataAsync();
+                try
+                {
+                    await ParkingTopologyService.Instance.DeleteZoneAsync(SelectedZone.Id);
+                    await LoadDataAsync();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Lỗi xóa", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
             }
         }
 

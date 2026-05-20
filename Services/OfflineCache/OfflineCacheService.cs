@@ -171,26 +171,35 @@ namespace QuanLyGiuXe.Services.OfflineCache
                     cmd.ExecuteNonQuery();
                 }
 
-                // Seed SQLite data
-                string seedSql = @"
-                    INSERT OR IGNORE INTO ParkingSites (SiteCode, SiteName, Description, IsActive, CreatedUtc)
-                    VALUES ('DEFAULT-SITE', 'Default Parking Site', 'Auto-seeded default site', 1, CURRENT_TIMESTAMP);
-
-                    INSERT OR IGNORE INTO ParkingZones (SiteId, ZoneCode, ZoneName, Description, MaxCapacity, IsActive, CreatedUtc)
-                    VALUES (
-                        (SELECT Id FROM ParkingSites WHERE SiteCode = 'DEFAULT-SITE'),
-                        'DEFAULT-ZONE', 'Default Parking Zone', 'Auto-seeded default zone', 500, 1, CURRENT_TIMESTAMP
-                    );
-
-                    INSERT OR IGNORE INTO Lanes (LaneCode, LaneName, Direction, ZoneId, IsActive, CreatedUtc)
-                    VALUES 
-                    ('LANE-1', 'Cổng Vào 1', 'IN', (SELECT Id FROM ParkingZones WHERE ZoneCode = 'DEFAULT-ZONE'), 1, CURRENT_TIMESTAMP),
-                    ('LANE-2', 'Cổng Ra 1', 'OUT', (SELECT Id FROM ParkingZones WHERE ZoneCode = 'DEFAULT-ZONE'), 1, CURRENT_TIMESTAMP);
-                ";
-
-                using (var cmd = new SqliteCommand(seedSql, conn))
+                // Seed SQLite data ONLY if no sites exist
+                long siteCount = 0;
+                using (var countCmd = new SqliteCommand("SELECT COUNT(*) FROM ParkingSites;", conn))
                 {
-                    cmd.ExecuteNonQuery();
+                    siteCount = (long)(countCmd.ExecuteScalar() ?? 0L);
+                }
+
+                if (siteCount == 0)
+                {
+                    string seedSql = @"
+                        INSERT INTO ParkingSites (SiteCode, SiteName, Description, IsActive, CreatedUtc)
+                        VALUES ('DEFAULT-SITE', 'Default Parking Site', 'Auto-seeded default site', 1, CURRENT_TIMESTAMP);
+
+                        INSERT INTO ParkingZones (SiteId, ZoneCode, ZoneName, Description, MaxCapacity, IsActive, CreatedUtc)
+                        VALUES (
+                            (SELECT Id FROM ParkingSites WHERE SiteCode = 'DEFAULT-SITE'),
+                            'DEFAULT-ZONE', 'Default Parking Zone', 'Auto-seeded default zone', 500, 1, CURRENT_TIMESTAMP
+                        );
+
+                        INSERT INTO Lanes (LaneCode, LaneName, Direction, ZoneId, IsActive, CreatedUtc)
+                        VALUES 
+                        ('LANE-1', 'Cổng Vào 1', 'IN', (SELECT Id FROM ParkingZones WHERE ZoneCode = 'DEFAULT-ZONE'), 1, CURRENT_TIMESTAMP),
+                        ('LANE-2', 'Cổng Ra 1', 'OUT', (SELECT Id FROM ParkingZones WHERE ZoneCode = 'DEFAULT-ZONE'), 1, CURRENT_TIMESTAMP);
+                    ";
+
+                    using (var cmd = new SqliteCommand(seedSql, conn))
+                    {
+                        cmd.ExecuteNonQuery();
+                    }
                 }
             }
             catch (Exception ex)

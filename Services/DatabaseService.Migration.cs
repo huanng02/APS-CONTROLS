@@ -207,34 +207,23 @@ namespace QuanLyGiuXe.Services
                 CREATE INDEX IX_Lanes_ZoneId ON dbo.Lanes(ZoneId);
             END
 
-            -- 7) Seeding
-            IF NOT EXISTS (SELECT 1 FROM dbo.ParkingSites WHERE SiteCode = 'DEFAULT-SITE')
+            -- 7) Seeding (Only runs if the database is completely empty)
+            IF NOT EXISTS (SELECT 1 FROM dbo.ParkingSites)
             BEGIN
                 INSERT INTO dbo.ParkingSites (SiteCode, SiteName, Description, IsActive, CreatedUtc)
                 VALUES ('DEFAULT-SITE', N'Default Parking Site', N'Auto-seeded default site', 1, GETUTCDATE());
-            END
 
-            DECLARE @DefaultSiteId INT = (SELECT Id FROM dbo.ParkingSites WHERE SiteCode = 'DEFAULT-SITE');
+                DECLARE @DefaultSiteId INT = (SELECT Id FROM dbo.ParkingSites WHERE SiteCode = 'DEFAULT-SITE');
 
-            IF NOT EXISTS (SELECT 1 FROM dbo.ParkingZones WHERE ZoneCode = 'DEFAULT-ZONE')
-            BEGIN
                 INSERT INTO dbo.ParkingZones (SiteId, ZoneCode, ZoneName, Description, MaxCapacity, IsActive, CreatedUtc)
                 VALUES (@DefaultSiteId, 'DEFAULT-ZONE', N'Default Parking Zone', N'Auto-seeded default zone', 500, 1, GETUTCDATE());
-            END
 
-            -- 8) Map existing lanes
-            DECLARE @DefaultZoneId INT = (SELECT Id FROM dbo.ParkingZones WHERE ZoneCode = 'DEFAULT-ZONE');
+                DECLARE @DefaultZoneId INT = (SELECT Id FROM dbo.ParkingZones WHERE ZoneCode = 'DEFAULT-ZONE');
 
-            IF NOT EXISTS (SELECT 1 FROM dbo.Lanes)
-            BEGIN
                 INSERT INTO dbo.Lanes (LaneCode, LaneName, Direction, ZoneId, IsActive, CreatedUtc)
                 VALUES 
                 ('LANE-1', N'Cổng Vào 1', 'IN', @DefaultZoneId, 1, GETUTCDATE()),
                 ('LANE-2', N'Cổng Ra 1', 'OUT', @DefaultZoneId, 1, GETUTCDATE());
-            END
-            ELSE
-            BEGIN
-                UPDATE dbo.Lanes SET ZoneId = @DefaultZoneId WHERE ZoneId IS NULL;
             END
 
             COMMIT TRANSACTION;

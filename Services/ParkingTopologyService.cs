@@ -282,11 +282,26 @@ namespace QuanLyGiuXe.Services
 
         public async Task<bool> DeleteSiteAsync(int id)
         {
+            var zones = await GetZonesAsync();
+            if (zones.Any(z => z.SiteId == id))
+            {
+                throw new Exception("Không thể xóa Site này vì vẫn còn Zone (khu vực) trực thuộc. Vui lòng xóa các Zone trước.");
+            }
+
             return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
                 "DELETE_SITE",
                 new { Id = id },
                 async conn =>
                 {
+                    // 1. Nullify references in VehicleSessions
+                    string updateSql = "UPDATE dbo.VehicleSessions SET SiteId = NULL WHERE SiteId = @id";
+                    using (var cmd = new SqlCommand(updateSql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@id", id);
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+
+                    // 2. Delete the site
                     string sql = "DELETE FROM dbo.ParkingSites WHERE Id = @id";
                     using (var cmd = new SqlCommand(sql, conn))
                     {
@@ -296,6 +311,19 @@ namespace QuanLyGiuXe.Services
                 },
                 async () =>
                 {
+                    // Nullify references in SQLite VehicleSessions
+                    string dbPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "aps_offline.db");
+                    using (var conn = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={dbPath};Default Timeout=5;"))
+                    {
+                        await conn.OpenAsync();
+                        string updateSql = "UPDATE VehicleSessions SET SiteId = NULL WHERE SiteId = @id";
+                        using (var cmd = new Microsoft.Data.Sqlite.SqliteCommand(updateSql, conn))
+                        {
+                            cmd.Parameters.AddWithValue("@id", id);
+                            await cmd.ExecuteNonQueryAsync();
+                        }
+                    }
+
                     var sites = await GetSitesAsync();
                     var existing = sites.FirstOrDefault(s => s.Id == id);
                     if (existing != null)
@@ -378,11 +406,31 @@ namespace QuanLyGiuXe.Services
 
         public async Task<bool> DeleteZoneAsync(int id)
         {
+            var lanes = await GetLanesAsync();
+            if (lanes.Any(l => l.ZoneId == id))
+            {
+                throw new Exception("Không thể xóa Zone này vì vẫn còn Làn (Lane) trực thuộc.");
+            }
+            var controllers = await GetControllersAsync();
+            if (controllers.Any(c => c.ZoneId == id))
+            {
+                throw new Exception("Không thể xóa Zone này vì vẫn còn Tủ điều khiển (Controller) trực thuộc.");
+            }
+
             return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
                 "DELETE_ZONE",
                 new { Id = id },
                 async conn =>
                 {
+                    // 1. Nullify references in VehicleSessions
+                    string updateSql = "UPDATE dbo.VehicleSessions SET ZoneId = NULL WHERE ZoneId = @id";
+                    using (var cmd = new SqlCommand(updateSql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@id", id);
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+
+                    // 2. Delete the zone
                     string sql = "DELETE FROM dbo.ParkingZones WHERE Id = @id";
                     using (var cmd = new SqlCommand(sql, conn))
                     {
@@ -392,6 +440,19 @@ namespace QuanLyGiuXe.Services
                 },
                 async () =>
                 {
+                    // Nullify references in SQLite VehicleSessions
+                    string dbPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "aps_offline.db");
+                    using (var conn = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={dbPath};Default Timeout=5;"))
+                    {
+                        await conn.OpenAsync();
+                        string updateSql = "UPDATE VehicleSessions SET ZoneId = NULL WHERE ZoneId = @id";
+                        using (var cmd = new Microsoft.Data.Sqlite.SqliteCommand(updateSql, conn))
+                        {
+                            cmd.Parameters.AddWithValue("@id", id);
+                            await cmd.ExecuteNonQueryAsync();
+                        }
+                    }
+
                     var zones = await GetZonesAsync();
                     var existing = zones.FirstOrDefault(z => z.Id == id);
                     if (existing != null)
@@ -569,6 +630,17 @@ namespace QuanLyGiuXe.Services
                 new { Id = id },
                 async conn =>
                 {
+                    // 1. Nullify references in VehicleSessions (for both entry and exit lanes)
+                    string updateSql = @"
+                        UPDATE dbo.VehicleSessions SET EntryLaneId = NULL WHERE EntryLaneId = @id;
+                        UPDATE dbo.VehicleSessions SET ExitLaneId = NULL WHERE ExitLaneId = @id;";
+                    using (var cmd = new SqlCommand(updateSql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@id", id);
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+
+                    // 2. Delete the lane
                     string sql = "DELETE FROM dbo.Lanes WHERE Id = @id";
                     using (var cmd = new SqlCommand(sql, conn))
                     {
@@ -578,6 +650,21 @@ namespace QuanLyGiuXe.Services
                 },
                 async () =>
                 {
+                    // Nullify references in SQLite VehicleSessions
+                    string dbPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "aps_offline.db");
+                    using (var conn = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={dbPath};Default Timeout=5;"))
+                    {
+                        await conn.OpenAsync();
+                        string updateSql = @"
+                            UPDATE VehicleSessions SET EntryLaneId = NULL WHERE EntryLaneId = @id;
+                            UPDATE VehicleSessions SET ExitLaneId = NULL WHERE ExitLaneId = @id;";
+                        using (var cmd = new Microsoft.Data.Sqlite.SqliteCommand(updateSql, conn))
+                        {
+                            cmd.Parameters.AddWithValue("@id", id);
+                            await cmd.ExecuteNonQueryAsync();
+                        }
+                    }
+
                     var lanes = await GetLanesAsync();
                     var existing = lanes.FirstOrDefault(l => l.Id == id);
                     if (existing != null)
