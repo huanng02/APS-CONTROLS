@@ -336,10 +336,20 @@ namespace QuanLyGiuXe
         {
             if (DataContext is MainViewModel vm)
             {
+                // Highlight the correct sidebar button based on the active view
                 if (vm.CurrentView is DashboardViewModel)
+                {
                     btnDashboard.IsChecked = true;
+                }
+                else if (vm.CurrentView is ParkingTopologyViewModel)
+                {
+                    btnTopologySettings.IsChecked = true;
+                }
                 else
+                {
+                    // Default to the main parking view button for other views
                     btnParkingView.IsChecked = true;
+                }
             }
         }
 

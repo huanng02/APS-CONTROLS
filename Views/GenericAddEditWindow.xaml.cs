@@ -122,31 +122,27 @@ namespace QuanLyGiuXe.Views
                     }
                     
                     // Removed Id selection; now handled via IpAddress ComboBox
-                    else if (p.Name == "IpAddress")
+                                        else if (p.Name == "IpAddress")
                     {
-                        var cb = new ComboBox { 
-                            Width = 200, 
-                            HorizontalAlignment = HorizontalAlignment.Left, 
+                        var cb = new ComboBox {
+                            Width = 200,
+                            HorizontalAlignment = HorizontalAlignment.Left,
                             Style = (Style)Application.Current.FindResource("ModernComboBox"),
-                            IsEditable = true 
+                            IsEditable = true
                         };
-                        var ips = new List<string>();
-                        
-                        // 1. Get the configured C3 IP from settings
+                        var candidateIps = new List<string>();
+
+                        // 1. Configured C3 IP from settings
                         var appCfg = AppConfig.Load();
                         if (appCfg?.ZKTeco != null && !string.IsNullOrWhiteSpace(appCfg.ZKTeco.IpAddress))
-                        {
-                            ips.Add(appCfg.ZKTeco.IpAddress);
-                        }
+                            candidateIps.Add(appCfg.ZKTeco.IpAddress);
 
-                        // 2. Get the current C3 IP from connection monitor service
+                        // 2. Current C3 IP from connection monitor
                         var monitorIp = ConnectionMonitorService.Instance.CurrentC3Ip;
-                        if (!string.IsNullOrWhiteSpace(monitorIp) && !ips.Contains(monitorIp))
-                        {
-                            ips.Add(monitorIp);
-                        }
+                        if (!string.IsNullOrWhiteSpace(monitorIp) && !candidateIps.Contains(monitorIp))
+                            candidateIps.Add(monitorIp);
 
-                        // 3. Add existing controllers' IPs
+                        // 3. Existing controllers' IPs from DB
                         try
                         {
                             var allControllers = await ParkingTopologyService.Instance.GetControllersAsync();
@@ -154,30 +150,52 @@ namespace QuanLyGiuXe.Views
                             {
                                 foreach (var ctrl in allControllers)
                                 {
-                                    if (!string.IsNullOrWhiteSpace(ctrl.IpAddress) && !ips.Contains(ctrl.IpAddress))
-                                        ips.Add(ctrl.IpAddress);
+                                    if (!string.IsNullOrWhiteSpace(ctrl.IpAddress) && !candidateIps.Contains(ctrl.IpAddress))
+                                        candidateIps.Add(ctrl.IpAddress);
                                 }
                             }
                         }
                         catch { }
 
-                        cb.ItemsSource = ips;
-                        string currentIp = (string)(p.GetValue(_model) ?? string.Empty);
-                        if (!string.IsNullOrEmpty(currentIp))
+                        // Filter reachable IPs via Ping
+                        var reachableIps = new List<string>();
+                        foreach (var ip in candidateIps)
                         {
-                            if (!ips.Contains(currentIp))
+                            try
                             {
-                                ips.Add(currentIp);
-                                cb.ItemsSource = null;
-                                cb.ItemsSource = ips;
+                                using var ping = new System.Net.NetworkInformation.Ping();
+                                var reply = await ping.SendPingAsync(ip, 2000);
+                                if (reply.Status == System.Net.NetworkInformation.IPStatus.Success)
+                                    reachableIps.Add(ip);
                             }
-                            cb.SelectedValue = currentIp;
-                            cb.Text = currentIp;
+                            catch { }
                         }
-                        else if (ips.Count > 0)
+
+                                                // Set ItemsSource and enable state based on reachable IPs
+                        cb.ItemsSource = reachableIps;
+                        cb.IsEnabled = reachableIps.Count > 0;
+                        // Retrieve the current IP value from the model
+                        string currentIp = (string)(p.GetValue(_model) ?? string.Empty);
+                        if (reachableIps.Count > 0)
                         {
-                            cb.SelectedIndex = 0;
-                            p.SetValue(_model, ips[0]);
+                            // Pre-select current IP if it is reachable
+                            if (!string.IsNullOrEmpty(currentIp) && reachableIps.Contains(currentIp))
+                            {
+                                cb.SelectedValue = currentIp;
+                                cb.Text = currentIp;
+                            }
+                            else
+                            {
+                                cb.SelectedIndex = 0;
+                                p.SetValue(_model, reachableIps[0]);
+                            }
+                        }
+                                                else
+                        {
+                            // No reachable controllers – disable selection
+                            cb.ItemsSource = null;
+                            cb.IsEnabled = false;
+                            cb.Text = string.Empty;
                         }
                         input = cb;
                     }
