@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -21,5 +21,17 @@ namespace QuanLyGiuXe.Models
 
         public string AnhVao { get; set; }
         public string AnhRa { get; set; }
+
+        // Multi-zone fields
+        public int? SiteId { get; set; }
+        public int? ZoneId { get; set; }
+        public int? EntryLaneId { get; set; }
+        public int? ExitLaneId { get; set; }
+
+        // Helper properties for display
+        public string SiteName { get; set; } = string.Empty;
+        public string ZoneName { get; set; } = string.Empty;
+        public string EntryLaneName { get; set; } = string.Empty;
+        public string ExitLaneName { get; set; } = string.Empty;
     }
 }

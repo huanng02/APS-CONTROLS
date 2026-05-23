@@ -1,15 +1,17 @@
+using QuanLyGiuXe.Models;
+using QuanLyGiuXe.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
-using QuanLyGiuXe.Services;
 
 namespace QuanLyGiuXe
 {
     public partial class C3200SettingsWindow : Window
     {
         private AppConfig _cfg;
+        //private List<Lane> _lanes = new();
 
         public C3200SettingsWindow()
         {
@@ -23,11 +25,12 @@ namespace QuanLyGiuXe
             BarrierBox.Text = _cfg.ZKTeco.BarrierDuration.ToString();
             CooldownBox.Text = _cfg.ZKTeco.CardCooldownMs.ToString();
 
+            LoadLanes();
             LoadReaderSelection();
 
             // populate button action combos selection
             var b1 = this.FindName("Button1ActionCombo") as ComboBox;
-            var b2 = this.FindName("Button2ActionCombo") as ComboBox;
+            var b2 = this.FindName("Button2ActionCombo") as ComboBox;   
             if (b1 != null && b2 != null)
             {
                 var act1 = _cfg.ZKTeco.Button1Action ?? "OpenThisDoor";
@@ -43,6 +46,283 @@ namespace QuanLyGiuXe
             }
 
             // Force mode is obsolete, handled dynamically in LaneRuntimeControl
+        }
+        // =============================
+        // FIELDS
+        // =============================
+
+        private List<LaneConfig> _lanes;
+        private List<ParkingSite> _sites;
+
+
+        // =============================
+        // LOAD LANES
+        // =============================
+
+        private async Task LoadLanes()
+        {
+            try
+            {
+                _lanes = await ParkingTopologyService.Instance.GetLanesAsync();
+
+                Door1LaneCombo.ItemsSource = _lanes;
+                Door2LaneCombo.ItemsSource = _lanes;
+
+                Door1LaneCombo.DisplayMemberPath = "LaneName";
+                Door1LaneCombo.SelectedValuePath = "Id";
+
+                Door2LaneCombo.DisplayMemberPath = "LaneName";
+                Door2LaneCombo.SelectedValuePath = "Id";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Load lanes failed: {ex.Message}");
+            }
+        }
+
+
+        // =============================
+        // LOAD SITES
+        // =============================
+
+        private async Task LoadSites()
+        {
+            try
+            {
+                _sites = await ParkingTopologyService.Instance.GetSitesAsync();
+
+                // seed data nếu DB trống
+                if (_sites == null || !_sites.Any())
+                {
+                    var site = new ParkingSite
+                    {
+                        SiteCode = "SITE-1",
+                        SiteName = "Bãi Mặc Định",
+                        Description = "Default Site",
+                        IsActive = true,
+                        CreatedUtc = DateTime.UtcNow
+                    };
+
+                    await ParkingTopologyService.Instance.SaveSiteAsync(site);
+
+                    _sites = await ParkingTopologyService.Instance.GetSitesAsync();
+
+                    var createdSite = _sites.FirstOrDefault();
+
+                    if (createdSite != null)
+                    {
+                        var zone = new ParkingZone
+                        {
+                            SiteId = createdSite.Id,
+                            ZoneCode = "ZONE-1",
+                            ZoneName = "Khu Vực 1",
+                            Description = "Default Zone",
+                            MaxCapacity = 100,
+                            IsActive = true,
+                            CreatedUtc = DateTime.UtcNow
+                        };
+
+                        await ParkingTopologyService.Instance.SaveZoneAsync(zone);
+
+                        var zones =
+                            await ParkingTopologyService.Instance.GetZonesAsync();
+
+                        var createdZone = zones.FirstOrDefault();
+
+                        if (createdZone != null)
+                        {
+                            await ParkingTopologyService.Instance
+                                .SaveControllerAsync(new C3ControllerConfig
+                                {
+                                    ControllerName = "C3-200 Main",
+                                    IpAddress = "192.168.1.201",
+                                    ZoneId = createdZone.Id,
+                                    IsActive = true,
+                                    CreatedUtc = DateTime.UtcNow
+                                });
+
+                            await ParkingTopologyService.Instance
+                                .SaveLaneAsync(new LaneConfig
+                                {
+                                    LaneCode = "LANE-1",
+                                    LaneName = "Làn Vào",
+                                    Direction = "IN",
+                                    ZoneId = createdZone.Id,
+                                    IsActive = true,
+                                    CreatedUtc = DateTime.UtcNow
+                                });
+
+                            await ParkingTopologyService.Instance
+                                .SaveLaneAsync(new LaneConfig
+                                {
+                                    LaneCode = "LANE-2",
+                                    LaneName = "Làn Ra",
+                                    Direction = "OUT",
+                                    ZoneId = createdZone.Id,
+                                    IsActive = true,
+                                    CreatedUtc = DateTime.UtcNow
+                                });
+                        }
+                    }
+
+                    // reload lại
+                    _sites =
+                        await ParkingTopologyService.Instance.GetSitesAsync();
+                }
+
+                SiteCombo.ItemsSource = _sites;
+                SiteCombo.DisplayMemberPath = "SiteName";
+                SiteCombo.SelectedValuePath = "Id";
+
+                // auto select site đầu tiên
+                if (_sites.Any())
+                    SiteCombo.SelectedIndex = 0;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Load sites failed: {ex.Message}");
+            }
+        }
+
+
+        // =============================
+        // SITE CHANGED
+        // =============================
+
+        private async void SiteCombo_SelectionChanged(
+            object sender,
+            SelectionChangedEventArgs e)
+        {
+            if (SiteCombo.SelectedValue == null)
+                return;
+
+            try
+            {
+                int siteId =
+                    Convert.ToInt32(SiteCombo.SelectedValue);
+
+                var allZones =
+                    await ParkingTopologyService.Instance.GetZonesAsync();
+
+                var zones = allZones
+                    .Where(z => z.SiteId == siteId)
+                    .ToList();
+
+                ZoneCombo.ItemsSource = zones;
+                ZoneCombo.DisplayMemberPath = "ZoneName";
+                ZoneCombo.SelectedValuePath = "Id";
+
+                if (zones.Any())
+                    ZoneCombo.SelectedIndex = 0;
+                else
+                    ZoneCombo.SelectedIndex = -1;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Load zones failed: {ex.Message}");
+            }
+        }
+
+
+        // =============================
+        // ZONE CHANGED
+        // =============================
+
+        private async void ZoneCombo_SelectionChanged(
+            object sender,
+            SelectionChangedEventArgs e)
+        {
+            if (ZoneCombo.SelectedValue == null)
+                return;
+
+            try
+            {
+                int zoneId =
+                    Convert.ToInt32(ZoneCombo.SelectedValue);
+
+                // load controller
+                var controllers =
+                    await ParkingTopologyService.Instance
+                        .GetControllersByZoneAsync(zoneId);
+
+                TopologyCombo.ItemsSource = controllers;
+                TopologyCombo.DisplayMemberPath = "ControllerName";
+                TopologyCombo.SelectedValuePath = "Id";
+
+                if (controllers.Any())
+                    TopologyCombo.SelectedIndex = 0;
+                else
+                    TopologyCombo.SelectedIndex = -1;
+
+                // load lanes
+                var allLanes =
+                    await ParkingTopologyService.Instance.GetLanesAsync();
+
+                var lanes = allLanes
+                    .Where(l => l.ZoneId == zoneId)
+                    .ToList();
+
+                Door1LaneCombo.ItemsSource = lanes;
+                Door2LaneCombo.ItemsSource = lanes;
+
+                Door1LaneCombo.DisplayMemberPath = "LaneName";
+                Door1LaneCombo.SelectedValuePath = "Id";
+
+                Door2LaneCombo.DisplayMemberPath = "LaneName";
+                Door2LaneCombo.SelectedValuePath = "Id";
+
+                if (lanes.Count > 0)
+                    Door1LaneCombo.SelectedIndex = 0;
+
+                if (lanes.Count > 1)
+                    Door2LaneCombo.SelectedIndex = 1;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Load zone failed: {ex.Message}");
+            }
+        }
+
+
+        // =============================
+        // TOPOLOGY CHANGED
+        // =============================
+
+        private void TopologyCombo_SelectionChanged(
+            object sender,
+            SelectionChangedEventArgs e)
+        {
+            try
+            {
+                if (TopologyCombo.SelectedItem is C3ControllerConfig controller)
+                {
+                    IpBox.Text = controller.IpAddress;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Load controller failed: {ex.Message}");
+            }
+        }
+
+
+        // =============================
+        // WINDOW LOADED
+        // =============================
+
+        private async void Window_Loaded(
+            object sender,
+            RoutedEventArgs e)
+        {
+            try
+            {
+                await LoadSites();
+                await LoadLanes();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Init failed: {ex.Message}");
+            }
         }
 
         private void Reset_Click(object sender, RoutedEventArgs e)
@@ -81,8 +361,8 @@ namespace QuanLyGiuXe
             int door2Lane = (door1Lane == 1) ? 2 : 1;
 
             _isSyncingCombos = true;
-            SetComboValue(Door1LaneCombo, door1Lane.ToString());
-            SetComboValue(Door2LaneCombo, door2Lane.ToString());
+            Door1LaneCombo.SelectedValue = door1Lane;
+            Door2LaneCombo.SelectedValue = door2Lane;
             _isSyncingCombos = false;
 
             void BindReader(int readerNo, ComboBox dirCombo, CheckBox enableCheck)
@@ -130,32 +410,56 @@ namespace QuanLyGiuXe
 
         private void Door1LaneCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (_isSyncingCombos) return;
-            if (Door1LaneCombo.SelectedItem is ComboBoxItem item)
-            {
-                string tag = item.Tag?.ToString();
-                int door1Lane = tag == "2" ? 2 : 1;
-                int door2Lane = door1Lane == 1 ? 2 : 1;
+            if (_isSyncingCombos)
+                return;
 
-                _isSyncingCombos = true;
-                SetComboValue(Door2LaneCombo, door2Lane.ToString());
-                _isSyncingCombos = false;
+            if (Door1LaneCombo.SelectedValue == null)
+                return;
+
+            int door1Lane =
+                Convert.ToInt32(Door1LaneCombo.SelectedValue);
+
+            _isSyncingCombos = true;
+
+            foreach (var item in Door2LaneCombo.Items)
+            {
+                dynamic lane = item;
+
+                if (lane.Id != door1Lane)
+                {
+                    Door2LaneCombo.SelectedItem = item;
+                    break;
+                }
             }
+
+            _isSyncingCombos = false;
         }
 
         private void Door2LaneCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (_isSyncingCombos) return;
-            if (Door2LaneCombo.SelectedItem is ComboBoxItem item)
-            {
-                string tag = item.Tag?.ToString();
-                int door2Lane = tag == "2" ? 2 : 1;
-                int door1Lane = door2Lane == 1 ? 2 : 1;
+            if (_isSyncingCombos)
+                return;
 
-                _isSyncingCombos = true;
-                SetComboValue(Door1LaneCombo, door1Lane.ToString());
-                _isSyncingCombos = false;
+            if (Door2LaneCombo.SelectedValue == null)
+                return;
+
+            int door2Lane =
+                Convert.ToInt32(Door2LaneCombo.SelectedValue);
+
+            _isSyncingCombos = true;
+
+            foreach (var item in Door1LaneCombo.Items)
+            {
+                dynamic lane = item;    
+
+                if (lane.Id != door2Lane)
+                {
+                    Door1LaneCombo.SelectedItem = item;
+                    break;
+                }
             }
+
+            _isSyncingCombos = false;
         }
 
         private async void TestConnection_Click(object sender, RoutedEventArgs e)
@@ -245,11 +549,19 @@ namespace QuanLyGiuXe
 
             // save reader mappings
             int laneForDoor1 = 1;
-            if (Door1LaneCombo.SelectedItem is ComboBoxItem biDoor1)
+            if (Door1LaneCombo.SelectedValue != null)
             {
-                int.TryParse(biDoor1.Tag?.ToString(), out laneForDoor1);
+                laneForDoor1 = (int)Door1LaneCombo.SelectedValue;
             }
-            int laneForDoor2 = (laneForDoor1 == 1) ? 2 : 1;
+            int laneForDoor2 = 1;
+            if (Door2LaneCombo.SelectedValue != null)
+            {
+                laneForDoor2 = (int)Door2LaneCombo.SelectedValue;
+            }
+            else
+            {
+                laneForDoor2 = (laneForDoor1 == 1) ? 2 : 1;
+            }
 
             var newMappings = new List<ReaderLaneMapping>();
             

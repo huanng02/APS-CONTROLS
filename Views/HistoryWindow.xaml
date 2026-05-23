@@ -99,6 +99,11 @@
                     <DataGridTextColumn Header="ENTRY TIME" Binding="{Binding ThoiGianVao, StringFormat=dd/MM/yyyy HH:mm:ss}" Width="160"/>
                     <DataGridTextColumn Header="EXIT TIME" Binding="{Binding ThoiGianRa, StringFormat=dd/MM/yyyy HH:mm:ss}" Width="160"/>
                     
+                    <DataGridTextColumn Header="SITE" Binding="{Binding SiteName}" Width="120"/>
+                    <DataGridTextColumn Header="ZONE" Binding="{Binding ZoneName}" Width="120"/>
+                    <DataGridTextColumn Header="ENTRY LANE" Binding="{Binding EntryLaneName}" Width="120"/>
+                    <DataGridTextColumn Header="EXIT LANE" Binding="{Binding ExitLaneName}" Width="120"/>
+                    
                     <DataGridTemplateColumn Header="REVENUE" Width="140">
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>

@@ -818,14 +818,17 @@ namespace QuanLyGiuXe.ViewModels
                     return;
                 }
 
+                // Resolve topology
+                var (siteId, zoneId, laneId) = await ResolveTopologyForLaneAsync(laneIndex);
+
                 if (isInbound)
                 {
-                    bool success = await ProcessInboundAsync(laneIndex, card, uid);
+                    bool success = await ProcessInboundAsync(laneIndex, card, uid, siteId, zoneId, laneId);
                     if (!success) LaneRuntimeManager.Instance.UnlockLane(laneIndex);
                 }
                 else
                 {
-                    bool success = await ProcessOutboundAsync(laneIndex, card, uid);
+                    bool success = await ProcessOutboundAsync(laneIndex, card, uid, siteId, zoneId, laneId);
                     if (!success) LaneRuntimeManager.Instance.UnlockLane(laneIndex);
                 }
 
@@ -846,7 +849,7 @@ namespace QuanLyGiuXe.ViewModels
             }
         }
 
-        private async Task<bool> ProcessInboundAsync(int laneIndex, RFIDCard card, string uid)
+        private async Task<bool> ProcessInboundAsync(int laneIndex, RFIDCard card, string uid, int? siteId, int? zoneId, int? laneId)
         {
             var existingRec = db.GetXeTrongBaiRecordByCardId(card.Id);
             if (existingRec != null)
@@ -859,7 +862,7 @@ namespace QuanLyGiuXe.ViewModels
 
             try
             {
-                        await db.ThemXeAsync(card.Id, string.IsNullOrEmpty(plate) ? null : plate, "");
+                await db.ThemXeAsync(card.Id, string.IsNullOrEmpty(plate) ? null : plate, "", siteId, zoneId, laneId);
                 
                 // Update UI for the specific lane
                 SetLanePlate(laneIndex, plate);
@@ -879,7 +882,7 @@ namespace QuanLyGiuXe.ViewModels
             }
         }
 
-        private async Task<bool> ProcessOutboundAsync(int laneIndex, RFIDCard card, string uid)
+        private async Task<bool> ProcessOutboundAsync(int laneIndex, RFIDCard card, string uid, int? exitSiteId, int? exitZoneId, int? exitLaneId)
         {
             var rec = db.GetXeTrongBaiRecordByCardId(card.Id);
             if (rec == null)
@@ -892,10 +895,20 @@ namespace QuanLyGiuXe.ViewModels
             var duration = DateTime.Now - timeIn;
             double fee = db.TinhTien(card.LoaiXeId, card.LoaiVeId, timeIn, DateTime.Now);
 
+            // Fetch entry topology details
+            var xeTrongBai = await db.GetXeTrongBaiEntityByCardIdAsync(card.Id);
+            int? entrySiteId = xeTrongBai?.SiteId;
+            int? entryZoneId = xeTrongBai?.ZoneId;
+            int? entryLaneId = xeTrongBai?.EntryLaneId;
+
             try
             {
                 await db.UpdateXeRaByIdAsync(id, DateTime.Now);
-                await db.LuuLichSuAsync(plate, timeIn, DateTime.Now, fee, "", uid);
+                await db.LuuLichSuAsync(plate, timeIn, DateTime.Now, fee, "", uid, 
+                    siteId: entrySiteId ?? exitSiteId, 
+                    zoneId: entryZoneId ?? exitZoneId, 
+                    entryLaneId: entryLaneId, 
+                    exitLaneId: exitLaneId);
                 await db.XoaXeByCardIdAsync(card.Id);
 
                 // Update UI
@@ -990,6 +1003,37 @@ namespace QuanLyGiuXe.ViewModels
             catch (Exception ex)
             {
                 LoggingService.Instance.LogError("TimKiem", "MainViewModel", "Lỗi tìm kiếm xe", ex);
+            }
+        }
+
+        private async Task<(int? SiteId, int? ZoneId, int? LaneId)> ResolveTopologyForLaneAsync(int laneIndex)
+        {
+            try
+            {
+                var lanes = await ParkingTopologyService.Instance.GetLanesAsync();
+                var lane = lanes.FirstOrDefault(l => l.Id == laneIndex || l.LaneCode == $"LANE-{laneIndex}");
+                if (lane == null) return (null, null, null);
+
+                int? laneId = lane.Id;
+                int? zoneId = lane.ZoneId;
+                int? siteId = null;
+
+                if (zoneId.HasValue)
+                {
+                    var zones = await ParkingTopologyService.Instance.GetZonesAsync();
+                    var zone = zones.FirstOrDefault(z => z.Id == zoneId.Value);
+                    if (zone != null)
+                    {
+                        siteId = zone.SiteId;
+                    }
+                }
+
+                return (siteId, zoneId, laneId);
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("ResolveTopology", "MainViewModel", $"Failed for lane {laneIndex}", ex);
+                return (null, null, null);
             }
         }
 

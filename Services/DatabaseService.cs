@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using QuanLyGiuXe.Models;
 using QuanLyGiuXe.Services.OfflineCache;
+using System.Security.Policy;
 
 namespace QuanLyGiuXe.Services
 {
@@ -1152,24 +1153,24 @@ namespace QuanLyGiuXe.Services
 
         // Add an entry when a vehicle enters. Primary key for identification is uid (CardUID).
         // Parameters: uid (CardUID), bienSo (nullable), anhXe (nullable)
-        public void ThemXe(int cardId, string bienSo, string anhXe)
+        public void ThemXe(int cardId, string bienSo, string anhXe, int? siteId = null, int? zoneId = null, int? entryLaneId = null)
         {
-            _ = ThemXeAsync(cardId, bienSo, anhXe);
+            _ = ThemXeAsync(cardId, bienSo, anhXe, siteId, zoneId, entryLaneId);
         }
 
-        public async Task<bool> ThemXeAsync(int cardId, string bienSo, string anhXe)
+        public async Task<bool> ThemXeAsync(int cardId, string bienSo, string anhXe, int? siteId = null, int? zoneId = null, int? entryLaneId = null)
         {
             if (cardId <= 0) return false;
 
             // 1. Transaction-safe local SQLite Save FIRST (Crash-Safe Session Commit!)
-            await OfflineCacheService.Instance.SaveActiveSessionLocalAsync(cardId, bienSo, DateTime.Now, anhXe);
+            await OfflineCacheService.Instance.SaveActiveSessionLocalAsync(cardId, bienSo, DateTime.Now, anhXe, siteId, zoneId, entryLaneId);
 
             // 2. Perform write to SQL Server or Queue if offline
             var newRecord = (Id: cardId, BienSo: bienSo ?? string.Empty, ThoiGianVao: DateTime.Now);
 
             return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
                 "INSERT_XE_VAO",
-                new { CardId = cardId, BienSo = bienSo, AnhXe = anhXe, Time = DateTime.Now },
+                new { CardId = cardId, BienSo = bienSo, AnhXe = anhXe, Time = DateTime.Now, SiteId = siteId, ZoneId = zoneId, EntryLaneId = entryLaneId },
                 async conn =>
                 {
                     // Check if already in lot
@@ -1179,12 +1180,15 @@ namespace QuanLyGiuXe.Services
                         int exists = Convert.ToInt32(await checkCmd.ExecuteScalarAsync());
                         if (exists > 0) return;
                     }
-                    using (SqlCommand cmd = new SqlCommand( @"INSERT INTO XeTrongBai (CardId, BienSo, ThoiGianVao, AnhXe) VALUES (@CardId, @BienSo, @Time, @AnhXe)", conn))
+                    using (SqlCommand cmd = new SqlCommand( @"INSERT INTO XeTrongBai (CardId, BienSo, ThoiGianVao, AnhXe, SiteId, ZoneId, EntryLaneId) VALUES (@CardId, @BienSo, @Time, @AnhXe, @SiteId, @ZoneId, @EntryLane)", conn))
                     {
                         cmd.Parameters.AddWithValue("@CardId", cardId);
                         cmd.Parameters.AddWithValue("@BienSo", string.IsNullOrEmpty(bienSo) ? (object)DBNull.Value : bienSo);
                         cmd.Parameters.AddWithValue("@Time", DateTime.Now);
                         cmd.Parameters.AddWithValue("@AnhXe", string.IsNullOrEmpty(anhXe) ? (object)DBNull.Value : anhXe);
+                        cmd.Parameters.AddWithValue("@SiteId", (object?)siteId ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@ZoneId", (object?)zoneId ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@EntryLane", (object?)entryLaneId ?? DBNull.Value);
                         await cmd.ExecuteNonQueryAsync();
                     }
                 },
@@ -1361,7 +1365,9 @@ namespace QuanLyGiuXe.Services
         {
             if (ConnectivityStateService.Instance.IsSimulatingOffline || !ConnectivityStateService.Instance.IsOnline)
             {
-                return await OfflineCacheService.Instance.GetXeTrongBaiRecordLocalAsync(cardId);
+                var local = await OfflineCacheService.Instance.GetXeTrongBaiRecordLocalAsync(cardId);
+                if (local == null) return null;
+                return (local.Value.CardId, local.Value.BienSo, local.Value.ThoiGianVao);
             }
 
             return await ConnectivityAwareRepository.Instance.ExecuteReadAsync<(int Id, string BienSo, DateTime ThoiGianVao)?>(
@@ -1387,6 +1393,56 @@ namespace QuanLyGiuXe.Services
             );
         }
 
+        public async Task<XeTrongBai?> GetXeTrongBaiEntityByCardIdAsync(int cardId)
+        {
+            // Fallback to SQLite Local Active sessions if SQL Server is down
+            if (ConnectivityStateService.Instance.IsSimulatingOffline || !ConnectivityStateService.Instance.IsOnline)
+            {
+                var local = await OfflineCacheService.Instance.GetXeTrongBaiRecordLocalAsync(cardId);
+                if (local == null) return null;
+                return new XeTrongBai
+                {
+                    CardId = local.Value.CardId,
+                    BienSo = local.Value.BienSo,
+                    ThoiGianVao = local.Value.ThoiGianVao,
+                    SiteId = local.Value.SiteId,
+                    ZoneId = local.Value.ZoneId,
+                    EntryLaneId = local.Value.EntryLaneId
+                };
+            }
+
+            return await ConnectivityAwareRepository.Instance.ExecuteReadAsync<XeTrongBai?>(
+                $"ENTITY_XE_CARD_{cardId}",
+                async conn =>
+                {
+                    using (var cmd = new SqlCommand(@"SELECT TOP 1 Id, CardId, BienSo, ThoiGianVao, AnhXe, SiteId, ZoneId, EntryLaneId FROM XeTrongBai WHERE CardId = @cardId AND ThoiGianRa IS NULL ORDER BY ThoiGianVao DESC", conn))
+                    {
+                        cmd.Parameters.AddWithValue("@cardId", cardId);
+                        using (var r = await cmd.ExecuteReaderAsync())
+                        {
+                            if (await r.ReadAsync())
+                            {
+                                return new XeTrongBai
+                                {
+                                    Id = r["Id"] != DBNull.Value ? Convert.ToInt32(r["Id"]) : 0,
+                                    CardId = r["CardId"] != DBNull.Value ? Convert.ToInt32(r["CardId"]) : (int?)null,
+                                    BienSo = r["BienSo"]?.ToString() ?? string.Empty,
+                                    ThoiGianVao = r["ThoiGianVao"] != DBNull.Value ? Convert.ToDateTime(r["ThoiGianVao"]) : DateTime.MinValue,
+                                    AnhXe = r["AnhXe"]?.ToString() ?? string.Empty,
+                                    SiteId = r["SiteId"] != DBNull.Value ? Convert.ToInt32(r["SiteId"]) : (int?)null,
+                                    ZoneId = r["ZoneId"] != DBNull.Value ? Convert.ToInt32(r["ZoneId"]) : (int?)null,
+                                    EntryLaneId = r["EntryLaneId"] != DBNull.Value ? Convert.ToInt32(r["EntryLaneId"]) : (int?)null
+                                };
+                            }
+                        }
+                    }
+                    return null;
+                }
+            );
+        }
+
+
+
         private bool ColumnExists(SqlConnection conn, string tableName, string columnName)
         {
             using (var cmd = new SqlCommand( @"SELECT COUNT(1) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = @table AND COLUMN_NAME = @col", conn))
@@ -1398,16 +1454,16 @@ namespace QuanLyGiuXe.Services
             }
         }
 
-        public void LuuLichSu(string bienSo, DateTime vao, DateTime ra, double tien, string anhXe, string cardUid = null)
+        public void LuuLichSu(string bienSo, DateTime vao, DateTime ra, double tien, string anhXe, string cardUid = null, int? siteId = null, int? zoneId = null, int? entryLaneId = null, int? exitLaneId = null)
         {
-            _ = LuuLichSuAsync(bienSo, vao, ra, tien, anhXe, cardUid);
+            _ = LuuLichSuAsync(bienSo, vao, ra, tien, anhXe, cardUid, siteId, zoneId, entryLaneId, exitLaneId);
         }
 
-        public async Task<bool> LuuLichSuAsync(string bienSo, DateTime vao, DateTime ra, double tien, string anhXe, string cardUid = null)
+        public async Task<bool> LuuLichSuAsync(string bienSo, DateTime vao, DateTime ra, double tien, string anhXe, string cardUid = null, int? siteId = null, int? zoneId = null, int? entryLaneId = null, int? exitLaneId = null)
         {
             return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
                 "INSERT_LICH_SU",
-                new { BienSo = bienSo, Vao = vao, Ra = ra, Tien = tien, AnhXe = anhXe, CardUid = cardUid },
+                new { BienSo = bienSo, Vao = vao, Ra = ra, Tien = tien, AnhXe = anhXe, CardUid = cardUid, SiteId = siteId, ZoneId = zoneId, EntryLaneId = entryLaneId, ExitLaneId = exitLaneId },
                 async conn =>
                 {
                     int? cardId = null;
@@ -1429,7 +1485,7 @@ namespace QuanLyGiuXe.Services
                             if (v != null && v != DBNull.Value) cardId = Convert.ToInt32(v);
                         }
                     }
-                    using (SqlCommand cmd = new SqlCommand( @"INSERT INTO LichSuXe (CardId, BienSo, ThoiGianVao, ThoiGianRa, Tien, AnhRa) VALUES (@cardId, @bs, @vao, @ra, @tien, @anh)", conn))
+                    using (SqlCommand cmd = new SqlCommand( @"INSERT INTO LichSuXe (CardId, BienSo, ThoiGianVao, ThoiGianRa, Tien, AnhRa, SiteId, ZoneId, EntryLaneId, ExitLaneId) VALUES (@cardId, @bs, @vao, @ra, @tien, @anh, @siteId, @zoneId, @entryLane, @exitLane)", conn))
                     {
                         cmd.Parameters.AddWithValue("@cardId", (object?)cardId ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("@bs", string.IsNullOrEmpty(bienSo) ? (object?)DBNull.Value : bienSo);
@@ -1437,6 +1493,10 @@ namespace QuanLyGiuXe.Services
                         cmd.Parameters.AddWithValue("@ra", ra);
                         cmd.Parameters.AddWithValue("@tien", tien);
                         cmd.Parameters.AddWithValue("@anh", (object?)anhXe ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@siteId", (object?)siteId ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@zoneId", (object?)zoneId ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@entryLane", (object?)entryLaneId ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@exitLane", (object?)exitLaneId ?? DBNull.Value);
                         await cmd.ExecuteNonQueryAsync();
                     }
                 }
@@ -1455,7 +1515,19 @@ namespace QuanLyGiuXe.Services
                 async conn =>
                 {
                     var list = new List<LichSuXe>();
-                    using (SqlCommand cmd = new SqlCommand( @"SELECT TOP 1000 Id, CardId, BienSo, ThoiGianVao, ThoiGianRa, Tien, TrangThai, AnhVao, AnhRa FROM LichSuXe ORDER BY ThoiGianVao DESC", conn))
+                    string sql = @"
+                        SELECT TOP 1000 
+                            ls.Id, ls.CardId, ls.BienSo, ls.ThoiGianVao, ls.ThoiGianRa, ls.Tien, ls.TrangThai, ls.AnhVao, ls.AnhRa,
+                            ls.SiteId, ls.ZoneId, ls.EntryLaneId, ls.ExitLaneId,
+                            s.SiteName, z.ZoneName, el.LaneName AS EntryLaneName, exl.LaneName AS ExitLaneName
+                        FROM LichSuXe ls
+                        LEFT JOIN ParkingSites s ON ls.SiteId = s.Id
+                        LEFT JOIN ParkingZones z ON ls.ZoneId = z.Id
+                        LEFT JOIN Lanes el ON ls.EntryLaneId = el.Id
+                        LEFT JOIN Lanes exl ON ls.ExitLaneId = exl.Id
+                        ORDER BY ls.ThoiGianVao DESC";
+
+                    using (SqlCommand cmd = new SqlCommand(sql, conn))
                     using (SqlDataReader reader = await cmd.ExecuteReaderAsync())
                     {
                         while (await reader.ReadAsync())
@@ -1470,7 +1542,17 @@ namespace QuanLyGiuXe.Services
                                 Tien = reader["Tien"] != DBNull.Value ? Convert.ToDouble(reader["Tien"]) : (double?)null,
                                 TrangThai = reader["TrangThai"]?.ToString(),
                                 AnhVao = reader["AnhVao"]?.ToString(),
-                                AnhRa = reader["AnhRa"]?.ToString()
+                                AnhRa = reader["AnhRa"]?.ToString(),
+
+                                SiteId = reader["SiteId"] != DBNull.Value ? Convert.ToInt32(reader["SiteId"]) : (int?)null,
+                                ZoneId = reader["ZoneId"] != DBNull.Value ? Convert.ToInt32(reader["ZoneId"]) : (int?)null,
+                                EntryLaneId = reader["EntryLaneId"] != DBNull.Value ? Convert.ToInt32(reader["EntryLaneId"]) : (int?)null,
+                                ExitLaneId = reader["ExitLaneId"] != DBNull.Value ? Convert.ToInt32(reader["ExitLaneId"]) : (int?)null,
+
+                                SiteName = reader["SiteName"]?.ToString() ?? string.Empty,
+                                ZoneName = reader["ZoneName"]?.ToString() ?? string.Empty,
+                                EntryLaneName = reader["EntryLaneName"]?.ToString() ?? string.Empty,
+                                ExitLaneName = reader["ExitLaneName"]?.ToString() ?? string.Empty
                             });
                         }
                     }

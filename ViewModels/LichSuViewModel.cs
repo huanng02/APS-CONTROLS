@@ -287,6 +287,10 @@ namespace QuanLyGiuXe.ViewModels
                         ws.Cell(1, 4).Value = "Thời gian ra";
                         ws.Cell(1, 5).Value = "Tiền (VNĐ)";
                         ws.Cell(1, 6).Value = "Card ID";
+                        ws.Cell(1, 7).Value = "Khu vực (Site)";
+                        ws.Cell(1, 8).Value = "Vùng (Zone)";
+                        ws.Cell(1, 9).Value = "Làn vào (Entry)";
+                        ws.Cell(1, 10).Value = "Làn ra (Exit)";
                         
                         // Data
                         for (int i = 0; i < dataToExport.Count; i++)
@@ -300,6 +304,10 @@ namespace QuanLyGiuXe.ViewModels
                             ws.Cell(row, 4).Value = item.ThoiGianRa;
                             ws.Cell(row, 5).Value = item.Tien;
                             ws.Cell(row, 6).Value = item.CardId;
+                            ws.Cell(row, 7).Value = item.SiteName;
+                            ws.Cell(row, 8).Value = item.ZoneName;
+                            ws.Cell(row, 9).Value = item.EntryLaneName;
+                            ws.Cell(row, 10).Value = item.ExitLaneName;
                         }
                         
                         ws.Columns().AdjustToContents();

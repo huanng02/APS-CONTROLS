@@ -204,6 +204,9 @@ namespace QuanLyGiuXe.Services.OfflineCache
                         string? bienSo = (string?)p.BienSo;
                         string? anhXe = (string?)p.AnhXe;
                         DateTime time = (DateTime)p.Time;
+                        int? siteId = (int?)p.SiteId;
+                        int? zoneId = (int?)p.ZoneId;
+                        int? entryLaneId = (int?)p.EntryLaneId;
 
                         // Check không insert trùng
                         bool alreadyIn = await db.IsXeTrongBaiByCardIdAsync(cardId);
@@ -211,13 +214,16 @@ namespace QuanLyGiuXe.Services.OfflineCache
                         {
                             using var sqlConn = new System.Data.SqlClient.SqlConnection(ConnectionManager.Instance.CurrentConnectionString);
                             await sqlConn.OpenAsync();
-                            string insertSql = @"INSERT INTO XeTrongBai (CardId, BienSo, ThoiGianVao, AnhXe) 
-                                                VALUES (@cardId, @bienSo, @time, @anhXe)";
+                            string insertSql = @"INSERT INTO XeTrongBai (CardId, BienSo, ThoiGianVao, AnhXe, SiteId, ZoneId, EntryLaneId) 
+                                                VALUES (@cardId, @bienSo, @time, @anhXe, @siteId, @zoneId, @entryLaneId)";
                             using var cmd = new System.Data.SqlClient.SqlCommand(insertSql, sqlConn);
                             cmd.Parameters.AddWithValue("@cardId", cardId);
                             cmd.Parameters.AddWithValue("@bienSo", string.IsNullOrEmpty(bienSo) ? (object)DBNull.Value : bienSo);
                             cmd.Parameters.AddWithValue("@time", time);
                             cmd.Parameters.AddWithValue("@anhXe", string.IsNullOrEmpty(anhXe) ? (object)DBNull.Value : anhXe);
+                            cmd.Parameters.AddWithValue("@siteId", (object?)siteId ?? DBNull.Value);
+                            cmd.Parameters.AddWithValue("@zoneId", (object?)zoneId ?? DBNull.Value);
+                            cmd.Parameters.AddWithValue("@entryLaneId", (object?)entryLaneId ?? DBNull.Value);
                             await cmd.ExecuteNonQueryAsync();
                         }
                         return true;
@@ -257,7 +263,11 @@ namespace QuanLyGiuXe.Services.OfflineCache
                         double tien = (double)p.Tien;
                         string? anhXe = (string?)p.AnhXe;
                         string? cardUid = (string?)p.CardUid;
-                        await db.LuuLichSuAsync(bienSo, vao, ra, tien, anhXe ?? string.Empty, cardUid);
+                        int? siteId = (int?)p.SiteId;
+                        int? zoneId = (int?)p.ZoneId;
+                        int? entryLaneId = (int?)p.EntryLaneId;
+                        int? exitLaneId = (int?)p.ExitLaneId;
+                        await db.LuuLichSuAsync(bienSo, vao, ra, tien, anhXe ?? string.Empty, cardUid, siteId, zoneId, entryLaneId, exitLaneId);
                         return true;
                     }
 

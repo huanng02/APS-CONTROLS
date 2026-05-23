@@ -83,7 +83,10 @@ namespace QuanLyGiuXe.Services.OfflineCache
                         BienSo TEXT,
                         ThoiGianVao DATETIME,
                         AnhXe TEXT,
-                        IsSynced INTEGER DEFAULT 0
+                        IsSynced INTEGER DEFAULT 0,
+                        SiteId INTEGER,
+                        ZoneId INTEGER,
+                        EntryLaneId INTEGER
                     );
 
                     CREATE INDEX IF NOT EXISTS idx_localxe_cardid ON LocalXeTrongBai(CardId);
@@ -201,6 +204,26 @@ namespace QuanLyGiuXe.Services.OfflineCache
                         cmd.ExecuteNonQuery();
                     }
                 }
+
+                // Safely apply alterations for existing databases
+                try
+                {
+                    using (var cmd = new SqliteCommand("ALTER TABLE LocalXeTrongBai ADD COLUMN SiteId INTEGER;", conn))
+                        cmd.ExecuteNonQuery();
+                }
+                catch { }
+                try
+                {
+                    using (var cmd = new SqliteCommand("ALTER TABLE LocalXeTrongBai ADD COLUMN ZoneId INTEGER;", conn))
+                        cmd.ExecuteNonQuery();
+                }
+                catch { }
+                try
+                {
+                    using (var cmd = new SqliteCommand("ALTER TABLE LocalXeTrongBai ADD COLUMN EntryLaneId INTEGER;", conn))
+                        cmd.ExecuteNonQuery();
+                }
+                catch { }
             }
             catch (Exception ex)
             {
@@ -413,7 +436,7 @@ namespace QuanLyGiuXe.Services.OfflineCache
 
         // --- Local Active Session Management ---
 
-        public async Task SaveActiveSessionLocalAsync(int cardId, string bienSo, DateTime time, string anhXe)
+        public async Task SaveActiveSessionLocalAsync(int cardId, string bienSo, DateTime time, string anhXe, int? siteId = null, int? zoneId = null, int? entryLaneId = null)
         {
             using var conn = new SqliteConnection(_connectionString);
             await conn.OpenAsync();
@@ -428,13 +451,16 @@ namespace QuanLyGiuXe.Services.OfflineCache
                     await delCmd.ExecuteNonQueryAsync();
                 }
 
-                string sql = @"INSERT INTO LocalXeTrongBai (CardId, BienSo, ThoiGianVao, AnhXe, IsSynced) 
-                               VALUES (@cardId, @bienSo, @time, @anh, 0)";
+                string sql = @"INSERT INTO LocalXeTrongBai (CardId, BienSo, ThoiGianVao, AnhXe, SiteId, ZoneId, EntryLaneId, IsSynced) 
+                               VALUES (@cardId, @bienSo, @time, @anh, @siteId, @zoneId, @entryLaneId, 0)";
                 using var cmd = new SqliteCommand(sql, conn, tx);
                 cmd.Parameters.AddWithValue("@cardId", cardId);
                 cmd.Parameters.AddWithValue("@bienSo", bienSo ?? string.Empty);
                 cmd.Parameters.AddWithValue("@time", time);
                 cmd.Parameters.AddWithValue("@anh", anhXe ?? string.Empty);
+                cmd.Parameters.AddWithValue("@siteId", (object?)siteId ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@zoneId", (object?)zoneId ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@entryLaneId", (object?)entryLaneId ?? DBNull.Value);
                 await cmd.ExecuteNonQueryAsync();
 
                 await tx.CommitAsync();
@@ -506,13 +532,13 @@ namespace QuanLyGiuXe.Services.OfflineCache
             }
         }
 
-        public async Task<(int Id, string BienSo, DateTime ThoiGianVao)?> GetXeTrongBaiRecordLocalAsync(int cardId)
+        public async Task<(int CardId, string BienSo, DateTime ThoiGianVao, int? SiteId, int? ZoneId, int? EntryLaneId)?> GetXeTrongBaiRecordLocalAsync(int cardId)
         {
             try
             {
                 using var conn = new SqliteConnection(_connectionString);
                 await conn.OpenAsync();
-                string sql = "SELECT CardId, BienSo, ThoiGianVao FROM LocalXeTrongBai WHERE CardId = @cardId";
+                string sql = "SELECT CardId, BienSo, ThoiGianVao, SiteId, ZoneId, EntryLaneId FROM LocalXeTrongBai WHERE CardId = @cardId";
                 using var cmd = new SqliteCommand(sql, conn);
                 cmd.Parameters.AddWithValue("@cardId", cardId);
                 using var r = await cmd.ExecuteReaderAsync();
@@ -521,7 +547,10 @@ namespace QuanLyGiuXe.Services.OfflineCache
                     int id = r.GetInt32(0);
                     string bs = r.IsDBNull(1) ? string.Empty : r.GetString(1);
                     DateTime vao = r.GetDateTime(2);
-                    return (id, bs, vao);
+                    int? siteId = r.IsDBNull(3) ? null : r.GetInt32(3);
+                    int? zoneId = r.IsDBNull(4) ? null : r.GetInt32(4);
+                    int? entryLaneId = r.IsDBNull(5) ? null : r.GetInt32(5);
+                    return (id, bs, vao, siteId, zoneId, entryLaneId);
                 }
             }
             catch (Exception ex)
