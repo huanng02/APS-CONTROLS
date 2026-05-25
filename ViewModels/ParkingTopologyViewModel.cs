@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
@@ -11,11 +13,17 @@ namespace QuanLyGiuXe.ViewModels
 {
     public class ParkingTopologyViewModel : BaseViewModel
     {
+        // ──────────────────────────────────────────────
+        // EXISTING collections (preserved as-is)
+        // ──────────────────────────────────────────────
         public ObservableCollection<ParkingSite> Sites { get; set; } = new ObservableCollection<ParkingSite>();
         public ObservableCollection<ParkingZone> Zones { get; set; } = new ObservableCollection<ParkingZone>();
         public ObservableCollection<LaneConfig> Lanes { get; set; } = new ObservableCollection<LaneConfig>();
         public ObservableCollection<C3ControllerConfig> Controllers { get; set; } = new ObservableCollection<C3ControllerConfig>();
 
+        // ──────────────────────────────────────────────
+        // EXISTING selected items (preserved as-is)
+        // ──────────────────────────────────────────────
         private ParkingSite _selectedSite;
         public ParkingSite SelectedSite
         {
@@ -44,6 +52,167 @@ namespace QuanLyGiuXe.ViewModels
             set { _selectedController = value; OnPropertyChanged(); CommandManager.InvalidateRequerySuggested(); }
         }
 
+        // ──────────────────────────────────────────────
+        // NEW: Tree & UI State
+        // ──────────────────────────────────────────────
+        public ObservableCollection<TopologyTreeNode> TreeNodes { get; set; } = new ObservableCollection<TopologyTreeNode>();
+
+        private TopologyTreeNode _selectedNode;
+        public TopologyTreeNode SelectedNode
+        {
+            get => _selectedNode;
+            set
+            {
+                _selectedNode = value;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(HasSelection));
+                OnPropertyChanged(nameof(IsSiteSelected));
+                OnPropertyChanged(nameof(IsZoneSelected));
+                OnPropertyChanged(nameof(IsLaneSelected));
+                OnPropertyChanged(nameof(IsControllerSelected));
+                OnPropertyChanged(nameof(IsReaderSelected));
+                OnPropertyChanged(nameof(SelectedNodeType));
+                UpdateSelectedItemFromNode();
+                UpdateDetailInfo();
+                CommandManager.InvalidateRequerySuggested();
+            }
+        }
+
+        private bool _isLoading;
+        public bool IsLoading
+        {
+            get => _isLoading;
+            set { _isLoading = value; OnPropertyChanged(); }
+        }
+
+        private bool _isEmpty;
+        public bool IsEmpty
+        {
+            get => _isEmpty;
+            set { _isEmpty = value; OnPropertyChanged(); }
+        }
+
+        private string _searchText = string.Empty;
+        public string SearchText
+        {
+            get => _searchText;
+            set
+            {
+                _searchText = value;
+                OnPropertyChanged();
+                FilterTree();
+            }
+        }
+
+        // ──────────────────────────────────────────────
+        // NEW: Detail panel computed properties
+        // ──────────────────────────────────────────────
+        public bool HasSelection => SelectedNode != null;
+        public bool IsSiteSelected => SelectedNode?.NodeType == "Site";
+        public bool IsZoneSelected => SelectedNode?.NodeType == "Zone";
+        public bool IsLaneSelected => SelectedNode?.NodeType == "Lane";
+        public bool IsControllerSelected => SelectedNode?.NodeType == "Controller";
+        public bool IsReaderSelected => SelectedNode?.NodeType == "Reader";
+        public string SelectedNodeType => SelectedNode?.NodeType ?? string.Empty;
+
+        // Site detail
+        private string _detailSiteName = string.Empty;
+        public string DetailSiteName { get => _detailSiteName; set { _detailSiteName = value; OnPropertyChanged(); } }
+
+        private string _detailSiteCode = string.Empty;
+        public string DetailSiteCode { get => _detailSiteCode; set { _detailSiteCode = value; OnPropertyChanged(); } }
+
+        private string _detailSiteDescription = string.Empty;
+        public string DetailSiteDescription { get => _detailSiteDescription; set { _detailSiteDescription = value; OnPropertyChanged(); } }
+
+        private bool _detailSiteIsActive;
+        public bool DetailSiteIsActive { get => _detailSiteIsActive; set { _detailSiteIsActive = value; OnPropertyChanged(); } }
+
+        private int _detailTotalZones;
+        public int DetailTotalZones { get => _detailTotalZones; set { _detailTotalZones = value; OnPropertyChanged(); } }
+
+        private int _detailTotalLanes;
+        public int DetailTotalLanes { get => _detailTotalLanes; set { _detailTotalLanes = value; OnPropertyChanged(); } }
+
+        private int _detailTotalControllers;
+        public int DetailTotalControllers { get => _detailTotalControllers; set { _detailTotalControllers = value; OnPropertyChanged(); } }
+
+        private int _detailActiveControllers;
+        public int DetailActiveControllers { get => _detailActiveControllers; set { _detailActiveControllers = value; OnPropertyChanged(); } }
+
+        // Zone detail
+        private string _detailZoneName = string.Empty;
+        public string DetailZoneName { get => _detailZoneName; set { _detailZoneName = value; OnPropertyChanged(); } }
+
+        private string _detailZoneCode = string.Empty;
+        public string DetailZoneCode { get => _detailZoneCode; set { _detailZoneCode = value; OnPropertyChanged(); } }
+
+        private string _detailParentSite = string.Empty;
+        public string DetailParentSite { get => _detailParentSite; set { _detailParentSite = value; OnPropertyChanged(); } }
+
+        private int _detailZoneCapacity;
+        public int DetailZoneCapacity { get => _detailZoneCapacity; set { _detailZoneCapacity = value; OnPropertyChanged(); } }
+
+        private int _detailZoneLanes;
+        public int DetailZoneLanes { get => _detailZoneLanes; set { _detailZoneLanes = value; OnPropertyChanged(); } }
+
+        private int _detailZoneActiveLanes;
+        public int DetailZoneActiveLanes { get => _detailZoneActiveLanes; set { _detailZoneActiveLanes = value; OnPropertyChanged(); } }
+
+        private int _detailZoneControllers;
+        public int DetailZoneControllers { get => _detailZoneControllers; set { _detailZoneControllers = value; OnPropertyChanged(); } }
+
+        private bool _detailZoneIsActive;
+        public bool DetailZoneIsActive { get => _detailZoneIsActive; set { _detailZoneIsActive = value; OnPropertyChanged(); } }
+
+        // Lane detail
+        private string _detailLaneName = string.Empty;
+        public string DetailLaneName { get => _detailLaneName; set { _detailLaneName = value; OnPropertyChanged(); } }
+
+        private string _detailLaneCode = string.Empty;
+        public string DetailLaneCode { get => _detailLaneCode; set { _detailLaneCode = value; OnPropertyChanged(); } }
+
+        private string _detailLaneDirection = string.Empty;
+        public string DetailLaneDirection { get => _detailLaneDirection; set { _detailLaneDirection = value; OnPropertyChanged(); } }
+
+        private string _detailLaneZone = string.Empty;
+        public string DetailLaneZone { get => _detailLaneZone; set { _detailLaneZone = value; OnPropertyChanged(); } }
+
+        private bool _detailLaneIsActive;
+        public bool DetailLaneIsActive { get => _detailLaneIsActive; set { _detailLaneIsActive = value; OnPropertyChanged(); } }
+
+        private ObservableCollection<ReaderLaneMapping> _detailLaneReaders = new();
+        public ObservableCollection<ReaderLaneMapping> DetailLaneReaders { get => _detailLaneReaders; set { _detailLaneReaders = value; OnPropertyChanged(); } }
+
+        // Controller detail
+        private string _detailControllerName = string.Empty;
+        public string DetailControllerName { get => _detailControllerName; set { _detailControllerName = value; OnPropertyChanged(); } }
+
+        private string _detailControllerIp = string.Empty;
+        public string DetailControllerIp { get => _detailControllerIp; set { _detailControllerIp = value; OnPropertyChanged(); } }
+
+        private string _detailControllerZone = string.Empty;
+        public string DetailControllerZone { get => _detailControllerZone; set { _detailControllerZone = value; OnPropertyChanged(); } }
+
+        private bool _detailControllerIsActive;
+        public bool DetailControllerIsActive { get => _detailControllerIsActive; set { _detailControllerIsActive = value; OnPropertyChanged(); } }
+
+        // Reader detail
+        private int _detailReaderNo;
+        public int DetailReaderNo { get => _detailReaderNo; set { _detailReaderNo = value; OnPropertyChanged(); } }
+
+        private string _detailReaderDirection = string.Empty;
+        public string DetailReaderDirection { get => _detailReaderDirection; set { _detailReaderDirection = value; OnPropertyChanged(); } }
+
+        private string _detailReaderLane = string.Empty;
+        public string DetailReaderLane { get => _detailReaderLane; set { _detailReaderLane = value; OnPropertyChanged(); } }
+
+        private bool _detailReaderEnabled;
+        public bool DetailReaderEnabled { get => _detailReaderEnabled; set { _detailReaderEnabled = value; OnPropertyChanged(); } }
+
+        // ──────────────────────────────────────────────
+        // EXISTING commands (preserved as-is)
+        // ──────────────────────────────────────────────
         public ICommand AddSiteCommand { get; }
         public ICommand EditSiteCommand { get; }
         public ICommand DeleteSiteCommand { get; }
@@ -60,8 +229,21 @@ namespace QuanLyGiuXe.ViewModels
         public ICommand EditControllerCommand { get; }
         public ICommand DeleteControllerCommand { get; }
 
+        // ──────────────────────────────────────────────
+        // NEW commands
+        // ──────────────────────────────────────────────
+        public ICommand RefreshCommand { get; }
+        public ICommand ExpandAllCommand { get; }
+        public ICommand CollapseAllCommand { get; }
+        public ICommand EditSelectedCommand { get; }
+        public ICommand DeleteSelectedCommand { get; }
+
+        // ══════════════════════════════════════════════
+        // CONSTRUCTOR
+        // ══════════════════════════════════════════════
         public ParkingTopologyViewModel()
         {
+            // Existing commands
             AddSiteCommand = new RelayCommand(async _ => await AddSite());
             EditSiteCommand = new RelayCommand(async _ => await EditSite(), _ => SelectedSite != null);
             DeleteSiteCommand = new RelayCommand(async _ => await DeleteSite(), _ => SelectedSite != null);
@@ -78,13 +260,24 @@ namespace QuanLyGiuXe.ViewModels
             EditControllerCommand = new RelayCommand(async _ => await EditController(), _ => SelectedController != null);
             DeleteControllerCommand = new RelayCommand(async _ => await DeleteController(), _ => SelectedController != null);
 
+            // New commands
+            RefreshCommand = new RelayCommand(async _ => await LoadDataAsync());
+            ExpandAllCommand = new RelayCommand(_ => SetAllExpanded(true));
+            CollapseAllCommand = new RelayCommand(_ => SetAllExpanded(false));
+            EditSelectedCommand = new RelayCommand(async _ => await EditSelected(), _ => SelectedNode != null && SelectedNode.NodeType != "Reader");
+            DeleteSelectedCommand = new RelayCommand(async _ => await DeleteSelected(), _ => SelectedNode != null && SelectedNode.NodeType != "Reader");
+
             _ = LoadDataAsync();
         }
 
+        // ──────────────────────────────────────────────
+        // DATA LOADING
+        // ──────────────────────────────────────────────
         private async Task LoadDataAsync()
         {
             try
             {
+                IsLoading = true;
                 var sites = await ParkingTopologyService.Instance.GetSitesAsync();
                 var zones = await ParkingTopologyService.Instance.GetZonesAsync();
                 var lanes = await ParkingTopologyService.Instance.GetLanesAsync();
@@ -103,13 +296,377 @@ namespace QuanLyGiuXe.ViewModels
 
                     Controllers.Clear();
                     foreach (var c in controllers) Controllers.Add(c);
+
+                    BuildTreeNodes();
+                    IsEmpty = TreeNodes.Count == 0;
+                    IsLoading = false;
                 });
             }
             catch (Exception ex)
             {
+                IsLoading = false;
                 MessageBox.Show("Lỗi tải dữ liệu: " + ex.Message);
             }
         }
+
+        // ──────────────────────────────────────────────
+        // TREE BUILDING
+        // ──────────────────────────────────────────────
+        private void BuildTreeNodes()
+        {
+            TreeNodes.Clear();
+            var readerMappings = ReaderLaneMappingService.Instance.GetAll();
+
+            foreach (var site in Sites)
+            {
+                var siteZones = Zones.Where(z => z.SiteId == site.Id).ToList();
+                var siteLaneCount = 0;
+                var siteControllerCount = 0;
+
+                var siteNode = new TopologyTreeNode
+                {
+                    Name = site.SiteName,
+                    Icon = "🏢",
+                    NodeType = "Site",
+                    DataItem = site,
+                    IsActive = site.IsActive,
+                    IsExpanded = true,
+                    Badge = site.SiteCode
+                };
+
+                foreach (var zone in siteZones)
+                {
+                    var zoneLanes = Lanes.Where(l => l.ZoneId == zone.Id).ToList();
+                    var zoneControllers = Controllers.Where(c => c.ZoneId == zone.Id).ToList();
+                    siteLaneCount += zoneLanes.Count;
+                    siteControllerCount += zoneControllers.Count;
+
+                    var zoneNode = new TopologyTreeNode
+                    {
+                        Name = zone.ZoneName,
+                        Icon = "📍",
+                        NodeType = "Zone",
+                        DataItem = zone,
+                        IsActive = zone.IsActive,
+                        IsExpanded = true,
+                        Badge = zone.ZoneCode,
+                        Subtitle = $"{zoneLanes.Count} làn • {zoneControllers.Count} controller"
+                    };
+
+                    foreach (var lane in zoneLanes)
+                    {
+                        var laneReaders = readerMappings.Where(r => r.LaneId == lane.Id).ToList();
+
+                        var laneNode = new TopologyTreeNode
+                        {
+                            Name = lane.LaneName,
+                            Icon = lane.Direction == "IN" ? "🚗" : "🚙",
+                            NodeType = "Lane",
+                            DataItem = lane,
+                            IsActive = lane.IsActive,
+                            Badge = lane.Direction,
+                            Subtitle = $"{lane.LaneCode} • {laneReaders.Count} reader"
+                        };
+
+                        foreach (var reader in laneReaders)
+                        {
+                            var readerNode = new TopologyTreeNode
+                            {
+                                Name = $"Reader #{reader.ReaderNo}",
+                                Icon = "📡",
+                                NodeType = "Reader",
+                                DataItem = reader,
+                                IsActive = reader.IsEnabled,
+                                Badge = reader.Direction
+                            };
+                            laneNode.Children.Add(readerNode);
+                        }
+
+                        zoneNode.Children.Add(laneNode);
+                    }
+
+                    foreach (var controller in zoneControllers)
+                    {
+                        var controllerNode = new TopologyTreeNode
+                        {
+                            Name = controller.ControllerName,
+                            Icon = "🧠",
+                            NodeType = "Controller",
+                            DataItem = controller,
+                            IsActive = controller.IsActive,
+                            Badge = controller.IpAddress
+                        };
+                        zoneNode.Children.Add(controllerNode);
+                    }
+
+                    siteNode.Children.Add(zoneNode);
+                }
+
+                siteNode.Subtitle = $"{siteZones.Count} khu vực • {siteLaneCount} làn";
+                TreeNodes.Add(siteNode);
+            }
+
+            // Add lanes not assigned to any zone (orphan lanes)
+            var orphanLanes = Lanes.Where(l => !l.ZoneId.HasValue).ToList();
+            if (orphanLanes.Any())
+            {
+                var orphanNode = new TopologyTreeNode
+                {
+                    Name = "Chưa phân vùng",
+                    Icon = "⚠",
+                    NodeType = "OrphanGroup",
+                    IsActive = true,
+                    IsExpanded = true,
+                    Subtitle = $"{orphanLanes.Count} làn chưa gán zone"
+                };
+
+                foreach (var lane in orphanLanes)
+                {
+                    var laneReaders = ReaderLaneMappingService.Instance.GetMappingsByLane(lane.Id);
+                    var laneNode = new TopologyTreeNode
+                    {
+                        Name = lane.LaneName,
+                        Icon = lane.Direction == "IN" ? "🚗" : "🚙",
+                        NodeType = "Lane",
+                        DataItem = lane,
+                        IsActive = lane.IsActive,
+                        Badge = lane.Direction,
+                        Subtitle = $"{lane.LaneCode} • {laneReaders.Count} reader"
+                    };
+
+                    foreach (var reader in laneReaders)
+                    {
+                        var readerNode = new TopologyTreeNode
+                        {
+                            Name = $"Reader #{reader.ReaderNo}",
+                            Icon = "📡",
+                            NodeType = "Reader",
+                            DataItem = reader,
+                            IsActive = reader.IsEnabled,
+                            Badge = reader.Direction
+                        };
+                        laneNode.Children.Add(readerNode);
+                    }
+
+                    orphanNode.Children.Add(laneNode);
+                }
+
+                TreeNodes.Add(orphanNode);
+            }
+        }
+
+        // ──────────────────────────────────────────────
+        // TREE SEARCH / FILTER
+        // ──────────────────────────────────────────────
+        private void FilterTree()
+        {
+            if (string.IsNullOrWhiteSpace(SearchText))
+            {
+                SetAllVisible(TreeNodes, true);
+                return;
+            }
+
+            var searchLower = SearchText.ToLowerInvariant();
+            foreach (var node in TreeNodes)
+            {
+                FilterNode(node, searchLower);
+            }
+        }
+
+        private bool FilterNode(TopologyTreeNode node, string searchLower)
+        {
+            bool selfMatch = node.Name.ToLowerInvariant().Contains(searchLower) ||
+                             (node.Badge?.ToLowerInvariant().Contains(searchLower) ?? false);
+
+            bool childMatch = false;
+            foreach (var child in node.Children)
+            {
+                if (FilterNode(child, searchLower))
+                    childMatch = true;
+            }
+
+            node.IsVisible = selfMatch || childMatch;
+            if (childMatch) node.IsExpanded = true;
+            return node.IsVisible;
+        }
+
+        private void SetAllVisible(ObservableCollection<TopologyTreeNode> nodes, bool visible)
+        {
+            foreach (var node in nodes)
+            {
+                node.IsVisible = visible;
+                SetAllVisible(node.Children, visible);
+            }
+        }
+
+        // ──────────────────────────────────────────────
+        // TREE EXPAND/COLLAPSE
+        // ──────────────────────────────────────────────
+        private void SetAllExpanded(bool expanded)
+        {
+            foreach (var node in TreeNodes)
+                SetNodeExpanded(node, expanded);
+        }
+
+        private void SetNodeExpanded(TopologyTreeNode node, bool expanded)
+        {
+            node.IsExpanded = expanded;
+            foreach (var child in node.Children)
+                SetNodeExpanded(child, expanded);
+        }
+
+        // ──────────────────────────────────────────────
+        // NODE SELECTION → Selected Item sync
+        // ──────────────────────────────────────────────
+        private void UpdateSelectedItemFromNode()
+        {
+            // Sync the tree selection with existing SelectedXxx properties
+            // so that existing Edit/Delete commands still work
+            SelectedSite = null;
+            SelectedZone = null;
+            SelectedLane = null;
+            SelectedController = null;
+
+            if (SelectedNode == null) return;
+
+            switch (SelectedNode.NodeType)
+            {
+                case "Site":
+                    SelectedSite = SelectedNode.DataItem as ParkingSite;
+                    break;
+                case "Zone":
+                    SelectedZone = SelectedNode.DataItem as ParkingZone;
+                    break;
+                case "Lane":
+                    SelectedLane = SelectedNode.DataItem as LaneConfig;
+                    break;
+                case "Controller":
+                    SelectedController = SelectedNode.DataItem as C3ControllerConfig;
+                    break;
+            }
+        }
+
+        // ──────────────────────────────────────────────
+        // DETAIL INFO UPDATE
+        // ──────────────────────────────────────────────
+        private void UpdateDetailInfo()
+        {
+            if (SelectedNode == null) return;
+
+            switch (SelectedNode.NodeType)
+            {
+                case "Site":
+                    UpdateSiteDetail(SelectedNode.DataItem as ParkingSite);
+                    break;
+                case "Zone":
+                    UpdateZoneDetail(SelectedNode.DataItem as ParkingZone);
+                    break;
+                case "Lane":
+                    UpdateLaneDetail(SelectedNode.DataItem as LaneConfig);
+                    break;
+                case "Controller":
+                    UpdateControllerDetail(SelectedNode.DataItem as C3ControllerConfig);
+                    break;
+                case "Reader":
+                    UpdateReaderDetail(SelectedNode.DataItem as ReaderLaneMapping);
+                    break;
+            }
+        }
+
+        private void UpdateSiteDetail(ParkingSite site)
+        {
+            if (site == null) return;
+            DetailSiteName = site.SiteName;
+            DetailSiteCode = site.SiteCode;
+            DetailSiteDescription = site.Description;
+            DetailSiteIsActive = site.IsActive;
+
+            var siteZones = Zones.Where(z => z.SiteId == site.Id).ToList();
+            DetailTotalZones = siteZones.Count;
+            DetailTotalLanes = Lanes.Count(l => siteZones.Any(z => z.Id == l.ZoneId));
+            var siteControllers = Controllers.Where(c => siteZones.Any(z => z.Id == c.ZoneId)).ToList();
+            DetailTotalControllers = siteControllers.Count;
+            DetailActiveControllers = siteControllers.Count(c => c.IsActive);
+        }
+
+        private void UpdateZoneDetail(ParkingZone zone)
+        {
+            if (zone == null) return;
+            DetailZoneName = zone.ZoneName;
+            DetailZoneCode = zone.ZoneCode;
+            DetailParentSite = zone.SiteName;
+            DetailZoneCapacity = zone.MaxCapacity;
+            DetailZoneIsActive = zone.IsActive;
+
+            var zoneLanes = Lanes.Where(l => l.ZoneId == zone.Id).ToList();
+            DetailZoneLanes = zoneLanes.Count;
+            DetailZoneActiveLanes = zoneLanes.Count(l => l.IsActive);
+            DetailZoneControllers = Controllers.Count(c => c.ZoneId == zone.Id);
+        }
+
+        private void UpdateLaneDetail(LaneConfig lane)
+        {
+            if (lane == null) return;
+            DetailLaneName = lane.LaneName;
+            DetailLaneCode = lane.LaneCode;
+            DetailLaneDirection = lane.Direction;
+            DetailLaneZone = lane.ZoneName;
+            DetailLaneIsActive = lane.IsActive;
+
+            var readers = ReaderLaneMappingService.Instance.GetMappingsByLane(lane.Id);
+            DetailLaneReaders = new ObservableCollection<ReaderLaneMapping>(readers);
+        }
+
+        private void UpdateControllerDetail(C3ControllerConfig controller)
+        {
+            if (controller == null) return;
+            DetailControllerName = controller.ControllerName;
+            DetailControllerIp = controller.IpAddress;
+            DetailControllerZone = controller.ZoneName;
+            DetailControllerIsActive = controller.IsActive;
+        }
+
+        private void UpdateReaderDetail(ReaderLaneMapping reader)
+        {
+            if (reader == null) return;
+            DetailReaderNo = reader.ReaderNo;
+            DetailReaderDirection = reader.Direction;
+            DetailReaderEnabled = reader.IsEnabled;
+
+            var lane = Lanes.FirstOrDefault(l => l.Id == reader.LaneId);
+            DetailReaderLane = lane?.LaneName ?? $"Lane #{reader.LaneId}";
+        }
+
+        // ──────────────────────────────────────────────
+        // CONTEXT ACTIONS (Edit/Delete based on selection)
+        // ──────────────────────────────────────────────
+        private async Task EditSelected()
+        {
+            if (SelectedNode == null) return;
+            switch (SelectedNode.NodeType)
+            {
+                case "Site": await EditSite(); break;
+                case "Zone": await EditZone(); break;
+                case "Lane": await EditLane(); break;
+                case "Controller": await EditController(); break;
+            }
+        }
+
+        private async Task DeleteSelected()
+        {
+            if (SelectedNode == null) return;
+            switch (SelectedNode.NodeType)
+            {
+                case "Site": await DeleteSite(); break;
+                case "Zone": await DeleteZone(); break;
+                case "Lane": await DeleteLane(); break;
+                case "Controller": await DeleteController(); break;
+            }
+        }
+
+        // ══════════════════════════════════════════════
+        // EXISTING CRUD METHODS (preserved exactly as-is)
+        // ══════════════════════════════════════════════
 
         // --- SITE ---
         private async Task AddSite()

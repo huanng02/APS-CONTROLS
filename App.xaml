@@ -9,6 +9,7 @@
                 <ResourceDictionary Source="Themes/AppTheme.xaml" />
                 <ResourceDictionary Source="Themes/SharedStyles.xaml" />
                 <ResourceDictionary Source="Themes/ModernStyles.xaml" />
+                <ResourceDictionary Source="Themes/TopologyStyles.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Application.Resources>
