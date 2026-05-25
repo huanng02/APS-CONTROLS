@@ -11,11 +11,13 @@ namespace QuanLyGiuXe
     public partial class C3200SettingsWindow : Window
     {
         private AppConfig _cfg;
-        //private List<Lane> _lanes = new();
+        private bool _isInitializing = false;
+        private List<LaneConfig> _lanes;
+        private List<ParkingSite> _sites;
 
         public C3200SettingsWindow()
         {
-                InitializeComponent();
+            InitializeComponent();
             _cfg = AppConfig.Load();
 
             IpBox.Text = _cfg.ZKTeco.IpAddress;
@@ -25,10 +27,6 @@ namespace QuanLyGiuXe
             BarrierBox.Text = _cfg.ZKTeco.BarrierDuration.ToString();
             CooldownBox.Text = _cfg.ZKTeco.CardCooldownMs.ToString();
 
-            LoadLanes();
-            LoadReaderSelection();
-
-            // populate button action combos selection
             var b1 = this.FindName("Button1ActionCombo") as ComboBox;
             var b2 = this.FindName("Button2ActionCombo") as ComboBox;   
             if (b1 != null && b2 != null)
@@ -44,165 +42,154 @@ namespace QuanLyGiuXe
                     if ((b2.Items[i] as ComboBoxItem)?.Tag?.ToString() == act2) { b2.SelectedIndex = i; break; }
                 }
             }
-
-            // Force mode is obsolete, handled dynamically in LaneRuntimeControl
         }
-        // =============================
-        // FIELDS
-        // =============================
-
-        private List<LaneConfig> _lanes;
-        private List<ParkingSite> _sites;
-
 
         // =============================
-        // LOAD LANES
+        // INITIALIZE CONFIGURATION (SEQUENTIAL & ROBUST)
         // =============================
-
-        private async Task LoadLanes()
+        private async Task InitializeConfigurationAsync()
         {
             try
             {
+                _isInitializing = true;
+
+                // Load all data
+                _sites = await ParkingTopologyService.Instance.GetSitesAsync();
+                var allZones = await ParkingTopologyService.Instance.GetZonesAsync();
+                var allControllers = await ParkingTopologyService.Instance.GetControllersAsync();
                 _lanes = await ParkingTopologyService.Instance.GetLanesAsync();
 
-                Door1LaneCombo.ItemsSource = _lanes;
-                Door2LaneCombo.ItemsSource = _lanes;
+                // Find active controller based on saved IP
+                var activeController = allControllers.FirstOrDefault(c => c.IpAddress == _cfg.ZKTeco.IpAddress);
+                ParkingZone activeZone = null;
+                ParkingSite activeSite = null;
+
+                if (activeController != null)
+                {
+                    activeZone = allZones.FirstOrDefault(z => z.Id == activeController.ZoneId);
+                    if (activeZone != null)
+                    {
+                        activeSite = _sites.FirstOrDefault(s => s.Id == activeZone.SiteId);
+                    }
+                }
+
+                // If no active controller is found, fallback to first controller/zone/site
+                if (activeController == null && _sites.Any())
+                {
+                    activeSite = _sites.FirstOrDefault();
+                    if (activeSite != null)
+                    {
+                        var siteZones = allZones.Where(z => z.SiteId == activeSite.Id).ToList();
+                        if (siteZones.Any())
+                        {
+                            activeZone = siteZones.FirstOrDefault();
+                            if (activeZone != null)
+                            {
+                                var zoneControllers = allControllers.Where(c => c.ZoneId == activeZone.Id).ToList();
+                                if (zoneControllers.Any())
+                                {
+                                    activeController = zoneControllers.FirstOrDefault();
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // 1. Populate and select Site
+                SiteCombo.ItemsSource = _sites;
+                SiteCombo.DisplayMemberPath = "SiteName";
+                SiteCombo.SelectedValuePath = "Id";
+
+                if (activeSite != null)
+                {
+                    SiteCombo.SelectedValue = activeSite.Id;
+                }
+                else if (_sites.Any())
+                {
+                    SiteCombo.SelectedIndex = 0;
+                }
+
+                // 2. Populate and select Zone for the selected Site
+                int selectedSiteId = SiteCombo.SelectedValue != null ? Convert.ToInt32(SiteCombo.SelectedValue) : 0;
+                var zonesForSite = allZones.Where(z => z.SiteId == selectedSiteId).ToList();
+                ZoneCombo.ItemsSource = zonesForSite;
+                ZoneCombo.DisplayMemberPath = "ZoneName";
+                ZoneCombo.SelectedValuePath = "Id";
+
+                if (activeZone != null && zonesForSite.Any(z => z.Id == activeZone.Id))
+                {
+                    ZoneCombo.SelectedValue = activeZone.Id;
+                }
+                else if (zonesForSite.Any())
+                {
+                    ZoneCombo.SelectedIndex = 0;
+                }
+                else
+                {
+                    ZoneCombo.SelectedIndex = -1;
+                }
+
+                // 3. Populate and select Controller for the selected Zone
+                int selectedZoneId = ZoneCombo.SelectedValue != null ? Convert.ToInt32(ZoneCombo.SelectedValue) : 0;
+                var controllersForZone = allControllers.Where(c => c.ZoneId == selectedZoneId).ToList();
+                TopologyCombo.ItemsSource = controllersForZone;
+                TopologyCombo.DisplayMemberPath = "ControllerName";
+                TopologyCombo.SelectedValuePath = "Id";
+
+                if (activeController != null && controllersForZone.Any(c => c.Id == activeController.Id))
+                {
+                    TopologyCombo.SelectedValue = activeController.Id;
+                }
+                else if (controllersForZone.Any())
+                {
+                    TopologyCombo.SelectedIndex = 0;
+                }
+                else
+                {
+                    TopologyCombo.SelectedIndex = -1;
+                }
+
+                // 4. Populate and select Lanes for the selected Zone
+                var lanesForZone = _lanes.Where(l => l.ZoneId == selectedZoneId).ToList();
+                Door1LaneCombo.ItemsSource = lanesForZone;
+                Door2LaneCombo.ItemsSource = lanesForZone;
 
                 Door1LaneCombo.DisplayMemberPath = "LaneName";
                 Door1LaneCombo.SelectedValuePath = "Id";
 
                 Door2LaneCombo.DisplayMemberPath = "LaneName";
                 Door2LaneCombo.SelectedValuePath = "Id";
+
+                // Load reader mappings (saved selections)
+                LoadReaderSelection();
+
+                // Make sure IP box shows current saved IP
+                IpBox.Text = _cfg.ZKTeco.IpAddress;
+
+                _isInitializing = false;
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Load lanes failed: {ex.Message}");
+                _isInitializing = false;
+                MessageBox.Show($"InitializeConfiguration failed: {ex.Message}");
             }
         }
-
-
-        // =============================
-        // LOAD SITES
-        // =============================
-
-        private async Task LoadSites()
-        {
-            try
-            {
-                _sites = await ParkingTopologyService.Instance.GetSitesAsync();
-
-                // seed data nếu DB trống
-                if (_sites == null || !_sites.Any())
-                {
-                    var site = new ParkingSite
-                    {
-                        SiteCode = "SITE-1",
-                        SiteName = "Bãi Mặc Định",
-                        Description = "Default Site",
-                        IsActive = true,
-                        CreatedUtc = DateTime.UtcNow
-                    };
-
-                    await ParkingTopologyService.Instance.SaveSiteAsync(site);
-
-                    _sites = await ParkingTopologyService.Instance.GetSitesAsync();
-
-                    var createdSite = _sites.FirstOrDefault();
-
-                    if (createdSite != null)
-                    {
-                        var zone = new ParkingZone
-                        {
-                            SiteId = createdSite.Id,
-                            ZoneCode = "ZONE-1",
-                            ZoneName = "Khu Vực 1",
-                            Description = "Default Zone",
-                            MaxCapacity = 100,
-                            IsActive = true,
-                            CreatedUtc = DateTime.UtcNow
-                        };
-
-                        await ParkingTopologyService.Instance.SaveZoneAsync(zone);
-
-                        var zones =
-                            await ParkingTopologyService.Instance.GetZonesAsync();
-
-                        var createdZone = zones.FirstOrDefault();
-
-                        if (createdZone != null)
-                        {
-                            await ParkingTopologyService.Instance
-                                .SaveControllerAsync(new C3ControllerConfig
-                                {
-                                    ControllerName = "C3-200 Main",
-                                    IpAddress = "192.168.1.201",
-                                    ZoneId = createdZone.Id,
-                                    IsActive = true,
-                                    CreatedUtc = DateTime.UtcNow
-                                });
-
-                            await ParkingTopologyService.Instance
-                                .SaveLaneAsync(new LaneConfig
-                                {
-                                    LaneCode = "LANE-1",
-                                    LaneName = "Làn Vào",
-                                    Direction = "IN",
-                                    ZoneId = createdZone.Id,
-                                    IsActive = true,
-                                    CreatedUtc = DateTime.UtcNow
-                                });
-
-                            await ParkingTopologyService.Instance
-                                .SaveLaneAsync(new LaneConfig
-                                {
-                                    LaneCode = "LANE-2",
-                                    LaneName = "Làn Ra",
-                                    Direction = "OUT",
-                                    ZoneId = createdZone.Id,
-                                    IsActive = true,
-                                    CreatedUtc = DateTime.UtcNow
-                                });
-                        }
-                    }
-
-                    // reload lại
-                    _sites =
-                        await ParkingTopologyService.Instance.GetSitesAsync();
-                }
-
-                SiteCombo.ItemsSource = _sites;
-                SiteCombo.DisplayMemberPath = "SiteName";
-                SiteCombo.SelectedValuePath = "Id";
-
-                // auto select site đầu tiên
-                if (_sites.Any())
-                    SiteCombo.SelectedIndex = 0;
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Load sites failed: {ex.Message}");
-            }
-        }
-
 
         // =============================
         // SITE CHANGED
         // =============================
-
         private async void SiteCombo_SelectionChanged(
             object sender,
             SelectionChangedEventArgs e)
         {
-            if (SiteCombo.SelectedValue == null)
+            if (_isInitializing || SiteCombo.SelectedValue == null)
                 return;
 
             try
             {
-                int siteId =
-                    Convert.ToInt32(SiteCombo.SelectedValue);
+                int siteId = Convert.ToInt32(SiteCombo.SelectedValue);
 
-                var allZones =
-                    await ParkingTopologyService.Instance.GetZonesAsync();
+                var allZones = await ParkingTopologyService.Instance.GetZonesAsync();
 
                 var zones = allZones
                     .Where(z => z.SiteId == siteId)
@@ -223,27 +210,22 @@ namespace QuanLyGiuXe
             }
         }
 
-
         // =============================
         // ZONE CHANGED
         // =============================
-
         private async void ZoneCombo_SelectionChanged(
             object sender,
             SelectionChangedEventArgs e)
         {
-            if (ZoneCombo.SelectedValue == null)
+            if (_isInitializing || ZoneCombo.SelectedValue == null)
                 return;
 
             try
             {
-                int zoneId =
-                    Convert.ToInt32(ZoneCombo.SelectedValue);
+                int zoneId = Convert.ToInt32(ZoneCombo.SelectedValue);
 
                 // load controller
-                var controllers =
-                    await ParkingTopologyService.Instance
-                        .GetControllersByZoneAsync(zoneId);
+                var controllers = await ParkingTopologyService.Instance.GetControllersByZoneAsync(zoneId);
 
                 TopologyCombo.ItemsSource = controllers;
                 TopologyCombo.DisplayMemberPath = "ControllerName";
@@ -255,8 +237,7 @@ namespace QuanLyGiuXe
                     TopologyCombo.SelectedIndex = -1;
 
                 // load lanes
-                var allLanes =
-                    await ParkingTopologyService.Instance.GetLanesAsync();
+                var allLanes = await ParkingTopologyService.Instance.GetLanesAsync();
 
                 var lanes = allLanes
                     .Where(l => l.ZoneId == zoneId)
@@ -283,15 +264,16 @@ namespace QuanLyGiuXe
             }
         }
 
-
         // =============================
         // TOPOLOGY CHANGED
         // =============================
-
         private void TopologyCombo_SelectionChanged(
             object sender,
             SelectionChangedEventArgs e)
         {
+            if (_isInitializing)
+                return;
+
             try
             {
                 if (TopologyCombo.SelectedItem is C3ControllerConfig controller)
@@ -305,24 +287,14 @@ namespace QuanLyGiuXe
             }
         }
 
-
         // =============================
         // WINDOW LOADED
         // =============================
-
         private async void Window_Loaded(
             object sender,
             RoutedEventArgs e)
         {
-            try
-            {
-                await LoadSites();
-                await LoadLanes();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Init failed: {ex.Message}");
-            }
+            await InitializeConfigurationAsync();
         }
 
         private void Reset_Click(object sender, RoutedEventArgs e)
@@ -426,7 +398,7 @@ namespace QuanLyGiuXe
 
         private void Door1LaneCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (_isSyncingCombos)
+            if (_isInitializing || _isSyncingCombos)
                 return;
 
             if (Door1LaneCombo.SelectedValue == null)
@@ -453,7 +425,7 @@ namespace QuanLyGiuXe
 
         private void Door2LaneCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (_isSyncingCombos)
+            if (_isInitializing || _isSyncingCombos)
                 return;
 
             if (Door2LaneCombo.SelectedValue == null)
