@@ -203,15 +203,26 @@ namespace QuanLyGiuXe.Services
         public async Task<ParkingZone?> GetZoneByReaderAsync(int readerNo)
         {
             var mapping = ReaderLaneMappingService.Instance.GetMappingByReader(readerNo);
-            if (mapping == null || !mapping.IsEnabled) return null;
+
+            if (mapping == null || !mapping.IsEnabled)
+                return null;
 
             var lanes = await GetLanesAsync();
-            // Resolve by LaneCode (e.g. "LANE-1" matches LaneIndex = 1) or by Id
-            var lane = lanes.FirstOrDefault(l => l.Id == mapping.LaneIndex || l.LaneCode == $"LANE-{mapping.LaneIndex}");
-            if (lane == null || !lane.ZoneId.HasValue) return null;
+
+            var lane = lanes.FirstOrDefault(l => l.Id == mapping.LaneId);
+
+            if (lane == null || !lane.ZoneId.HasValue)
+                return null;
 
             var zones = await GetZonesAsync();
+
             return zones.FirstOrDefault(z => z.Id == lane.ZoneId.Value);
+        }
+
+        public async Task<LaneConfig> GetLaneByIdAsync(int laneId)
+        {
+            var lanes = await GetLanesAsync();
+            return lanes.FirstOrDefault(x => x.Id == laneId);
         }
 
         public List<C3ControllerConfig> GetControllersByZone(int zoneId) => Task.Run(() => GetControllersByZoneAsync(zoneId)).GetAwaiter().GetResult();
@@ -237,7 +248,7 @@ namespace QuanLyGiuXe.Services
                     string sql;
                     if (isNew)
                     {
-                        sql = "INSERT INTO dbo.ParkingSites (SiteCode, SiteName, Description, IsActive, CreatedUtc) VALUES (@code, @name, @desc, @active, @created)";
+                        sql = "INSERT INTO dbo.ParkingSites (SiteCode, SiteName, Description, IsActive, CreatedUtc) OUTPUT INSERTED.Id VALUES (@code, @name, @desc, @active, @created)";
                     }
                     else
                     {
@@ -252,7 +263,16 @@ namespace QuanLyGiuXe.Services
                         cmd.Parameters.AddWithValue("@desc", site.Description ?? string.Empty);
                         cmd.Parameters.AddWithValue("@active", site.IsActive);
                         cmd.Parameters.AddWithValue("@created", site.CreatedUtc);
-                        await cmd.ExecuteNonQueryAsync();
+                        
+                        if (isNew)
+                        {
+                            var newId = await cmd.ExecuteScalarAsync();
+                            if (newId != null) site.Id = Convert.ToInt32(newId);
+                        }
+                        else
+                        {
+                            await cmd.ExecuteNonQueryAsync();
+                        }
                     }
                 },
                 async () =>
@@ -293,15 +313,45 @@ namespace QuanLyGiuXe.Services
                 new { Id = id },
                 async conn =>
                 {
-                    // 1. Nullify references in VehicleSessions
-                    string updateSql = "UPDATE dbo.VehicleSessions SET SiteId = NULL WHERE SiteId = @id";
+                    // 1. Clean up legacy ParkingTopologies table if it exists
+                    string dropLegacyFkSql = @"
+                        IF OBJECT_ID('dbo.ParkingTopologies', 'U') IS NOT NULL
+                        BEGIN
+                            BEGIN TRY
+                                DROP TABLE dbo.ParkingTopologies;
+                            END TRY
+                            BEGIN CATCH
+                                -- If drop fails (e.g. referenced by other tables), try dropping the FK and updating
+                                IF EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_ParkingTopologies_Site')
+                                BEGIN
+                                    ALTER TABLE dbo.ParkingTopologies DROP CONSTRAINT FK_ParkingTopologies_Site;
+                                END
+                                
+                                BEGIN TRY
+                                    EXEC sp_executesql N'UPDATE dbo.ParkingTopologies SET SiteId = NULL WHERE SiteId = @id', N'@id INT', @id;
+                                END TRY
+                                BEGIN CATCH
+                                END CATCH
+                            END CATCH
+                        END";
+                    using (var cmd = new SqlCommand(dropLegacyFkSql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@id", id);
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+
+                    // 2. Nullify references in transaction tables
+                    string updateSql = @"
+                        UPDATE dbo.VehicleSessions SET SiteId = NULL WHERE SiteId = @id;
+                        UPDATE dbo.XeTrongBai SET SiteId = NULL WHERE SiteId = @id;
+                        UPDATE dbo.LichSuXe SET SiteId = NULL WHERE SiteId = @id;";
                     using (var cmd = new SqlCommand(updateSql, conn))
                     {
                         cmd.Parameters.AddWithValue("@id", id);
                         await cmd.ExecuteNonQueryAsync();
                     }
 
-                    // 2. Delete the site
+                    // 3. Delete the site
                     string sql = "DELETE FROM dbo.ParkingSites WHERE Id = @id";
                     using (var cmd = new SqlCommand(sql, conn))
                     {
@@ -316,7 +366,10 @@ namespace QuanLyGiuXe.Services
                     using (var conn = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={dbPath};Default Timeout=5;"))
                     {
                         await conn.OpenAsync();
-                        string updateSql = "UPDATE VehicleSessions SET SiteId = NULL WHERE SiteId = @id";
+                        string updateSql = @"
+                            UPDATE VehicleSessions SET SiteId = NULL WHERE SiteId = @id;
+                            UPDATE XeTrongBai SET SiteId = NULL WHERE SiteId = @id;
+                            UPDATE LichSuXe SET SiteId = NULL WHERE SiteId = @id;";
                         using (var cmd = new Microsoft.Data.Sqlite.SqliteCommand(updateSql, conn))
                         {
                             cmd.Parameters.AddWithValue("@id", id);
@@ -346,7 +399,7 @@ namespace QuanLyGiuXe.Services
                     string sql;
                     if (isNew)
                     {
-                        sql = "INSERT INTO dbo.ParkingZones (SiteId, ZoneCode, ZoneName, Description, MaxCapacity, IsActive, CreatedUtc) VALUES (@siteId, @code, @name, @desc, @cap, @active, @created)";
+                        sql = "INSERT INTO dbo.ParkingZones (SiteId, ZoneCode, ZoneName, Description, MaxCapacity, IsActive, CreatedUtc) OUTPUT INSERTED.Id VALUES (@siteId, @code, @name, @desc, @cap, @active, @created)";
                     }
                     else
                     {
@@ -363,7 +416,18 @@ namespace QuanLyGiuXe.Services
                         cmd.Parameters.AddWithValue("@cap", zone.MaxCapacity);
                         cmd.Parameters.AddWithValue("@active", zone.IsActive);
                         cmd.Parameters.AddWithValue("@created", zone.CreatedUtc);
-                        await cmd.ExecuteNonQueryAsync();
+                        
+                        if (isNew)
+                        {
+                            var newId = await cmd.ExecuteScalarAsync();
+                            LoggingService.Instance.LogInfo("SaveZone", "Insert", $"ExecuteScalarAsync returned: {newId}");
+                            if (newId != null && newId != DBNull.Value) zone.Id = Convert.ToInt32(newId);
+                        }
+                        else
+                        {
+                            int rows = await cmd.ExecuteNonQueryAsync();
+                            LoggingService.Instance.LogInfo("SaveZone", "Update", $"ExecuteNonQueryAsync updated rows: {rows}");
+                        }
                     }
                 },
                 async () =>
@@ -422,15 +486,45 @@ namespace QuanLyGiuXe.Services
                 new { Id = id },
                 async conn =>
                 {
-                    // 1. Nullify references in VehicleSessions
-                    string updateSql = "UPDATE dbo.VehicleSessions SET ZoneId = NULL WHERE ZoneId = @id";
+                    // 1. Clean up legacy ParkingTopologies table if it exists (for 'BaiXe' DB)
+                    string dropLegacyFkSql = @"
+                        IF OBJECT_ID('dbo.ParkingTopologies', 'U') IS NOT NULL
+                        BEGIN
+                            BEGIN TRY
+                                DROP TABLE dbo.ParkingTopologies;
+                            END TRY
+                            BEGIN CATCH
+                                -- If drop fails (e.g. referenced by other tables), try dropping the FK and updating
+                                IF EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_ParkingTopologies_Zone')
+                                BEGIN
+                                    ALTER TABLE dbo.ParkingTopologies DROP CONSTRAINT FK_ParkingTopologies_Zone;
+                                END
+                                
+                                BEGIN TRY
+                                    EXEC sp_executesql N'UPDATE dbo.ParkingTopologies SET ZoneId = NULL WHERE ZoneId = @id', N'@id INT', @id;
+                                END TRY
+                                BEGIN CATCH
+                                END CATCH
+                            END CATCH
+                        END";
+                    using (var cmd = new SqlCommand(dropLegacyFkSql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@id", id);
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+
+                    // 2. Nullify references in transaction tables
+                    string updateSql = @"
+                        UPDATE dbo.VehicleSessions SET ZoneId = NULL WHERE ZoneId = @id;
+                        UPDATE dbo.XeTrongBai SET ZoneId = NULL WHERE ZoneId = @id;
+                        UPDATE dbo.LichSuXe SET ZoneId = NULL WHERE ZoneId = @id;";
                     using (var cmd = new SqlCommand(updateSql, conn))
                     {
                         cmd.Parameters.AddWithValue("@id", id);
                         await cmd.ExecuteNonQueryAsync();
                     }
 
-                    // 2. Delete the zone
+                    // 3. Delete the zone
                     string sql = "DELETE FROM dbo.ParkingZones WHERE Id = @id";
                     using (var cmd = new SqlCommand(sql, conn))
                     {
@@ -445,7 +539,10 @@ namespace QuanLyGiuXe.Services
                     using (var conn = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={dbPath};Default Timeout=5;"))
                     {
                         await conn.OpenAsync();
-                        string updateSql = "UPDATE VehicleSessions SET ZoneId = NULL WHERE ZoneId = @id";
+                        string updateSql = @"
+                            UPDATE VehicleSessions SET ZoneId = NULL WHERE ZoneId = @id;
+                            UPDATE XeTrongBai SET ZoneId = NULL WHERE ZoneId = @id;
+                            UPDATE LichSuXe SET ZoneId = NULL WHERE ZoneId = @id;";
                         using (var cmd = new Microsoft.Data.Sqlite.SqliteCommand(updateSql, conn))
                         {
                             cmd.Parameters.AddWithValue("@id", id);
@@ -475,7 +572,7 @@ namespace QuanLyGiuXe.Services
                     string sql;
                     if (isNew)
                     {
-                        sql = "INSERT INTO dbo.C3Controllers (ControllerName, IpAddress, ZoneId, IsActive, CreatedUtc) VALUES (@name, @ip, @zoneId, @active, @created)";
+                        sql = "INSERT INTO dbo.C3Controllers (ControllerName, IpAddress, ZoneId, IsActive, CreatedUtc) OUTPUT INSERTED.Id VALUES (@name, @ip, @zoneId, @active, @created)";
                     }
                     else
                     {
@@ -490,7 +587,16 @@ namespace QuanLyGiuXe.Services
                         cmd.Parameters.AddWithValue("@zoneId", controller.ZoneId);
                         cmd.Parameters.AddWithValue("@active", controller.IsActive);
                         cmd.Parameters.AddWithValue("@created", controller.CreatedUtc);
-                        await cmd.ExecuteNonQueryAsync();
+                        
+                        if (isNew)
+                        {
+                            var newId = await cmd.ExecuteScalarAsync();
+                            if (newId != null) controller.Id = Convert.ToInt32(newId);
+                        }
+                        else
+                        {
+                            await cmd.ExecuteNonQueryAsync();
+                        }
                     }
                 },
                 async () =>
@@ -565,7 +671,7 @@ namespace QuanLyGiuXe.Services
                     string sql;
                     if (isNew)
                     {
-                        sql = "INSERT INTO dbo.Lanes (LaneCode, LaneName, Direction, ZoneId, IsActive, CreatedUtc) VALUES (@code, @name, @dir, @zoneId, @active, @created)";
+                        sql = "INSERT INTO dbo.Lanes (LaneCode, LaneName, Direction, ZoneId, IsActive, CreatedUtc) OUTPUT INSERTED.Id VALUES (@code, @name, @dir, @zoneId, @active, @created)";
                     }
                     else
                     {
@@ -581,7 +687,16 @@ namespace QuanLyGiuXe.Services
                         cmd.Parameters.AddWithValue("@zoneId", (object?)lane.ZoneId ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("@active", lane.IsActive);
                         cmd.Parameters.AddWithValue("@created", lane.CreatedUtc);
-                        await cmd.ExecuteNonQueryAsync();
+                        
+                        if (isNew)
+                        {
+                            var newId = await cmd.ExecuteScalarAsync();
+                            if (newId != null) lane.Id = Convert.ToInt32(newId);
+                        }
+                        else
+                        {
+                            await cmd.ExecuteNonQueryAsync();
+                        }
                     }
                 },
                 async () =>
@@ -630,10 +745,13 @@ namespace QuanLyGiuXe.Services
                 new { Id = id },
                 async conn =>
                 {
-                    // 1. Nullify references in VehicleSessions (for both entry and exit lanes)
+                    // 1. Nullify references in transaction tables
                     string updateSql = @"
                         UPDATE dbo.VehicleSessions SET EntryLaneId = NULL WHERE EntryLaneId = @id;
-                        UPDATE dbo.VehicleSessions SET ExitLaneId = NULL WHERE ExitLaneId = @id;";
+                        UPDATE dbo.VehicleSessions SET ExitLaneId = NULL WHERE ExitLaneId = @id;
+                        UPDATE dbo.XeTrongBai SET EntryLaneId = NULL WHERE EntryLaneId = @id;
+                        UPDATE dbo.LichSuXe SET EntryLaneId = NULL WHERE EntryLaneId = @id;
+                        UPDATE dbo.LichSuXe SET ExitLaneId = NULL WHERE ExitLaneId = @id;";
                     using (var cmd = new SqlCommand(updateSql, conn))
                     {
                         cmd.Parameters.AddWithValue("@id", id);
@@ -657,7 +775,10 @@ namespace QuanLyGiuXe.Services
                         await conn.OpenAsync();
                         string updateSql = @"
                             UPDATE VehicleSessions SET EntryLaneId = NULL WHERE EntryLaneId = @id;
-                            UPDATE VehicleSessions SET ExitLaneId = NULL WHERE ExitLaneId = @id;";
+                            UPDATE VehicleSessions SET ExitLaneId = NULL WHERE ExitLaneId = @id;
+                            UPDATE XeTrongBai SET EntryLaneId = NULL WHERE EntryLaneId = @id;
+                            UPDATE LichSuXe SET EntryLaneId = NULL WHERE EntryLaneId = @id;
+                            UPDATE LichSuXe SET ExitLaneId = NULL WHERE ExitLaneId = @id;";
                         using (var cmd = new Microsoft.Data.Sqlite.SqliteCommand(updateSql, conn))
                         {
                             cmd.Parameters.AddWithValue("@id", id);
@@ -670,8 +791,12 @@ namespace QuanLyGiuXe.Services
                     if (existing != null)
                     {
                         lanes.Remove(existing);
+                        // Update cache
                         await OfflineCacheService.Instance.SaveCacheAsync("LIST_LANES", lanes);
                     }
+
+                    // Remove from mappings
+                    ReaderLaneMappingService.Instance.RemoveMappingsByLane(id);
                 }
             );
         }

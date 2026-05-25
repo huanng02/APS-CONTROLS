@@ -16,10 +16,33 @@ namespace QuanLyGiuXe.ViewModels
         public ObservableCollection<LaneConfig> Lanes { get; set; } = new ObservableCollection<LaneConfig>();
         public ObservableCollection<C3ControllerConfig> Controllers { get; set; } = new ObservableCollection<C3ControllerConfig>();
 
-        public ParkingSite SelectedSite { get; set; }
-        public ParkingZone SelectedZone { get; set; }
-        public LaneConfig SelectedLane { get; set; }
-        public C3ControllerConfig SelectedController { get; set; }
+        private ParkingSite _selectedSite;
+        public ParkingSite SelectedSite
+        {
+            get => _selectedSite;
+            set { _selectedSite = value; OnPropertyChanged(); CommandManager.InvalidateRequerySuggested(); }
+        }
+
+        private ParkingZone _selectedZone;
+        public ParkingZone SelectedZone
+        {
+            get => _selectedZone;
+            set { _selectedZone = value; OnPropertyChanged(); CommandManager.InvalidateRequerySuggested(); }
+        }
+
+        private LaneConfig _selectedLane;
+        public LaneConfig SelectedLane
+        {
+            get => _selectedLane;
+            set { _selectedLane = value; OnPropertyChanged(); CommandManager.InvalidateRequerySuggested(); }
+        }
+
+        private C3ControllerConfig _selectedController;
+        public C3ControllerConfig SelectedController
+        {
+            get => _selectedController;
+            set { _selectedController = value; OnPropertyChanged(); CommandManager.InvalidateRequerySuggested(); }
+        }
 
         public ICommand AddSiteCommand { get; }
         public ICommand EditSiteCommand { get; }
@@ -95,8 +118,19 @@ namespace QuanLyGiuXe.ViewModels
             var dialog = new GenericAddEditWindow(newItem) { Title = "Thêm Site" };
             if (dialog.ShowDialog() == true)
             {
-                await ParkingTopologyService.Instance.SaveSiteAsync(newItem);
-                await LoadDataAsync();
+                try
+                {
+                    bool success = await ParkingTopologyService.Instance.SaveSiteAsync(newItem);
+                    if (success)
+                        MessageBox.Show("Thêm Site thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                    else
+                        MessageBox.Show("Đã lưu Site vào bộ nhớ tạm (Offline). Dữ liệu sẽ được đồng bộ lên Server sau.", "Thông báo Offline", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    await LoadDataAsync();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Lỗi thêm Site", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
             }
         }
 
@@ -105,8 +139,19 @@ namespace QuanLyGiuXe.ViewModels
             var dialog = new GenericAddEditWindow(SelectedSite) { Title = "Sửa Site" };
             if (dialog.ShowDialog() == true)
             {
-                await ParkingTopologyService.Instance.SaveSiteAsync(SelectedSite);
-                await LoadDataAsync();
+                try
+                {
+                    bool success = await ParkingTopologyService.Instance.SaveSiteAsync(SelectedSite);
+                    if (success)
+                        MessageBox.Show("Sửa Site thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                    else
+                        MessageBox.Show("Đã lưu thay đổi vào bộ nhớ tạm (Offline). Dữ liệu sẽ được đồng bộ lên Server sau.", "Thông báo Offline", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    await LoadDataAsync();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Lỗi sửa Site", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
             }
         }
 
@@ -116,7 +161,15 @@ namespace QuanLyGiuXe.ViewModels
             {
                 try
                 {
-                    await ParkingTopologyService.Instance.DeleteSiteAsync(SelectedSite.Id);
+                    bool success = await ParkingTopologyService.Instance.DeleteSiteAsync(SelectedSite.Id);
+                    if (success)
+                    {
+                        MessageBox.Show("Xóa Site thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    else
+                    {
+                        MessageBox.Show("Đã xóa Site trong bộ nhớ tạm (Offline). Dữ liệu sẽ được đồng bộ lên Server sau.", "Thông báo Offline", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    }
                     await LoadDataAsync();
                 }
                 catch (Exception ex)
@@ -133,8 +186,19 @@ namespace QuanLyGiuXe.ViewModels
             var dialog = new GenericAddEditWindow(newItem) { Title = "Thêm Zone" };
             if (dialog.ShowDialog() == true)
             {
-                await ParkingTopologyService.Instance.SaveZoneAsync(newItem);
-                await LoadDataAsync();
+                try
+                {
+                    bool success = await ParkingTopologyService.Instance.SaveZoneAsync(newItem);
+                    if (success)
+                        MessageBox.Show("Thêm Zone thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                    else
+                        MessageBox.Show("Đã lưu Zone vào bộ nhớ tạm (Offline). Dữ liệu sẽ được đồng bộ lên Server sau.", "Thông báo Offline", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    await LoadDataAsync();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Lỗi thêm Zone", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
             }
         }
 
@@ -143,8 +207,19 @@ namespace QuanLyGiuXe.ViewModels
             var dialog = new GenericAddEditWindow(SelectedZone) { Title = "Sửa Zone" };
             if (dialog.ShowDialog() == true)
             {
-                await ParkingTopologyService.Instance.SaveZoneAsync(SelectedZone);
-                await LoadDataAsync();
+                try
+                {
+                    bool success = await ParkingTopologyService.Instance.SaveZoneAsync(SelectedZone);
+                    if (success)
+                        MessageBox.Show("Sửa Zone thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                    else
+                        MessageBox.Show("Đã lưu thay đổi vào bộ nhớ tạm (Offline). Dữ liệu sẽ được đồng bộ lên Server sau.", "Thông báo Offline", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    await LoadDataAsync();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Lỗi sửa Zone", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
             }
         }
 
@@ -154,7 +229,15 @@ namespace QuanLyGiuXe.ViewModels
             {
                 try
                 {
-                    await ParkingTopologyService.Instance.DeleteZoneAsync(SelectedZone.Id);
+                    bool success = await ParkingTopologyService.Instance.DeleteZoneAsync(SelectedZone.Id);
+                    if (success)
+                    {
+                        MessageBox.Show("Xóa Zone thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    else
+                    {
+                        MessageBox.Show("Đã xóa Zone trong bộ nhớ tạm (Offline). Dữ liệu sẽ được đồng bộ lên Server sau.", "Thông báo Offline", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    }
                     await LoadDataAsync();
                 }
                 catch (Exception ex)
@@ -171,8 +254,19 @@ namespace QuanLyGiuXe.ViewModels
             var dialog = new GenericAddEditWindow(newItem) { Title = "Thêm Làn" };
             if (dialog.ShowDialog() == true)
             {
-                await ParkingTopologyService.Instance.SaveLaneAsync(newItem);
-                await LoadDataAsync();
+                try
+                {
+                    bool success = await ParkingTopologyService.Instance.SaveLaneAsync(newItem);
+                    if (success)
+                        MessageBox.Show("Thêm Làn thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                    else
+                        MessageBox.Show("Đã lưu Làn vào bộ nhớ tạm (Offline). Dữ liệu sẽ được đồng bộ lên Server sau.", "Thông báo Offline", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    await LoadDataAsync();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Lỗi thêm Làn", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
             }
         }
 
@@ -181,8 +275,19 @@ namespace QuanLyGiuXe.ViewModels
             var dialog = new GenericAddEditWindow(SelectedLane) { Title = "Sửa Làn" };
             if (dialog.ShowDialog() == true)
             {
-                await ParkingTopologyService.Instance.SaveLaneAsync(SelectedLane);
-                await LoadDataAsync();
+                try
+                {
+                    bool success = await ParkingTopologyService.Instance.SaveLaneAsync(SelectedLane);
+                    if (success)
+                        MessageBox.Show("Sửa Làn thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                    else
+                        MessageBox.Show("Đã lưu thay đổi vào bộ nhớ tạm (Offline). Dữ liệu sẽ được đồng bộ lên Server sau.", "Thông báo Offline", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    await LoadDataAsync();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Lỗi sửa Làn", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
             }
         }
 
@@ -190,8 +295,23 @@ namespace QuanLyGiuXe.ViewModels
         {
             if (MessageBox.Show("Bạn có chắc muốn xóa làn này?", "Xác nhận", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
             {
-                await ParkingTopologyService.Instance.DeleteLaneAsync(SelectedLane.Id);
-                await LoadDataAsync();
+                try
+                {
+                    bool success = await ParkingTopologyService.Instance.DeleteLaneAsync(SelectedLane.Id);
+                    if (success)
+                    {
+                        MessageBox.Show("Xóa Làn thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    else
+                    {
+                        MessageBox.Show("Đã xóa Làn trong bộ nhớ tạm (Offline). Dữ liệu sẽ được đồng bộ lên Server sau.", "Thông báo Offline", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    }
+                    await LoadDataAsync();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Lỗi xóa", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
             }
         }
 
@@ -202,8 +322,19 @@ namespace QuanLyGiuXe.ViewModels
             var dialog = new GenericAddEditWindow(newItem) { Title = "Thêm Controller" };
             if (dialog.ShowDialog() == true)
             {
-                await ParkingTopologyService.Instance.SaveControllerAsync(newItem);
-                await LoadDataAsync();
+                try
+                {
+                    bool success = await ParkingTopologyService.Instance.SaveControllerAsync(newItem);
+                    if (success)
+                        MessageBox.Show("Thêm Controller thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                    else
+                        MessageBox.Show("Đã lưu Controller vào bộ nhớ tạm (Offline). Dữ liệu sẽ được đồng bộ lên Server sau.", "Thông báo Offline", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    await LoadDataAsync();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Lỗi thêm Controller", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
             }
         }
 
@@ -212,8 +343,19 @@ namespace QuanLyGiuXe.ViewModels
             var dialog = new GenericAddEditWindow(SelectedController) { Title = "Sửa Controller" };
             if (dialog.ShowDialog() == true)
             {
-                await ParkingTopologyService.Instance.SaveControllerAsync(SelectedController);
-                await LoadDataAsync();
+                try
+                {
+                    bool success = await ParkingTopologyService.Instance.SaveControllerAsync(SelectedController);
+                    if (success)
+                        MessageBox.Show("Sửa Controller thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                    else
+                        MessageBox.Show("Đã lưu thay đổi vào bộ nhớ tạm (Offline). Dữ liệu sẽ được đồng bộ lên Server sau.", "Thông báo Offline", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    await LoadDataAsync();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Lỗi sửa Controller", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
             }
         }
 
@@ -221,8 +363,19 @@ namespace QuanLyGiuXe.ViewModels
         {
             if (MessageBox.Show("Bạn có chắc muốn xóa controller này?", "Xác nhận", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
             {
-                await ParkingTopologyService.Instance.DeleteControllerAsync(SelectedController.Id);
-                await LoadDataAsync();
+                try
+                {
+                    bool success = await ParkingTopologyService.Instance.DeleteControllerAsync(SelectedController.Id);
+                    if (success)
+                    {
+                        MessageBox.Show("Xóa Controller thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    await LoadDataAsync();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Lỗi xóa", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
             }
         }
     }

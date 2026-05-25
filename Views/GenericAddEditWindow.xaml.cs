@@ -285,6 +285,8 @@ else if (p.Name == "TrangThai")
     // Copy each property that exists on both objects
     foreach (var prop in entityType.GetProperties())
     {
+        if (prop.Name == "Id") continue; // NEVER copy the Id from a foreign key object to the model!
+        
         var modelProp = modelType.GetProperty(prop.Name);
         if (modelProp != null && modelProp.CanWrite)
         {
@@ -315,7 +317,7 @@ private void Save_Click(object sender, RoutedEventArgs e)
 
                 var reqAttr = prop.GetCustomAttribute<RequiredAttribute>();
                 string errorMsg = reqAttr?.ErrorMessage ?? $"Field {prop.Name} is required";
-                bool isRequired = reqAttr != null || prop.Name != "Detail";
+                bool isRequired = reqAttr != null;
 
                 if (input is TextBox tb)
                 {

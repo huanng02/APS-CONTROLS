@@ -33,7 +33,7 @@
                         </Border.Effect>
                         <StackPanel>
                             <Grid>
-                                <TextBlock Text="{Binding LaneId, StringFormat='LÀN SỐ {0}'}" FontWeight="Bold" FontSize="18" Foreground="#333"/>
+                                <TextBlock Text="{Binding LaneName}" FontWeight="Bold" FontSize="18" Foreground="#333"/>
                                 <Border HorizontalAlignment="Right" Background="{Binding DirectionColor}" CornerRadius="12" Padding="10,5">
                                     <TextBlock Text="{Binding DirectionText}" Foreground="White" FontWeight="Bold" FontSize="12"/>
                                 </Border>
@@ -50,7 +50,7 @@
                             <TextBlock Text="Điều khiển luồng (Direction Switch):" Margin="0,20,0,10" Foreground="#666" FontWeight="SemiBold"/>
                             
                             <UniformGrid Columns="2" Rows="2">
-                                <Button Content="Luồng VÀO (IN)" Command="{Binding SetInboundCommand}" CommandParameter="{Binding LaneId}"
+                                <Button Content="Luồng VÀO (IN)" Command="{Binding SetInboundCommand}" CommandParameter="{Binding DbLaneId}"
                                         Background="#4CAF50" Foreground="White" FontWeight="Bold" Margin="0,0,5,5" Height="40">
                                     <Button.Style>
                                         <Style TargetType="Button">
@@ -72,7 +72,7 @@
                                     </Button.Style>
                                 </Button>
                                 
-                                <Button Content="Luồng RA (OUT)" Command="{Binding SetOutboundCommand}" CommandParameter="{Binding LaneId}"
+                                <Button Content="Luồng RA (OUT)" Command="{Binding SetOutboundCommand}" CommandParameter="{Binding DbLaneId}"
                                         Background="#2196F3" Foreground="White" FontWeight="Bold" Margin="5,0,0,5" Height="40">
                                     <Button.Style>
                                         <Style TargetType="Button">
@@ -94,7 +94,7 @@
                                     </Button.Style>
                                 </Button>
                                 
-                                <Button Content="BẢO TRÌ" Command="{Binding SetMaintenanceCommand}" CommandParameter="{Binding LaneId}"
+                                <Button Content="BẢO TRÌ" Command="{Binding SetMaintenanceCommand}" CommandParameter="{Binding DbLaneId}"
                                         Background="#FF9800" Foreground="White" FontWeight="Bold" Margin="0,5,5,0" Height="40">
                                     <Button.Style>
                                         <Style TargetType="Button">
@@ -116,7 +116,7 @@
                                     </Button.Style>
                                 </Button>
 
-                                <Button Content="🚨 MỞ KHẨN CẤP" Command="{Binding EmergencyOpenCommand}" CommandParameter="{Binding LaneId}"
+                                <Button Content="🚨 MỞ KHẨN CẤP" Command="{Binding EmergencyOpenCommand}" CommandParameter="{Binding UiLaneIndex}"
                                         Background="#F44336" Foreground="White" FontWeight="Bold" Margin="5,5,0,0" Height="40">
                                     <Button.Style>
                                         <Style TargetType="Button">

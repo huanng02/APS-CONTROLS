@@ -245,45 +245,92 @@ namespace QuanLyGiuXe
         {
             Dispatcher.BeginInvoke(new Action(async () =>
             {
-                if (DataContext is not MainViewModel vm) return;
+                if (DataContext is not MainViewModel vm)
+                    return;
 
                 try
                 {
                     uid = RFIDService.ChuanHoaUID(uid);
+
                     var cfg = AppConfig.Load();
-                    int cooldown = cfg.ZKTeco.CardCooldownMs > 0 ? cfg.ZKTeco.CardCooldownMs : 2000;
-                    if (!_lastScanByUid.TryGetValue(uid, out var last)) last = DateTime.MinValue;
-                    if ((DateTime.Now - last).TotalMilliseconds < cooldown) return;
+
+                    int cooldown = cfg.ZKTeco.CardCooldownMs > 0
+                        ? cfg.ZKTeco.CardCooldownMs
+                        : 2000;
+
+                    if (!_lastScanByUid.TryGetValue(uid, out var last))
+                        last = DateTime.MinValue;
+
+                    if ((DateTime.Now - last).TotalMilliseconds < cooldown)
+                        return;
 
                     _lastScanByUid[uid] = DateTime.Now;
                 }
-                catch { }
+                catch
+                {
+                }
 
                 var mapping = ReaderLaneMappingService.Instance.GetMappingByReader(readerNo);
-                if (mapping != null)
+
+                if (mapping != null && mapping.IsEnabled)
                 {
-                    int laneIndex = mapping.LaneIndex;
-                    Task.Run(() => {
-                        try {
-                            string cam1 = (laneIndex == 1) ? "Vao1" : "Ra1";
-                            string cam2 = (laneIndex == 1) ? "Vao2" : "Ra2";
-                            
-                            lock (_currentFrames) {
-                                if (_currentFrames.TryGetValue(cam1, out var bmp1)) {
+                    // UI hiện tại chỉ support 2 lane hiển thị
+                    int uiLaneIndex = readerNo <= 2 ? 1 : 2;
+
+                    Task.Run(async () =>
+                    {
+                        try
+                        {
+                            var lane = await ParkingTopologyService.Instance.GetLaneByIdAsync(mapping.LaneId);
+
+                            if (lane == null)
+                                return;
+
+                            var (cam1, cam2) = GetCameraKeys(lane.Direction);
+
+                            lock (_currentFrames)
+                            {
+                                if (_currentFrames.TryGetValue(cam1, out var bmp1))
+                                {
                                     var img1 = ConvertBitmap((System.Drawing.Bitmap)bmp1.Clone());
-                                    Dispatcher.BeginInvoke(new Action(() => vm.UpdateLaneSnapshot(laneIndex, 1, img1)));
+
+                                    Dispatcher.BeginInvoke(new Action(() =>
+                                    {
+                                        vm.UpdateLaneSnapshot(uiLaneIndex, 1, img1);
+                                    }));
                                 }
-                                if (_currentFrames.TryGetValue(cam2, out var bmp2)) {
+
+                                if (_currentFrames.TryGetValue(cam2, out var bmp2))
+                                {
                                     var img2 = ConvertBitmap((System.Drawing.Bitmap)bmp2.Clone());
-                                    Dispatcher.BeginInvoke(new Action(() => vm.UpdateLaneSnapshot(laneIndex, 2, img2)));
+
+                                    Dispatcher.BeginInvoke(new Action(() =>
+                                    {
+                                        vm.UpdateLaneSnapshot(uiLaneIndex, 2, img2);
+                                    }));
                                 }
                             }
-                        } catch { }
+                        }
+                        catch (Exception ex)
+                        {
+                            LoggingService.Instance.LogError(
+                                "XuLyQuetThe",
+                                "MainWindow",
+                                $"Lỗi xử lý snapshot cho Reader {readerNo}",
+                                ex);
+                        }
                     });
                 }
 
                 await vm.ProcessScanFromReaderAsync(readerNo, uid);
             }));
+        }
+
+        private (string cam1, string cam2) GetCameraKeys(string direction)
+        {
+            return direction?.ToUpper() == "IN"
+                ? ("Vao1", "Vao2")
+                : ("Ra1", "Ra2");
         }
 
 

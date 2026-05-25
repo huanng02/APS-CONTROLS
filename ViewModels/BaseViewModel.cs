@@ -5,6 +5,7 @@ namespace QuanLyGiuXe.ViewModels
     public class BaseViewModel : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler? PropertyChanged;
-        protected void OnPropertyChanged(string name) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+        protected void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string name = null) 
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }
 }

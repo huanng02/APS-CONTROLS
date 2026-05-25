@@ -11,7 +11,15 @@ namespace QuanLyGiuXe.ViewModels
 {
     public class LaneStateModel : BaseViewModel
     {
-        public int LaneId { get; set; }
+        public int DbLaneId { get; set; }
+        public int UiLaneIndex { get; set; }
+        
+        private string _laneName;
+        public string LaneName
+        {
+            get => _laneName;
+            set { _laneName = value; OnPropertyChanged(nameof(LaneName)); }
+        }
         
         private string _currentDirection;
         public string CurrentDirection
@@ -113,51 +121,65 @@ namespace QuanLyGiuXe.ViewModels
             _timer.Start();
         }
 
-        private void LoadLanes()
+        private async void LoadLanes()
         {
-            // Tạm thời giả định có 2 làn
-            for (int i = 1; i <= 2; i++)
+            try
             {
-                var lane = new LaneStateModel
+                var lanes = await ParkingTopologyService.Instance.GetLanesAsync();
+
+                for (int i = 1; i <= 2; i++)
                 {
-                    LaneId = i,
-                    SetInboundCommand = new RelayCommand(p => SetLaneDirection((int)p, "IN")),
-                    SetOutboundCommand = new RelayCommand(p => SetLaneDirection((int)p, "OUT")),
-                    SetMaintenanceCommand = new RelayCommand(p => SetLaneDirection((int)p, "MAINTENANCE")),
-                    EmergencyOpenCommand = new RelayCommand(p => EmergencyOpen((int)p))
-                };
-                Lanes.Add(lane);
+                    var mapping = ReaderLaneMappingService.Instance.GetMappingByReader(i == 1 ? 1 : 3) 
+                               ?? ReaderLaneMappingService.Instance.GetMappingByReader(i == 1 ? 2 : 4);
+                    
+                    int dbLaneId = mapping?.LaneId ?? i;
+                    var laneDb = lanes.FirstOrDefault(l => l.Id == dbLaneId);
+                    string laneName = laneDb?.LaneName ?? $"LÀN SỐ {i}";
+
+                    var lane = new LaneStateModel
+                    {
+                        DbLaneId = dbLaneId,
+                        UiLaneIndex = i,
+                        LaneName = laneName.ToUpper(),
+                        SetInboundCommand = new RelayCommand(p => SetLaneDirection((int)p, "IN")),
+                        SetOutboundCommand = new RelayCommand(p => SetLaneDirection((int)p, "OUT")),
+                        SetMaintenanceCommand = new RelayCommand(p => SetLaneDirection((int)p, "MAINTENANCE")),
+                        EmergencyOpenCommand = new RelayCommand(p => EmergencyOpen((int)p))
+                    };
+                    Lanes.Add(lane);
+                }
+                UpdateLaneStates();
             }
-            UpdateLaneStates();
+            catch { }
         }
 
         private void UpdateLaneStates()
         {
             foreach (var lane in Lanes)
             {
-                var state = LaneRuntimeManager.Instance.GetLaneState(lane.LaneId);
+                var state = LaneRuntimeManager.Instance.GetLaneState(lane.DbLaneId);
                 lane.CurrentDirection = state.CurrentDirection;
                 lane.IsLocked = state.IsLocked;
             }
         }
 
-        private void SetLaneDirection(int laneId, string direction)
+        private void SetLaneDirection(int dbLaneId, string direction)
         {
-            LaneRuntimeManager.Instance.SetLaneDirection(laneId, direction);
-            LoggingService.Instance.LogAudit("SYSTEM", $"Changed Lane {laneId} direction to {direction}");
+            LaneRuntimeManager.Instance.SetLaneDirection(dbLaneId, direction);
+            LoggingService.Instance.LogAudit("SYSTEM", $"Changed Lane {dbLaneId} direction to {direction}");
             UpdateLaneStates();
         }
 
-        private void EmergencyOpen(int laneId)
+        private void EmergencyOpen(int uiLaneIndex)
         {
             Task.Run(async () =>
             {
-                bool result = await C3200Service.Instance.OpenBarrierAsync(laneId);
+                bool result = await C3200Service.Instance.OpenBarrierAsync(uiLaneIndex);
                 Application.Current.Dispatcher.Invoke(() =>
                 {
-                    MessageBox.Show(result ? $"✅ Đã mở khẩn cấp Barrier Làn {laneId}" : $"❌ Lỗi mở Barrier Làn {laneId}!");
+                    MessageBox.Show(result ? $"✅ Đã mở khẩn cấp Barrier Làn {uiLaneIndex}" : $"❌ Lỗi mở Barrier Làn {uiLaneIndex}!");
                 });
-                LoggingService.Instance.LogAudit("SYSTEM", $"Emergency Open Lane {laneId}");
+                LoggingService.Instance.LogAudit("SYSTEM", $"Emergency Open Lane {uiLaneIndex}");
             });
         }
         

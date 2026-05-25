@@ -76,6 +76,25 @@ namespace QuanLyGiuXe.Services.OfflineCache
             }
             catch (Exception ex)
             {
+                // Do not swallow DB logic errors (e.g., FK constraints, syntax errors)
+                if (ex is SqlException sqlEx)
+                {
+                    bool isNetworkError = false;
+                    foreach (SqlError err in sqlEx.Errors)
+                    {
+                        if (err.Number == -2 || err.Number == 2 || err.Number == 53 || err.Number == 11001)
+                        {
+                            isNetworkError = true;
+                            break;
+                        }
+                    }
+                    if (!isNetworkError) throw; // Logic error, throw to UI
+                }
+                else if (ex is not OperationCanceledException && ex.Message != "Simulated offline")
+                {
+                    throw; // E.g., NullReferenceException, InvalidOperationException
+                }
+
                 string reason = ex is OperationCanceledException ? "TIMEOUT" : "ERROR";
                 LoggingService.Instance.LogWarning("QUEUE_ADD", "Repository", $"SQL WRITE {reason} for {transactionType}. Adding to Offline Queue.");
                 

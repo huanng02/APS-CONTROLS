@@ -354,23 +354,39 @@ namespace QuanLyGiuXe
         private void LoadReaderSelection()
         {
             var mappings = ReaderLaneMappingService.Instance.GetAll();
-            
-            // Determine door mapping from Reader 1
-            var r1Map = mappings.FirstOrDefault(m => m.ReaderNo == 1);
-            int door1Lane = (r1Map != null) ? r1Map.LaneIndex : 1;
-            int door2Lane = (door1Lane == 1) ? 2 : 1;
 
             _isSyncingCombos = true;
-            Door1LaneCombo.SelectedValue = door1Lane;
-            Door2LaneCombo.SelectedValue = door2Lane;
+
+            // Reader 1-2 = Door 1
+            var door1Mapping = mappings
+                .FirstOrDefault(m => m.ReaderNo == 1);
+
+            if (door1Mapping != null)
+            {
+                Door1LaneCombo.SelectedValue = door1Mapping.LaneId;
+            }
+
+            // Reader 3-4 = Door 2
+            var door2Mapping = mappings
+                .FirstOrDefault(m => m.ReaderNo == 3);
+
+            if (door2Mapping != null)
+            {
+                Door2LaneCombo.SelectedValue = door2Mapping.LaneId;
+            }
+
             _isSyncingCombos = false;
 
-            void BindReader(int readerNo, ComboBox dirCombo, CheckBox enableCheck)
+            void BindReader(
+                int readerNo,
+                ComboBox dirCombo,
+                CheckBox enableCheck)
             {
-                var map = mappings.FirstOrDefault(m => m.ReaderNo == readerNo);
+                var map = mappings
+                    .FirstOrDefault(m => m.ReaderNo == readerNo);
+
                 if (map != null)
                 {
-                    // Select Direction
                     foreach (ComboBoxItem item in dirCombo.Items)
                     {
                         if (item.Tag?.ToString() == map.Direction)
@@ -379,7 +395,7 @@ namespace QuanLyGiuXe
                             break;
                         }
                     }
-                    // Select Enabled
+
                     enableCheck.IsChecked = map.IsEnabled;
                 }
                 else
@@ -570,7 +586,7 @@ namespace QuanLyGiuXe
                 newMappings.Add(new ReaderLaneMapping
                 {
                     ReaderNo = readerNo,
-                    LaneIndex = mappedLane,
+                    LaneId = mappedLane,
                     Direction = ((ComboBoxItem)dirCombo.SelectedItem)?.Tag?.ToString() ?? "IN",
                     IsEnabled = enableCheck.IsChecked == true
                 });
