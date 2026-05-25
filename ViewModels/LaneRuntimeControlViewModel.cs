@@ -163,11 +163,25 @@ namespace QuanLyGiuXe.ViewModels
             }
         }
 
-        private void SetLaneDirection(int dbLaneId, string direction)
+        private async void SetLaneDirection(int dbLaneId, string direction)
         {
             LaneRuntimeManager.Instance.SetLaneDirection(dbLaneId, direction);
             LoggingService.Instance.LogAudit("SYSTEM", $"Changed Lane {dbLaneId} direction to {direction}");
             UpdateLaneStates();
+            
+            try
+            {
+                var lane = await ParkingTopologyService.Instance.GetLaneByIdAsync(dbLaneId);
+                if (lane != null)
+                {
+                    lane.Direction = direction;
+                    await ParkingTopologyService.Instance.SaveLaneAsync(lane);
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("LaneControl", "SaveDirection", ex.Message);
+            }
         }
 
         private void EmergencyOpen(int uiLaneIndex)

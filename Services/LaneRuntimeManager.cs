@@ -31,9 +31,20 @@ namespace QuanLyGiuXe.Services
 
         private LaneRuntimeManager()
         {
-            // Initialize default lanes
-            _laneStates.TryAdd(1, new LaneRuntimeState { LaneId = 1, CurrentDirection = "IN" });
-            _laneStates.TryAdd(2, new LaneRuntimeState { LaneId = 2, CurrentDirection = "OUT" });
+            try
+            {
+                var lanes = ParkingTopologyService.Instance.GetLanes();
+                foreach (var lane in lanes)
+                {
+                    _laneStates.TryAdd(lane.Id, new LaneRuntimeState { LaneId = lane.Id, CurrentDirection = lane.Direction });
+                }
+            }
+            catch
+            {
+                // Fallback if DB not ready
+                _laneStates.TryAdd(1, new LaneRuntimeState { LaneId = 1, CurrentDirection = "IN" });
+                _laneStates.TryAdd(2, new LaneRuntimeState { LaneId = 2, CurrentDirection = "OUT" });
+            }
 
             // Start background recovery task to prevent permanent locks (stuck state)
             System.Threading.Tasks.Task.Run(async () =>
