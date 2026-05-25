@@ -21,13 +21,13 @@
         </Grid.RowDefinitions>
 
         <!-- Header Row -->
-        <Grid Grid.Row="0" Margin="10,0,10,10">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
+        <Grid Grid.Row="0" Margin="10,0,10,15">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
             
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+            <StackPanel Grid.Row="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,15">
                 <Border Background="{StaticResource APSBlueBrush}" CornerRadius="4" Padding="10" Margin="0,0,15,0">
                     <TextBlock Text="📊" FontSize="20" Foreground="White" VerticalAlignment="Center"/>
                 </Border>
@@ -39,25 +39,49 @@
                              Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}"/>
             </StackPanel>
 
-            <StackPanel Grid.Column="1" Orientation="Horizontal">
-                <StackPanel Orientation="Horizontal" Visibility="{Binding IsCustomDateVisible, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="0,0,20,0">
-                    <TextBlock Text="From:" Style="{StaticResource SubTitleStyle}" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                    <DatePicker SelectedDate="{Binding FromDate}" Width="120" />
-                    <TextBlock Text="To:" Style="{StaticResource SubTitleStyle}" VerticalAlignment="Center" Margin="10,0,5,0"/>
-                    <DatePicker SelectedDate="{Binding ToDate}" Width="120" />
-                </StackPanel>
-
-                <TextBlock Text="Range:" Style="{StaticResource SubTitleStyle}" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                <ComboBox Width="130" Style="{StaticResource ModernComboBox}"
-                          ItemsSource="{Binding FilterOptions}" SelectedItem="{Binding SelectedFilter}"/>
-
-                <Button Command="{Binding ExportCommand}" Margin="10,0,0,0" Style="{StaticResource ModernButton}" Background="{StaticResource SuccessBrush}">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="📥" Margin="0,0,5,0"/>
-                        <TextBlock x:Name="btnText" Text="Export Excel"/>
+            <!-- Filters -->
+            <Border Grid.Row="1" Background="White" CornerRadius="8" Padding="15" 
+                    BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/> <!-- Topology Filters -->
+                        <ColumnDefinition Width="*"/> <!-- Spacer -->
+                        <ColumnDefinition Width="Auto"/> <!-- Date Filters & Export -->
+                    </Grid.ColumnDefinitions>
+                    
+                    <!-- Topology Filters -->
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock Text="🏢 Bãi Xe:" Style="{StaticResource SubTitleStyle}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <ComboBox Width="180" Style="{StaticResource ModernComboBox}" Margin="0,0,20,0"
+                                  ItemsSource="{Binding Sites}" DisplayMemberPath="SiteName" SelectedItem="{Binding SelectedSite}"/>
+                                  
+                        <TextBlock Text="📍 Khu Vực:" Style="{StaticResource SubTitleStyle}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <ComboBox Width="180" Style="{StaticResource ModernComboBox}"
+                                  ItemsSource="{Binding Zones}" DisplayMemberPath="ZoneName" SelectedItem="{Binding SelectedZone}"/>
                     </StackPanel>
-                </Button>
-            </StackPanel>
+                    
+                    <!-- Date Filters & Export -->
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Visibility="{Binding IsCustomDateVisible, Converter={StaticResource BooleanToVisibilityConverter}}" Margin="0,0,20,0">
+                            <TextBlock Text="Từ:" Style="{StaticResource SubTitleStyle}" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                            <DatePicker SelectedDate="{Binding FromDate}" Width="120" />
+                            <TextBlock Text="Đến:" Style="{StaticResource SubTitleStyle}" VerticalAlignment="Center" Margin="10,0,5,0"/>
+                            <DatePicker SelectedDate="{Binding ToDate}" Width="120" />
+                        </StackPanel>
+
+                        <TextBlock Text="Thời gian:" Style="{StaticResource SubTitleStyle}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                        <ComboBox Width="140" Style="{StaticResource ModernComboBox}"
+                                  ItemsSource="{Binding FilterOptions}" SelectedItem="{Binding SelectedFilter}"/>
+
+                        <Button Command="{Binding ExportCommand}" Margin="15,0,0,0" Style="{StaticResource ModernButton}" Background="{StaticResource SuccessBrush}" Padding="15,8">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="📥" Margin="0,0,8,0"/>
+                                <TextBlock x:Name="btnText" Text="Export Excel" FontWeight="SemiBold"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </Border>
         </Grid>
 
         <!-- KPI Cards Row -->
@@ -71,8 +95,12 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel>
-                        <TextBlock Text="VEHICLES IN YARD" Style="{StaticResource SubTitleStyle}"/>
-                        <TextBlock Text="{Binding XeTrongBai}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}" Margin="0,5,0,0"/>
+                        <TextBlock Text="YARD STATUS" Style="{StaticResource SubTitleStyle}"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                            <TextBlock Text="{Binding XeTrongBai}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}"/>
+                            <TextBlock Text="/" FontSize="20" FontWeight="SemiBold" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Bottom" Margin="2,0,2,4"/>
+                            <TextBlock Text="{Binding TongCho}" FontSize="20" FontWeight="SemiBold" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Bottom" Margin="0,0,0,4"/>
+                        </StackPanel>
                     </StackPanel>
                     <TextBlock Grid.Column="1" Text="🚗" FontSize="32" Opacity="0.3" VerticalAlignment="Center"/>
                 </Grid>

@@ -12,6 +12,7 @@ namespace QuanLyGiuXe.Services
         public int LuotXeVao { get; set; }
         public double DoanhThu { get; set; }
         public int VeActive { get; set; }
+        public int TongCho { get; set; }
     }
 
     public class HoatDongGhiNhan
@@ -27,23 +28,42 @@ namespace QuanLyGiuXe.Services
     {
         private readonly DatabaseService _db = new DatabaseService();
 
-        public async System.Threading.Tasks.Task<DashboardKpi> GetKpiAsync(DateTime startDate, DateTime endDate)
+        public async System.Threading.Tasks.Task<DashboardKpi> GetKpiAsync(DateTime startDate, DateTime endDate, int? siteId = null, int? zoneId = null)
         {
             return await ConnectivityAwareRepository.Instance.ExecuteReadAsync<DashboardKpi>(
-                $"DASHBOARD_KPI_{startDate:yyyyMMdd}_{endDate:yyyyMMdd}",
+                $"DASHBOARD_KPI_{startDate:yyyyMMdd}_{endDate:yyyyMMdd}_{siteId}_{zoneId}",
                 async conn =>
                 {
                     var kpi = new DashboardKpi();
-                    using (var cmd = new SqlCommand(@"
+                    
+                    string maxCapacityQuery = "";
+                    if (zoneId.HasValue)
+                        maxCapacityQuery = "(SELECT ISNULL(MAX(MaxCapacity), 200) FROM ParkingZones WHERE Id = @ZoneId) AS TongCho";
+                    else if (siteId.HasValue)
+                        maxCapacityQuery = "(SELECT ISNULL(SUM(MaxCapacity), 200) FROM ParkingZones WHERE SiteId = @SiteId) AS TongCho";
+                    else
+                        maxCapacityQuery = "(SELECT ISNULL(SUM(MaxCapacity), 200) FROM ParkingZones) AS TongCho";
+                        
+                    string sql = $@"
                         SELECT 
-                            (SELECT COUNT(*) FROM XeTrongBai WHERE ThoiGianRa IS NULL) AS XeTrongBai,
-                            (SELECT COUNT(*) FROM LichSuXe WHERE ThoiGianVao >= @Start AND ThoiGianVao <= @End) AS LuotXeVao,
-                            (SELECT ISNULL(SUM(Tien), 0) FROM LichSuXe WHERE ThoiGianRa >= @Start AND ThoiGianRa <= @End) AS DoanhThu,
-                            (SELECT COUNT(*) FROM RFIDCards WHERE TrangThai = 'Active' AND (NgayHetHan IS NULL OR NgayHetHan >= GETDATE())) AS VeActive;
-                    ", conn))
+                            (SELECT COUNT(*) FROM XeTrongBai WHERE ThoiGianRa IS NULL 
+                                AND (@SiteId IS NULL OR SiteId = @SiteId)
+                                AND (@ZoneId IS NULL OR ZoneId = @ZoneId)) AS XeTrongBai,
+                            (SELECT COUNT(*) FROM LichSuXe WHERE ThoiGianVao >= @Start AND ThoiGianVao <= @End
+                                AND (@SiteId IS NULL OR SiteId = @SiteId)
+                                AND (@ZoneId IS NULL OR ZoneId = @ZoneId)) AS LuotXeVao,
+                            (SELECT ISNULL(SUM(Tien), 0) FROM LichSuXe WHERE ThoiGianRa >= @Start AND ThoiGianRa <= @End
+                                AND (@SiteId IS NULL OR SiteId = @SiteId)
+                                AND (@ZoneId IS NULL OR ZoneId = @ZoneId)) AS DoanhThu,
+                            (SELECT COUNT(*) FROM RFIDCards WHERE TrangThai = 'Active' AND (NgayHetHan IS NULL OR NgayHetHan >= GETDATE())) AS VeActive,
+                            {maxCapacityQuery};
+                    ";
+                    using (var cmd = new SqlCommand(sql, conn))
                     {
                         cmd.Parameters.AddWithValue("@Start", startDate);
                         cmd.Parameters.AddWithValue("@End", endDate);
+                        cmd.Parameters.AddWithValue("@SiteId", (object?)siteId ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@ZoneId", (object?)zoneId ?? DBNull.Value);
 
                         using (var reader = await cmd.ExecuteReaderAsync())
                         {
@@ -53,18 +73,19 @@ namespace QuanLyGiuXe.Services
                                 kpi.LuotXeVao = reader["LuotXeVao"] != DBNull.Value ? Convert.ToInt32(reader["LuotXeVao"]) : 0;
                                 kpi.DoanhThu = reader["DoanhThu"] != DBNull.Value ? Convert.ToDouble(reader["DoanhThu"]) : 0;
                                 kpi.VeActive = reader["VeActive"] != DBNull.Value ? Convert.ToInt32(reader["VeActive"]) : 0;
+                                kpi.TongCho = reader["TongCho"] != DBNull.Value ? Convert.ToInt32(reader["TongCho"]) : 200;
                             }
                         }
                     }
                     return kpi;
                 }
-            ) ?? new DashboardKpi();
+            ) ?? new DashboardKpi { TongCho = 200 };
         }
 
-        public async System.Threading.Tasks.Task<DataTable> GetRevenueByDayAsync(DateTime startDate, DateTime endDate)
+        public async System.Threading.Tasks.Task<DataTable> GetRevenueByDayAsync(DateTime startDate, DateTime endDate, int? siteId = null, int? zoneId = null)
         {
             return await ConnectivityAwareRepository.Instance.ExecuteReadAsync<DataTable>(
-                $"DASHBOARD_REVENUE_{startDate:yyyyMMdd}_{endDate:yyyyMMdd}",
+                $"DASHBOARD_REVENUE_{startDate:yyyyMMdd}_{endDate:yyyyMMdd}_{siteId}_{zoneId}",
                 async conn =>
                 {
                     var dt = new DataTable();
@@ -72,12 +93,16 @@ namespace QuanLyGiuXe.Services
                         SELECT CAST(ThoiGianRa AS DATE) AS Ngay, SUM(Tien) AS DoanhThu
                         FROM LichSuXe
                         WHERE ThoiGianRa >= @Start AND ThoiGianRa <= @End AND Tien > 0
+                          AND (@SiteId IS NULL OR SiteId = @SiteId)
+                          AND (@ZoneId IS NULL OR ZoneId = @ZoneId)
                         GROUP BY CAST(ThoiGianRa AS DATE)
                         ORDER BY Ngay;
                     ", conn))
                     {
                         cmd.Parameters.AddWithValue("@Start", startDate);
                         cmd.Parameters.AddWithValue("@End", endDate);
+                        cmd.Parameters.AddWithValue("@SiteId", (object?)siteId ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@ZoneId", (object?)zoneId ?? DBNull.Value);
 
                         using (var reader = await cmd.ExecuteReaderAsync())
                         {
@@ -89,10 +114,10 @@ namespace QuanLyGiuXe.Services
             ) ?? new DataTable();
         }
 
-        public async System.Threading.Tasks.Task<DataTable> GetEntriesByHourAsync(DateTime startDate, DateTime endDate)
+        public async System.Threading.Tasks.Task<DataTable> GetEntriesByHourAsync(DateTime startDate, DateTime endDate, int? siteId = null, int? zoneId = null)
         {
             return await ConnectivityAwareRepository.Instance.ExecuteReadAsync<DataTable>(
-                $"DASHBOARD_ENTRIES_HOUR_{startDate:yyyyMMdd}_{endDate:yyyyMMdd}",
+                $"DASHBOARD_ENTRIES_HOUR_{startDate:yyyyMMdd}_{endDate:yyyyMMdd}_{siteId}_{zoneId}",
                 async conn =>
                 {
                     var dt = new DataTable();
@@ -100,12 +125,16 @@ namespace QuanLyGiuXe.Services
                         SELECT DATEPART(HOUR, ThoiGianVao) AS Gio, COUNT(*) AS SoLuot
                         FROM LichSuXe
                         WHERE ThoiGianVao >= @Start AND ThoiGianVao <= @End
+                          AND (@SiteId IS NULL OR SiteId = @SiteId)
+                          AND (@ZoneId IS NULL OR ZoneId = @ZoneId)
                         GROUP BY DATEPART(HOUR, ThoiGianVao)
                         ORDER BY Gio;
                     ", conn))
                     {
                         cmd.Parameters.AddWithValue("@Start", startDate);
                         cmd.Parameters.AddWithValue("@End", endDate);
+                        cmd.Parameters.AddWithValue("@SiteId", (object?)siteId ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@ZoneId", (object?)zoneId ?? DBNull.Value);
 
                         using (var reader = await cmd.ExecuteReaderAsync())
                         {
@@ -117,10 +146,10 @@ namespace QuanLyGiuXe.Services
             ) ?? new DataTable();
         }
 
-        public async System.Threading.Tasks.Task<List<HoatDongGhiNhan>> GetRecentActivitiesAsync()
+        public async System.Threading.Tasks.Task<List<HoatDongGhiNhan>> GetRecentActivitiesAsync(int? siteId = null, int? zoneId = null)
         {
             return await ConnectivityAwareRepository.Instance.ExecuteReadAsync<List<HoatDongGhiNhan>>(
-                "DASHBOARD_RECENT_ACTIVITIES",
+                $"DASHBOARD_RECENT_ACTIVITIES_{siteId}_{zoneId}",
                 async conn =>
                 {
                     var result = new List<HoatDongGhiNhan>();
@@ -128,32 +157,38 @@ namespace QuanLyGiuXe.Services
                     using (var cmd = new SqlCommand(@"
                         SELECT TOP 10 BienSo, ThoiGianVao, ThoiGianRa, Tien
                         FROM LichSuXe
+                        WHERE (@SiteId IS NULL OR SiteId = @SiteId)
+                          AND (@ZoneId IS NULL OR ZoneId = @ZoneId)
                         ORDER BY Id DESC;
                     ", conn))
-                    using (var reader = await cmd.ExecuteReaderAsync())
                     {
-                        while (await reader.ReadAsync())
+                        cmd.Parameters.AddWithValue("@SiteId", (object?)siteId ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@ZoneId", (object?)zoneId ?? DBNull.Value);
+                        using (var reader = await cmd.ExecuteReaderAsync())
                         {
-                            var hd = new HoatDongGhiNhan
+                            while (await reader.ReadAsync())
                             {
-                                BienSo = reader["BienSo"]?.ToString() ?? "N/A",
-                                GiaTien = reader["Tien"] != DBNull.Value ? Convert.ToDouble(reader["Tien"]) : 0
-                            };
+                                var hd = new HoatDongGhiNhan
+                                {
+                                    BienSo = reader["BienSo"]?.ToString() ?? "N/A",
+                                    GiaTien = reader["Tien"] != DBNull.Value ? Convert.ToDouble(reader["Tien"]) : 0
+                                };
 
-                            if (reader["ThoiGianRa"] != DBNull.Value)
-                            {
-                                hd.HanhDong = "RA";
-                                hd.ThoiGian = Convert.ToDateTime(reader["ThoiGianRa"]);
-                                hd.TheLoai = hd.GiaTien > 0 ? "Vé lượt" : "Vé tháng";
-                            }
-                            else if (reader["ThoiGianVao"] != DBNull.Value)
-                            {
-                                hd.HanhDong = "VÀO";
-                                hd.ThoiGian = Convert.ToDateTime(reader["ThoiGianVao"]);
-                                hd.TheLoai = "Vào bãi";
-                            }
+                                if (reader["ThoiGianRa"] != DBNull.Value)
+                                {
+                                    hd.HanhDong = "RA";
+                                    hd.ThoiGian = Convert.ToDateTime(reader["ThoiGianRa"]);
+                                    hd.TheLoai = hd.GiaTien > 0 ? "Vé lượt" : "Vé tháng";
+                                }
+                                else if (reader["ThoiGianVao"] != DBNull.Value)
+                                {
+                                    hd.HanhDong = "VÀO";
+                                    hd.ThoiGian = Convert.ToDateTime(reader["ThoiGianVao"]);
+                                    hd.TheLoai = "Vào bãi";
+                                }
 
-                            result.Add(hd);
+                                result.Add(hd);
+                            }
                         }
                     }
                     return result;
@@ -161,10 +196,10 @@ namespace QuanLyGiuXe.Services
             ) ?? new List<HoatDongGhiNhan>();
         }
 
-        public async System.Threading.Tasks.Task<DataTable> GetTransactionsAsync(DateTime startDate, DateTime endDate)
+        public async System.Threading.Tasks.Task<DataTable> GetTransactionsAsync(DateTime startDate, DateTime endDate, int? siteId = null, int? zoneId = null)
         {
             return await ConnectivityAwareRepository.Instance.ExecuteReadAsync<DataTable>(
-                $"DASHBOARD_TRANSACTIONS_{startDate:yyyyMMdd}_{endDate:yyyyMMdd}",
+                $"DASHBOARD_TRANSACTIONS_{startDate:yyyyMMdd}_{endDate:yyyyMMdd}_{siteId}_{zoneId}",
                 async conn =>
                 {
                     var dt = new DataTable();
@@ -176,13 +211,17 @@ namespace QuanLyGiuXe.Services
                             Tien AS [Số Tiền],
                             TrangThai AS [Trạng Thái]
                         FROM LichSuXe
-                        WHERE (ThoiGianVao >= @Start AND ThoiGianVao <= @End)
-                           OR (ThoiGianRa >= @Start AND ThoiGianRa <= @End)
+                        WHERE ((ThoiGianVao >= @Start AND ThoiGianVao <= @End)
+                           OR (ThoiGianRa >= @Start AND ThoiGianRa <= @End))
+                          AND (@SiteId IS NULL OR SiteId = @SiteId)
+                          AND (@ZoneId IS NULL OR ZoneId = @ZoneId)
                         ORDER BY Id DESC;
                     ", conn))
                     {
                         cmd.Parameters.AddWithValue("@Start", startDate);
                         cmd.Parameters.AddWithValue("@End", endDate);
+                        cmd.Parameters.AddWithValue("@SiteId", (object?)siteId ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@ZoneId", (object?)zoneId ?? DBNull.Value);
  
                         using (var reader = await cmd.ExecuteReaderAsync())
                         {

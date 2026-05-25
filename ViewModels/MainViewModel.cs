@@ -230,6 +230,36 @@ namespace QuanLyGiuXe.ViewModels
         public string Lane2ReaderMappingOut => GetReaderMappingOut(2);
         public string Lane2ReaderMappingEmpty => (string.IsNullOrEmpty(Lane2ReaderMappingIn) && string.IsNullOrEmpty(Lane2ReaderMappingOut)) ? "⚠ CHƯA CẤU HÌNH ĐẦU ĐỌC" : "";
 
+        // ── Topology Info ────────────────────────────────────────────────────────
+        private string _lane1TopologyText = "Chưa cấu hình Zone";
+        public string Lane1TopologyText
+        {
+            get => _lane1TopologyText;
+            set { _lane1TopologyText = value; OnPropertyChanged(nameof(Lane1TopologyText)); }
+        }
+
+        private string _lane1CapacityText = "";
+        public string Lane1CapacityText
+        {
+            get => _lane1CapacityText;
+            set { _lane1CapacityText = value; OnPropertyChanged(nameof(Lane1CapacityText)); }
+        }
+
+        private string _lane2TopologyText = "Chưa cấu hình Zone";
+        public string Lane2TopologyText
+        {
+            get => _lane2TopologyText;
+            set { _lane2TopologyText = value; OnPropertyChanged(nameof(Lane2TopologyText)); }
+        }
+
+        private string _lane2CapacityText = "";
+        public string Lane2CapacityText
+        {
+            get => _lane2CapacityText;
+            set { _lane2CapacityText = value; OnPropertyChanged(nameof(Lane2CapacityText)); }
+        }
+        // ─────────────────────────────────────────────────────────────────────────
+
         private async Task SyncLaneUIStateAsync(int uiLaneIndex)
         {
             var mapping = ReaderLaneMappingService.Instance.GetMappingByReader(uiLaneIndex == 1 ? 1 : 3) 
@@ -248,6 +278,23 @@ namespace QuanLyGiuXe.ViewModels
                 if (laneDb != null)
                 {
                     laneName = laneDb.LaneName;
+                }
+                
+                var (_, zoneId, _, siteName, zoneName, maxCapacity) = await ResolveTopologyForLaneAsync(mapping.LaneId);
+                string topoText = string.IsNullOrEmpty(siteName) ? "Chưa cấu hình Zone" : $"Site: {siteName} - Zone: {zoneName}";
+                int count = 0;
+                if (zoneId.HasValue) count = await db.GetXeTrongBaiCountByZoneAsync(zoneId.Value);
+                //string capText = maxCapacity > 0 ? $"Sức chứa: {count}/{maxCapacity}" : "Sức chứa: N/A";
+
+                if (uiLaneIndex == 1)
+                {
+                    Lane1TopologyText = topoText;
+                    //Lane1CapacityText = capText;
+                }
+                else
+                {
+                    Lane2TopologyText = topoText;
+                    //Lane2CapacityText = capText;
                 }
             }
             
@@ -318,7 +365,8 @@ namespace QuanLyGiuXe.ViewModels
         }
 
         private int _totalXeTrongBai = 0;
-        public string SoXeTrongBai => $"Xe trong bãi: {_totalXeTrongBai}";
+        private int _totalCapacity = 0;
+        public string SoXeTrongBai => _totalCapacity > 0 ? $"Xe trong bãi: {_totalXeTrongBai}/{_totalCapacity}" : $"Xe trong bãi: {_totalXeTrongBai}";
 
         private bool _isUserPopupOpen;
         public bool IsUserPopupOpen
@@ -347,10 +395,18 @@ namespace QuanLyGiuXe.ViewModels
             try
             {
                 int count = await Task.Run(() => db.GetTotalXeTrongBaiCount());
+                var zones = await ParkingTopologyService.Instance.GetZonesAsync();
+                int totalCap = zones.Sum(z => z.MaxCapacity);
+
                 Application.Current?.Dispatcher?.BeginInvoke(new Action(() => {
                     _totalXeTrongBai = count;
+                    _totalCapacity = totalCap;
                     OnPropertyChanged(nameof(SoXeTrongBai));
                 }));
+                
+                // Refresh Lane Capacities
+                await SyncLaneUIStateAsync(1);
+                await SyncLaneUIStateAsync(2);
             }
             catch (Exception ex)
             {
@@ -911,7 +967,7 @@ namespace QuanLyGiuXe.ViewModels
                 }
 
                 // Resolve topology
-                var (siteId, zoneId, laneId) = await ResolveTopologyForLaneAsync(dbLaneId);
+                var (siteId, zoneId, laneId, _, _, _) = await ResolveTopologyForLaneAsync(dbLaneId);
 
                 if (isInbound)
                 {
@@ -1098,17 +1154,20 @@ namespace QuanLyGiuXe.ViewModels
             }
         }
 
-        private async Task<(int? SiteId, int? ZoneId, int? LaneId)> ResolveTopologyForLaneAsync(int laneIndex)
+        private async Task<(int? SiteId, int? ZoneId, int? LaneId, string SiteName, string ZoneName, int MaxCapacity)> ResolveTopologyForLaneAsync(int laneIndex)
         {
             try
             {
                 var lanes = await ParkingTopologyService.Instance.GetLanesAsync();
                 var lane = lanes.FirstOrDefault(l => l.Id == laneIndex || l.LaneCode == $"LANE-{laneIndex}");
-                if (lane == null) return (null, null, null);
+                if (lane == null) return (null, null, null, "", "", 0);
 
                 int? laneId = lane.Id;
                 int? zoneId = lane.ZoneId;
                 int? siteId = null;
+                string siteName = "";
+                string zoneName = "";
+                int maxCapacity = 0;
 
                 if (zoneId.HasValue)
                 {
@@ -1117,15 +1176,18 @@ namespace QuanLyGiuXe.ViewModels
                     if (zone != null)
                     {
                         siteId = zone.SiteId;
+                        zoneName = zone.ZoneName;
+                        maxCapacity = zone.MaxCapacity;
+                        siteName = zone.SiteName;
                     }
                 }
 
-                return (siteId, zoneId, laneId);
+                return (siteId, zoneId, laneId, siteName, zoneName, maxCapacity);
             }
             catch (Exception ex)
             {
                 LoggingService.Instance.LogError("ResolveTopology", "MainViewModel", $"Failed for lane {laneIndex}", ex);
-                return (null, null, null);
+                return (null, null, null, null, null, 0);
             }
         }
 

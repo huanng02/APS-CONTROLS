@@ -4,6 +4,7 @@ using System.Data;
 using System.Windows.Input;
 using System.Windows.Threading;
 using System.Threading.Tasks;
+using System.Linq;
 using System.IO;
 using System.Diagnostics;
 using System.Windows;
@@ -17,6 +18,7 @@ namespace QuanLyGiuXe.ViewModels
     public class DashboardViewModel : BaseViewModel
     {
         private readonly DashboardService _service = new DashboardService();
+        private readonly ParkingTopologyService _topologyService = ParkingTopologyService.Instance;
         private DispatcherTimer _timer;
 
         // KPI Properties
@@ -98,6 +100,93 @@ namespace QuanLyGiuXe.ViewModels
             }
         }
 
+        public ObservableCollection<QuanLyGiuXe.Models.ParkingSite> Sites { get; set; } = new ObservableCollection<QuanLyGiuXe.Models.ParkingSite>();
+        public ObservableCollection<QuanLyGiuXe.Models.ParkingZone> Zones { get; set; } = new ObservableCollection<QuanLyGiuXe.Models.ParkingZone>();
+
+        private QuanLyGiuXe.Models.ParkingSite _selectedSite;
+        public QuanLyGiuXe.Models.ParkingSite SelectedSite
+        {
+            get => _selectedSite;
+            set
+            {
+                if (_selectedSite != value)
+                {
+                    _selectedSite = value;
+                    OnPropertyChanged(nameof(SelectedSite));
+                    _ = LoadZonesAsync(value?.Id);
+                    _lastLoadedRange = string.Empty; // Force reload
+                    _ = LoadDataAsync();
+                }
+            }
+        }
+
+        private QuanLyGiuXe.Models.ParkingZone _selectedZone;
+        public QuanLyGiuXe.Models.ParkingZone SelectedZone
+        {
+            get => _selectedZone;
+            set
+            {
+                if (_selectedZone != value)
+                {
+                    _selectedZone = value;
+                    OnPropertyChanged(nameof(SelectedZone));
+                    _lastLoadedRange = string.Empty; // Force reload
+                    _ = LoadDataAsync();
+                }
+            }
+        }
+
+        private async Task LoadTopologyAsync()
+        {
+            try
+            {
+                var sites = await _topologyService.GetSitesAsync();
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    Sites.Clear();
+                    Sites.Add(new QuanLyGiuXe.Models.ParkingSite { Id = 0, SiteName = "Tất cả các Site (All Sites)" });
+                    foreach (var s in sites) Sites.Add(s);
+                    SelectedSite = Sites[0];
+                });
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("DashboardViewModel", "LoadTopologyAsync", "Lỗi tải topology", ex);
+            }
+        }
+
+        private async Task LoadZonesAsync(int? siteId)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                Zones.Clear();
+                Zones.Add(new QuanLyGiuXe.Models.ParkingZone { Id = 0, ZoneName = "Tất cả khu vực (All Zones)" });
+            });
+
+            if (siteId.HasValue && siteId.Value > 0)
+            {
+                try
+                {
+                    var allZones = await _topologyService.GetZonesAsync();
+                    var filteredZones = allZones.Where(z => z.SiteId == siteId.Value);
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        foreach (var z in filteredZones) Zones.Add(z);
+                    });
+                }
+                catch (Exception ex)
+                {
+                    LoggingService.Instance.LogError("DashboardViewModel", "LoadZonesAsync", "Lỗi tải zones", ex);
+                }
+            }
+            
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                if (Zones.Count > 0)
+                    SelectedZone = Zones[0];
+            });
+        }
+        
         private DateTime _fromDate;
         public DateTime FromDate
         {
@@ -185,6 +274,7 @@ namespace QuanLyGiuXe.ViewModels
             _toDate = range.end;
             UpdateRangeDisplay();
 
+            _ = LoadTopologyAsync();
             _ = LoadDataAsync();
 
             // Realtime Update every 10 seconds
@@ -205,10 +295,13 @@ namespace QuanLyGiuXe.ViewModels
             try
             {
                 // 1. Load data in parallel
-                var kpiTask = _service.GetKpiAsync(FromDate, ToDate);
-                var revTask = _service.GetRevenueByDayAsync(FromDate, ToDate);
-                var entriesTask = _service.GetEntriesByHourAsync(FromDate, ToDate);
-                var transTask = _service.GetTransactionsAsync(FromDate, ToDate);
+                int? siteIdFilter = SelectedSite?.Id > 0 ? SelectedSite.Id : (int?)null;
+                int? zoneIdFilter = SelectedZone?.Id > 0 ? SelectedZone.Id : (int?)null;
+
+                var kpiTask = _service.GetKpiAsync(FromDate, ToDate, siteIdFilter, zoneIdFilter);
+                var revTask = _service.GetRevenueByDayAsync(FromDate, ToDate, siteIdFilter, zoneIdFilter);
+                var entriesTask = _service.GetEntriesByHourAsync(FromDate, ToDate, siteIdFilter, zoneIdFilter);
+                var transTask = _service.GetTransactionsAsync(FromDate, ToDate, siteIdFilter, zoneIdFilter);
 
                 await System.Threading.Tasks.Task.WhenAll(kpiTask, revTask, entriesTask, transTask);
 
@@ -423,10 +516,13 @@ namespace QuanLyGiuXe.ViewModels
             IsLoading = true;
             try
             {
+                int? siteIdFilter = SelectedSite?.Id > 0 ? SelectedSite.Id : (int?)null;
+                int? zoneIdFilter = SelectedZone?.Id > 0 ? SelectedZone.Id : (int?)null;
+
                 // Load KPI
-                var kpiTask = _service.GetKpiAsync(FromDate, ToDate);
-                var revTask = _service.GetRevenueByDayAsync(FromDate, ToDate);
-                var hourlyTask = _service.GetEntriesByHourAsync(FromDate, ToDate);
+                var kpiTask = _service.GetKpiAsync(FromDate, ToDate, siteIdFilter, zoneIdFilter);
+                var revTask = _service.GetRevenueByDayAsync(FromDate, ToDate, siteIdFilter, zoneIdFilter);
+                var hourlyTask = _service.GetEntriesByHourAsync(FromDate, ToDate, siteIdFilter, zoneIdFilter);
                 
                 await System.Threading.Tasks.Task.WhenAll(kpiTask, revTask, hourlyTask);
 
@@ -435,6 +531,8 @@ namespace QuanLyGiuXe.ViewModels
                 LuotXeVao = kpi.LuotXeVao;
                 DoanhThu = kpi.DoanhThu;
                 VeActive = kpi.VeActive;
+
+                TongCho = kpi.TongCho;
 
                 OnPropertyChanged(nameof(TyLeLapDay));
                 OnPropertyChanged(nameof(ChoTrong));
@@ -445,7 +543,7 @@ namespace QuanLyGiuXe.ViewModels
                 LoadHourlyChart(await hourlyTask);
 
                 // Load Recent Activities (Sync for now as it doesn't take params in service yet)
-                var activities = _service.GetRecentActivities();
+                var activities = await _service.GetRecentActivitiesAsync(siteIdFilter, zoneIdFilter);
                 if (RecentActivities != null)
                 {
                     RecentActivities.Clear();

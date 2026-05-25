@@ -1454,6 +1454,22 @@ namespace QuanLyGiuXe.Services
             }
         }
 
+        public async Task<int> GetXeTrongBaiCountByZoneAsync(int zoneId)
+        {
+            if (!ConnectivityStateService.Instance.IsOnline) return 0; // Or fetch from offline cache if needed
+            return await ConnectivityAwareRepository.Instance.ExecuteReadAsync<int>(
+                $"COUNT_ZONE_{zoneId}",
+                async conn =>
+                {
+                    using (var cmd = new SqlCommand(@"SELECT COUNT(*) FROM XeTrongBai WHERE ThoiGianRa IS NULL AND ZoneId = @zoneId", conn))
+                    {
+                        cmd.Parameters.AddWithValue("@zoneId", zoneId);
+                        return Convert.ToInt32(await cmd.ExecuteScalarAsync());
+                    }
+                }
+            );
+        }
+
         public void LuuLichSu(string bienSo, DateTime vao, DateTime ra, double tien, string anhXe, string cardUid = null, int? siteId = null, int? zoneId = null, int? entryLaneId = null, int? exitLaneId = null)
         {
             _ = LuuLichSuAsync(bienSo, vao, ra, tien, anhXe, cardUid, siteId, zoneId, entryLaneId, exitLaneId);
