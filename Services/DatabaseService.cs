@@ -168,7 +168,7 @@ namespace QuanLyGiuXe.Services
 
         public async Task<RFIDCard?> GetRFIDCardByBienSoAsync(string bienSo)
         {
-            return await ConnectivityAwareRepository.Instance.ExecuteReadAsync<RFIDCard>(
+            var card = await ConnectivityAwareRepository.Instance.ExecuteReadAsync<RFIDCard>(
                 $"RFID_BIENSO_{bienSo}",
                 async conn =>
                 {
@@ -195,6 +195,18 @@ namespace QuanLyGiuXe.Services
                     return null;
                 }
             );
+
+            // 🟢 OFFLINE FALLBACK: Nếu cache bị miss khi mất mạng, ta lấy từ LIST_RFID_CARDS
+            if (card == null && (ConnectivityStateService.Instance.IsSimulatingOffline || !ConnectivityStateService.Instance.IsOnline))
+            {
+                var list = await QuanLyGiuXe.Services.OfflineCache.OfflineCacheService.Instance.GetCacheAsync<List<RFIDCard>>("LIST_RFID_CARDS");
+                if (list != null)
+                {
+                    card = list.FirstOrDefault(c => string.Equals(c.BienSo, bienSo, StringComparison.OrdinalIgnoreCase));
+                }
+            }
+
+            return card;
         }
 
         public void UpdateXeRaById(int id, DateTime thoiGianRa)
@@ -390,7 +402,7 @@ namespace QuanLyGiuXe.Services
 
         public async Task<RFIDCard?> GetRFIDCardByUidAsync(string uid)
         {
-            return await ConnectivityAwareRepository.Instance.ExecuteReadAsync<RFIDCard>(
+            var card = await ConnectivityAwareRepository.Instance.ExecuteReadAsync<RFIDCard>(
                 $"RFID_UID_{uid}",
                 async conn =>
                 {
@@ -417,6 +429,18 @@ namespace QuanLyGiuXe.Services
                     return null;
                 }
             );
+
+            // 🟢 OFFLINE FALLBACK: Nếu cache bị miss khi mất mạng, ta lấy từ LIST_RFID_CARDS
+            if (card == null && (ConnectivityStateService.Instance.IsSimulatingOffline || !ConnectivityStateService.Instance.IsOnline))
+            {
+                var list = await QuanLyGiuXe.Services.OfflineCache.OfflineCacheService.Instance.GetCacheAsync<List<RFIDCard>>("LIST_RFID_CARDS");
+                if (list != null)
+                {
+                    card = list.FirstOrDefault(c => c.UID == uid);
+                }
+            }
+
+            return card;
         }
 
         /// <summary>

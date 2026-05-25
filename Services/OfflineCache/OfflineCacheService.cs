@@ -395,9 +395,18 @@ namespace QuanLyGiuXe.Services.OfflineCache
                 await SaveCacheAsync("LIST_LANES", await ParkingTopologyService.Instance.GetLanesAsync());
                 
                 // 2. Sync Pricing Data (Critical for validations)
-                await SaveCacheAsync("LIST_BANG_GIA", await new BangGiaRepository().GetAllAsync());
-                await SaveCacheAsync("LIST_BANG_GIA_KHUNG_GIO", await new BangGiaKhungGioRepository().GetAllAsync());
- 
+                await SaveCacheAsync("LOOKUP_BANGGIA", await new DatabaseService().LayBangGiaAsync());
+                await SaveCacheAsync("LOOKUP_KHUNGGIO", await new DatabaseService().GetKhungGioAsync());
+                
+                var bangGias = await new DatabaseService().LayBangGiaAsync();
+                foreach(var bg in bangGias)
+                {
+                    await SaveCacheAsync($"LOOKUP_BANGGIA_KHUNGGIO_{bg.Id}", await new DatabaseService().GetBangGiaKhungGioByBangGiaIdAsync(bg.Id));
+                }
+
+                // 2.5 Sync RFID Cards for offline scanning
+                await SaveCacheAsync("LIST_RFID_CARDS", await new DatabaseService().GetRFIDCardsAsync());
+
                 // 3. System Settings
                 await SaveCacheAsync("SYSTEM_CONFIG", AppConfig.Load());
                 

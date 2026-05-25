@@ -80,19 +80,39 @@ namespace QuanLyGiuXe.Services.OfflineCache
                 if (ex is SqlException sqlEx)
                 {
                     bool isNetworkError = false;
-                    foreach (SqlError err in sqlEx.Errors)
+                    string msg = sqlEx.Message.ToLower();
+                    if (msg.Contains("network-related") || msg.Contains("instance-specific") || msg.Contains("transport-level"))
                     {
-                        if (err.Number == -2 || err.Number == 2 || err.Number == 53 || err.Number == 11001)
+                        isNetworkError = true;
+                    }
+                    else
+                    {
+                        foreach (SqlError err in sqlEx.Errors)
                         {
-                            isNetworkError = true;
-                            break;
+                            // Catch common network/timeout errors
+                            if (err.Number == -2 || err.Number == 2 || err.Number == 53 || 
+                                err.Number == 11001 || err.Number == 26 || err.Number == 40 ||
+                                err.Number == 10053 || err.Number == 10054 || err.Number == 10060 || 
+                                err.Number == 10061 || err.Number == 233 || err.Number == 0)
+                            {
+                                isNetworkError = true;
+                                break;
+                            }
                         }
                     }
                     if (!isNetworkError) throw; // Logic error, throw to UI
                 }
                 else if (ex is not OperationCanceledException && ex.Message != "Simulated offline")
                 {
-                    throw; // E.g., NullReferenceException, InvalidOperationException
+                    // Also catch general socket exceptions wrapped in other exceptions if needed
+                    if (ex.InnerException != null && ex.InnerException.Message.ToLower().Contains("network-related"))
+                    {
+                        // treat as network error
+                    }
+                    else
+                    {
+                        throw; // E.g., NullReferenceException, InvalidOperationException
+                    }
                 }
 
                 string reason = ex is OperationCanceledException ? "TIMEOUT" : "ERROR";
