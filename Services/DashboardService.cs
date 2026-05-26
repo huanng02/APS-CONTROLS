@@ -205,17 +205,25 @@ namespace QuanLyGiuXe.Services
                     var dt = new DataTable();
                     using (var cmd = new SqlCommand(@"
                         SELECT 
-                            ThoiGianVao AS [Giờ Vào],
-                            ThoiGianRa AS [Giờ Ra],
-                            BienSo AS [Biển Số],
-                            Tien AS [Số Tiền],
-                            TrangThai AS [Trạng Thái]
-                        FROM LichSuXe
-                        WHERE ((ThoiGianVao >= @Start AND ThoiGianVao <= @End)
-                           OR (ThoiGianRa >= @Start AND ThoiGianRa <= @End))
-                          AND (@SiteId IS NULL OR SiteId = @SiteId)
-                          AND (@ZoneId IS NULL OR ZoneId = @ZoneId)
-                        ORDER BY Id DESC;
+                            ls.ThoiGianVao AS [Giờ Vào],
+                            ls.ThoiGianRa AS [Giờ Ra],
+                            ls.BienSo AS [Biển Số],
+                            ls.Tien AS [Số Tiền],
+                            ls.TrangThai AS [Trạng Thái],
+                            s.SiteName AS [Site],
+                            z.ZoneName AS [Khu Vực],
+                            el.LaneName AS [Cổng Vào],
+                            xl.LaneName AS [Cổng Ra]
+                        FROM LichSuXe ls
+                        LEFT JOIN ParkingSites s ON ls.SiteId = s.Id
+                        LEFT JOIN ParkingZones z ON ls.ZoneId = z.Id
+                        LEFT JOIN Lanes el ON ls.EntryLaneId = el.Id
+                        LEFT JOIN Lanes xl ON ls.ExitLaneId = xl.Id
+                        WHERE ((ls.ThoiGianVao >= @Start AND ls.ThoiGianVao <= @End)
+                           OR (ls.ThoiGianRa >= @Start AND ls.ThoiGianRa <= @End))
+                          AND (@SiteId IS NULL OR ls.SiteId = @SiteId)
+                          AND (@ZoneId IS NULL OR ls.ZoneId = @ZoneId)
+                        ORDER BY ls.Id DESC;
                     ", conn))
                     {
                         cmd.Parameters.AddWithValue("@Start", startDate);

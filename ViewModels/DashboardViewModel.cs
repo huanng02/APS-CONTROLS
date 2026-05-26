@@ -311,6 +311,12 @@ namespace QuanLyGiuXe.ViewModels
                 var transDt = await transTask;
 
                 // 2. Validation
+                if (transDt.Rows.Count == 0)
+                {
+                    System.Windows.MessageBox.Show("Không có dữ liệu giao dịch trong khoảng thời gian và bộ lọc đã chọn!", "Thông báo", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
+                    return;
+                }
+
                 if (transDt.Rows.Count > 20000)
                 {
                     System.Windows.MessageBox.Show("Dữ liệu quá lớn (> 20,000 dòng). Vui lòng chọn khoảng thời gian ngắn hơn.", "Cảnh báo", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
@@ -325,7 +331,9 @@ namespace QuanLyGiuXe.ViewModels
                     var stripeColor = XLColor.FromHtml("#F8F9F9"); // Very light gray
                     var borderColor = XLColor.FromHtml("#D1D1D1"); // Light gray border
 
-                    string period = $"BÁO CÁO TỪ {FromDate:dd/MM/yyyy} ĐẾN {ToDate:dd/MM/yyyy}";
+                    string siteText = SelectedSite?.Id > 0 ? SelectedSite.SiteName : "Tất cả các Site";
+                    string zoneText = SelectedZone?.Id > 0 ? SelectedZone.ZoneName : "Tất cả khu vực";
+                    string period = $"BÁO CÁO TỪ {FromDate:dd/MM/yyyy} ĐẾN {ToDate:dd/MM/yyyy} | Site: {siteText} | Khu vực: {zoneText}";
 
                     // --- Sheet 1: KPI (Dashboard Style) ---
                     var wsKpi = workbook.Worksheets.Add("KPI");
@@ -367,7 +375,10 @@ namespace QuanLyGiuXe.ViewModels
                     // --- Table Styling Helper ---
                     void StyleWorksheet(IXLWorksheet ws, string title)
                     {
-                        int colCount = ws.LastColumnUsed().ColumnNumber();
+                        var lastCol = ws.LastColumnUsed();
+                        int colCount = lastCol != null ? lastCol.ColumnNumber() : 1;
+                        if (colCount < 1) colCount = 1;
+
                         ws.Cell(1, 1).Value = title;
                         var titleRange = ws.Range(1, 1, 1, colCount);
                         titleRange.Merge().Style.Font.Bold = true;
@@ -386,16 +397,21 @@ namespace QuanLyGiuXe.ViewModels
                         headerRange.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
                         ws.Row(4).Height = 25;
 
-                        int lastRow = ws.LastRowUsed().RowNumber();
-                        var dataRange = ws.Range(5, 1, lastRow, colCount);
-                        dataRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
-                        dataRange.Style.Border.InsideBorderColor = borderColor;
-                        dataRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-                        dataRange.Style.Border.OutsideBorderColor = borderColor;
+                        var lastRowUsed = ws.LastRowUsed();
+                        int lastRow = lastRowUsed != null ? lastRowUsed.RowNumber() : 4;
 
-                        for (int i = 5; i <= lastRow; i += 2)
+                        if (lastRow >= 5)
                         {
-                            ws.Range(i, 1, i, colCount).Style.Fill.BackgroundColor = stripeColor;
+                            var dataRange = ws.Range(5, 1, lastRow, colCount);
+                            dataRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+                            dataRange.Style.Border.InsideBorderColor = borderColor;
+                            dataRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                            dataRange.Style.Border.OutsideBorderColor = borderColor;
+
+                            for (int i = 5; i <= lastRow; i += 2)
+                            {
+                                ws.Range(i, 1, i, colCount).Style.Fill.BackgroundColor = stripeColor;
+                            }
                         }
 
                         ws.Columns().AdjustToContents();
@@ -422,8 +438,14 @@ namespace QuanLyGiuXe.ViewModels
                     wsTrans.Cell(4, 1).InsertTable(transDt);
                     wsTrans.Column(1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
                     wsTrans.Column(2).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                    wsTrans.Column(3).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
                     wsTrans.Column(4).Style.NumberFormat.Format = "#,##0";
                     wsTrans.Column(4).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+                    wsTrans.Column(5).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                    wsTrans.Column(6).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                    wsTrans.Column(7).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                    wsTrans.Column(8).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                    wsTrans.Column(9).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
                     StyleWorksheet(wsTrans, "DANH SÁCH CHI TIẾT GIAO DỊCH");
 
                     // 4. Save file
