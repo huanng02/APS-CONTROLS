@@ -273,5 +273,359 @@ namespace QuanLyGiuXe.Services
             COMMIT TRANSACTION;
             ";
         }
+
+        private static bool _baseSchemaChecked = false;
+
+        public static async Task EnsureBaseSchemaAndAdminSeededAsync(string connStr)
+        {
+            if (_baseSchemaChecked) return;
+
+            try
+            {
+                if (string.IsNullOrWhiteSpace(connStr)) return;
+
+                using (var conn = new SqlConnection(connStr))
+                {
+                    await conn.OpenAsync();
+
+                    // 1. Create base tables and seed Admin
+                    string baseSql = @"
+                    SET XACT_ABORT ON;
+                    BEGIN TRANSACTION;
+
+                    -- 1) Create Roles table
+                    IF OBJECT_ID(N'dbo.Roles', N'U') IS NULL
+                    BEGIN
+                        CREATE TABLE dbo.Roles (
+                            Id INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                            Name NVARCHAR(50) NOT NULL UNIQUE,
+                            TrangThai NVARCHAR(20) NOT NULL DEFAULT 'Active'
+                        );
+                    END
+
+                    -- 2) Create NhanVien table
+                    IF OBJECT_ID(N'dbo.NhanVien', N'U') IS NULL
+                    BEGIN
+                        CREATE TABLE dbo.NhanVien (
+                            Id INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                            Ten NVARCHAR(100) NOT NULL,
+                            Username NVARCHAR(50) NOT NULL UNIQUE,
+                            [Password] NVARCHAR(255) NOT NULL,
+                            TrangThai NVARCHAR(20) NOT NULL DEFAULT 'Active',
+                            RoleId INT NOT NULL,
+                            CreatedAt DATETIME NOT NULL DEFAULT GETUTCDATE(),
+                            LastLogin DATETIME NULL,
+                            CONSTRAINT FK_NhanVien_Roles FOREIGN KEY (RoleId) REFERENCES dbo.Roles(Id)
+                        );
+                    END
+
+                    -- 3) Create LoaiXe table
+                    IF OBJECT_ID(N'dbo.LoaiXe', N'U') IS NULL
+                    BEGIN
+                        CREATE TABLE dbo.LoaiXe (
+                            Id INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                            TenLoai NVARCHAR(100) NOT NULL,
+                            Ten NVARCHAR(100) NULL,
+                            TrangThai NVARCHAR(20) NOT NULL DEFAULT 'Active'
+                        );
+                    END
+
+                    -- 4) Create LoaiVe table
+                    IF OBJECT_ID(N'dbo.LoaiVe', N'U') IS NULL
+                    BEGIN
+                        CREATE TABLE dbo.LoaiVe (
+                            Id INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                            TenLoai NVARCHAR(100) NOT NULL,
+                            Ten NVARCHAR(100) NULL,
+                            TrangThai NVARCHAR(20) NOT NULL DEFAULT 'Active',
+                            Detail NVARCHAR(500) NULL,
+                            CoTheGiaHan BIT NOT NULL DEFAULT 0
+                        );
+                    END
+
+                    -- 5) Create BangGia table
+                    IF OBJECT_ID(N'dbo.BangGia', N'U') IS NULL
+                    BEGIN
+                        CREATE TABLE dbo.BangGia (
+                            Id INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                            LoaiXeId INT NOT NULL,
+                            LoaiVeId INT NOT NULL,
+                            GiaBanNgay DECIMAL(18,2) NULL,
+                            GiaQuaDem DECIMAL(18,2) NULL,
+                            GiaThang DECIMAL(18,2) NULL,
+                            TrangThai NVARCHAR(20) NOT NULL DEFAULT '1',
+                            CONSTRAINT FK_BangGia_LoaiXe FOREIGN KEY (LoaiXeId) REFERENCES dbo.LoaiXe(Id),
+                            CONSTRAINT FK_BangGia_LoaiVe FOREIGN KEY (LoaiVeId) REFERENCES dbo.LoaiVe(Id)
+                        );
+                    END
+
+                    -- 6) Create RFIDCards table
+                    IF OBJECT_ID(N'dbo.RFIDCards', N'U') IS NULL
+                    BEGIN
+                        CREATE TABLE dbo.RFIDCards (
+                            Id INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                            CardUID NVARCHAR(50) NOT NULL UNIQUE,
+                            BienSo NVARCHAR(50) NULL,
+                            LoaiVeId INT NOT NULL,
+                            LoaiXeId INT NOT NULL,
+                            TrangThai NVARCHAR(20) NOT NULL DEFAULT 'Active',
+                            NgayDangKy DATETIME NOT NULL DEFAULT GETUTCDATE(),
+                            NgayHetHan DATETIME NULL,
+                            CONSTRAINT FK_RFIDCards_LoaiVe FOREIGN KEY (LoaiVeId) REFERENCES dbo.LoaiVe(Id),
+                            CONSTRAINT FK_RFIDCards_LoaiXe FOREIGN KEY (LoaiXeId) REFERENCES dbo.LoaiXe(Id)
+                        );
+                    END
+
+                    -- 7) Create XeTrongBai table
+                    IF OBJECT_ID(N'dbo.XeTrongBai', N'U') IS NULL
+                    BEGIN
+                        CREATE TABLE dbo.XeTrongBai (
+                            Id INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                            CardId INT NOT NULL,
+                            BienSo NVARCHAR(50) NULL,
+                            ThoiGianVao DATETIME NOT NULL DEFAULT GETUTCDATE(),
+                            ThoiGianRa DATETIME NULL,
+                            AnhXe NVARCHAR(500) NULL,
+                            CONSTRAINT FK_XeTrongBai_RFIDCards FOREIGN KEY (CardId) REFERENCES dbo.RFIDCards(Id)
+                        );
+                    END
+
+                    -- 8) Create LichSuXe table
+                    IF OBJECT_ID(N'dbo.LichSuXe', N'U') IS NULL
+                    BEGIN
+                        CREATE TABLE dbo.LichSuXe (
+                            Id INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                            CardId INT NULL,
+                            BienSo NVARCHAR(50) NULL,
+                            ThoiGianVao DATETIME NOT NULL,
+                            ThoiGianRa DATETIME NULL,
+                            Tien DECIMAL(18,2) NULL,
+                            AnhRa NVARCHAR(500) NULL,
+                            CONSTRAINT FK_LichSuXe_RFIDCards FOREIGN KEY (CardId) REFERENCES dbo.RFIDCards(Id)
+                        );
+                    END
+
+                    -- 9) Seed default Roles
+                    IF NOT EXISTS (SELECT 1 FROM dbo.Roles WHERE Name = 'Admin')
+                    BEGIN
+                        INSERT INTO dbo.Roles (Name, TrangThai) VALUES ('Admin', 'Active');
+                    END
+                    IF NOT EXISTS (SELECT 1 FROM dbo.Roles WHERE Name = 'Operator')
+                    BEGIN
+                        INSERT INTO dbo.Roles (Name, TrangThai) VALUES ('Operator', 'Active');
+                    END
+
+                    -- 10) Seed default Admin user
+                    IF NOT EXISTS (SELECT 1 FROM dbo.NhanVien)
+                    BEGIN
+                        DECLARE @AdminRoleId INT = (SELECT TOP 1 Id FROM dbo.Roles WHERE Name = 'Admin');
+                        IF @AdminRoleId IS NOT NULL
+                        BEGIN
+                            INSERT INTO dbo.NhanVien (Ten, Username, [Password], TrangThai, RoleId, CreatedAt)
+                            VALUES (N'Administrator', 'admin', 'admin', 'Active', @AdminRoleId, GETUTCDATE());
+                        END
+                    END
+
+                    COMMIT TRANSACTION;
+                    ";
+
+                    using (var cmd = new SqlCommand(baseSql, conn))
+                    {
+                        cmd.CommandTimeout = 60;
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+
+                    // 2. Now run the multi-zone topology migrations safely
+                    string multiZoneSql = GetEmbeddedMigrationSql();
+                    using (var cmd = new SqlCommand(multiZoneSql, conn))
+                    {
+                        cmd.CommandTimeout = 60;
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+
+                    // 3. Now run the pricing migration script (20260424_add_khunggio_pricing.sql)
+                    string pricingSql = GetEmbeddedPricingMigrationSql();
+                    if (!string.IsNullOrWhiteSpace(pricingSql))
+                    {
+                        using (var cmd = new SqlCommand(pricingSql, conn))
+                        {
+                            cmd.CommandTimeout = 60;
+                            await cmd.ExecuteNonQueryAsync();
+                        }
+                    }
+
+                    _baseSchemaChecked = true;
+                    _migrationsApplied = true; // so that standard migrations are skipped post-login
+                    LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Database successfully initialized and seeded.");
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("DB_INIT_ERROR", "EnsureBaseSchemaAndAdminSeededAsync", "Failed to initialize and seed database", ex);
+                throw;
+            }
+        }
+
+        private static string GetEmbeddedPricingMigrationSql()
+        {
+            return @"
+            SET XACT_ABORT ON;
+            BEGIN TRANSACTION;
+
+            -- 1) Create KhungGio table
+            IF OBJECT_ID(N'dbo.KhungGio', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.KhungGio (
+                    Id INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                    TenKhungGio NVARCHAR(100) NOT NULL,
+                    GioBatDau TIME NOT NULL,
+                    GioKetThuc TIME NOT NULL,
+                    QuaDem BIT NOT NULL CONSTRAINT DF_KhungGio_QuaDem DEFAULT(0),
+                    TrangThai BIT NOT NULL CONSTRAINT DF_KhungGio_TrangThai DEFAULT(1)
+                );
+            END
+
+            -- 2) Create BangGiaKhungGio table
+            IF OBJECT_ID(N'dbo.BangGiaKhungGio', N'U') IS NULL
+            BEGIN
+                CREATE TABLE dbo.BangGiaKhungGio (
+                    Id INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                    BangGiaId INT NOT NULL,
+                    KhungGioId INT NOT NULL,
+                    GiaTien DECIMAL(18,2) NOT NULL,
+                    CONSTRAINT FK_BangGiaKhungGio_BangGia FOREIGN KEY (BangGiaId) REFERENCES dbo.BangGia(Id),
+                    CONSTRAINT FK_BangGiaKhungGio_KhungGio FOREIGN KEY (KhungGioId) REFERENCES dbo.KhungGio(Id)
+                );
+            END
+
+            -- 3) Seed KhungGio (day / night). Use localized names.
+            IF NOT EXISTS (SELECT 1 FROM dbo.KhungGio WHERE TenKhungGio = N'Ban ngày')
+            BEGIN
+                INSERT INTO dbo.KhungGio (TenKhungGio, GioBatDau, GioKetThuc, QuaDem, TrangThai)
+                VALUES (N'Ban ngày', '06:00:00', '18:00:00', 0, 1);
+            END
+
+            IF NOT EXISTS (SELECT 1 FROM dbo.KhungGio WHERE TenKhungGio = N'Ban đêm')
+            BEGIN
+                INSERT INTO dbo.KhungGio (TenKhungGio, GioBatDau, GioKetThuc, QuaDem, TrangThai)
+                VALUES (N'Ban đêm', '18:00:00', '06:00:00', 1, 1);
+            END
+
+            -- 4) Ensure LoaiXe and LoaiVe seed values exist
+            IF OBJECT_ID(N'dbo.LoaiXe', N'U') IS NOT NULL
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM dbo.LoaiXe WHERE TenLoai = N'Xe máy')
+                    INSERT INTO dbo.LoaiXe (TenLoai, TrangThai) VALUES (N'Xe máy', 'Active');
+                IF NOT EXISTS (SELECT 1 FROM dbo.LoaiXe WHERE TenLoai = N'Ô tô')
+                    INSERT INTO dbo.LoaiXe (TenLoai, TrangThai) VALUES (N'Ô tô', 'Active');
+            END
+
+            IF OBJECT_ID(N'dbo.LoaiVe', N'U') IS NOT NULL
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM dbo.LoaiVe WHERE TenLoai = N'Vãng lai')
+                    INSERT INTO dbo.LoaiVe (TenLoai, TrangThai, Detail) VALUES (N'Vãng lai', 'Active', N'Vé vãng lai');
+                IF NOT EXISTS (SELECT 1 FROM dbo.LoaiVe WHERE TenLoai = N'Tháng')
+                    INSERT INTO dbo.LoaiVe (TenLoai, TrangThai, Detail) VALUES (N'Tháng', 'Active', N'Vé tháng');
+            END
+
+            -- 5) Migrate existing BangGia values into BangGiaKhungGio
+            DECLARE @DayKhungId INT = (SELECT TOP(1) Id FROM dbo.KhungGio WHERE TenKhungGio = N'Ban ngày');
+            DECLARE @NightKhungId INT = (SELECT TOP(1) Id FROM dbo.KhungGio WHERE TenKhungGio = N'Ban đêm');
+
+            IF @DayKhungId IS NOT NULL AND @NightKhungId IS NOT NULL
+            BEGIN
+                -- Insert day prices
+                INSERT INTO dbo.BangGiaKhungGio (BangGiaId, KhungGioId, GiaTien)
+                SELECT b.Id, @DayKhungId, b.GiaBanNgay
+                FROM dbo.BangGia b
+                WHERE b.GiaBanNgay IS NOT NULL
+                  AND NOT EXISTS (SELECT 1 FROM dbo.BangGiaKhungGio bgk WHERE bgk.BangGiaId = b.Id AND bgk.KhungGioId = @DayKhungId);
+
+                -- Insert night prices
+                INSERT INTO dbo.BangGiaKhungGio (BangGiaId, KhungGioId, GiaTien)
+                SELECT b.Id, @NightKhungId, b.GiaQuaDem
+                FROM dbo.BangGia b
+                WHERE b.GiaQuaDem IS NOT NULL
+                  AND NOT EXISTS (SELECT 1 FROM dbo.BangGiaKhungGio bgk WHERE bgk.BangGiaId = b.Id AND bgk.KhungGioId = @NightKhungId);
+            END
+
+            -- 6) Insert sample BangGia entries (if not present) and assign KhungGio prices
+            DECLARE @XeMayId INT = NULL, @OToId INT = NULL, @VangLaiId INT = NULL, @ThangId INT = NULL;
+            IF OBJECT_ID(N'dbo.LoaiXe', N'U') IS NOT NULL
+            BEGIN
+                SELECT @XeMayId = Id FROM dbo.LoaiXe WHERE TenLoai = N'Xe máy';
+                SELECT @OToId = Id FROM dbo.LoaiXe WHERE TenLoai = N'Ô tô';
+            END
+            IF OBJECT_ID(N'dbo.LoaiVe', N'U') IS NOT NULL
+            BEGIN
+                SELECT @VangLaiId = Id FROM dbo.LoaiVe WHERE TenLoai = N'Vãng lai';
+                SELECT @ThangId = Id FROM dbo.LoaiVe WHERE TenLoai = N'Tháng';
+            END
+
+            -- Create BangGia
+            IF @XeMayId IS NOT NULL AND @VangLaiId IS NOT NULL
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM dbo.BangGia WHERE LoaiXeId = @XeMayId AND LoaiVeId = @VangLaiId)
+                BEGIN
+                    INSERT INTO dbo.BangGia (LoaiXeId, LoaiVeId, GiaThang, TrangThai, GiaBanNgay, GiaQuaDem)
+                    VALUES (@XeMayId, @VangLaiId, NULL, N'1', 5000.00, 3000.00);
+                END
+            END
+
+            IF @XeMayId IS NOT NULL AND @ThangId IS NOT NULL
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM dbo.BangGia WHERE LoaiXeId = @XeMayId AND LoaiVeId = @ThangId)
+                BEGIN
+                    INSERT INTO dbo.BangGia (LoaiXeId, LoaiVeId, GiaThang, TrangThai)
+                    VALUES (@XeMayId, @ThangId, 200000.00, N'1');
+                END
+            END
+
+            IF @OToId IS NOT NULL AND @VangLaiId IS NOT NULL
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM dbo.BangGia WHERE LoaiXeId = @OToId AND LoaiVeId = @VangLaiId)
+                BEGIN
+                    INSERT INTO dbo.BangGia (LoaiXeId, LoaiVeId, GiaThang, TrangThai, GiaBanNgay, GiaQuaDem)
+                    VALUES (@OToId, @VangLaiId, NULL, N'1', 15000.00, 10000.00);
+                END
+            END
+
+            IF @OToId IS NOT NULL AND @ThangId IS NOT NULL
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM dbo.BangGia WHERE LoaiXeId = @OToId AND LoaiVeId = @ThangId)
+                BEGIN
+                    INSERT INTO dbo.BangGia (LoaiXeId, LoaiVeId, GiaThang, TrangThai)
+                    VALUES (@OToId, @ThangId, 1000000.00, N'1');
+                END
+            END
+
+            -- 7) For any newly created BangGia rows above, ensure BangGiaKhungGio pricing exist
+            IF @DayKhungId IS NOT NULL
+            BEGIN
+                INSERT INTO dbo.BangGiaKhungGio (BangGiaId, KhungGioId, GiaTien)
+                SELECT b.Id, @DayKhungId,
+                       CASE WHEN b.LoaiVeId = @ThangId THEN 0.00 ELSE
+                            CASE WHEN b.LoaiXeId = @XeMayId THEN 5000.00 WHEN b.LoaiXeId = @OToId THEN 15000.00 ELSE 0.00 END END
+                FROM dbo.BangGia b
+                WHERE NOT EXISTS (SELECT 1 FROM dbo.BangGiaKhungGio bgk WHERE bgk.BangGiaId = b.Id AND bgk.KhungGioId = @DayKhungId)
+                  AND (b.GiaBanNgay IS NULL OR b.GiaBanNgay = 0)
+                  AND (b.LoaiVeId = @VangLaiId OR b.LoaiVeId = @ThangId);
+            END
+
+            IF @NightKhungId IS NOT NULL
+            BEGIN
+                INSERT INTO dbo.BangGiaKhungGio (BangGiaId, KhungGioId, GiaTien)
+                SELECT b.Id, @NightKhungId,
+                       CASE WHEN b.LoaiVeId = @ThangId THEN 0.00 ELSE
+                            CASE WHEN b.LoaiXeId = @XeMayId THEN 3000.00 WHEN b.LoaiXeId = @OToId THEN 10000.00 ELSE 0.00 END END
+                FROM dbo.BangGia b
+                WHERE NOT EXISTS (SELECT 1 FROM dbo.BangGiaKhungGio bgk WHERE bgk.BangGiaId = b.Id AND bgk.KhungGioId = @NightKhungId)
+                  AND (b.GiaQuaDem IS NULL OR b.GiaQuaDem = 0)
+                  AND (b.LoaiVeId = @VangLaiId OR b.LoaiVeId = @ThangId);
+            END
+
+            COMMIT TRANSACTION;
+            ";
+        }
     }
 }

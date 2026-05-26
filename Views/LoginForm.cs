@@ -220,6 +220,20 @@ namespace QuanLyGiuXe.Views
                     return;
                 }
 
+                // Auto-initialize DB schema and seed default admin if reset
+                lblMessage.Text = "⏳ Đang đồng bộ cấu trúc cơ sở dữ liệu...";
+                await Task.Run(async () =>
+                {
+                    try
+                    {
+                        await DatabaseService.EnsureBaseSchemaAndAdminSeededAsync(connectionString);
+                    }
+                    catch (Exception ex)
+                    {
+                        LoggingService.Instance.LogError("DB_INIT", "BtnLogin_Click", "Failed to auto-init schema", ex);
+                    }
+                });
+
                 // Step 2: Xác thực tài khoản
                 lblMessage.Text = "⏳ Đang xác thực tài khoản...";
                 var userFound = await Task.Run(() => AuthenticateUser(user, pass));
