@@ -24,8 +24,27 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <Border Background="{Binding DataContext.Lane1Color, RelativeSource={RelativeSource AncestorType=Window}}" Padding="15,10" CornerRadius="4,4,0,0" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,0,0,1">
-                    <TextBlock Text="{Binding DataContext.Lane1Title, RelativeSource={RelativeSource AncestorType=Window}}" FontWeight="Bold" Foreground="White"/>
+                <!-- Lane 1 Header: Title, Reader Mapping (Left) & Site/Zone Topology (Right) -->
+                <Border Background="{Binding DataContext.Lane1Color, RelativeSource={RelativeSource AncestorType=Window}}" Padding="15,8" CornerRadius="4,4,0,0" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,0,0,1">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="{Binding DataContext.Lane1Title, RelativeSource={RelativeSource AncestorType=Window}}" FontWeight="Bold" Foreground="White" FontSize="13"/>
+                            <TextBlock FontSize="10" Foreground="#E0E0E0" FontWeight="SemiBold" Margin="0,2,0,0">
+                                <Run Text="{Binding DataContext.Lane1ReaderMappingIn, RelativeSource={RelativeSource AncestorType=Window}, Mode=OneWay}"/>
+                                <Run Text=" " />
+                                <Run Text="{Binding DataContext.Lane1ReaderMappingOut, RelativeSource={RelativeSource AncestorType=Window}, Mode=OneWay}"/>
+                                <Run Text="{Binding DataContext.Lane1ReaderMappingEmpty, RelativeSource={RelativeSource AncestorType=Window}, Mode=OneWay}"/>
+                            </TextBlock>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right">
+                            <TextBlock Text="{Binding DataContext.Lane1TopologyText, RelativeSource={RelativeSource AncestorType=Window}}" FontSize="11" FontWeight="Bold" Foreground="White" HorizontalAlignment="Right"/>
+                            <TextBlock Text="{Binding DataContext.Lane1CapacityText, RelativeSource={RelativeSource AncestorType=Window}}" FontSize="10" Foreground="#E0E0E0" HorizontalAlignment="Right"/>
+                        </StackPanel>
+                    </Grid>
                 </Border>
 
                 <Grid Grid.Row="1" Margin="15">
@@ -83,56 +102,47 @@
                         </Border>
                     </Grid>
 
+                    <!-- Compact Horizontal Bottom Information Panel -->
                     <StackPanel Grid.Row="2">
-                        <Border Background="{StaticResource BgLightBrush}" Padding="15" CornerRadius="4">
-                            <StackPanel>
-                                 <TextBlock Text="{Binding DataContext.Lane1InfoLabel, RelativeSource={RelativeSource AncestorType=Window}}" Style="{StaticResource SubTitleStyle}" Margin="0,0,0,5"/>
-                                 
-                                 <!-- TOPOLOGY INFO -->
-                                 <StackPanel Margin="0,0,0,5">
-                                     <TextBlock Text="{Binding DataContext.Lane1TopologyText, RelativeSource={RelativeSource AncestorType=Window}}" FontSize="12" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}"/>
-                                     <TextBlock Text="{Binding DataContext.Lane1CapacityText, RelativeSource={RelativeSource AncestorType=Window}}" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
-                                 </StackPanel>
-                                 <Border Background="#1A27AE60" BorderBrush="#3327AE60" BorderThickness="1" CornerRadius="3" HorizontalAlignment="Left" Padding="6,2" Margin="0,0,0,10">
-                                     <StackPanel Orientation="Horizontal">
-                                         <Path Data="M12,2C6.48,2,2,6.48,2,12s4.48,10,10,10,10-4.48,10-10S17.52,2,12,2zm-1,14.5v-9l6,4.5-6,4.5z" Fill="#27AE60" Width="10" Height="10" Stretch="Uniform" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                                         <TextBlock FontSize="11" VerticalAlignment="Center" FontWeight="Bold">
-                                             <Run Text="{Binding DataContext.Lane1ReaderMappingIn, RelativeSource={RelativeSource AncestorType=Window}, Mode=OneWay}" Foreground="#27AE60"/>
-                                             <Run Text=" " />
-                                             <Run Text="{Binding DataContext.Lane1ReaderMappingOut, RelativeSource={RelativeSource AncestorType=Window}, Mode=OneWay}" Foreground="#E74C3C"/>
-                                             <Run Text="{Binding DataContext.Lane1ReaderMappingEmpty, RelativeSource={RelativeSource AncestorType=Window}, Mode=OneWay}" Foreground="#95A5A6"/>
-                                         </TextBlock>
-                                     </StackPanel>
-                                 </Border>
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel>
-                                        <TextBlock Text="Biển số:" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
-                                        <TextBlock Text="{Binding DataContext.Lane1BienSo, RelativeSource={RelativeSource AncestorType=Window}}" FontSize="24" FontWeight="Bold" Foreground="{Binding DataContext.Lane1Color, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                                        
-                                        <StackPanel Visibility="{Binding DataContext.Lane1TimeVisibility, RelativeSource={RelativeSource AncestorType=Window}}" Orientation="Horizontal" Margin="0,2,0,0">
-                                            <TextBlock Text="{Binding DataContext.Lane1ThoiGianVao, RelativeSource={RelativeSource AncestorType=Window}}" FontSize="11" Foreground="{StaticResource TextMutedBrush}"/>
-                                            <TextBlock Text=" | " FontSize="11" Foreground="{StaticResource TextMutedBrush}"/>
-                                            <TextBlock Text="{Binding DataContext.Lane1ThoiGianTrongBai, RelativeSource={RelativeSource AncestorType=Window}}" FontSize="11" Foreground="{StaticResource TextMutedBrush}"/>
-                                        </StackPanel>
-                                        
-                                        <TextBlock Visibility="{Binding DataContext.IsLane1Inbound, Converter={StaticResource BoolToVis}}" Text="{Binding DataContext.Lane1UID, RelativeSource={RelativeSource AncestorType=Window}, StringFormat='{}UID: {0}'}" FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,2,0,0"/>
-                                    </StackPanel>
-                                    <Button Grid.Column="1" Content="{Binding DataContext.Lane1ButtonText, RelativeSource={RelativeSource AncestorType=Window}}" Style="{StaticResource ModernButton}" Click="OpenGateIn_Click" Width="120" VerticalAlignment="Top"/>
-                                </Grid>
+                        <Border Background="{StaticResource BgLightBrush}" Padding="15,12" CornerRadius="4">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
                                 
-                                <Grid Margin="0,10,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="{Binding DataContext.Lane1TrangThai, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{StaticResource SuccessBrush}" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                                    <TextBlock Grid.Column="1" Visibility="{Binding DataContext.Lane1FeeVisibility, RelativeSource={RelativeSource AncestorType=Window}}" Text="{Binding DataContext.Lane1Tien, RelativeSource={RelativeSource AncestorType=Window}, StringFormat='{}PHÍ: {0}'}" FontSize="18" FontWeight="Bold" Foreground="{StaticResource SuccessBrush}"/>
-                                </Grid>
-                            </StackPanel>
+                                <!-- LEFT COLUMN: Vehicle Details -->
+                                <StackPanel VerticalAlignment="Center">
+                                    <!-- Plate Info Row -->
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                        <TextBlock Text="BIỂN SỐ:" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                        <TextBlock Text="{Binding DataContext.Lane1BienSo, RelativeSource={RelativeSource AncestorType=Window}}" FontSize="20" FontWeight="Bold" Foreground="{Binding DataContext.Lane1Color, RelativeSource={RelativeSource AncestorType=Window}}" VerticalAlignment="Center" Margin="6,0,0,0"/>
+                                    </StackPanel>
+                                    
+                                    <!-- Scanning details (UID or In/Out times) -->
+                                    <StackPanel Visibility="{Binding DataContext.IsLane1Inbound, Converter={StaticResource BoolToVis}}" Orientation="Horizontal">
+                                        <TextBlock Text="UID: " FontSize="10" Foreground="{StaticResource TextMutedBrush}"/>
+                                        <TextBlock Text="{Binding DataContext.Lane1UID, RelativeSource={RelativeSource AncestorType=Window}}" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    </StackPanel>
+                                    
+                                    <StackPanel Visibility="{Binding DataContext.Lane1TimeVisibility, RelativeSource={RelativeSource AncestorType=Window}}">
+                                        <TextBlock Text="{Binding DataContext.Lane1ThoiGianVao, RelativeSource={RelativeSource AncestorType=Window}, StringFormat='Vào: {0}'}" FontSize="10" Foreground="{StaticResource TextMutedBrush}"/>
+                                        <TextBlock Text="{Binding DataContext.Lane1ThoiGianTrongBai, RelativeSource={RelativeSource AncestorType=Window}, StringFormat='Trong bãi: {0}'}" FontSize="10" Foreground="{StaticResource TextMutedBrush}" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </StackPanel>
+
+                                <!-- RIGHT COLUMN: Status, Fee & Gate Button -->
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right">
+                                    <!-- Status / Fee Row -->
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,8">
+                                        <TextBlock Text="{Binding DataContext.Lane1TrangThai, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{StaticResource SuccessBrush}" FontWeight="Bold" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                        <TextBlock Visibility="{Binding DataContext.Lane1FeeVisibility, RelativeSource={RelativeSource AncestorType=Window}}" Text="{Binding DataContext.Lane1Tien, RelativeSource={RelativeSource AncestorType=Window}, StringFormat='{}PHÍ: {0}'}" FontSize="13" FontWeight="Bold" Foreground="{StaticResource SuccessBrush}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                    
+                                    <!-- Action Button -->
+                                    <Button Content="{Binding DataContext.Lane1ButtonText, RelativeSource={RelativeSource AncestorType=Window}}" Style="{StaticResource ModernButton}" Background="{Binding DataContext.Lane1Color, RelativeSource={RelativeSource AncestorType=Window}}" Click="OpenGateIn_Click" Width="110" Height="30" HorizontalAlignment="Right"/>
+                                </StackPanel>
+                            </Grid>
                         </Border>
                     </StackPanel>
                 </Grid>
@@ -151,8 +161,27 @@
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
-                <Border Background="{Binding DataContext.Lane2Color, RelativeSource={RelativeSource AncestorType=Window}}" Padding="15,10" CornerRadius="4,4,0,0" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,0,0,1">
-                    <TextBlock Text="{Binding DataContext.Lane2Title, RelativeSource={RelativeSource AncestorType=Window}}" FontWeight="Bold" Foreground="White"/>
+                <!-- Lane 2 Header: Title, Reader Mapping (Left) & Site/Zone Topology (Right) -->
+                <Border Background="{Binding DataContext.Lane2Color, RelativeSource={RelativeSource AncestorType=Window}}" Padding="15,8" CornerRadius="4,4,0,0" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,0,0,1">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock Text="{Binding DataContext.Lane2Title, RelativeSource={RelativeSource AncestorType=Window}}" FontWeight="Bold" Foreground="White" FontSize="13"/>
+                            <TextBlock FontSize="10" Foreground="#E0E0E0" FontWeight="SemiBold" Margin="0,2,0,0">
+                                <Run Text="{Binding DataContext.Lane2ReaderMappingIn, RelativeSource={RelativeSource AncestorType=Window}, Mode=OneWay}"/>
+                                <Run Text=" " />
+                                <Run Text="{Binding DataContext.Lane2ReaderMappingOut, RelativeSource={RelativeSource AncestorType=Window}, Mode=OneWay}"/>
+                                <Run Text="{Binding DataContext.Lane2ReaderMappingEmpty, RelativeSource={RelativeSource AncestorType=Window}, Mode=OneWay}"/>
+                            </TextBlock>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right">
+                            <TextBlock Text="{Binding DataContext.Lane2TopologyText, RelativeSource={RelativeSource AncestorType=Window}}" FontSize="11" FontWeight="Bold" Foreground="White" HorizontalAlignment="Right"/>
+                            <TextBlock Text="{Binding DataContext.Lane2CapacityText, RelativeSource={RelativeSource AncestorType=Window}}" FontSize="10" Foreground="#E0E0E0" HorizontalAlignment="Right"/>
+                        </StackPanel>
+                    </Grid>
                 </Border>
 
                 <Grid Grid.Row="1" Margin="15">
@@ -210,56 +239,47 @@
                         </Border>
                     </Grid>
 
+                    <!-- Compact Horizontal Bottom Information Panel -->
                     <StackPanel Grid.Row="2">
-                        <Border Background="{StaticResource BgLightBrush}" Padding="15" CornerRadius="4">
-                            <StackPanel>
-                                 <TextBlock Text="{Binding DataContext.Lane2InfoLabel, RelativeSource={RelativeSource AncestorType=Window}}" Style="{StaticResource SubTitleStyle}" Margin="0,0,0,5"/>
-                                 
-                                 <!-- TOPOLOGY INFO -->
-                                 <StackPanel Margin="0,0,0,5">
-                                     <TextBlock Text="{Binding DataContext.Lane2TopologyText, RelativeSource={RelativeSource AncestorType=Window}}" FontSize="12" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}"/>
-                                     <TextBlock Text="{Binding DataContext.Lane2CapacityText, RelativeSource={RelativeSource AncestorType=Window}}" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
-                                 </StackPanel>
-                                 <Border Background="#1A27AE60" BorderBrush="#3327AE60" BorderThickness="1" CornerRadius="3" HorizontalAlignment="Left" Padding="6,2" Margin="0,0,0,10">
-                                     <StackPanel Orientation="Horizontal">
-                                         <Path Data="M12,2C6.48,2,2,6.48,2,12s4.48,10,10,10,10-4.48,10-10S17.52,2,12,2zm-1,14.5v-9l6,4.5-6,4.5z" Fill="#27AE60" Width="10" Height="10" Stretch="Uniform" VerticalAlignment="Center" Margin="0,0,5,0"/>
-                                         <TextBlock FontSize="11" VerticalAlignment="Center" FontWeight="Bold">
-                                             <Run Text="{Binding DataContext.Lane2ReaderMappingIn, RelativeSource={RelativeSource AncestorType=Window}, Mode=OneWay}" Foreground="#27AE60"/>
-                                             <Run Text=" " />
-                                             <Run Text="{Binding DataContext.Lane2ReaderMappingOut, RelativeSource={RelativeSource AncestorType=Window}, Mode=OneWay}" Foreground="#E74C3C"/>
-                                             <Run Text="{Binding DataContext.Lane2ReaderMappingEmpty, RelativeSource={RelativeSource AncestorType=Window}, Mode=OneWay}" Foreground="#95A5A6"/>
-                                         </TextBlock>
-                                     </StackPanel>
-                                 </Border>
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <StackPanel>
-                                        <TextBlock Text="Biển số:" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}"/>
-                                        <TextBlock Text="{Binding DataContext.Lane2BienSo, RelativeSource={RelativeSource AncestorType=Window}}" FontSize="24" FontWeight="Bold" Foreground="{Binding DataContext.Lane2Color, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                                        
-                                        <StackPanel Visibility="{Binding DataContext.Lane2TimeVisibility, RelativeSource={RelativeSource AncestorType=Window}}" Orientation="Horizontal" Margin="0,2,0,0">
-                                            <TextBlock Text="{Binding DataContext.Lane2ThoiGianVao, RelativeSource={RelativeSource AncestorType=Window}}" FontSize="11" Foreground="{StaticResource TextMutedBrush}"/>
-                                            <TextBlock Text=" | " FontSize="11" Foreground="{StaticResource TextMutedBrush}"/>
-                                            <TextBlock Text="{Binding DataContext.Lane2ThoiGianTrongBai, RelativeSource={RelativeSource AncestorType=Window}}" FontSize="11" Foreground="{StaticResource TextMutedBrush}"/>
-                                        </StackPanel>
-
-                                        <TextBlock Visibility="{Binding DataContext.IsLane2Inbound, Converter={StaticResource BoolToVis}}" Text="{Binding DataContext.Lane2UID, RelativeSource={RelativeSource AncestorType=Window}, StringFormat='{}UID: {0}'}" FontSize="11" Foreground="{StaticResource TextMutedBrush}" Margin="0,2,0,0"/>
+                        <Border Background="{StaticResource BgLightBrush}" Padding="15,12" CornerRadius="4">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <!-- LEFT COLUMN: Vehicle Details -->
+                                <StackPanel VerticalAlignment="Center">
+                                    <!-- Plate Info Row -->
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                        <TextBlock Text="BIỂN SỐ:" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                                        <TextBlock Text="{Binding DataContext.Lane2BienSo, RelativeSource={RelativeSource AncestorType=Window}}" FontSize="20" FontWeight="Bold" Foreground="{Binding DataContext.Lane2Color, RelativeSource={RelativeSource AncestorType=Window}}" VerticalAlignment="Center" Margin="6,0,0,0"/>
                                     </StackPanel>
-                                    <Button Grid.Column="1" Content="{Binding DataContext.Lane2ButtonText, RelativeSource={RelativeSource AncestorType=Window}}" Style="{StaticResource ModernButton}" Click="OpenGateOut_Click" Width="120" VerticalAlignment="Top"/>
-                                </Grid>
+                                    
+                                    <!-- Scanning details (UID or In/Out times) -->
+                                    <StackPanel Visibility="{Binding DataContext.IsLane2Inbound, Converter={StaticResource BoolToVis}}" Orientation="Horizontal">
+                                        <TextBlock Text="UID: " FontSize="10" Foreground="{StaticResource TextMutedBrush}"/>
+                                        <TextBlock Text="{Binding DataContext.Lane2UID, RelativeSource={RelativeSource AncestorType=Window}}" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                    </StackPanel>
+                                    
+                                    <StackPanel Visibility="{Binding DataContext.Lane2TimeVisibility, RelativeSource={RelativeSource AncestorType=Window}}">
+                                        <TextBlock Text="{Binding DataContext.Lane2ThoiGianVao, RelativeSource={RelativeSource AncestorType=Window}, StringFormat='Vào: {0}'}" FontSize="10" Foreground="{StaticResource TextMutedBrush}"/>
+                                        <TextBlock Text="{Binding DataContext.Lane2ThoiGianTrongBai, RelativeSource={RelativeSource AncestorType=Window}, StringFormat='Trong bãi: {0}'}" FontSize="10" Foreground="{StaticResource TextMutedBrush}" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </StackPanel>
 
-                                <Grid Margin="0,10,0,0">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
-                                    <TextBlock Text="{Binding DataContext.Lane2TrangThai, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{StaticResource WarningBrush}" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                                    <TextBlock Grid.Column="1" Visibility="{Binding DataContext.Lane2FeeVisibility, RelativeSource={RelativeSource AncestorType=Window}}" Text="{Binding DataContext.Lane2Tien, RelativeSource={RelativeSource AncestorType=Window}, StringFormat='{}PHÍ: {0}'}" FontSize="18" FontWeight="Bold" Foreground="{StaticResource SuccessBrush}"/>
-                                </Grid>
-                            </StackPanel>
+                                <!-- RIGHT COLUMN: Status, Fee & Gate Button -->
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right">
+                                    <!-- Status / Fee Row -->
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,8">
+                                        <TextBlock Text="{Binding DataContext.Lane2TrangThai, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{StaticResource WarningBrush}" FontWeight="Bold" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                        <TextBlock Visibility="{Binding DataContext.Lane2FeeVisibility, RelativeSource={RelativeSource AncestorType=Window}}" Text="{Binding DataContext.Lane2Tien, RelativeSource={RelativeSource AncestorType=Window}, StringFormat='{}PHÍ: {0}'}" FontSize="13" FontWeight="Bold" Foreground="{StaticResource SuccessBrush}" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                    
+                                    <!-- Action Button -->
+                                    <Button Content="{Binding DataContext.Lane2ButtonText, RelativeSource={RelativeSource AncestorType=Window}}" Style="{StaticResource ModernButton}" Background="{Binding DataContext.Lane2Color, RelativeSource={RelativeSource AncestorType=Window}}" Click="OpenGateOut_Click" Width="110" Height="30" HorizontalAlignment="Right"/>
+                                </StackPanel>
+                            </Grid>
                         </Border>
                     </StackPanel>
                 </Grid>

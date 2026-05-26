@@ -366,7 +366,8 @@ namespace QuanLyGiuXe.ViewModels
 
         private int _totalXeTrongBai = 0;
         private int _totalCapacity = 0;
-        public string SoXeTrongBai => _totalCapacity > 0 ? $"Xe trong bãi: {_totalXeTrongBai}/{_totalCapacity}" : $"Xe trong bãi: {_totalXeTrongBai}";
+        private string _soXeTrongBaiText = "Xe trong bãi: 0";
+        public string SoXeTrongBai => _soXeTrongBaiText;
 
         private bool _isUserPopupOpen;
         public bool IsUserPopupOpen
@@ -398,9 +399,71 @@ namespace QuanLyGiuXe.ViewModels
                 var zones = await ParkingTopologyService.Instance.GetZonesAsync();
                 int totalCap = zones.Sum(z => z.MaxCapacity);
 
+                // Resolve active zones from the operational lanes currently mapped to UI readers
+                var zoneInfos = new List<string>();
+                var processedZones = new HashSet<int>();
+
+                var mapping1 = ReaderLaneMappingService.Instance.GetMappingByReader(1) 
+                            ?? ReaderLaneMappingService.Instance.GetMappingByReader(2);
+                var mapping2 = ReaderLaneMappingService.Instance.GetMappingByReader(3) 
+                            ?? ReaderLaneMappingService.Instance.GetMappingByReader(4);
+
+                var activeLaneIds = new List<int>();
+                if (mapping1 != null) activeLaneIds.Add(mapping1.LaneId);
+                if (mapping2 != null) activeLaneIds.Add(mapping2.LaneId);
+
+                foreach (var laneId in activeLaneIds)
+                {
+                    var topo = await ResolveTopologyForLaneAsync(laneId);
+                    if (topo.ZoneId.HasValue)
+                    {
+                        int zId = topo.ZoneId.Value;
+                        if (!processedZones.Contains(zId))
+                        {
+                            processedZones.Add(zId);
+                            var zone = zones.FirstOrDefault(z => z.Id == zId);
+                            if (zone != null)
+                            {
+                                int zoneCount = await db.GetXeTrongBaiCountByZoneAsync(zId);
+                                string breakdown = await db.GetZoneOccupancyBreakdownAsync(zId);
+                                string breakdownStr = string.IsNullOrEmpty(breakdown) ? "" : $" {breakdown}";
+                                zoneInfos.Add($"{zone.ZoneName.ToUpper()}: {zoneCount}/{zone.MaxCapacity}{breakdownStr}");
+                            }
+                        }
+                    }
+                }
+
+                // Fallback: if no active zones could be resolved from reader mappings, use active database lanes
+                if (!zoneInfos.Any())
+                {
+                    var lanes = await ParkingTopologyService.Instance.GetLanesAsync();
+                    foreach (var lane in lanes.Where(l => l.IsActive && l.ZoneId.HasValue))
+                    {
+                        int zId = lane.ZoneId!.Value;
+                        if (!processedZones.Contains(zId))
+                        {
+                            processedZones.Add(zId);
+                            var zone = zones.FirstOrDefault(z => z.Id == zId);
+                            if (zone != null)
+                            {
+                                int zoneCount = await db.GetXeTrongBaiCountByZoneAsync(zId);
+                                string breakdown = await db.GetZoneOccupancyBreakdownAsync(zId);
+                                string breakdownStr = string.IsNullOrEmpty(breakdown) ? "" : $" {breakdown}";
+                                zoneInfos.Add($"{zone.ZoneName.ToUpper()}: {zoneCount}/{zone.MaxCapacity}{breakdownStr}");
+                            }
+                        }
+                    }
+                }
+
+                string zoneInfoStr = zoneInfos.Any() ? " │ " + string.Join(" │ ", zoneInfos) : "";
+
                 Application.Current?.Dispatcher?.BeginInvoke(new Action(() => {
                     _totalXeTrongBai = count;
                     _totalCapacity = totalCap;
+                    
+                    string totalText = _totalCapacity > 0 ? $"{_totalXeTrongBai}/{_totalCapacity}" : $"{_totalXeTrongBai}";
+                    _soXeTrongBaiText = $"Xe trong bãi: {totalText}{zoneInfoStr}";
+                    
                     OnPropertyChanged(nameof(SoXeTrongBai));
                 }));
                 
@@ -693,6 +756,9 @@ namespace QuanLyGiuXe.ViewModels
                     app.PerformLogout();
                 }
             });
+
+            // Subscriptions
+            ConnectivityStateService.Instance.PropertyChanged += OnConnectivityChanged;
 
             // Kick off heavy initialization in the background
             Task.Run(async () => await InitializeAsync(cfg));
@@ -1204,6 +1270,7 @@ namespace QuanLyGiuXe.ViewModels
                 // Unsubscribe from global services to prevent memory leaks and background crashes
                 C3200Service.Instance.OnConnectionChanged -= OnC3200ConnectionChanged;
                 ConnectionMonitorService.Instance.StatusChanged -= OnConnectionStatusChanged;
+                ConnectivityStateService.Instance.PropertyChanged -= OnConnectivityChanged;
             }
             catch { }
         }
@@ -1212,6 +1279,17 @@ namespace QuanLyGiuXe.ViewModels
         {
             Application.Current?.Dispatcher?.Invoke(() =>
                 TrangThaiKetNoi = online ? "C3200: Online ●" : "C3200: Offline ○");
+        }
+
+        private void OnConnectivityChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(ConnectivityStateService.IsOnline))
+            {
+                if (ConnectivityStateService.Instance.IsOnline)
+                {
+                    UpdateVehicleCount();
+                }
+            }
         }
         public void RefreshCurrentUserInfo()
         {

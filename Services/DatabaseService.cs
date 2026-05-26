@@ -1485,10 +1485,52 @@ namespace QuanLyGiuXe.Services
                 $"COUNT_ZONE_{zoneId}",
                 async conn =>
                 {
-                    using (var cmd = new SqlCommand(@"SELECT COUNT(*) FROM XeTrongBai WHERE ThoiGianRa IS NULL AND ZoneId = @zoneId", conn))
+                    string sql = @"
+                        SELECT COUNT(*) 
+                        FROM XeTrongBai x
+                        LEFT JOIN Lanes l ON x.EntryLaneId = l.Id
+                        WHERE x.ThoiGianRa IS NULL 
+                          AND (x.ZoneId = @zoneId OR (x.ZoneId IS NULL AND l.ZoneId = @zoneId))";
+                    using (var cmd = new SqlCommand(sql, conn))
                     {
                         cmd.Parameters.AddWithValue("@zoneId", zoneId);
                         return Convert.ToInt32(await cmd.ExecuteScalarAsync());
+                    }
+                }
+            );
+        }
+
+        public async Task<string> GetZoneOccupancyBreakdownAsync(int zoneId)
+        {
+            if (!ConnectivityStateService.Instance.IsOnline) return string.Empty;
+            return await ConnectivityAwareRepository.Instance.ExecuteReadAsync<string>(
+                $"ZONE_BREAKDOWN_{zoneId}",
+                async conn =>
+                {
+                    string sql = @"
+                        SELECT ISNULL(lx.TenLoai, N'Khác') as TenLoai, COUNT(x.Id) as CountVal
+                        FROM XeTrongBai x
+                        LEFT JOIN RFIDCards c ON x.CardId = c.Id
+                        LEFT JOIN LoaiXe lx ON c.LoaiXeId = lx.Id
+                        LEFT JOIN Lanes l ON x.EntryLaneId = l.Id
+                        WHERE x.ThoiGianRa IS NULL
+                          AND (x.ZoneId = @zoneId OR (x.ZoneId IS NULL AND l.ZoneId = @zoneId))
+                        GROUP BY ISNULL(lx.TenLoai, N'Khác')";
+                        
+                    using (var cmd = new SqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@zoneId", zoneId);
+                        var list = new List<string>();
+                        using (var reader = await cmd.ExecuteReaderAsync())
+                        {
+                            while (await reader.ReadAsync())
+                            {
+                                string typeName = reader.IsDBNull(0) ? "N/A" : reader.GetString(0);
+                                int count = reader.GetInt32(1);
+                                list.Add($"{count} {typeName}");
+                            }
+                        }
+                        return list.Any() ? "(" + string.Join(", ", list) + ")" : "";
                     }
                 }
             );
