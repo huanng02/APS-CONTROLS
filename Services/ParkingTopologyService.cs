@@ -77,7 +77,7 @@ namespace QuanLyGiuXe.Services
                                 SiteId = r.GetInt32(1),
                                 ZoneCode = r.GetString(2),
                                 ZoneName = r.GetString(3),
-                                Description = r.IsDBNull(4) ? string.Empty : r.GetString(4),
+                                                        Description = r.IsDBNull(4) ? string.Empty : r.GetString(4),
                                 MaxCapacity = r.GetInt32(5),
                                 IsActive = r.GetBoolean(6),
                                 CreatedUtc = r.GetDateTime(7),
@@ -102,7 +102,7 @@ namespace QuanLyGiuXe.Services
                     var list = new List<C3ControllerConfig>();
                     string sql = @"
                         SELECT c.Id, c.ControllerName, c.IpAddress, c.ZoneId, c.IsActive, c.CreatedUtc,
-                               z.ZoneName
+                               z.ZoneName, c.ServerIp, c.PcIp
                         FROM dbo.C3Controllers c
                         JOIN dbo.ParkingZones z ON c.ZoneId = z.Id
                         ORDER BY c.ControllerName";
@@ -119,7 +119,9 @@ namespace QuanLyGiuXe.Services
                                 ZoneId = r.GetInt32(3),
                                 IsActive = r.GetBoolean(4),
                                 CreatedUtc = r.GetDateTime(5),
-                                ZoneName = r.GetString(6)
+                                ZoneName = r.GetString(6),
+                                ServerIp = r.IsDBNull(7) ? "127.0.0.1" : r.GetString(7),
+                                PcIp = r.IsDBNull(8) ? "127.0.0.1" : r.GetString(8)
                             });
                         }
                     }
@@ -572,11 +574,11 @@ namespace QuanLyGiuXe.Services
                     string sql;
                     if (isNew)
                     {
-                        sql = "INSERT INTO dbo.C3Controllers (ControllerName, IpAddress, ZoneId, IsActive, CreatedUtc) OUTPUT INSERTED.Id VALUES (@name, @ip, @zoneId, @active, @created)";
+                        sql = "INSERT INTO dbo.C3Controllers (ControllerName, IpAddress, ServerIp, PcIp, ZoneId, IsActive, CreatedUtc) OUTPUT INSERTED.Id VALUES (@name, @ip, @serverIp, @pcIp, @zoneId, @active, @created)";
                     }
                     else
                     {
-                        sql = "UPDATE dbo.C3Controllers SET ControllerName = @name, IpAddress = @ip, ZoneId = @zoneId, IsActive = @active WHERE Id = @id";
+                        sql = "UPDATE dbo.C3Controllers SET ControllerName = @name, IpAddress = @ip, ServerIp = @serverIp, PcIp = @pcIp, ZoneId = @zoneId, IsActive = @active WHERE Id = @id";
                     }
 
                     using (var cmd = new SqlCommand(sql, conn))
@@ -584,6 +586,8 @@ namespace QuanLyGiuXe.Services
                         if (!isNew) cmd.Parameters.AddWithValue("@id", controller.Id);
                         cmd.Parameters.AddWithValue("@name", controller.ControllerName);
                         cmd.Parameters.AddWithValue("@ip", controller.IpAddress);
+                        cmd.Parameters.AddWithValue("@serverIp", controller.ServerIp ?? "127.0.0.1");
+                        cmd.Parameters.AddWithValue("@pcIp", controller.PcIp ?? "127.0.0.1");
                         cmd.Parameters.AddWithValue("@zoneId", controller.ZoneId);
                         cmd.Parameters.AddWithValue("@active", controller.IsActive);
                         cmd.Parameters.AddWithValue("@created", controller.CreatedUtc);
@@ -619,6 +623,8 @@ namespace QuanLyGiuXe.Services
                         {
                             existing.ControllerName = controller.ControllerName;
                             existing.IpAddress = controller.IpAddress;
+                            existing.ServerIp = controller.ServerIp;
+                            existing.PcIp = controller.PcIp;
                             existing.ZoneId = controller.ZoneId;
                             existing.IsActive = controller.IsActive;
                             var zone = await GetZoneAsync(controller.ZoneId);

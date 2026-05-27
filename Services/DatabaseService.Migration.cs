@@ -124,11 +124,23 @@ namespace QuanLyGiuXe.Services
                     Id INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
                     ControllerName NVARCHAR(100) NOT NULL,
                     IpAddress NVARCHAR(50) NOT NULL UNIQUE,
+                    ServerIp NVARCHAR(50) NOT NULL DEFAULT '127.0.0.1',
+                    PcIp NVARCHAR(50) NOT NULL DEFAULT '127.0.0.1',
                     ZoneId INT NOT NULL,
                     IsActive BIT NOT NULL DEFAULT(1),
                     CreatedUtc DATETIME NOT NULL DEFAULT(GETUTCDATE()),
                     CONSTRAINT FK_C3Controllers_ParkingZones FOREIGN KEY (ZoneId) REFERENCES dbo.ParkingZones(Id)
                 );
+            END
+
+            IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'C3Controllers' AND COLUMN_NAME = 'ServerIp')
+            BEGIN
+                ALTER TABLE dbo.C3Controllers ADD ServerIp NVARCHAR(50) NOT NULL DEFAULT '127.0.0.1';
+            END
+
+            IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'C3Controllers' AND COLUMN_NAME = 'PcIp')
+            BEGIN
+                ALTER TABLE dbo.C3Controllers ADD PcIp NVARCHAR(50) NOT NULL DEFAULT '127.0.0.1';
             END
 
             -- 4) Lanes

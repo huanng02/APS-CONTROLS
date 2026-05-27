@@ -191,6 +191,12 @@ namespace QuanLyGiuXe.ViewModels
         private string _detailControllerIp = string.Empty;
         public string DetailControllerIp { get => _detailControllerIp; set { _detailControllerIp = value; OnPropertyChanged(); } }
 
+        private string _detailControllerServerIp = string.Empty;
+        public string DetailControllerServerIp { get => _detailControllerServerIp; set { _detailControllerServerIp = value; OnPropertyChanged(); } }
+
+        private string _detailControllerPcIp = string.Empty;
+        public string DetailControllerPcIp { get => _detailControllerPcIp; set { _detailControllerPcIp = value; OnPropertyChanged(); } }
+
         private string _detailControllerZone = string.Empty;
         public string DetailControllerZone { get => _detailControllerZone; set { _detailControllerZone = value; OnPropertyChanged(); } }
 
@@ -622,6 +628,8 @@ namespace QuanLyGiuXe.ViewModels
             if (controller == null) return;
             DetailControllerName = controller.ControllerName;
             DetailControllerIp = controller.IpAddress;
+            DetailControllerServerIp = controller.ServerIp;
+            DetailControllerPcIp = controller.PcIp;
             DetailControllerZone = controller.ZoneName;
             DetailControllerIsActive = controller.IsActive;
         }

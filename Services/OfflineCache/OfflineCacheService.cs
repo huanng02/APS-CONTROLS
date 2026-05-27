@@ -126,6 +126,8 @@ namespace QuanLyGiuXe.Services.OfflineCache
                         Id INTEGER PRIMARY KEY AUTOINCREMENT,
                         ControllerName TEXT NOT NULL,
                         IpAddress TEXT NOT NULL UNIQUE,
+                        ServerIp TEXT NOT NULL DEFAULT '127.0.0.1',
+                        PcIp TEXT NOT NULL DEFAULT '127.0.0.1',
                         ZoneId INTEGER NOT NULL,
                         IsActive INTEGER DEFAULT 1,
                         CreatedUtc DATETIME,
@@ -221,6 +223,18 @@ namespace QuanLyGiuXe.Services.OfflineCache
                 try
                 {
                     using (var cmd = new SqliteCommand("ALTER TABLE LocalXeTrongBai ADD COLUMN EntryLaneId INTEGER;", conn))
+                        cmd.ExecuteNonQuery();
+                }
+                catch { }
+                try
+                {
+                    using (var cmd = new SqliteCommand("ALTER TABLE C3Controllers ADD COLUMN ServerIp TEXT NOT NULL DEFAULT '127.0.0.1';", conn))
+                        cmd.ExecuteNonQuery();
+                }
+                catch { }
+                try
+                {
+                    using (var cmd = new SqliteCommand("ALTER TABLE C3Controllers ADD COLUMN PcIp TEXT NOT NULL DEFAULT '127.0.0.1';", conn))
                         cmd.ExecuteNonQuery();
                 }
                 catch { }

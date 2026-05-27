@@ -192,6 +192,20 @@ namespace QuanLyGiuXe.ViewModels
             set { _newControllerIp = value; OnPropertyChanged(nameof(NewControllerIp)); }
         }
 
+        private string _newControllerServerIp = string.Empty;
+        public string NewControllerServerIp
+        {
+            get => _newControllerServerIp;
+            set { _newControllerServerIp = value; OnPropertyChanged(nameof(NewControllerServerIp)); }
+        }
+
+        private string _newControllerPcIp = string.Empty;
+        public string NewControllerPcIp
+        {
+            get => _newControllerPcIp;
+            set { _newControllerPcIp = value; OnPropertyChanged(nameof(NewControllerPcIp)); }
+        }
+
         private ParkingZone? _selectedControllerZone;
         public ParkingZone? SelectedControllerZone
         {
@@ -444,9 +458,9 @@ namespace QuanLyGiuXe.ViewModels
                 AddLog("⚠ Please select a Zone.");
                 return;
             }
-            if (string.IsNullOrWhiteSpace(NewControllerName) || string.IsNullOrWhiteSpace(NewControllerIp))
+            if (string.IsNullOrWhiteSpace(NewControllerName) || string.IsNullOrWhiteSpace(NewControllerIp) || string.IsNullOrWhiteSpace(NewControllerServerIp) || string.IsNullOrWhiteSpace(NewControllerPcIp))
             {
-                AddLog("⚠ Name and IP Address are required.");
+                AddLog("⚠ Name, IP Address, Server IP, and PC IP are required.");
                 return;
             }
 
@@ -454,6 +468,8 @@ namespace QuanLyGiuXe.ViewModels
             {
                 ControllerName = NewControllerName.Trim(),
                 IpAddress = NewControllerIp.Trim(),
+                ServerIp = NewControllerServerIp.Trim(),
+                PcIp = NewControllerPcIp.Trim(),
                 ZoneId = SelectedControllerZone.Id,
                 IsActive = true,
                 CreatedUtc = DateTime.UtcNow
@@ -465,6 +481,8 @@ namespace QuanLyGiuXe.ViewModels
                 AddLog($"✅ Controller '{c3.ControllerName}' saved successfully.");
                 NewControllerName = string.Empty;
                 NewControllerIp = string.Empty;
+                NewControllerServerIp = string.Empty;
+                NewControllerPcIp = string.Empty;
                 await RefreshAllAsync();
             }
             else
@@ -588,6 +606,8 @@ namespace QuanLyGiuXe.ViewModels
                 {
                     ControllerName = "QA-C3-Controller",
                     IpAddress = "192.168.10.99",
+                    ServerIp = "192.168.10.10",
+                    PcIp = "192.168.10.11",
                     ZoneId = zone.Id,
                     IsActive = true,
                     CreatedUtc = DateTime.UtcNow

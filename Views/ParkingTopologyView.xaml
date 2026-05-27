@@ -714,9 +714,11 @@
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*"/>
                                                 <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
                                             <StackPanel Grid.Column="0">
-                                                <TextBlock Text="IP Address" Style="{StaticResource InfoLabelStyle}"/>
+                                                <TextBlock Text="IP Controller" Style="{StaticResource InfoLabelStyle}"/>
                                                 <Border Background="#F0F4FF" CornerRadius="6" Padding="10,6"
                                                         HorizontalAlignment="Left" Margin="0,0,0,12">
                                                     <TextBlock Text="{Binding DetailControllerIp}" FontSize="14"
@@ -725,6 +727,24 @@
                                                 </Border>
                                             </StackPanel>
                                             <StackPanel Grid.Column="1">
+                                                <TextBlock Text="IP Server" Style="{StaticResource InfoLabelStyle}"/>
+                                                <Border Background="#E8F8F5" CornerRadius="6" Padding="10,6"
+                                                        HorizontalAlignment="Left" Margin="0,0,0,12">
+                                                    <TextBlock Text="{Binding DetailControllerServerIp}" FontSize="14"
+                                                               FontWeight="SemiBold" FontFamily="Consolas, Segoe UI"
+                                                               Foreground="#16A085"/>
+                                                </Border>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="2">
+                                                <TextBlock Text="IP Máy trạm (PC)" Style="{StaticResource InfoLabelStyle}"/>
+                                                <Border Background="#FEF9E7" CornerRadius="6" Padding="10,6"
+                                                        HorizontalAlignment="Left" Margin="0,0,0,12">
+                                                    <TextBlock Text="{Binding DetailControllerPcIp}" FontSize="14"
+                                                               FontWeight="SemiBold" FontFamily="Consolas, Segoe UI"
+                                                               Foreground="#D35400"/>
+                                                </Border>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="3">
                                                 <TextBlock Text="Khu vực" Style="{StaticResource InfoLabelStyle}"/>
                                                 <TextBlock Text="{Binding DetailControllerZone}" Style="{StaticResource InfoValueStyle}"/>
                                             </StackPanel>

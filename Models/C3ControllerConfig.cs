@@ -16,6 +16,14 @@ namespace QuanLyGiuXe.Models
         [Description("Địa chỉ IP của tủ (VD: 192.168.1.201)")]
         public string IpAddress { get; set; } = string.Empty;
 
+        [Required(ErrorMessage = "Vui lòng nhập IP Server")]
+        [Description("Địa chỉ IP của Server (VD: 192.168.1.100)")]
+        public string ServerIp { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Vui lòng nhập IP Máy thực hiện (PC)")]
+        [Description("Địa chỉ IP của máy dùng để quản lý/điều khiển board (VD: 192.168.1.50)")]
+        public string PcIp { get; set; } = string.Empty;
+
         [Required(ErrorMessage = "Vui lòng nhập Zone ID")]
         [Description("ID của Zone chứa tủ này (VD: 1)")]
         public int ZoneId { get; set; }

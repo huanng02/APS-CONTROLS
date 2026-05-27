@@ -128,7 +128,7 @@ namespace QuanLyGiuXe.Views
                             Width = 200,
                             HorizontalAlignment = HorizontalAlignment.Left,
                             Style = (Style)Application.Current.FindResource("ModernComboBox"),
-                            IsEditable = true
+                            IsEditable = false
                         };
                         var candidateIps = new List<string>();
 
@@ -171,14 +171,19 @@ namespace QuanLyGiuXe.Views
                             catch { }
                         }
 
-                                                // Set ItemsSource and enable state based on reachable IPs
-                        cb.ItemsSource = reachableIps;
-                        cb.IsEnabled = reachableIps.Count > 0;
                         // Retrieve the current IP value from the model
                         string currentIp = (string)(p.GetValue(_model) ?? string.Empty);
+                        if (!string.IsNullOrEmpty(currentIp) && !reachableIps.Contains(currentIp))
+                        {
+                            reachableIps.Insert(0, currentIp);
+                        }
+
+                        // Set ItemsSource and enable state based on reachable IPs
+                        cb.ItemsSource = reachableIps;
+                        cb.IsEnabled = reachableIps.Count > 0;
+
                         if (reachableIps.Count > 0)
                         {
-                            // Pre-select current IP if it is reachable
                             if (!string.IsNullOrEmpty(currentIp) && reachableIps.Contains(currentIp))
                             {
                                 cb.SelectedValue = currentIp;
@@ -190,13 +195,145 @@ namespace QuanLyGiuXe.Views
                                 p.SetValue(_model, reachableIps[0]);
                             }
                         }
-                                                else
+                        else
                         {
-                            // No reachable controllers – disable selection
                             cb.ItemsSource = null;
                             cb.IsEnabled = false;
                             cb.Text = string.Empty;
                         }
+                        input = cb;
+                    }
+                    else if (p.Name == "ServerIp")
+                    {
+                        var cb = new ComboBox {
+                            Width = 200,
+                            HorizontalAlignment = HorizontalAlignment.Left,
+                            Style = (Style)Application.Current.FindResource("ModernComboBox"),
+                            IsEditable = true
+                        };
+                        var candidates = new List<string>();
+
+                        // 1. Current connected SQL Server IP
+                        var sqlIp = ConnectionManager.Instance.CurrentConfig?.ServerIP;
+                        if (!string.IsNullOrWhiteSpace(sqlIp))
+                            candidates.Add(sqlIp);
+
+                        // 2. Loopback
+                        if (!candidates.Contains("127.0.0.1"))
+                            candidates.Add("127.0.0.1");
+
+                        // 3. Existing controllers' ServerIps
+                        try
+                        {
+                            var allControllers = await ParkingTopologyService.Instance.GetControllersAsync();
+                            if (allControllers != null)
+                            {
+                                foreach (var ctrl in allControllers)
+                                {
+                                    if (!string.IsNullOrWhiteSpace(ctrl.ServerIp) && !candidates.Contains(ctrl.ServerIp))
+                                        candidates.Add(ctrl.ServerIp);
+                                }
+                            }
+                        }
+                        catch { }
+
+                        cb.ItemsSource = candidates;
+
+                        string currentVal = (string)(p.GetValue(_model) ?? string.Empty);
+                        if (!string.IsNullOrEmpty(currentVal))
+                        {
+                            cb.SelectedValue = currentVal;
+                            cb.Text = currentVal;
+                        }
+                        else if (candidates.Count > 0)
+                        {
+                            cb.SelectedIndex = 0;
+                            p.SetValue(_model, candidates[0]);
+                        }
+
+                        input = cb;
+                    }
+                    else if (p.Name == "PcIp")
+                    {
+                        var cb = new ComboBox {
+                            Width = 200,
+                            HorizontalAlignment = HorizontalAlignment.Left,
+                            Style = (Style)Application.Current.FindResource("ModernComboBox"),
+                            IsEditable = true
+                        };
+                        var candidates = new List<string>();
+
+                        // 1. Dynamically detected local PC IP
+                        string localIp = "127.0.0.1";
+                        try
+                        {
+                            using (var socket = new System.Net.Sockets.Socket(System.Net.Sockets.AddressFamily.InterNetwork, System.Net.Sockets.SocketType.Dgram, 0))
+                            {
+                                string targetIp = ConnectionManager.Instance.CurrentConfig?.ServerIP ?? "8.8.8.8";
+                                socket.Connect(targetIp, 65530);
+                                if (socket.LocalEndPoint is System.Net.IPEndPoint endPoint)
+                                {
+                                    localIp = endPoint.Address.ToString();
+                                }
+                            }
+                        }
+                        catch
+                        {
+                            try
+                            {
+                                var host = System.Net.Dns.GetHostEntry(System.Net.Dns.GetHostName());
+                                foreach (var ip in host.AddressList)
+                                {
+                                    if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                                    {
+                                        string ipStr = ip.ToString();
+                                        if (ipStr != "127.0.0.1")
+                                        {
+                                            localIp = ipStr;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                            catch { }
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(localIp))
+                            candidates.Add(localIp);
+
+                        // 2. Loopback
+                        if (!candidates.Contains("127.0.0.1"))
+                            candidates.Add("127.0.0.1");
+
+                        // 3. Existing controllers' PcIps
+                        try
+                        {
+                            var allControllers = await ParkingTopologyService.Instance.GetControllersAsync();
+                            if (allControllers != null)
+                            {
+                                foreach (var ctrl in allControllers)
+                                {
+                                    if (!string.IsNullOrWhiteSpace(ctrl.PcIp) && !candidates.Contains(ctrl.PcIp))
+                                        candidates.Add(ctrl.PcIp);
+                                }
+                            }
+                        }
+                        catch { }
+
+                        cb.ItemsSource = candidates;
+
+                        string currentVal = (string)(p.GetValue(_model) ?? string.Empty);
+                        if (!string.IsNullOrEmpty(currentVal))
+                        {
+                            cb.SelectedValue = currentVal;
+                            cb.Text = currentVal;
+                        }
+                        else if (candidates.Count > 0)
+                        {
+                            cb.SelectedIndex = 0;
+                            p.SetValue(_model, candidates[0]);
+                        }
+
                         input = cb;
                     }
 else if (p.Name == "TrangThai")
@@ -364,7 +501,7 @@ private void Save_Click(object sender, RoutedEventArgs e)
                 }
                 else if (input is ComboBox cb)
                 {
-                    if (isRequired && (cb.SelectedItem == null || string.IsNullOrWhiteSpace(cb.SelectedItem.ToString())))
+                    if (isRequired && (cb.SelectedItem == null || string.IsNullOrWhiteSpace(cb.SelectedItem.ToString())) && string.IsNullOrWhiteSpace(cb.Text))
                     {
                         MessageBox.Show(errorMsg, "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
                         return;
@@ -401,14 +538,15 @@ private void Save_Click(object sender, RoutedEventArgs e)
                     }
                     else
                     {
-                        if (cb.SelectedItem != null)
+                        string valStr = cb.SelectedItem?.ToString() ?? cb.Text;
+                        if (!string.IsNullOrEmpty(valStr))
                         {
                             if (prop.PropertyType == typeof(string))
-                                prop.SetValue(_model, cb.SelectedItem.ToString());
+                                prop.SetValue(_model, valStr);
                             else
                             {
                                 var targetType = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
-                                prop.SetValue(_model, Convert.ChangeType(cb.SelectedItem, targetType));
+                                prop.SetValue(_model, Convert.ChangeType(valStr, targetType));
                             }
                         }
                     }
