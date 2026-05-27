@@ -210,6 +210,8 @@ namespace QuanLyGiuXe.Services
                             ls.BienSo AS [Biển Số],
                             ls.Tien AS [Số Tiền],
                             ls.TrangThai AS [Trạng Thái],
+                            lv.TenLoai AS [Loại Vé],
+                            lx.TenLoai AS [Loại Xe],
                             s.SiteName AS [Site],
                             z.ZoneName AS [Khu Vực],
                             el.LaneName AS [Cổng Vào],
@@ -219,6 +221,9 @@ namespace QuanLyGiuXe.Services
                         LEFT JOIN ParkingZones z ON ls.ZoneId = z.Id
                         LEFT JOIN Lanes el ON ls.EntryLaneId = el.Id
                         LEFT JOIN Lanes xl ON ls.ExitLaneId = xl.Id
+                        LEFT JOIN RFIDCards r ON ls.CardId = r.Id
+                        LEFT JOIN LoaiVe lv ON r.LoaiVeId = lv.Id
+                        LEFT JOIN LoaiXe lx ON r.LoaiXeId = lx.Id
                         WHERE ((ls.ThoiGianVao >= @Start AND ls.ThoiGianVao <= @End)
                            OR (ls.ThoiGianRa >= @Start AND ls.ThoiGianRa <= @End))
                           AND (@SiteId IS NULL OR ls.SiteId = @SiteId)

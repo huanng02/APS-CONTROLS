@@ -14,10 +14,8 @@
 
     <Grid Margin="15">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="250"/>
+            <RowDefinition Height="Auto"/> <!-- Header + Filters (Fixed at top) -->
+            <RowDefinition Height="*"/>    <!-- Scrollable Content under Filters -->
         </Grid.RowDefinitions>
 
         <!-- Header Row -->
@@ -84,240 +82,348 @@
             </Border>
         </Grid>
 
-        <!-- KPI Cards Row -->
-        <UniformGrid Grid.Row="1" Columns="4">
-            
-            <!-- Card 1 -->
-            <Border Style="{StaticResource EnterpriseCardBorder}" BorderBrush="{StaticResource APSBlueBrush}" BorderThickness="0,4,0,0">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <StackPanel>
-                        <TextBlock Text="YARD STATUS" Style="{StaticResource SubTitleStyle}"/>
-                        <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
-                            <TextBlock Text="{Binding XeTrongBai}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}"/>
-                            <TextBlock Text="/" FontSize="20" FontWeight="SemiBold" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Bottom" Margin="2,0,2,4"/>
-                            <TextBlock Text="{Binding TongCho}" FontSize="20" FontWeight="SemiBold" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Bottom" Margin="0,0,0,4"/>
-                        </StackPanel>
-                    </StackPanel>
-                    <TextBlock Grid.Column="1" Text="🚗" FontSize="32" Opacity="0.3" VerticalAlignment="Center"/>
-                </Grid>
-            </Border>
+        <!-- Scrollable Dashboard Content -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Focusable="False">
+            <Grid Margin="10,15,10,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/> <!-- KPI Cards Row -->
+                    <RowDefinition Height="Auto"/> <!-- Collapsible Detailed Analytics -->
+                    <RowDefinition Height="350"/>  <!-- Charts Row -->
+                    <RowDefinition Height="300"/>  <!-- Bottom Row -->
+                </Grid.RowDefinitions>
 
-            <!-- Card 2 -->
-            <Border Style="{StaticResource EnterpriseCardBorder}" BorderBrush="{StaticResource WarningBrush}" BorderThickness="0,4,0,0">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <StackPanel>
-                        <TextBlock Text="TRAFFIC FLOW" Style="{StaticResource SubTitleStyle}"/>
-                        <TextBlock Text="{Binding LuotXeVao}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource WarningBrush}" Margin="0,5,0,0"/>
-                    </StackPanel>
-                    <TextBlock Grid.Column="1" Text="📈" FontSize="32" Opacity="0.3" VerticalAlignment="Center"/>
-                </Grid>
-            </Border>
-
-            <!-- Card 3 -->
-            <Border Style="{StaticResource EnterpriseCardBorder}" BorderBrush="{StaticResource SuccessBrush}" BorderThickness="0,4,0,0">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <StackPanel>
-                        <TextBlock Text="TOTAL REVENUE" Style="{StaticResource SubTitleStyle}"/>
-                        <TextBlock Text="{Binding DoanhThu, StringFormat={}{0:N0} đ}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource SuccessBrush}" Margin="0,5,0,0"/>
-                    </StackPanel>
-                    <TextBlock Grid.Column="1" Text="💰" FontSize="32" Opacity="0.3" VerticalAlignment="Center"/>
-                </Grid>
-            </Border>
-
-            <!-- Card 4 -->
-            <Border Style="{StaticResource EnterpriseCardBorder}" BorderBrush="{StaticResource APSBlueBrush}" BorderThickness="0,4,0,0">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <StackPanel>
-                        <TextBlock Text="ACTIVE TICKETS" Style="{StaticResource SubTitleStyle}"/>
-                        <TextBlock Text="{Binding VeActive}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}" Margin="0,5,0,0"/>
-                    </StackPanel>
-                    <TextBlock Grid.Column="1" Text="💳" FontSize="32" Opacity="0.3" VerticalAlignment="Center"/>
-                </Grid>
-            </Border>
-        </UniformGrid>
-
-        <!-- Charts Row -->
-        <Grid Grid.Row="2">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
-            </Grid.ColumnDefinitions>
-
-            <!-- Revenue Chart -->
-            <Border Grid.Column="0" Style="{StaticResource EnterpriseCardBorder}">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-                    <TextBlock Text="REVENUE OVERVIEW" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}" Margin="0,0,0,15"/>
-                    <lvc:CartesianChart Grid.Row="1" Series="{Binding RevenueSeries}" Margin="0,10,0,0">
-                        <lvc:CartesianChart.AxisX>
-                            <lvc:Axis Labels="{Binding RevenueLabels}" />
-                        </lvc:CartesianChart.AxisX>
-                        <lvc:CartesianChart.AxisY>
-                            <lvc:Axis LabelFormatter="{Binding RevenueFormatter}" />
-                        </lvc:CartesianChart.AxisY>
-                    </lvc:CartesianChart>
-                </Grid>
-            </Border>
-
-            <!-- Hourly Chart -->
-            <Border Grid.Column="1" Style="{StaticResource EnterpriseCardBorder}">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-                    <TextBlock Text="HOURLY TRAFFIC" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}" Margin="0,0,0,15"/>
-                    <lvc:CartesianChart Grid.Row="1" Series="{Binding HourlySeries}" Margin="0,10,0,0">
-                        <lvc:CartesianChart.AxisX>
-                            <lvc:Axis Labels="{Binding HourlyLabels}" />
-                        </lvc:CartesianChart.AxisX>
-                        <lvc:CartesianChart.AxisY>
-                            <lvc:Axis LabelFormatter="{Binding HourlyFormatter}" MinValue="0"/>
-                        </lvc:CartesianChart.AxisY>
-                    </lvc:CartesianChart>
-                </Grid>
-            </Border>
-        </Grid>
-
-        <!-- Bottom Row -->
-        <Grid Grid.Row="3">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="0.4*"/>
-                <ColumnDefinition Width="0.6*"/>
-            </Grid.ColumnDefinitions>
-
-            <!-- Park Status -->
-            <Border Grid.Column="0" Style="{StaticResource EnterpriseCardBorder}">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
+                <!-- KPI Cards Row -->
+                <UniformGrid Grid.Row="0" Columns="4">
                     
-                    <TextBlock Text="YARD STATUS" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}" Margin="0,0,0,15"/>
-                    
-                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10">
-                        <TextBlock Text="Capacity: " Style="{StaticResource SubTitleStyle}"/>
-                        <TextBlock Text="{Binding TongCho}" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold"/>
-                    </StackPanel>
+                    <!-- Card 1 -->
+                    <Border Style="{StaticResource EnterpriseCardBorder}" BorderBrush="{StaticResource APSBlueBrush}" BorderThickness="0,4,0,0">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="YARD STATUS" Style="{StaticResource SubTitleStyle}"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
+                                    <TextBlock Text="{Binding XeTrongBai}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}"/>
+                                    <TextBlock Text="/" FontSize="20" FontWeight="SemiBold" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Bottom" Margin="2,0,2,4"/>
+                                    <TextBlock Text="{Binding TongCho}" FontSize="20" FontWeight="SemiBold" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Bottom" Margin="0,0,0,4"/>
+                                </StackPanel>
+                            </StackPanel>
+                            <TextBlock Grid.Column="1" Text="🚗" FontSize="32" Opacity="0.3" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
 
-                    <ProgressBar Grid.Row="2" Height="20" Value="{Binding TyLeLapDay, Mode=OneWay}" Maximum="100" 
-                                 Foreground="{StaticResource APSBlueBrush}" Background="{StaticResource BgLightBrush}" BorderThickness="0" Margin="0,10"/>
-                    
-                    <Grid Grid.Row="3" Margin="0,10,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <StackPanel Grid.Column="0">
-                            <TextBlock Text="Occupied" Style="{StaticResource SubTitleStyle}"/>
-                            <TextBlock Text="{Binding XeTrongBai}" FontSize="24" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}"/>
-                            <TextBlock Text="{Binding TyLeLapDay, StringFormat={}{0:N1}%}" Style="{StaticResource SubTitleStyle}" Foreground="{StaticResource APSBlueBrush}"/>
-                        </StackPanel>
-                        <StackPanel Grid.Column="1">
-                            <TextBlock Text="Available" Style="{StaticResource SubTitleStyle}"/>
-                            <TextBlock Text="{Binding ChoTrong}" FontSize="24" FontWeight="Bold" Foreground="{StaticResource SuccessBrush}"/>
-                        </StackPanel>
-                    </Grid>
+                    <!-- Card 2 -->
+                    <Border Style="{StaticResource EnterpriseCardBorder}" BorderBrush="{StaticResource WarningBrush}" BorderThickness="0,4,0,0">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="TRAFFIC FLOW" Style="{StaticResource SubTitleStyle}"/>
+                                <TextBlock Text="{Binding LuotXeVao}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource WarningBrush}" Margin="0,5,0,0"/>
+                            </StackPanel>
+                            <TextBlock Grid.Column="1" Text="📈" FontSize="32" Opacity="0.3" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
 
-                    <!-- Warning if Near Full -->
-                    <Border Grid.Row="3" VerticalAlignment="Bottom" Background="#FFF1F0" BorderBrush="{StaticResource APSRedBrush}" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,10,0,0">
-                        <Border.Style>
-                            <Style TargetType="Border">
-                                <Setter Property="Visibility" Value="Collapsed"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsNearFull}" Value="True">
-                                        <Setter Property="Visibility" Value="Visible"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Border.Style>
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="⚠️" Margin="0,0,10,0"/>
-                            <TextBlock Text="Yard is near capacity!" Foreground="{StaticResource APSRedBrush}" FontWeight="SemiBold"/>
-                        </StackPanel>
+                    <!-- Card 3 -->
+                    <Border Style="{StaticResource EnterpriseCardBorder}" BorderBrush="{StaticResource SuccessBrush}" BorderThickness="0,4,0,0">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="TOTAL REVENUE" Style="{StaticResource SubTitleStyle}"/>
+                                <TextBlock Text="{Binding DoanhThu, StringFormat={}{0:N0} đ}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource SuccessBrush}" Margin="0,5,0,0"/>
+                            </StackPanel>
+                            <TextBlock Grid.Column="1" Text="💰" FontSize="32" Opacity="0.3" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
+
+                    <!-- Card 4 -->
+                    <Border Style="{StaticResource EnterpriseCardBorder}" BorderBrush="{StaticResource APSBlueBrush}" BorderThickness="0,4,0,0">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="ACTIVE TICKETS" Style="{StaticResource SubTitleStyle}"/>
+                                <TextBlock Text="{Binding VeActive}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}" Margin="0,5,0,0"/>
+                            </StackPanel>
+                            <TextBlock Grid.Column="1" Text="💳" FontSize="32" Opacity="0.3" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
+                </UniformGrid>
+
+                <!-- Collapsible Detailed Analytics -->
+                <Border Grid.Row="1" Style="{StaticResource EnterpriseCardBorder}" Margin="0,15,0,0" Padding="8" Background="White">
+                    <Expander Header="Xem thống kê chi tiết theo loại vé &amp; loại xe / Detailed Analytics" IsExpanded="False" Foreground="{StaticResource TextSecondaryBrush}" FontWeight="SemiBold" FontSize="11" Padding="4">
+                        <Grid Margin="0,8,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Left: Ticket Type Breakdown -->
+                            <Border Grid.Column="0" BorderBrush="#E3E6F0" BorderThickness="0,0,1,0" Margin="0,0,10,0" Padding="0,0,10,0">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Grid.Row="0" Text="🎫 THỐNG KÊ THEO LOẠI VÉ / TICKET STATS" FontWeight="Bold" FontSize="10" Foreground="{StaticResource APSBlueBrush}" Margin="0,0,0,6"/>
+                                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="120">
+                                        <ItemsControl ItemsSource="{Binding ThongKeLoaiVe}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <WrapPanel Orientation="Horizontal"/>
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Background="#F8F9FC" BorderThickness="1" BorderBrush="#E3E6F0" CornerRadius="4" Padding="8,4" Margin="0,2,6,2" MinWidth="115">
+                                                        <StackPanel>
+                                                            <TextBlock Text="{Binding TenLoaiVe}" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" FontSize="11"/>
+                                                            <Grid Margin="0,2,0,0">
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="Auto"/>
+                                                                    <ColumnDefinition Width="*"/>
+                                                                    <ColumnDefinition Width="Auto"/>
+                                                                </Grid.ColumnDefinitions>
+                                                                <TextBlock Grid.Column="0" Text="Vào: " FontSize="10" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                                                <TextBlock Grid.Column="0" Text="{Binding SoLuotVao}" FontSize="10" FontWeight="Bold" Foreground="{StaticResource InfoBrush}" Margin="22,0,0,0"/>
+                                                                <TextBlock Grid.Column="2" Text="Ra: " FontSize="10" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                                                <TextBlock Grid.Column="2" Text="{Binding SoLuotRa}" FontSize="10" FontWeight="Bold" Foreground="{StaticResource SuccessBrush}" Margin="18,0,0,0"/>
+                                                            </Grid>
+                                                            <TextBlock Text="{Binding DoanhThu, StringFormat={}{0:N0} đ}" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource SuccessBrush}" Margin="0,2,0,0"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                </Grid>
+                            </Border>
+
+                            <!-- Right: Vehicle Type Breakdown -->
+                            <Grid Grid.Column="1" Margin="10,0,0,0">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="*"/>
+                                </Grid.RowDefinitions>
+                                <TextBlock Grid.Row="0" Text="🚗 THỐNG KÊ THEO LOẠI XE / VEHICLE STATS" FontWeight="Bold" FontSize="10" Foreground="#7C3AED" Margin="0,0,0,6"/>
+                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="120">
+                                    <ItemsControl ItemsSource="{Binding ThongKeLoaiXe}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel Orientation="Horizontal"/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Background="#F5F3FF" BorderThickness="1" BorderBrush="#DDD6FE" CornerRadius="4" Padding="8,4" Margin="0,2,6,2" MinWidth="130">
+                                                    <StackPanel>
+                                                        <TextBlock Text="{Binding TenLoaiXe}" FontWeight="Bold" Foreground="#5B21B6" FontSize="11"/>
+                                                        <Grid Margin="0,2,0,0">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <StackPanel Grid.Column="0" Orientation="Horizontal">
+                                                                <TextBlock Text="Lượt: " FontSize="10" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                                                <TextBlock Text="{Binding SoLuot}" FontSize="10" FontWeight="Bold" Foreground="#7C3AED"/>
+                                                            </StackPanel>
+                                                            <StackPanel Grid.Column="2" Orientation="Horizontal">
+                                                                <TextBlock Text="Bãi: " FontSize="10" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                                                <TextBlock Text="{Binding DangTrongBai}" FontSize="10" FontWeight="Bold" Foreground="{StaticResource WarningBrush}"/>
+                                                            </StackPanel>
+                                                        </Grid>
+                                                        <TextBlock Text="{Binding DoanhThu, StringFormat={}{0:N0} đ}" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource SuccessBrush}" Margin="0,2,0,0"/>
+                                                    </StackPanel>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </Grid>
+                        </Grid>
+                    </Expander>
+                </Border>
+
+                <!-- Charts Row -->
+                <Grid Grid.Row="2" Margin="0,15,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Revenue Chart -->
+                    <Border Grid.Column="0" Style="{StaticResource EnterpriseCardBorder}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <TextBlock Text="REVENUE OVERVIEW" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}" Margin="0,0,0,15"/>
+                            <lvc:CartesianChart Grid.Row="1" Series="{Binding RevenueSeries}" Margin="0,10,0,0">
+                                <lvc:CartesianChart.AxisX>
+                                    <lvc:Axis Labels="{Binding RevenueLabels}" />
+                                </lvc:CartesianChart.AxisX>
+                                <lvc:CartesianChart.AxisY>
+                                    <lvc:Axis LabelFormatter="{Binding RevenueFormatter}" />
+                                </lvc:CartesianChart.AxisY>
+                            </lvc:CartesianChart>
+                        </Grid>
+                    </Border>
+
+                    <!-- Hourly Chart -->
+                    <Border Grid.Column="1" Style="{StaticResource EnterpriseCardBorder}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <TextBlock Text="HOURLY TRAFFIC" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}" Margin="0,0,0,15"/>
+                            <lvc:CartesianChart Grid.Row="1" Series="{Binding HourlySeries}" Margin="0,10,0,0">
+                                <lvc:CartesianChart.AxisX>
+                                    <lvc:Axis Labels="{Binding HourlyLabels}" />
+                                </lvc:CartesianChart.AxisX>
+                                <lvc:CartesianChart.AxisY>
+                                    <lvc:Axis LabelFormatter="{Binding HourlyFormatter}" MinValue="0"/>
+                                </lvc:CartesianChart.AxisY>
+                            </lvc:CartesianChart>
+                        </Grid>
                     </Border>
                 </Grid>
-            </Border>
 
-            <!-- Recent Activity -->
-            <Border Grid.Column="1" Style="{StaticResource EnterpriseCardBorder}">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
-                    
-                    <TextBlock Text="RECENT ACTIVITY" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}" Margin="0,0,0,15"/>
-                    
-                    <DataGrid Grid.Row="1" ItemsSource="{Binding RecentActivities}" Style="{StaticResource ModernDataGrid}">
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="PLATE NO" Binding="{Binding BienSo}" Width="150" FontWeight="Bold"/>
-                            <DataGridTextColumn Header="TIME" Binding="{Binding ThoiGian, StringFormat=dd/MM/yyyy HH:mm:ss}" Width="150"/>
+                <!-- Bottom Row -->
+                <Grid Grid.Row="3" Margin="0,15,0,15">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="0.4*"/>
+                        <ColumnDefinition Width="0.6*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Park Status -->
+                    <Border Grid.Column="0" Style="{StaticResource EnterpriseCardBorder}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
                             
-                            <DataGridTemplateColumn Header="ACTION" Width="100">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <Border Padding="10,2" CornerRadius="12" HorizontalAlignment="Left">
-                                            <Border.Style>
-                                                <Style TargetType="Border">
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding HanhDong}" Value="VÀO">
-                                                            <Setter Property="Background" Value="#E6FFFA"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding HanhDong}" Value="RA">
-                                                            <Setter Property="Background" Value="#FFF5F5"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Border.Style>
-                                            <TextBlock Text="{Binding HanhDong}" FontWeight="Bold" FontSize="11">
-                                                <TextBlock.Style>
-                                                    <Style TargetType="TextBlock">
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding HanhDong}" Value="VÀO">
-                                                                <Setter Property="Foreground" Value="{StaticResource SuccessBrush}"/>
-                                                            </DataTrigger>
-                                                            <DataTrigger Binding="{Binding HanhDong}" Value="RA">
-                                                                <Setter Property="Foreground" Value="{StaticResource APSRedBrush}"/>
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </TextBlock.Style>
-                                            </TextBlock>
-                                        </Border>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
+                            <TextBlock Text="YARD STATUS" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}" Margin="0,0,0,15"/>
+                            
+                            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10">
+                                <TextBlock Text="Capacity: " Style="{StaticResource SubTitleStyle}"/>
+                                <TextBlock Text="{Binding TongCho}" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold"/>
+                            </StackPanel>
 
-                            <DataGridTextColumn Header="TYPE" Binding="{Binding TheLoai}" Width="120"/>
-                            <DataGridTextColumn Header="FEE" Binding="{Binding GiaTien, StringFormat={}{0:N0} đ}" Width="*"/>
-                        </DataGrid.Columns>
-                    </DataGrid>
+                            <ProgressBar Grid.Row="2" Height="20" Value="{Binding TyLeLapDay, Mode=OneWay}" Maximum="100" 
+                                         Foreground="{StaticResource APSBlueBrush}" Background="{StaticResource BgLightBrush}" BorderThickness="0" Margin="0,10"/>
+                            
+                            <Grid Grid.Row="3" Margin="0,10,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="Occupied" Style="{StaticResource SubTitleStyle}"/>
+                                    <TextBlock Text="{Binding XeTrongBai}" FontSize="24" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}"/>
+                                    <TextBlock Text="{Binding TyLeLapDay, StringFormat={}{0:N1}%}" Style="{StaticResource SubTitleStyle}" Foreground="{StaticResource APSBlueBrush}"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="Available" Style="{StaticResource SubTitleStyle}"/>
+                                    <TextBlock Text="{Binding ChoTrong}" FontSize="24" FontWeight="Bold" Foreground="{StaticResource SuccessBrush}"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- Warning if Near Full -->
+                            <Border Grid.Row="3" VerticalAlignment="Bottom" Background="#FFF1F0" BorderBrush="{StaticResource APSRedBrush}" BorderThickness="1" CornerRadius="4" Padding="10" Margin="0,10,0,0">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsNearFull}" Value="True">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="⚠️" Margin="0,0,10,0"/>
+                                    <TextBlock Text="Yard is near capacity!" Foreground="{StaticResource APSRedBrush}" FontWeight="SemiBold"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <!-- Recent Activity -->
+                    <Border Grid.Column="1" Style="{StaticResource EnterpriseCardBorder}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            
+                            <TextBlock Text="RECENT ACTIVITY" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}" Margin="0,0,0,15"/>
+                            
+                            <DataGrid Grid.Row="1" ItemsSource="{Binding RecentActivities}" Style="{StaticResource ModernDataGrid}">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="PLATE NO" Binding="{Binding BienSo}" Width="150" FontWeight="Bold"/>
+                                    <DataGridTextColumn Header="TIME" Binding="{Binding ThoiGian, StringFormat=dd/MM/yyyy HH:mm:ss}" Width="150"/>
+                                    
+                                    <DataGridTemplateColumn Header="ACTION" Width="100">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Border Padding="10,2" CornerRadius="12" HorizontalAlignment="Left">
+                                                    <Border.Style>
+                                                        <Style TargetType="Border">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding HanhDong}" Value="VÀO">
+                                                                    <Setter Property="Background" Value="#E6FFFA"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding HanhDong}" Value="RA">
+                                                                    <Setter Property="Background" Value="#FFF5F5"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Border.Style>
+                                                    <TextBlock Text="{Binding HanhDong}" FontWeight="Bold" FontSize="11">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding HanhDong}" Value="VÀO">
+                                                                        <Setter Property="Foreground" Value="{StaticResource SuccessBrush}"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding HanhDong}" Value="RA">
+                                                                        <Setter Property="Foreground" Value="{StaticResource APSRedBrush}"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                </Border>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+
+                                    <DataGridTextColumn Header="TYPE" Binding="{Binding TheLoai}" Width="120"/>
+                                    <DataGridTextColumn Header="FEE" Binding="{Binding GiaTien, StringFormat={}{0:N0} đ}" Width="*"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </Grid>
+                    </Border>
                 </Grid>
-            </Border>
-        </Grid>
+            </Grid>
+        </ScrollViewer>
     </Grid>
 </UserControl>
 

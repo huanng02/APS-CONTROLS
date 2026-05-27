@@ -1601,12 +1601,16 @@ namespace QuanLyGiuXe.Services
                         SELECT TOP 1000 
                             ls.Id, ls.CardId, ls.BienSo, ls.ThoiGianVao, ls.ThoiGianRa, ls.Tien, ls.TrangThai, ls.AnhVao, ls.AnhRa,
                             ls.SiteId, ls.ZoneId, ls.EntryLaneId, ls.ExitLaneId,
-                            s.SiteName, z.ZoneName, el.LaneName AS EntryLaneName, exl.LaneName AS ExitLaneName
+                            s.SiteName, z.ZoneName, el.LaneName AS EntryLaneName, exl.LaneName AS ExitLaneName,
+                            lv.TenLoai AS LoaiVeName, lx.TenLoai AS LoaiXeName
                         FROM LichSuXe ls
                         LEFT JOIN ParkingSites s ON ls.SiteId = s.Id
                         LEFT JOIN ParkingZones z ON ls.ZoneId = z.Id
                         LEFT JOIN Lanes el ON ls.EntryLaneId = el.Id
                         LEFT JOIN Lanes exl ON ls.ExitLaneId = exl.Id
+                        LEFT JOIN RFIDCards r ON ls.CardId = r.Id
+                        LEFT JOIN LoaiVe lv ON r.LoaiVeId = lv.Id
+                        LEFT JOIN LoaiXe lx ON r.LoaiXeId = lx.Id
                         ORDER BY ls.ThoiGianVao DESC";
 
                     using (SqlCommand cmd = new SqlCommand(sql, conn))
@@ -1634,7 +1638,9 @@ namespace QuanLyGiuXe.Services
                                 SiteName = reader["SiteName"]?.ToString() ?? string.Empty,
                                 ZoneName = reader["ZoneName"]?.ToString() ?? string.Empty,
                                 EntryLaneName = reader["EntryLaneName"]?.ToString() ?? string.Empty,
-                                ExitLaneName = reader["ExitLaneName"]?.ToString() ?? string.Empty
+                                ExitLaneName = reader["ExitLaneName"]?.ToString() ?? string.Empty,
+                                LoaiVeName = reader["LoaiVeName"]?.ToString() ?? string.Empty,
+                                LoaiXeName = reader["LoaiXeName"]?.ToString() ?? string.Empty
                             });
                         }
                     }

@@ -75,6 +75,10 @@ namespace QuanLyGiuXe.ViewModels
         // Recent Activity
         public ObservableCollection<HoatDongGhiNhan> RecentActivities { get; set; }
 
+        // Statistics Breakdown Collections
+        public ObservableCollection<LoaiVeStats> ThongKeLoaiVe { get; set; } = new ObservableCollection<LoaiVeStats>();
+        public ObservableCollection<LoaiXeStats> ThongKeLoaiXe { get; set; } = new ObservableCollection<LoaiXeStats>();
+
         // Filter
         public ObservableCollection<string> FilterOptions { get; set; }
         private string _selectedFilter;
@@ -372,6 +376,142 @@ namespace QuanLyGiuXe.ViewModels
                     }
                     wsKpi.Column(2).Width = 45;
 
+                    // --- Side-by-side statistics breakdown starting at row 19 ---
+                    var listVeStats = transDt.AsEnumerable()
+                        .GroupBy(row => string.IsNullOrWhiteSpace(row.Field<string>("Loại Vé")) ? "Vé lượt" : row.Field<string>("Loại Vé"))
+                        .Select(g => new 
+                        {
+                            TenLoaiVe = g.Key,
+                            SoLuotVao = g.Count(r => r.Field<DateTime?>("Giờ Vào") != null),
+                            SoLuotRa = g.Count(r => r.Field<DateTime?>("Giờ Ra") != null),
+                            DoanhThu = g.Sum(r => r.Field<double?>("Số Tiền") ?? 0)
+                        })
+                        .OrderByDescending(x => x.SoLuotVao)
+                        .ToList();
+
+                    var listXeStats = transDt.AsEnumerable()
+                        .GroupBy(row => string.IsNullOrWhiteSpace(row.Field<string>("Loại Xe")) ? "Không xác định" : row.Field<string>("Loại Xe"))
+                        .Select(g => new 
+                        {
+                            TenLoaiXe = g.Key,
+                            SoLuot = g.Count(),
+                            DangTrongBai = g.Count(r => r.Field<string>("Trạng Thái") == "Trong bãi" || r.Field<DateTime?>("Giờ Ra") == null),
+                            DoanhThu = g.Sum(r => r.Field<double?>("Số Tiền") ?? 0)
+                        })
+                        .OrderByDescending(x => x.SoLuot)
+                        .ToList();
+
+                    // Row 19: Section Headers
+                    wsKpi.Cell(19, 2).Value = "🎫 THỐNG KÊ THEO LOẠI VÉ / TICKET STATS";
+                    wsKpi.Range(19, 2, 19, 5).Merge().Style.Font.Bold = true;
+                    wsKpi.Range(19, 2, 19, 5).Style.Font.FontSize = 12;
+                    wsKpi.Range(19, 2, 19, 5).Style.Font.FontColor = XLColor.FromHtml("#2196F3");
+                    wsKpi.Range(19, 2, 19, 5).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+                    wsKpi.Cell(19, 7).Value = "🚗 THỐNG KÊ THEO LOẠI XE / VEHICLE STATS";
+                    wsKpi.Range(19, 7, 19, 10).Merge().Style.Font.Bold = true;
+                    wsKpi.Range(19, 7, 19, 10).Style.Font.FontSize = 12;
+                    wsKpi.Range(19, 7, 19, 10).Style.Font.FontColor = XLColor.FromHtml("#7C3AED");
+                    wsKpi.Range(19, 7, 19, 10).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+                    // Row 20: Table Headers
+                    var ticketHeaders = new[] { "LOẠI VÉ / TICKET TYPE", "LƯỢT VÀO / ENTRIES", "LƯỢT RA / EXITS", "DOANH THU / REVENUE" };
+                    for (int i = 0; i < ticketHeaders.Length; i++)
+                    {
+                        var cell = wsKpi.Cell(20, 2 + i);
+                        cell.Value = ticketHeaders[i];
+                        cell.Style.Font.Bold = true;
+                        cell.Style.Font.FontColor = XLColor.White;
+                        cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#2196F3");
+                        cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                    }
+
+                    var vehicleHeaders = new[] { "LOẠI XE / VEHICLE TYPE", "LƯỢT XE / VISITS", "TRONG BÃI / INSIDE", "DOANH THU / REVENUE" };
+                    for (int i = 0; i < vehicleHeaders.Length; i++)
+                    {
+                        var cell = wsKpi.Cell(20, 7 + i);
+                        cell.Value = vehicleHeaders[i];
+                        cell.Style.Font.Bold = true;
+                        cell.Style.Font.FontColor = XLColor.White;
+                        cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#7C3AED");
+                        cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                    }
+
+                    wsKpi.Row(20).Height = 22;
+
+                    // Row 21+: Write Data
+                    int currentTicketRow = 21;
+                    foreach (var stat in listVeStats)
+                    {
+                        wsKpi.Cell(currentTicketRow, 2).Value = stat.TenLoaiVe;
+                        wsKpi.Cell(currentTicketRow, 2).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
+
+                        wsKpi.Cell(currentTicketRow, 3).Value = stat.SoLuotVao;
+                        wsKpi.Cell(currentTicketRow, 3).Style.NumberFormat.Format = "#,##0";
+                        wsKpi.Cell(currentTicketRow, 3).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+
+                        wsKpi.Cell(currentTicketRow, 4).Value = stat.SoLuotRa;
+                        wsKpi.Cell(currentTicketRow, 4).Style.NumberFormat.Format = "#,##0";
+                        wsKpi.Cell(currentTicketRow, 4).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+
+                        wsKpi.Cell(currentTicketRow, 5).Value = stat.DoanhThu;
+                        wsKpi.Cell(currentTicketRow, 5).Style.NumberFormat.Format = "#,##0";
+                        wsKpi.Cell(currentTicketRow, 5).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+
+                        var range = wsKpi.Range(currentTicketRow, 2, currentTicketRow, 5);
+                        range.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+                        range.Style.Border.InsideBorderColor = XLColor.FromHtml("#D1D1D1");
+                        range.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                        range.Style.Border.OutsideBorderColor = XLColor.FromHtml("#D1D1D1");
+                        if (currentTicketRow % 2 == 1)
+                        {
+                            range.Style.Fill.BackgroundColor = XLColor.FromHtml("#F8F9F9");
+                        }
+
+                        currentTicketRow++;
+                    }
+
+                    int currentVehicleRow = 21;
+                    foreach (var stat in listXeStats)
+                    {
+                        wsKpi.Cell(currentVehicleRow, 7).Value = stat.TenLoaiXe;
+                        wsKpi.Cell(currentVehicleRow, 7).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
+
+                        wsKpi.Cell(currentVehicleRow, 8).Value = stat.SoLuot;
+                        wsKpi.Cell(currentVehicleRow, 8).Style.NumberFormat.Format = "#,##0";
+                        wsKpi.Cell(currentVehicleRow, 8).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+
+                        wsKpi.Cell(currentVehicleRow, 9).Value = stat.DangTrongBai;
+                        wsKpi.Cell(currentVehicleRow, 9).Style.NumberFormat.Format = "#,##0";
+                        wsKpi.Cell(currentVehicleRow, 9).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+
+                        wsKpi.Cell(currentVehicleRow, 10).Value = stat.DoanhThu;
+                        wsKpi.Cell(currentVehicleRow, 10).Style.NumberFormat.Format = "#,##0";
+                        wsKpi.Cell(currentVehicleRow, 10).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+
+                        var range = wsKpi.Range(currentVehicleRow, 7, currentVehicleRow, 10);
+                        range.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+                        range.Style.Border.InsideBorderColor = XLColor.FromHtml("#D1D1D1");
+                        range.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                        range.Style.Border.OutsideBorderColor = XLColor.FromHtml("#D1D1D1");
+                        if (currentVehicleRow % 2 == 1)
+                        {
+                            range.Style.Fill.BackgroundColor = XLColor.FromHtml("#F8F9F9");
+                        }
+
+                        currentVehicleRow++;
+                    }
+
+                    wsKpi.Column(2).Width = 30;
+                    wsKpi.Column(3).Width = 15;
+                    wsKpi.Column(4).Width = 15;
+                    wsKpi.Column(5).Width = 20;
+                    wsKpi.Column(6).Width = 5;
+                    wsKpi.Column(7).Width = 30;
+                    wsKpi.Column(8).Width = 15;
+                    wsKpi.Column(9).Width = 15;
+                    wsKpi.Column(10).Width = 20;
+
                     // --- Table Styling Helper ---
                     void StyleWorksheet(IXLWorksheet ws, string title)
                     {
@@ -530,8 +670,6 @@ namespace QuanLyGiuXe.ViewModels
             // 90-day limit validation
             if ((ToDate - FromDate).TotalDays > 90)
             {
-                // In a real app, we'd show a message box. Here we can just cap it or set an error.
-                // For this task, we'll just log and maybe show a warning in UI if we had a property.
                 LoggingService.Instance.LogInfo("Dashboard", "LoadDataAsync", "Range exceeded 90 days. Capping range.");
             }
 
@@ -545,8 +683,9 @@ namespace QuanLyGiuXe.ViewModels
                 var kpiTask = _service.GetKpiAsync(FromDate, ToDate, siteIdFilter, zoneIdFilter);
                 var revTask = _service.GetRevenueByDayAsync(FromDate, ToDate, siteIdFilter, zoneIdFilter);
                 var hourlyTask = _service.GetEntriesByHourAsync(FromDate, ToDate, siteIdFilter, zoneIdFilter);
+                var transTask = _service.GetTransactionsAsync(FromDate, ToDate, siteIdFilter, zoneIdFilter);
                 
-                await System.Threading.Tasks.Task.WhenAll(kpiTask, revTask, hourlyTask);
+                await System.Threading.Tasks.Task.WhenAll(kpiTask, revTask, hourlyTask, transTask);
 
                 var kpi = await kpiTask;
                 XeTrongBai = kpi.XeTrongBai;
@@ -564,7 +703,7 @@ namespace QuanLyGiuXe.ViewModels
                 LoadRevenueChart(await revTask);
                 LoadHourlyChart(await hourlyTask);
 
-                // Load Recent Activities (Sync for now as it doesn't take params in service yet)
+                // Load Recent Activities
                 var activities = await _service.GetRecentActivitiesAsync(siteIdFilter, zoneIdFilter);
                 if (RecentActivities != null)
                 {
@@ -574,6 +713,42 @@ namespace QuanLyGiuXe.ViewModels
                         RecentActivities.Add(act);
                     }
                 }
+
+                // Calculate detailed statistics from the transactions DataTable on the background thread
+                var transDt = await transTask;
+
+                var listVeStats = transDt.AsEnumerable()
+                    .GroupBy(row => string.IsNullOrWhiteSpace(row.Field<string>("Loại Vé")) ? "Vé lượt" : row.Field<string>("Loại Vé"))
+                    .Select(g => new LoaiVeStats
+                    {
+                        TenLoaiVe = g.Key,
+                        SoLuotVao = g.Count(r => r.Field<DateTime?>("Giờ Vào") != null),
+                        SoLuotRa = g.Count(r => r.Field<DateTime?>("Giờ Ra") != null),
+                        DoanhThu = g.Sum(r => r.Field<double?>("Số Tiền") ?? 0)
+                    })
+                    .OrderByDescending(x => x.SoLuotVao)
+                    .ToList();
+
+                var listXeStats = transDt.AsEnumerable()
+                    .GroupBy(row => string.IsNullOrWhiteSpace(row.Field<string>("Loại Xe")) ? "Không xác định" : row.Field<string>("Loại Xe"))
+                    .Select(g => new LoaiXeStats
+                    {
+                        TenLoaiXe = g.Key,
+                        SoLuot = g.Count(),
+                        DangTrongBai = g.Count(r => r.Field<string>("Trạng Thái") == "Trong bãi" || r.Field<DateTime?>("Giờ Ra") == null),
+                        DoanhThu = g.Sum(r => r.Field<double?>("Số Tiền") ?? 0)
+                    })
+                    .OrderByDescending(x => x.SoLuot)
+                    .ToList();
+
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    ThongKeLoaiVe.Clear();
+                    foreach (var item in listVeStats) ThongKeLoaiVe.Add(item);
+
+                    ThongKeLoaiXe.Clear();
+                    foreach (var item in listXeStats) ThongKeLoaiXe.Add(item);
+                });
 
                 _lastLoadedRange = currentRangeKey;
             }

@@ -33,5 +33,7 @@ namespace QuanLyGiuXe.Models
         public string ZoneName { get; set; } = string.Empty;
         public string EntryLaneName { get; set; } = string.Empty;
         public string ExitLaneName { get; set; } = string.Empty;
+        public string LoaiVeName { get; set; } = string.Empty;
+        public string LoaiXeName { get; set; } = string.Empty;
     }
 }

@@ -25,6 +25,9 @@ namespace QuanLyGiuXe.ViewModels
         // ======================
         // STATS PROPERTIES
         // ======================
+        public ObservableCollection<LoaiVeStats> ThongKeLoaiVe { get; set; } = new();
+        public ObservableCollection<LoaiXeStats> ThongKeLoaiXe { get; set; } = new();
+
         private int _tongLuotXe;
         public int TongLuotXe
         {
@@ -51,6 +54,43 @@ namespace QuanLyGiuXe.ViewModels
         {
             get => _doanhThuHomNay;
             set { _doanhThuHomNay = value; OnPropertyChanged(nameof(DoanhThuHomNay)); }
+        }
+
+        // ======================
+        // SELECTION & DETAIL PROPERTIES
+        // ======================
+        private LichSuXe? _selectedLichSu;
+        public LichSuXe? SelectedLichSu
+        {
+            get => _selectedLichSu;
+            set
+            {
+                _selectedLichSu = value;
+                OnPropertyChanged(nameof(SelectedLichSu));
+                OnPropertyChanged(nameof(HasSelectedLichSu));
+                OnPropertyChanged(nameof(ThoiGianDo));
+            }
+        }
+
+        public bool HasSelectedLichSu => SelectedLichSu != null;
+
+        public string ThoiGianDo
+        {
+            get
+            {
+                if (SelectedLichSu == null) return string.Empty;
+                var ra = SelectedLichSu.ThoiGianRa ?? DateTime.Now;
+                var duration = ra - SelectedLichSu.ThoiGianVao;
+                if (duration.TotalDays >= 1)
+                {
+                    return $"{(int)duration.TotalDays} ngày {duration.Hours} giờ {duration.Minutes} phút";
+                }
+                if (duration.TotalHours >= 1)
+                {
+                    return $"{(int)duration.TotalHours} giờ {duration.Minutes} phút";
+                }
+                return $"{(int)duration.TotalMinutes} phút";
+            }
         }
 
         // ======================
@@ -82,6 +122,38 @@ namespace QuanLyGiuXe.ViewModels
             set { _denNgay = value; OnPropertyChanged(nameof(DenNgay)); LoadTrangAsync(); }
         }
 
+        // New hour filter properties (nullable int)
+        private int? _startHour;
+        public int? StartHour
+        {
+            get => _startHour;
+            set { _startHour = value; OnPropertyChanged(nameof(StartHour)); LoadTrangAsync(); }
+        }
+
+        private int? _endHour;
+        public int? EndHour
+        {
+            get => _endHour;
+            set { _endHour = value; OnPropertyChanged(nameof(EndHour)); LoadTrangAsync(); }
+        }
+
+        // New minute filter properties (nullable int)
+        private int? _startMinute;
+        public int? StartMinute
+        {
+            get => _startMinute;
+            set { _startMinute = value; OnPropertyChanged(nameof(StartMinute)); LoadTrangAsync(); }
+        }
+
+        private int? _endMinute;
+        public int? EndMinute
+        {
+            get => _endMinute;
+            set { _endMinute = value; OnPropertyChanged(nameof(EndMinute)); LoadTrangAsync(); }
+        }
+        // Lists for time ComboBox populating
+        public List<int> HourList { get; } = Enumerable.Range(0, 24).ToList();
+        public List<int> MinuteList { get; } = Enumerable.Range(0, 60).ToList();
         // ======================
         // PAGING
         // ======================
@@ -158,7 +230,7 @@ namespace QuanLyGiuXe.ViewModels
             {
                 var data = await Task.Run(() => db.LayLichSu().ToList());
                 TatCaLichSu = data;
-                CalculateStats(data);
+                CalculateOverallTodayStats(data);
                 await LoadTrangAsync();
             }
             catch (Exception ex)
@@ -167,17 +239,59 @@ namespace QuanLyGiuXe.ViewModels
             }
         }
 
-        private void CalculateStats(List<LichSuXe> data)
+        private void CalculateOverallTodayStats(List<LichSuXe> allData)
         {
             Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
             {
-                TongLuotXe = data.Count;
-                TongDoanhThu = data.Sum(x => x.Tien ?? 0);
-                
                 var today = DateTime.Today;
-                var dataToday = data.Where(x => x.ThoiGianVao.Date == today || (x.ThoiGianRa.HasValue && x.ThoiGianRa.Value.Date == today)).ToList();
+                var dataToday = allData.Where(x => x.ThoiGianVao.Date == today || (x.ThoiGianRa.HasValue && x.ThoiGianRa.Value.Date == today)).ToList();
                 XeHomNay = dataToday.Count;
                 DoanhThuHomNay = dataToday.Sum(x => x.Tien ?? 0);
+            }));
+        }
+
+        private void CalculateFilteredStats(List<LichSuXe> filteredData)
+        {
+            Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
+            {
+                TongLuotXe = filteredData.Count;
+                TongDoanhThu = filteredData.Sum(x => x.Tien ?? 0);
+
+                // Thống kê theo loại vé
+                ThongKeLoaiVe.Clear();
+                var groupedVe = filteredData
+                    .GroupBy(x => string.IsNullOrWhiteSpace(x.LoaiVeName) ? "Vé lượt" : x.LoaiVeName)
+                    .Select(g => new LoaiVeStats
+                    {
+                        TenLoaiVe = g.Key,
+                        SoLuotVao = g.Count(x => x.ThoiGianVao != DateTime.MinValue),
+                        SoLuotRa = g.Count(x => x.ThoiGianRa.HasValue),
+                        DoanhThu = g.Sum(x => x.Tien ?? 0)
+                    })
+                    .OrderByDescending(x => x.SoLuotVao);
+
+                foreach (var item in groupedVe)
+                {
+                    ThongKeLoaiVe.Add(item);
+                }
+
+                // Thống kê theo loại xe
+                ThongKeLoaiXe.Clear();
+                var groupedXe = filteredData
+                    .GroupBy(x => string.IsNullOrWhiteSpace(x.LoaiXeName) ? "Không xác định" : x.LoaiXeName)
+                    .Select(g => new LoaiXeStats
+                    {
+                        TenLoaiXe = g.Key,
+                        SoLuot = g.Count(),
+                        DangTrongBai = g.Count(x => !x.ThoiGianRa.HasValue),
+                        DoanhThu = g.Sum(x => x.Tien ?? 0)
+                    })
+                    .OrderByDescending(x => x.SoLuot);
+
+                foreach (var item in groupedXe)
+                {
+                    ThongKeLoaiXe.Add(item);
+                }
             }));
         }
 
@@ -214,6 +328,20 @@ namespace QuanLyGiuXe.ViewModels
             if (DenNgay.HasValue)
                 query = query.Where(x => (x.ThoiGianRa ?? x.ThoiGianVao).Date <= DenNgay.Value.Date);
 
+            // Hour filter (optional)
+            if (StartHour.HasValue)
+                query = query.Where(x => x.ThoiGianVao.Hour >= StartHour.Value);
+
+            if (EndHour.HasValue)
+                query = query.Where(x => x.ThoiGianVao.Hour <= EndHour.Value);
+
+            // Minute filter (optional)
+            if (StartMinute.HasValue)
+                query = query.Where(x => x.ThoiGianVao.Minute >= StartMinute.Value);
+
+            if (EndMinute.HasValue)
+                query = query.Where(x => x.ThoiGianVao.Minute <= EndMinute.Value);
+
             return query.OrderByDescending(x => x.ThoiGianRa ?? x.ThoiGianVao);
         }
 
@@ -223,6 +351,8 @@ namespace QuanLyGiuXe.ViewModels
             {
                 var filtered = await Task.Run(() => GetFilteredData().ToList());
                 _filteredCount = filtered.Count;
+
+                CalculateFilteredStats(filtered);
 
                 var pageData = filtered
                     .Skip((TrangHienTai - 1) * PageSize)
@@ -249,12 +379,22 @@ namespace QuanLyGiuXe.ViewModels
         {
             _tuKhoaTimKiem = "";
             OnPropertyChanged(nameof(TuKhoaTimKiem));
-            
+
             _tuNgay = DateTime.Today;
             OnPropertyChanged(nameof(TuNgay));
-            
+
             _denNgay = DateTime.Today.AddDays(1).AddTicks(-1);
             OnPropertyChanged(nameof(DenNgay));
+
+            // Reset hour and minute filters
+            _startHour = null;
+            OnPropertyChanged(nameof(StartHour));
+            _endHour = null;
+            OnPropertyChanged(nameof(EndHour));
+            _startMinute = null;
+            OnPropertyChanged(nameof(StartMinute));
+            _endMinute = null;
+            OnPropertyChanged(nameof(EndMinute));
 
             TrangHienTai = 1;
             _ = LoadTrangAsync();
@@ -277,45 +417,238 @@ namespace QuanLyGiuXe.ViewModels
 
                     await Task.Run(() =>
                     {
+                        // Calculate stats on the background thread from dataToExport
+                        var statsLoaiVe = dataToExport
+                            .GroupBy(x => string.IsNullOrWhiteSpace(x.LoaiVeName) ? "Vé lượt" : x.LoaiVeName)
+                            .Select(g => new
+                            {
+                                TenLoaiVe = g.Key,
+                                SoLuotVao = g.Count(x => x.ThoiGianVao != DateTime.MinValue),
+                                SoLuotRa = g.Count(x => x.ThoiGianRa.HasValue),
+                                DoanhThu = g.Sum(x => x.Tien ?? 0)
+                            })
+                            .OrderByDescending(x => x.SoLuotVao)
+                            .ToList();
+
+                        var statsLoaiXe = dataToExport
+                            .GroupBy(x => string.IsNullOrWhiteSpace(x.LoaiXeName) ? "Không xác định" : x.LoaiXeName)
+                            .Select(g => new
+                            {
+                                TenLoaiXe = g.Key,
+                                SoLuot = g.Count(),
+                                DangTrongBai = g.Count(x => !x.ThoiGianRa.HasValue),
+                                DoanhThu = g.Sum(x => x.Tien ?? 0)
+                            })
+                            .OrderByDescending(x => x.SoLuot)
+                            .ToList();
+
                         using var wb = new XLWorkbook();
                         var ws = wb.Worksheets.Add("LichSu");
                         
-                        // Header
-                        ws.Cell(1, 1).Value = "ID";
-                        ws.Cell(1, 2).Value = "Biển số";
-                        ws.Cell(1, 3).Value = "Thời gian vào";
-                        ws.Cell(1, 4).Value = "Thời gian ra";
-                        ws.Cell(1, 5).Value = "Tiền (VNĐ)";
-                        ws.Cell(1, 6).Value = "Card ID";
-                        ws.Cell(1, 7).Value = "Khu vực (Site)";
-                        ws.Cell(1, 8).Value = "Vùng (Zone)";
-                        ws.Cell(1, 9).Value = "Làn vào (Entry)";
-                        ws.Cell(1, 10).Value = "Làn ra (Exit)";
+                        // Report Title
+                        ws.Cell(1, 1).Value = "BÁO CÁO CHI TIẾT LỊCH SỬ XE RA VÀO";
+                        var titleRange = ws.Range(1, 1, 1, 14);
+                        titleRange.Merge();
+                        titleRange.Style.Font.Bold = true;
+                        titleRange.Style.Font.FontSize = 16;
+                        titleRange.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                        
+                        ws.Cell(2, 1).Value = $"Thời gian xuất file: {DateTime.Now:dd/MM/yyyy HH:mm:ss}";
+                        var subTitleRange = ws.Range(2, 1, 2, 14);
+                        subTitleRange.Merge();
+                        subTitleRange.Style.Font.Italic = true;
+                        subTitleRange.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                        
+                        // Header Row (Row 4)
+                        string[] headers = {
+                            "ID", "Biển số", "Loại vé", "Loại xe", 
+                            "Thời gian vào", "Thời gian ra", "Thời gian đỗ", 
+                            "Tiền (VNĐ)", "Mã thẻ", "Khu vực (Site)", 
+                            "Vùng (Zone)", "Làn vào (Entry)", "Làn ra (Exit)", "Trạng thái"
+                        };
+                        
+                        for (int i = 0; i < headers.Length; i++)
+                        {
+                            var cell = ws.Cell(4, i + 1);
+                            cell.Value = headers[i];
+                            cell.Style.Font.Bold = true;
+                            cell.Style.Font.FontColor = XLColor.White;
+                            cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#1E4FA3");
+                            cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                        }
                         
                         // Data
                         for (int i = 0; i < dataToExport.Count; i++)
                         {
-                            var row = i + 2;
+                            var row = i + 5;
                             var item = dataToExport[i];
                             
                             ws.Cell(row, 1).Value = item.Id;
                             ws.Cell(row, 2).Value = item.BienSo;
-                            ws.Cell(row, 3).Value = item.ThoiGianVao;
-                            ws.Cell(row, 4).Value = item.ThoiGianRa;
-                            ws.Cell(row, 5).Value = item.Tien;
-                            ws.Cell(row, 6).Value = item.CardId;
-                            ws.Cell(row, 7).Value = item.SiteName;
-                            ws.Cell(row, 8).Value = item.ZoneName;
-                            ws.Cell(row, 9).Value = item.EntryLaneName;
-                            ws.Cell(row, 10).Value = item.ExitLaneName;
+                            ws.Cell(row, 3).Value = string.IsNullOrEmpty(item.LoaiVeName) ? "Vé lượt" : item.LoaiVeName;
+                            ws.Cell(row, 4).Value = item.LoaiXeName;
+                            
+                            // Format entry / exit dates
+                            var cellVao = ws.Cell(row, 5);
+                            cellVao.Value = item.ThoiGianVao;
+                            cellVao.Style.DateFormat.Format = "dd/MM/yyyy HH:mm:ss";
+                            
+                            var cellRa = ws.Cell(row, 6);
+                            if (item.ThoiGianRa.HasValue)
+                            {
+                                cellRa.Value = item.ThoiGianRa.Value;
+                                cellRa.Style.DateFormat.Format = "dd/MM/yyyy HH:mm:ss";
+                            }
+                            else
+                            {
+                                cellRa.Value = "Chưa ra";
+                            }
+                            
+                            // Stay duration
+                            var durationStr = "-";
+                            if (item.ThoiGianRa.HasValue)
+                            {
+                                var d = item.ThoiGianRa.Value - item.ThoiGianVao;
+                                durationStr = d.TotalDays >= 1 
+                                    ? $"{(int)d.TotalDays}d {d.Hours}h {d.Minutes}m" 
+                                    : $"{d.Hours}h {d.Minutes}m";
+                            }
+                            ws.Cell(row, 7).Value = durationStr;
+                            
+                            // Revenue
+                            var cellTien = ws.Cell(row, 8);
+                            cellTien.Value = item.Tien ?? 0;
+                            cellTien.Style.NumberFormat.Format = "#,##0";
+                            
+                            ws.Cell(row, 9).Value = item.CardId;
+                            ws.Cell(row, 10).Value = item.SiteName;
+                            ws.Cell(row, 11).Value = item.ZoneName;
+                            ws.Cell(row, 12).Value = item.EntryLaneName;
+                            ws.Cell(row, 13).Value = item.ExitLaneName;
+                            ws.Cell(row, 14).Value = item.TrangThai;
                         }
+                        
+                        // Summary Row
+                        var summaryRow = dataToExport.Count + 5;
+                        ws.Cell(summaryRow, 1).Value = "Tổng cộng";
+                        ws.Cell(summaryRow, 1).Style.Font.Bold = true;
+                        ws.Range(summaryRow, 1, summaryRow, 4).Merge();
+                        
+                        // Total visits
+                        ws.Cell(summaryRow, 5).Value = $"Số lượt: {dataToExport.Count}";
+                        ws.Cell(summaryRow, 5).Style.Font.Bold = true;
+                        
+                        // SUM formula for revenue
+                        var totalTienCell = ws.Cell(summaryRow, 8);
+                        totalTienCell.FormulaA1 = $"SUM(H5:H{summaryRow - 1})";
+                        totalTienCell.Style.Font.Bold = true;
+                        totalTienCell.Style.NumberFormat.Format = "#,##0";
+                        
+                        // Styling borders for entire table
+                        var tableRange = ws.Range(4, 1, summaryRow, 14);
+                        tableRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+                        tableRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+
+                        // --- ADD DETAILED ANALYTICS TO EXCEL WORKBOOK ---
+                        // Title for stats section
+                        var statsTitleRow = summaryRow + 3;
+                        ws.Cell(statsTitleRow, 1).Value = "BẢNG THỐNG KÊ CHI TIẾT THEO BỘ LỌC / FILTERED ANALYTICS BREAKDOWN";
+                        var statsTitleRange = ws.Range(statsTitleRow, 1, statsTitleRow, 14);
+                        statsTitleRange.Merge();
+                        statsTitleRange.Style.Font.Bold = true;
+                        statsTitleRange.Style.Font.FontSize = 12;
+                        statsTitleRange.Style.Font.FontColor = XLColor.White;
+                        statsTitleRange.Style.Fill.BackgroundColor = XLColor.FromHtml("#1E4FA3");
+                        statsTitleRange.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+                        var statsHeaderRow = statsTitleRow + 2;
+
+                        // Ticket type breakdown (Columns A to D)
+                        ws.Cell(statsHeaderRow, 1).Value = "THỐNG KÊ THEO LOẠI VÉ / TICKET TYPE STATS";
+                        ws.Range(statsHeaderRow, 1, statsHeaderRow, 4).Merge();
+                        ws.Range(statsHeaderRow, 1, statsHeaderRow, 4).Style.Font.Bold = true;
+                        ws.Range(statsHeaderRow, 1, statsHeaderRow, 4).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                        ws.Range(statsHeaderRow, 1, statsHeaderRow, 4).Style.Fill.BackgroundColor = XLColor.FromHtml("#E3F2FD");
+
+                        var tHeaderRow = statsHeaderRow + 1;
+                        ws.Cell(tHeaderRow, 1).Value = "Loại vé";
+                        ws.Cell(tHeaderRow, 2).Value = "Lượt vào";
+                        ws.Cell(tHeaderRow, 3).Value = "Lượt ra";
+                        ws.Cell(tHeaderRow, 4).Value = "Doanh thu (đ)";
+
+                        for (int col = 1; col <= 4; col++)
+                        {
+                            var cell = ws.Cell(tHeaderRow, col);
+                            cell.Style.Font.Bold = true;
+                            cell.Style.Font.FontColor = XLColor.White;
+                            cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#2196F3");
+                            cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                        }
+
+                        int tRow = tHeaderRow + 1;
+                        foreach (var stat in statsLoaiVe)
+                        {
+                            ws.Cell(tRow, 1).Value = stat.TenLoaiVe;
+                            ws.Cell(tRow, 2).Value = stat.SoLuotVao;
+                            ws.Cell(tRow, 3).Value = stat.SoLuotRa;
+                            
+                            var revenueCell = ws.Cell(tRow, 4);
+                            revenueCell.Value = stat.DoanhThu;
+                            revenueCell.Style.NumberFormat.Format = "#,##0";
+                            tRow++;
+                        }
+
+                        // Add borders to Ticket stats
+                        var ticketStatsRange = ws.Range(tHeaderRow, 1, tRow - 1, 4);
+                        ticketStatsRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+                        ticketStatsRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+
+                        // Vehicle type breakdown (Columns F to I)
+                        ws.Cell(statsHeaderRow, 6).Value = "THỐNG KÊ THEO LOẠI XE / VEHICLE TYPE STATS";
+                        ws.Range(statsHeaderRow, 6, statsHeaderRow, 9).Merge();
+                        ws.Range(statsHeaderRow, 6, statsHeaderRow, 9).Style.Font.Bold = true;
+                        ws.Range(statsHeaderRow, 6, statsHeaderRow, 9).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                        ws.Range(statsHeaderRow, 6, statsHeaderRow, 9).Style.Fill.BackgroundColor = XLColor.FromHtml("#F5F3FF");
+
+                        var vHeaderRow = statsHeaderRow + 1;
+                        ws.Cell(vHeaderRow, 6).Value = "Loại xe";
+                        ws.Cell(vHeaderRow, 7).Value = "Tổng lượt";
+                        ws.Cell(vHeaderRow, 8).Value = "Trong bãi";
+                        ws.Cell(vHeaderRow, 9).Value = "Doanh thu (đ)";
+
+                        for (int col = 6; col <= 9; col++)
+                        {
+                            var cell = ws.Cell(vHeaderRow, col);
+                            cell.Style.Font.Bold = true;
+                            cell.Style.Font.FontColor = XLColor.White;
+                            cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#7C3AED");
+                            cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                        }
+
+                        int vRow = vHeaderRow + 1;
+                        foreach (var stat in statsLoaiXe)
+                        {
+                            ws.Cell(vRow, 6).Value = stat.TenLoaiXe;
+                            ws.Cell(vRow, 7).Value = stat.SoLuot;
+                            ws.Cell(vRow, 8).Value = stat.DangTrongBai;
+                            
+                            var revenueCell = ws.Cell(vRow, 9);
+                            revenueCell.Value = stat.DoanhThu;
+                            revenueCell.Style.NumberFormat.Format = "#,##0";
+                            vRow++;
+                        }
+
+                        // Add borders to Vehicle stats
+                        var vehicleStatsRange = ws.Range(vHeaderRow, 6, vRow - 1, 9);
+                        vehicleStatsRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+                        vehicleStatsRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
                         
                         ws.Columns().AdjustToContents();
                         wb.SaveAs(sfd.FileName);
                     });
 
                     MessageBox.Show("Xuất file Excel thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
-                    LoggingService.Instance.LogSecurity("EXPORT", "LichSuViewModel", $"Exported {dataToExport.Count} rows to {sfd.FileName}");
+                    LoggingService.Instance.LogSecurity("EXPORT", "LichSuViewModel", $"Exported {dataToExport.Count} rows with stats to {sfd.FileName}");
                 }
             }
             catch (Exception ex)
@@ -330,5 +663,21 @@ namespace QuanLyGiuXe.ViewModels
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
         }
+    }
+
+    public class LoaiVeStats
+    {
+        public string TenLoaiVe { get; set; } = string.Empty;
+        public int SoLuotVao { get; set; }
+        public int SoLuotRa { get; set; }
+        public double DoanhThu { get; set; }
+    }
+
+    public class LoaiXeStats
+    {
+        public string TenLoaiXe { get; set; } = string.Empty;
+        public int SoLuot { get; set; }
+        public int DangTrongBai { get; set; }
+        public double DoanhThu { get; set; }
     }
 }
