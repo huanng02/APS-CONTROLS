@@ -96,50 +96,50 @@ namespace QuanLyGiuXe
 
             // --- 1. CATEGORIES LEVEL VISIBILITY ---
 
-            // Logs & Monitor (Vận hành) -> Visible to: ADMIN, SUPERVISOR, OPERATOR, TECHNICIAN
-            MenuVanHanh.Visibility = (role == "ADMIN" || role == "SUPERVISOR" || role == "OPERATOR" || role == "TECHNICIAN") 
+            // Logs & Monitor (Vận hành) -> Visible to: SUPERADMIN, ADMIN, MANAGER, OPERATOR, TECHNICIAN
+            MenuVanHanh.Visibility = (role == "SUPERADMIN" || role == "ADMIN" || role == "MANAGER" || role == "OPERATOR" || role == "TECHNICIAN") 
                 ? Visibility.Visible 
                 : Visibility.Collapsed;
 
-            // History (Báo cáo) -> Visible to: ADMIN, SUPERVISOR, CASHIER
-            MenuBaoCao.Visibility = (role == "ADMIN" || role == "SUPERVISOR" || role == "CASHIER") 
+            // History (Báo cáo) -> Visible to: SUPERADMIN, ADMIN, MANAGER, CASHIER, VIEWER
+            MenuBaoCao.Visibility = (role == "SUPERADMIN" || role == "ADMIN" || role == "MANAGER" || role == "CASHIER" || role == "VIEWER") 
                 ? Visibility.Visible 
                 : Visibility.Collapsed;
 
-            // Management (Nhân viên/Cấu hình) -> Visible to: ADMIN, SUPERVISOR
-            MenuAdmin.Visibility = (role == "ADMIN" || role == "SUPERVISOR") 
+            // Management (Nhân viên/Cấu hình) -> Visible to: SUPERADMIN, ADMIN, MANAGER
+            MenuAdmin.Visibility = (role == "SUPERADMIN" || role == "ADMIN" || role == "MANAGER") 
                 ? Visibility.Visible 
                 : Visibility.Collapsed;
 
-            // System & Tools (Hệ thống) -> Visible to: ADMIN, SUPERVISOR, TECHNICIAN
-            MenuTools.Visibility = (role == "ADMIN" || role == "SUPERVISOR" || role == "TECHNICIAN") 
+            // System & Tools (Hệ thống) -> Visible to: SUPERADMIN, ADMIN, TECHNICIAN
+            MenuTools.Visibility = (role == "SUPERADMIN" || role == "ADMIN" || role == "TECHNICIAN") 
                 ? Visibility.Visible 
                 : Visibility.Collapsed;
 
             // --- 2. GRANULAR BUTTON LEVEL VISIBILITY (Inside Categories) ---
 
             // Inside MenuAdmin (Management):
-            // - Người dùng (User Management): ONLY Admin can manage users!
-            btnNguoiDung.Visibility = (role == "ADMIN") ? Visibility.Visible : Visibility.Collapsed;
-            // - LoaiXe, LoaiVe, RFID, BangGia: Admin and Supervisor can manage.
-            btnLoaiXe.Visibility = (role == "ADMIN" || role == "SUPERVISOR") ? Visibility.Visible : Visibility.Collapsed;
-            btnLoaiVe.Visibility = (role == "ADMIN" || role == "SUPERVISOR") ? Visibility.Visible : Visibility.Collapsed;
-            btnRFID.Visibility = (role == "ADMIN" || role == "SUPERVISOR") ? Visibility.Visible : Visibility.Collapsed;
-            btnBangGia.Visibility = (role == "ADMIN" || role == "SUPERVISOR") ? Visibility.Visible : Visibility.Collapsed;
+            // - Người dùng (User Management): ONLY SuperAdmin and Admin can manage users!
+            btnNguoiDung.Visibility = (role == "SUPERADMIN" || role == "ADMIN") ? Visibility.Visible : Visibility.Collapsed;
+            // - LoaiXe, LoaiVe, RFID, BangGia: SuperAdmin, Admin, and Manager can manage.
+            btnLoaiXe.Visibility = (role == "SUPERADMIN" || role == "ADMIN" || role == "MANAGER") ? Visibility.Visible : Visibility.Collapsed;
+            btnLoaiVe.Visibility = (role == "SUPERADMIN" || role == "ADMIN" || role == "MANAGER") ? Visibility.Visible : Visibility.Collapsed;
+            btnRFID.Visibility = (role == "SUPERADMIN" || role == "ADMIN" || role == "MANAGER") ? Visibility.Visible : Visibility.Collapsed;
+            btnBangGia.Visibility = (role == "SUPERADMIN" || role == "ADMIN" || role == "MANAGER") ? Visibility.Visible : Visibility.Collapsed;
 
             // Inside MenuTools (System & Tools):
-            // - SQL Tool: ONLY Admin can execute direct SQL queries!
-            btnSQLTool.Visibility = (role == "ADMIN") ? Visibility.Visible : Visibility.Collapsed;
+            // - SQL Tool: ONLY SuperAdmin and Admin can execute direct SQL queries!
+            btnSQLTool.Visibility = (role == "SUPERADMIN" || role == "ADMIN") ? Visibility.Visible : Visibility.Collapsed;
             
-            // - Backup / Restore: Admin and Supervisor can backup/restore!
-            btnBackupRestore.Visibility = (role == "ADMIN" || role == "SUPERVISOR") ? Visibility.Visible : Visibility.Collapsed;
+            // - Backup / Restore: SuperAdmin and Admin can backup/restore!
+            btnBackupRestore.Visibility = (role == "SUPERADMIN" || role == "ADMIN") ? Visibility.Visible : Visibility.Collapsed;
 
-            // - Camera & System Configuration (C3-200): Admin and Technician can configure hardware!
-            btnCameraSettings.Visibility = (role == "ADMIN" || role == "TECHNICIAN") ? Visibility.Visible : Visibility.Collapsed;
-            btnC3200Settings.Visibility = (role == "ADMIN" || role == "TECHNICIAN") ? Visibility.Visible : Visibility.Collapsed;
+            // - Camera & System Configuration (C3-200): SuperAdmin, Admin, and Technician can configure hardware!
+            btnCameraSettings.Visibility = (role == "SUPERADMIN" || role == "ADMIN" || role == "TECHNICIAN") ? Visibility.Visible : Visibility.Collapsed;
+            btnC3200Settings.Visibility = (role == "SUPERADMIN" || role == "ADMIN" || role == "TECHNICIAN") ? Visibility.Visible : Visibility.Collapsed;
 
-            // - Resiliency QA (QA Panel): Admin and Technician can view/simulate recoveries!
-            btnQAPanel.Visibility = (role == "ADMIN" || role == "TECHNICIAN") ? Visibility.Visible : Visibility.Collapsed;
+            // - Resiliency QA (QA Panel): SuperAdmin, Admin, and Technician can view/simulate recoveries!
+            btnQAPanel.Visibility = (role == "SUPERADMIN" || role == "ADMIN" || role == "TECHNICIAN") ? Visibility.Visible : Visibility.Collapsed;
         }
 
         private void GenerateTestLogs_Click(object sender, RoutedEventArgs e)

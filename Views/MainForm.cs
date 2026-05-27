@@ -86,19 +86,17 @@ namespace QuanLyGiuXe.Views
         {
             string role = CurrentUser.Role?.ToUpper() ?? "";
 
-            // 1. Nhân viên -> Chỉ ADMIN
-            btnNhanVien.Visible = (role == "ADMIN");
+            // 1. Nhân viên -> Chỉ SUPERADMIN, ADMIN
+            btnNhanVien.Visible = (role == "SUPERADMIN" || role == "ADMIN");
 
-            // 2. Báo cáo -> ADMIN + SUPERVISOR + CASHIER
-            btnBaoCao.Visible = (role == "ADMIN" || role == "SUPERVISOR" || role == "CASHIER");
+            // 2. Báo cáo -> SUPERADMIN, ADMIN, MANAGER, CASHIER, VIEWER
+            btnBaoCao.Visible = (role == "SUPERADMIN" || role == "ADMIN" || role == "MANAGER" || role == "CASHIER" || role == "VIEWER");
 
-            // 3. Thu tiền -> CASHIER
-            btnThuTien.Visible = (role == "CASHIER");
+            // 3. Thu tiền -> SUPERADMIN, ADMIN, MANAGER, CASHIER
+            btnThuTien.Visible = (role == "SUPERADMIN" || role == "ADMIN" || role == "MANAGER" || role == "CASHIER");
 
-            // 4. Vận hành -> OPERATOR
-            btnVanHanh.Visible = (role == "OPERATOR");
-            
-            // TECHNICIAN có thể xem gì đó (tùy chọn thêm)
+            // 4. Vận hành -> SUPERADMIN, ADMIN, MANAGER, OPERATOR, TECHNICIAN
+            btnVanHanh.Visible = (role == "SUPERADMIN" || role == "ADMIN" || role == "MANAGER" || role == "OPERATOR" || role == "TECHNICIAN");
         }
 
         private void BtnNhanVien_Click(object? sender, EventArgs e)
