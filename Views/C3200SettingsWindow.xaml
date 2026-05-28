@@ -130,7 +130,7 @@
 
                                 <StackPanel>
 
-                                    <TextBlock Text="📍 Zone"
+                                    <TextBlock Text="📍 Cổng kiểm soát"
                                FontWeight="SemiBold"
                                Foreground="#374151"
                                Margin="0,0,0,8"/>
@@ -199,6 +199,18 @@
                                           DisplayMemberPath="LaneName"
                                           SelectedValuePath="Id"/>
                                     </Grid>
+                                    <Grid Margin="0,0,0,15">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="90"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Loại xe:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#666"/>
+                                        <ComboBox x:Name="Door1VehicleTypeCombo"
+                                                  Grid.Column="1"
+                                                  Style="{StaticResource ModernComboBox}"
+                                                  DisplayMemberPath="TenLoai"
+                                                  SelectedValuePath="Id"/>
+                                    </Grid>
                                     
                                     <Separator Margin="0,0,0,15" Background="#F0F0F0"/>
 
@@ -251,6 +263,18 @@
                                           SelectionChanged="Door2LaneCombo_SelectionChanged"
                                           DisplayMemberPath="LaneName"
                                           SelectedValuePath="Id"/>
+                                    </Grid>
+                                    <Grid Margin="0,0,0,15">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="90"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Loại xe:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#666"/>
+                                        <ComboBox x:Name="Door2VehicleTypeCombo"
+                                                  Grid.Column="1"
+                                                  Style="{StaticResource ModernComboBox}"
+                                                  DisplayMemberPath="TenLoai"
+                                                  SelectedValuePath="Id"/>
                                     </Grid>
                                     
                                     <Separator Margin="0,0,0,15" Background="#F0F0F0"/>

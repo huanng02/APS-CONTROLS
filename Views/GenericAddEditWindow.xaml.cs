@@ -48,7 +48,7 @@ namespace QuanLyGiuXe.Views
             {
                 FieldsPanel.Children.Clear();
                 var props = _model.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                    .Where(p => p.Name != "Id" && p.CanWrite && (p.PropertyType == typeof(string) || p.PropertyType == typeof(int) || p.PropertyType == typeof(decimal) || p.PropertyType == typeof(DateTime) || p.PropertyType == typeof(int?) || p.PropertyType == typeof(bool)));
+                    .Where(p => p.Name != "Id" && p.CanWrite && p.GetCustomAttribute<ObsoleteAttribute>() == null && (p.PropertyType == typeof(string) || p.PropertyType == typeof(int) || p.PropertyType == typeof(decimal) || p.PropertyType == typeof(DateTime) || p.PropertyType == typeof(int?) || p.PropertyType == typeof(bool)));
 
 
                 foreach (var p in props)
@@ -116,6 +116,24 @@ namespace QuanLyGiuXe.Views
                                         }
                                     }
                                 }
+                            }
+                        };
+                        input = cb;
+                    }
+                    else if (p.Name == "GateId")
+                    {
+                        var cb = new ComboBox { Width = 200, HorizontalAlignment = HorizontalAlignment.Left, Style = (Style)Application.Current.FindResource("ModernComboBox") };
+                        var gates = await ParkingTopologyService.Instance.GetGatesAsync();
+                        cb.ItemsSource = gates;
+                        cb.DisplayMemberPath = "GateName";
+                        cb.SelectedValuePath = "Id";
+                        int? currentGateId = (int?)(p.GetValue(_model));
+                        if (currentGateId.HasValue && currentGateId.Value != 0) cb.SelectedValue = currentGateId.Value;
+                        
+                        cb.SelectionChanged += (s, e) => {
+                            if (cb.SelectedItem != null)
+                            {
+                                CopyMatchingProperties(cb.SelectedItem);
                             }
                         };
                         input = cb;
@@ -514,7 +532,7 @@ private void Save_Click(object sender, RoutedEventArgs e)
                             prop.SetValue(_model, Convert.ChangeType(selectedVal, typeof(int)));
                         }
                     }
-                    else if (prop.Name == "SiteId" || prop.Name == "ZoneId")
+                    else if (prop.Name == "SiteId" || prop.Name == "ZoneId" || prop.Name == "GateId")
                     {
                         var selectedVal = cb.SelectedValue;
                         if (selectedVal != null)

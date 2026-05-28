@@ -1175,6 +1175,30 @@ namespace QuanLyGiuXe.Services
             );
         }
 
+        public async Task<int?> GetZoneBySiteAndVehicleTypeAsync(int siteId, int loaiXeId)
+        {
+            return await ConnectivityAwareRepository.Instance.ExecuteReadAsync<int?>(
+                $"GET_ZONE_SITE_{siteId}_TYPE_{loaiXeId}",
+                async conn =>
+                {
+                    string sql = @"
+                        SELECT TOP 1 Id 
+                        FROM dbo.ParkingZones 
+                        WHERE SiteId = @siteId 
+                          AND LoaiXeId = @loaiXeId 
+                          AND IsActive = 1";
+                          
+                    using (var cmd = new SqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@siteId", siteId);
+                        cmd.Parameters.AddWithValue("@loaiXeId", loaiXeId);
+                        var result = await cmd.ExecuteScalarAsync();
+                        return result != null && result != DBNull.Value ? Convert.ToInt32(result) : null;
+                    }
+                }
+            );
+        }
+
         // Add an entry when a vehicle enters. Primary key for identification is uid (CardUID).
         // Parameters: uid (CardUID), bienSo (nullable), anhXe (nullable)
         public void ThemXe(int cardId, string bienSo, string anhXe, int? siteId = null, int? zoneId = null, int? entryLaneId = null)
@@ -1815,7 +1839,7 @@ namespace QuanLyGiuXe.Services
                                         FileSize = reader.IsDBNull(21) ? (long?)null : reader.GetInt64(21),
                                         TestName = reader.IsDBNull(22) ? string.Empty : reader.GetString(22),
                                         IsRecovered = reader.IsDBNull(23) ? (bool?)null : reader.GetBoolean(23),
-                                        AdditionalData = reader.IsDBNull(24) ? string.Empty : reader.GetString(24)
+                                        AdditionalData = reader.IsDBNull(24) ? string.Empty : reader.GetString(24)  
                                     };
                                     list.Add(entry);
                                 }

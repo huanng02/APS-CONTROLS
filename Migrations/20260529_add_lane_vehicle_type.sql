@@ -1,0 +1,11 @@
+SET XACT_ABORT ON;
+BEGIN TRANSACTION;
+
+-- Add LoaiXeId to Lanes table (nullable – NULL means mixed/hybrid lane)
+IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Lanes' AND COLUMN_NAME = 'LoaiXeId')
+BEGIN
+    EXEC sp_executesql N'ALTER TABLE dbo.Lanes ADD LoaiXeId INT NULL;';
+    EXEC sp_executesql N'ALTER TABLE dbo.Lanes ADD CONSTRAINT FK_Lanes_LoaiXe FOREIGN KEY (LoaiXeId) REFERENCES dbo.LoaiXe(Id);';
+END
+
+COMMIT TRANSACTION;

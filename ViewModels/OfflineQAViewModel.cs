@@ -213,6 +213,27 @@ namespace QuanLyGiuXe.ViewModels
             set { _selectedControllerZone = value; OnPropertyChanged(nameof(SelectedControllerZone)); }
         }
 
+        private ObservableCollection<ParkingGate> _gates = new();
+        public ObservableCollection<ParkingGate> Gates
+        {
+            get => _gates;
+            set { _gates = value; OnPropertyChanged(nameof(Gates)); }
+        }
+
+        private ParkingGate? _selectedControllerGate;
+        public ParkingGate? SelectedControllerGate
+        {
+            get => _selectedControllerGate;
+            set { _selectedControllerGate = value; OnPropertyChanged(nameof(SelectedControllerGate)); }
+        }
+
+        private ParkingGate? _selectedLaneGate;
+        public ParkingGate? SelectedLaneGate
+        {
+            get => _selectedLaneGate;
+            set { _selectedLaneGate = value; OnPropertyChanged(nameof(SelectedLaneGate)); }
+        }
+
         // ──────────────────────────────────────────────
         // COMMANDS
         // ──────────────────────────────────────────────
@@ -313,6 +334,9 @@ namespace QuanLyGiuXe.ViewModels
 
                 var zList = await ParkingTopologyService.Instance.GetZonesAsync();
                 Zones = new ObservableCollection<ParkingZone>(zList);
+
+                var gList = await ParkingTopologyService.Instance.GetGatesAsync();
+                Gates = new ObservableCollection<ParkingGate>(gList);
 
                 var cList = await ParkingTopologyService.Instance.GetControllersAsync();
                 Controllers = new ObservableCollection<C3ControllerConfig>(cList);
@@ -441,21 +465,26 @@ namespace QuanLyGiuXe.ViewModels
             }
 
             int? zoneId = SelectedLaneZone?.Id;
-            bool ok = await ParkingTopologyService.Instance.AssignLaneToZoneAsync(SelectedLane.Id, zoneId);
-            if (ok)
+            int? gateId = SelectedLaneGate?.Id;
+
+            bool ok1 = await ParkingTopologyService.Instance.AssignLaneToZoneAsync(SelectedLane.Id, zoneId);
+            bool ok2 = await ParkingTopologyService.Instance.AssignLaneToGateAsync(SelectedLane.Id, gateId);
+
+            if (ok1 && ok2)
             {
-                AddLog($"✅ Lane '{SelectedLane.LaneName}' assigned to Zone '{SelectedLaneZone?.ZoneName ?? "NONE"}'.");
+                AddLog($"✅ Lane '{SelectedLane.LaneName}' assigned to Zone '{SelectedLaneZone?.ZoneName ?? "NONE"}' and Gate '{SelectedLaneGate?.GateName ?? "NONE"}'.");
                 SelectedLane = null;
                 SelectedLaneZone = null;
+                SelectedLaneGate = null;
                 await RefreshAllAsync();
             }
         }
 
         private async Task ExecuteSaveController()
         {
-            if (SelectedControllerZone == null)
+            if (SelectedControllerGate == null)
             {
-                AddLog("⚠ Please select a Zone.");
+                AddLog("⚠ Please select a Gate.");
                 return;
             }
             if (string.IsNullOrWhiteSpace(NewControllerName) || string.IsNullOrWhiteSpace(NewControllerIp) || string.IsNullOrWhiteSpace(NewControllerServerIp) || string.IsNullOrWhiteSpace(NewControllerPcIp))
@@ -470,7 +499,7 @@ namespace QuanLyGiuXe.ViewModels
                 IpAddress = NewControllerIp.Trim(),
                 ServerIp = NewControllerServerIp.Trim(),
                 PcIp = NewControllerPcIp.Trim(),
-                ZoneId = SelectedControllerZone.Id,
+                GateId = SelectedControllerGate.Id,
                 IsActive = true,
                 CreatedUtc = DateTime.UtcNow
             };
@@ -557,7 +586,20 @@ namespace QuanLyGiuXe.ViewModels
 
                 if (createdZone.MaxCapacity != 3) throw new Exception($"Capacity mismatch: expected 3, got {createdZone.MaxCapacity}");
 
-                AddLog("🎉 TEST 1 SUCCESSFUL: Site & Zone successfully initialized in database.");
+                // 3. Create Gate
+                var gate = new ParkingGate
+                {
+                    SiteId = createdSite.Id,
+                    GateCode = "QA-GATE",
+                    GateName = "QA Integration Test Gate",
+                    Description = "Autocreated gate for physical connections",
+                    IsActive = true,
+                    CreatedUtc = DateTime.UtcNow
+                };
+                AddLog("3. Creating ParkingGate 'QA-GATE'...");
+                await ParkingTopologyService.Instance.SaveGateAsync(gate);
+
+                AddLog("🎉 TEST 1 SUCCESSFUL: Site, Zone & Gate successfully initialized in database.");
                 await RefreshAllAsync();
                 return true;
             }
@@ -571,12 +613,15 @@ namespace QuanLyGiuXe.ViewModels
         private async Task<bool> RunIntegrationTest2()
         {
             AddLog("----------------------------------------------------------------------");
-            AddLog("🚀 RUNNING TEST 2: Gán 2 Lanes vào Zone mới, gán C3 controller vào Zone...");
+            AddLog("🚀 RUNNING TEST 2: Gán 2 Lanes vào Gate & Zone mới, gán C3 controller vào Gate...");
             try
             {
-                // Retrieve created Zone
+                // Retrieve created Zone & Gate
                 var zone = (await ParkingTopologyService.Instance.GetZonesAsync()).FirstOrDefault(z => z.ZoneCode == "QA-ZONE");
                 if (zone == null) throw new Exception("Required zone 'QA-ZONE' not found. Please run Test 1 first.");
+
+                var gate = (await ParkingTopologyService.Instance.GetGatesAsync()).FirstOrDefault(g => g.GateCode == "QA-GATE");
+                if (gate == null) throw new Exception("Required gate 'QA-GATE' not found. Please run Test 1 first.");
 
                 // Check Lanes
                 var lanes = await ParkingTopologyService.Instance.GetLanesAsync();
@@ -595,11 +640,15 @@ namespace QuanLyGiuXe.ViewModels
                 }
 
                 // 1. Assign Lanes
-                AddLog($"1. Mapping Lane '{lane1.LaneCode}' (Id={lane1.Id}) to Zone 'QA-ZONE'...");
-                await ParkingTopologyService.Instance.AssignLaneToZoneAsync(lane1.Id, zone.Id);
+                AddLog($"1. Mapping Lane '{lane1.LaneCode}' (Id={lane1.Id}) to Gate 'QA-GATE' and Zone 'QA-ZONE'...");
+                lane1.GateId = gate.Id;
+                lane1.ZoneId = zone.Id;
+                await ParkingTopologyService.Instance.SaveLaneAsync(lane1);
 
-                AddLog($"2. Mapping Lane '{lane2.LaneCode}' (Id={lane2.Id}) to Zone 'QA-ZONE'...");
-                await ParkingTopologyService.Instance.AssignLaneToZoneAsync(lane2.Id, zone.Id);
+                AddLog($"2. Mapping Lane '{lane2.LaneCode}' (Id={lane2.Id}) to Gate 'QA-GATE' and Zone 'QA-ZONE'...");
+                lane2.GateId = gate.Id;
+                lane2.ZoneId = zone.Id;
+                await ParkingTopologyService.Instance.SaveLaneAsync(lane2);
 
                 // 2. Map C3 Controller
                 var c3 = new C3ControllerConfig
@@ -608,11 +657,11 @@ namespace QuanLyGiuXe.ViewModels
                     IpAddress = "192.168.10.99",
                     ServerIp = "192.168.10.10",
                     PcIp = "192.168.10.11",
-                    ZoneId = zone.Id,
+                    GateId = gate.Id,
                     IsActive = true,
                     CreatedUtc = DateTime.UtcNow
                 };
-                AddLog("3. Saving C3 Controller Config 'QA-C3-Controller' (192.168.10.99) mapped to Zone 'QA-ZONE'...");
+                AddLog("3. Saving C3 Controller Config 'QA-C3-Controller' (192.168.10.99) mapped to Gate 'QA-GATE'...");
                 await ParkingTopologyService.Instance.SaveControllerAsync(c3);
 
                 // Verification
@@ -621,13 +670,13 @@ namespace QuanLyGiuXe.ViewModels
                 var ul1 = updatedLanes.FirstOrDefault(l => l.Id == lane1.Id);
                 var ul2 = updatedLanes.FirstOrDefault(l => l.Id == lane2.Id);
 
-                if (ul1?.ZoneId != zone.Id || ul2?.ZoneId != zone.Id)
-                    throw new Exception("Lanes mapping verification failed in database.");
+                if (ul1?.GateId != gate.Id || ul2?.GateId != gate.Id)
+                    throw new Exception("Lanes Gate mapping verification failed in database.");
 
                 var controllers = await ParkingTopologyService.Instance.GetControllersAsync();
                 var uc = controllers.FirstOrDefault(c => c.IpAddress == "192.168.10.99");
-                if (uc == null || uc.ZoneId != zone.Id)
-                    throw new Exception("C3 Controller configuration mapping failed in database.");
+                if (uc == null || uc.GateId != gate.Id)
+                    throw new Exception("C3 Controller configuration Gate mapping failed in database.");
 
                 AddLog($"   Verification OK: Lanes and Controllers fully map to ZoneId {zone.Id} in SQL Server & SQLite.");
                 AddLog("🎉 TEST 2 SUCCESSFUL: Physical-to-Logical topology mappings active.");

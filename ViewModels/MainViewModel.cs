@@ -139,6 +139,28 @@ namespace QuanLyGiuXe.ViewModels
             set { _lane2ThoiGianTrongBai = value; OnPropertyChanged(nameof(Lane2ThoiGianTrongBai)); }
         }
 
+        private ObservableCollection<ParkingSite> _sitesList = new();
+        public ObservableCollection<ParkingSite> SitesList
+        {
+            get => _sitesList;
+            set { _sitesList = value; OnPropertyChanged(nameof(SitesList)); }
+        }
+
+        private ParkingSite? _selectedSite;
+        public ParkingSite? SelectedSite
+        {
+            get => _selectedSite;
+            set
+            {
+                if (_selectedSite != value)
+                {
+                    _selectedSite = value;
+                    OnPropertyChanged(nameof(SelectedSite));
+                    UpdateVehicleCount();
+                }
+            }
+        }
+
         private string _trangThaiKetNoi = "C3200: Đang kết nối...";
         public string TrangThaiKetNoi
         {
@@ -280,8 +302,9 @@ namespace QuanLyGiuXe.ViewModels
                     laneName = laneDb.LaneName;
                 }
                 
-                var (_, zoneId, _, siteName, zoneName, maxCapacity) = await ResolveTopologyForLaneAsync(mapping.LaneId);
-                string topoText = string.IsNullOrEmpty(siteName) ? "Chưa cấu hình Zone" : $"Site: {siteName} - Zone: {zoneName}";
+                var (_, zoneId, _, siteName, zoneName, maxCapacity, _, gateName) = await ResolveTopologyForLaneAsync(mapping.LaneId);
+                string displayLocation = !string.IsNullOrEmpty(gateName) ? $"Cổng: {gateName}" : (!string.IsNullOrEmpty(zoneName) ? $"Zone: {zoneName}" : "Chưa cấu hình");
+                string topoText = string.IsNullOrEmpty(siteName) ? "Chưa cấu hình Cổng" : $"Site: {siteName} - {displayLocation}";
                 int count = 0;
                 if (zoneId.HasValue) count = await db.GetXeTrongBaiCountByZoneAsync(zoneId.Value);
                 //string capText = maxCapacity > 0 ? $"Sức chứa: {count}/{maxCapacity}" : "Sức chứa: N/A";
@@ -395,75 +418,49 @@ namespace QuanLyGiuXe.ViewModels
         {
             try
             {
+                if (!SitesList.Any())
+                {
+                    var sites = await ParkingTopologyService.Instance.GetSitesAsync();
+                    Application.Current?.Dispatcher?.BeginInvoke(new Action(() => {
+                        SitesList.Clear();
+                        foreach (var s in sites) SitesList.Add(s);
+                        if (SitesList.Any() && SelectedSite == null) SelectedSite = SitesList[0];
+                    }));
+                }
+
+                if (SelectedSite == null) return;
+
                 int count = await Task.Run(() => db.GetTotalXeTrongBaiCount());
                 var zones = await ParkingTopologyService.Instance.GetZonesAsync();
-                int totalCap = zones.Sum(z => z.MaxCapacity);
-
-                // Resolve active zones from the operational lanes currently mapped to UI readers
+                
+                var siteZones = zones.Where(z => z.SiteId == SelectedSite.Id).ToList();
                 var zoneInfos = new List<string>();
-                var processedZones = new HashSet<int>();
+                int totalSiteCount = 0;
+                int totalSiteCapacity = 0;
 
-                var mapping1 = ReaderLaneMappingService.Instance.GetMappingByReader(1) 
-                            ?? ReaderLaneMappingService.Instance.GetMappingByReader(2);
-                var mapping2 = ReaderLaneMappingService.Instance.GetMappingByReader(3) 
-                            ?? ReaderLaneMappingService.Instance.GetMappingByReader(4);
-
-                var activeLaneIds = new List<int>();
-                if (mapping1 != null) activeLaneIds.Add(mapping1.LaneId);
-                if (mapping2 != null) activeLaneIds.Add(mapping2.LaneId);
-
-                foreach (var laneId in activeLaneIds)
+                foreach (var zone in siteZones)
                 {
-                    var topo = await ResolveTopologyForLaneAsync(laneId);
-                    if (topo.ZoneId.HasValue)
-                    {
-                        int zId = topo.ZoneId.Value;
-                        if (!processedZones.Contains(zId))
-                        {
-                            processedZones.Add(zId);
-                            var zone = zones.FirstOrDefault(z => z.Id == zId);
-                            if (zone != null)
-                            {
-                                int zoneCount = await db.GetXeTrongBaiCountByZoneAsync(zId);
-                                string breakdown = await db.GetZoneOccupancyBreakdownAsync(zId);
-                                string breakdownStr = string.IsNullOrEmpty(breakdown) ? "" : $" {breakdown}";
-                                zoneInfos.Add($"{zone.ZoneName.ToUpper()}: {zoneCount}/{zone.MaxCapacity}{breakdownStr}");
-                            }
-                        }
-                    }
+                    int zoneCount = await db.GetXeTrongBaiCountByZoneAsync(zone.Id);
+                    totalSiteCount += zoneCount;
+                    totalSiteCapacity += zone.MaxCapacity;
+                    
+                    // Format zone name (e.g. lowercase zone name) and count/capacity
+                    string zoneDisplayName = zone.ZoneName.ToLower();
+                    // Clean up e.g. "zone xe máy" to "xe máy" if it starts with "zone "
+                    if (zoneDisplayName.StartsWith("zone ")) 
+                        zoneDisplayName = zoneDisplayName.Substring(5);
+                    
+                    zoneInfos.Add($"{zoneDisplayName} ({zoneCount}/{zone.MaxCapacity})");
                 }
-
-                // Fallback: if no active zones could be resolved from reader mappings, use active database lanes
-                if (!zoneInfos.Any())
-                {
-                    var lanes = await ParkingTopologyService.Instance.GetLanesAsync();
-                    foreach (var lane in lanes.Where(l => l.IsActive && l.ZoneId.HasValue))
-                    {
-                        int zId = lane.ZoneId!.Value;
-                        if (!processedZones.Contains(zId))
-                        {
-                            processedZones.Add(zId);
-                            var zone = zones.FirstOrDefault(z => z.Id == zId);
-                            if (zone != null)
-                            {
-                                int zoneCount = await db.GetXeTrongBaiCountByZoneAsync(zId);
-                                string breakdown = await db.GetZoneOccupancyBreakdownAsync(zId);
-                                string breakdownStr = string.IsNullOrEmpty(breakdown) ? "" : $" {breakdown}";
-                                zoneInfos.Add($"{zone.ZoneName.ToUpper()}: {zoneCount}/{zone.MaxCapacity}{breakdownStr}");
-                            }
-                        }
-                    }
-                }
-
-                string zoneInfoStr = zoneInfos.Any() ? " │ " + string.Join(" │ ", zoneInfos) : "";
 
                 Application.Current?.Dispatcher?.BeginInvoke(new Action(() => {
                     _totalXeTrongBai = count;
-                    _totalCapacity = totalCap;
+                    _totalCapacity = totalSiteCapacity;
                     
-                    string totalText = _totalCapacity > 0 ? $"{_totalXeTrongBai}/{_totalCapacity}" : $"{_totalXeTrongBai}";
-                    _soXeTrongBaiText = $"Xe trong bãi: {totalText}{zoneInfoStr}";
+                    string totalText = _totalCapacity > 0 ? $"{totalSiteCount}/{_totalCapacity}" : $"{totalSiteCount}";
+                    string zoneInfoStr = zoneInfos.Any() ? " │ " + string.Join(" │ ", zoneInfos) : "";
                     
+                    _soXeTrongBaiText = $"Xe trong bãi ({SelectedSite.SiteName}): {totalText}{zoneInfoStr}";
                     OnPropertyChanged(nameof(SoXeTrongBai));
                 }));
                 
@@ -1032,8 +1029,34 @@ namespace QuanLyGiuXe.ViewModels
                     return;
                 }
 
+                // --- LANE-VEHICLE TYPE VALIDATION (HYBRID MODEL) ---
+                var laneConfig = await ParkingTopologyService.Instance.GetLaneByIdAsync(dbLaneId);
+                if (laneConfig != null && laneConfig.LoaiXeId.HasValue)
+                {
+                    // Làn chuyên dụng – kiểm tra loại xe trên thẻ phải khớp
+                    if (card.LoaiXeId != laneConfig.LoaiXeId.Value)
+                    {
+                        string laneTypeName = !string.IsNullOrEmpty(laneConfig.LoaiXeName) ? laneConfig.LoaiXeName : $"ID={laneConfig.LoaiXeId.Value}";
+                        SetLaneStatus(uiLaneIndex, $"❌ Sai loại xe! Làn này chỉ dành cho {laneTypeName}");
+                        LoggingService.Instance.LogInfo("VehicleTypeBlock", "MainViewModel", $"Lane {dbLaneId} requires LoaiXeId={laneConfig.LoaiXeId.Value} ({laneTypeName}), card has LoaiXeId={card.LoaiXeId}");
+                        LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
+                        return;
+                    }
+                }
+                // Nếu LoaiXeId == null → làn hỗn hợp, chấp nhận tất cả loại xe
+
                 // Resolve topology
-                var (siteId, zoneId, laneId, _, _, _) = await ResolveTopologyForLaneAsync(dbLaneId);
+                var (siteId, zoneId, laneId, _, _, _, _, _) = await ResolveTopologyForLaneAsync(dbLaneId);
+
+                // --- DYNAMIC ZONE RESOLUTION (SOFT ROUTING) ---
+                if (siteId.HasValue && card != null)
+                {
+                    int? dynamicZoneId = await db.GetZoneBySiteAndVehicleTypeAsync(siteId.Value, card.LoaiXeId);
+                    if (dynamicZoneId.HasValue)
+                    {
+                        zoneId = dynamicZoneId.Value;
+                    }
+                }
 
                 if (isInbound)
                 {
@@ -1220,20 +1243,40 @@ namespace QuanLyGiuXe.ViewModels
             }
         }
 
-        private async Task<(int? SiteId, int? ZoneId, int? LaneId, string SiteName, string ZoneName, int MaxCapacity)> ResolveTopologyForLaneAsync(int laneIndex)
+        private async Task<(int? SiteId, int? ZoneId, int? LaneId, string SiteName, string ZoneName, int MaxCapacity, int? GateId, string GateName)> ResolveTopologyForLaneAsync(int laneIndex)
         {
             try
             {
                 var lanes = await ParkingTopologyService.Instance.GetLanesAsync();
                 var lane = lanes.FirstOrDefault(l => l.Id == laneIndex || l.LaneCode == $"LANE-{laneIndex}");
-                if (lane == null) return (null, null, null, "", "", 0);
+                if (lane == null) return (null, null, null, "", "", 0, null, "");
 
                 int? laneId = lane.Id;
                 int? zoneId = lane.ZoneId;
+                int? gateId = lane.GateId;
                 int? siteId = null;
                 string siteName = "";
                 string zoneName = "";
+                string gateName = "";
                 int maxCapacity = 0;
+
+                if (gateId.HasValue)
+                {
+                    var gates = await ParkingTopologyService.Instance.GetGatesAsync();
+                    var gate = gates.FirstOrDefault(g => g.Id == gateId.Value);
+                    if (gate != null)
+                    {
+                        siteId = gate.SiteId;
+                        gateName = gate.GateName;
+                        
+                        var sites = await ParkingTopologyService.Instance.GetSitesAsync();
+                        var site = sites.FirstOrDefault(s => s.Id == siteId.Value);
+                        if (site != null)
+                        {
+                            siteName = site.SiteName;
+                        }
+                    }
+                }
 
                 if (zoneId.HasValue)
                 {
@@ -1241,19 +1284,22 @@ namespace QuanLyGiuXe.ViewModels
                     var zone = zones.FirstOrDefault(z => z.Id == zoneId.Value);
                     if (zone != null)
                     {
-                        siteId = zone.SiteId;
+                        if (!siteId.HasValue)
+                        {
+                            siteId = zone.SiteId;
+                            siteName = zone.SiteName;
+                        }
                         zoneName = zone.ZoneName;
                         maxCapacity = zone.MaxCapacity;
-                        siteName = zone.SiteName;
                     }
                 }
 
-                return (siteId, zoneId, laneId, siteName, zoneName, maxCapacity);
+                return (siteId, zoneId, laneId, siteName, zoneName, maxCapacity, gateId, gateName);
             }
             catch (Exception ex)
             {
                 LoggingService.Instance.LogError("ResolveTopology", "MainViewModel", $"Failed for lane {laneIndex}", ex);
-                return (null, null, null, null, null, 0);
+                return (null, null, null, "", "", 0, null, "");
             }
         }
 

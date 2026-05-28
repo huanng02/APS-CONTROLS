@@ -294,18 +294,14 @@
                                 <Grid Grid.Row="2" Margin="0,8,0,0">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="80"/>
-                                        <ColumnDefinition Width="80"/>
-                                        <ColumnDefinition Width="80"/>
-                                        <ColumnDefinition Width="80"/>
+                                        <ColumnDefinition Width="120"/>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="50"/>
                                     </Grid.ColumnDefinitions>
-                                     <TextBox Text="{Binding NewControllerName, UpdateSourceTrigger=PropertyChanged}" Grid.Column="0" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26"/>
-                                     <TextBox Text="{Binding NewControllerIp, UpdateSourceTrigger=PropertyChanged}" Grid.Column="1" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26"/>
-                                     <TextBox Text="{Binding NewControllerServerIp, UpdateSourceTrigger=PropertyChanged}" Grid.Column="2" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26"/>
-                                     <TextBox Text="{Binding NewControllerPcIp, UpdateSourceTrigger=PropertyChanged}" Grid.Column="3" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26"/>
-                                     <ComboBox ItemsSource="{Binding Zones}" SelectedItem="{Binding SelectedControllerZone}" DisplayMemberPath="ZoneCode" Grid.Column="4" Margin="0,0,4,0" Background="#222" Height="26"/>
-                                     <Button Command="{Binding SaveControllerCommand}" Content="Add" Grid.Column="5" Height="26" Padding="5,0" FontSize="11"/>
+                                     <TextBox Text="{Binding NewSiteCode, UpdateSourceTrigger=PropertyChanged}" Grid.Column="0" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26" ToolTip="Mã Site"/>
+                                     <TextBox Text="{Binding NewSiteName, UpdateSourceTrigger=PropertyChanged}" Grid.Column="1" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26" ToolTip="Tên Site"/>
+                                     <TextBox Text="{Binding NewSiteDesc, UpdateSourceTrigger=PropertyChanged}" Grid.Column="2" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26" ToolTip="Mô tả"/>
+                                     <Button Command="{Binding SaveSiteCommand}" Content="Add" Grid.Column="3" Height="26" Padding="5,0" FontSize="11"/>
                                 </Grid>
                             </Grid>
                         </Border>
@@ -339,17 +335,17 @@
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="80"/>
                                         <ColumnDefinition Width="80"/>
-                                        <ColumnDefinition Width="80"/>
-                                        <ColumnDefinition Width="80"/>
+                                        <ColumnDefinition Width="100"/>
+                                        <ColumnDefinition Width="60"/>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="50"/>
                                     </Grid.ColumnDefinitions>
-                                     <TextBox Text="{Binding NewControllerName, UpdateSourceTrigger=PropertyChanged}" Grid.Column="0" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26"/>
-                                     <TextBox Text="{Binding NewControllerIp, UpdateSourceTrigger=PropertyChanged}" Grid.Column="1" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26"/>
-                                     <TextBox Text="{Binding NewControllerServerIp, UpdateSourceTrigger=PropertyChanged}" Grid.Column="2" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26"/>
-                                     <TextBox Text="{Binding NewControllerPcIp, UpdateSourceTrigger=PropertyChanged}" Grid.Column="3" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26"/>
-                                     <ComboBox ItemsSource="{Binding Zones}" SelectedItem="{Binding SelectedControllerZone}" DisplayMemberPath="ZoneCode" Grid.Column="4" Margin="0,0,4,0" Background="#222" Height="26"/>
-                                     <Button Command="{Binding SaveControllerCommand}" Content="Add" Grid.Column="5" Height="26" Padding="5,0" FontSize="11"/>
+                                     <ComboBox ItemsSource="{Binding Sites}" SelectedItem="{Binding SelectedZoneSite}" DisplayMemberPath="SiteCode" Grid.Column="0" Margin="0,0,4,0" Background="#222" Height="26" ToolTip="Chọn Site"/>
+                                     <TextBox Text="{Binding NewZoneCode, UpdateSourceTrigger=PropertyChanged}" Grid.Column="1" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26" ToolTip="Mã Zone"/>
+                                     <TextBox Text="{Binding NewZoneName, UpdateSourceTrigger=PropertyChanged}" Grid.Column="2" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26" ToolTip="Tên Zone"/>
+                                     <TextBox Text="{Binding NewZoneCapacity, UpdateSourceTrigger=PropertyChanged}" Grid.Column="3" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26" ToolTip="Sức chứa"/>
+                                     <TextBox Text="{Binding NewZoneDesc, UpdateSourceTrigger=PropertyChanged}" Grid.Column="4" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26" ToolTip="Mô tả"/>
+                                     <Button Command="{Binding SaveZoneCommand}" Content="Add" Grid.Column="5" Height="26" Padding="5,0" FontSize="11"/>
                                 </Grid>
                             </Grid>
                         </Border>
@@ -362,30 +358,27 @@
                                     <RowDefinition Height="*"/>
                                     <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
-                                <TextBlock Grid.Row="0" Text="3. LANES ZONE ASSIGNMENT" Foreground="#8F94FB" FontWeight="Bold" Margin="0,0,0,8"/>
+                                <TextBlock Grid.Row="0" Text="3. LANES ZONE &amp; PHYSICAL GATE" Foreground="#8F94FB" FontWeight="Bold" Margin="0,0,0,8"/>
                                 <DataGrid Grid.Row="1" ItemsSource="{Binding Lanes}" AutoGenerateColumns="False">
                                     <DataGrid.Columns>
                                         <DataGridTextColumn Header="Lane Code" Binding="{Binding LaneCode}" Width="100"/>
-                                        <DataGridTextColumn Header="Lane Name" Binding="{Binding LaneName}" Width="130"/>
-                                        <DataGridTextColumn Header="Direction" Binding="{Binding Direction}" Width="80"/>
-                                        <DataGridTextColumn Header="Assigned Zone" Binding="{Binding ZoneName}" Width="*"/>
+                                        <DataGridTextColumn Header="Lane Name" Binding="{Binding LaneName}" Width="110"/>
+                                        <DataGridTextColumn Header="Dir" Binding="{Binding Direction}" Width="50"/>
+                                        <DataGridTextColumn Header="Logic Zone" Binding="{Binding ZoneName}" Width="*"/>
+                                        <DataGridTextColumn Header="Physical Gate" Binding="{Binding GateName}" Width="*"/>
                                     </DataGrid.Columns>
                                 </DataGrid>
                                 <Grid Grid.Row="2" Margin="0,8,0,0">
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="80"/>
-                                        <ColumnDefinition Width="80"/>
-                                        <ColumnDefinition Width="80"/>
-                                        <ColumnDefinition Width="80"/>
+                                        <ColumnDefinition Width="100"/>
                                         <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="50"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="60"/>
                                     </Grid.ColumnDefinitions>
-                                     <TextBox Text="{Binding NewControllerName, UpdateSourceTrigger=PropertyChanged}" Grid.Column="0" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26"/>
-                                     <TextBox Text="{Binding NewControllerIp, UpdateSourceTrigger=PropertyChanged}" Grid.Column="1" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26"/>
-                                     <TextBox Text="{Binding NewControllerServerIp, UpdateSourceTrigger=PropertyChanged}" Grid.Column="2" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26"/>
-                                     <TextBox Text="{Binding NewControllerPcIp, UpdateSourceTrigger=PropertyChanged}" Grid.Column="3" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26"/>
-                                     <ComboBox ItemsSource="{Binding Zones}" SelectedItem="{Binding SelectedControllerZone}" DisplayMemberPath="ZoneCode" Grid.Column="4" Margin="0,0,4,0" Background="#222" Height="26"/>
-                                     <Button Command="{Binding SaveControllerCommand}" Content="Add" Grid.Column="5" Height="26" Padding="5,0" FontSize="11"/>
+                                     <ComboBox ItemsSource="{Binding Lanes}" SelectedItem="{Binding SelectedLane}" DisplayMemberPath="LaneName" Grid.Column="0" Margin="0,0,4,0" Background="#222" Height="26" ToolTip="Chọn Làn"/>
+                                     <ComboBox ItemsSource="{Binding Zones}" SelectedItem="{Binding SelectedLaneZone}" DisplayMemberPath="ZoneName" Grid.Column="1" Margin="0,0,4,0" Background="#222" Height="26" ToolTip="Chọn Logic Zone (để trống nếu hỗn hợp)"/>
+                                     <ComboBox ItemsSource="{Binding Gates}" SelectedItem="{Binding SelectedLaneGate}" DisplayMemberPath="GateName" Grid.Column="2" Margin="0,0,4,0" Background="#222" Height="26" ToolTip="Chọn Physical Gate"/>
+                                     <Button Command="{Binding AssignLaneCommand}" Content="Assign" Grid.Column="3" Height="26" Padding="5,0" FontSize="11"/>
                                 </Grid>
                             </Grid>
                         </Border>
@@ -405,7 +398,7 @@
                                         <DataGridTextColumn Header="IP Address" Binding="{Binding IpAddress}" Width="110"/>
                                         <DataGridTextColumn Header="Server IP" Binding="{Binding ServerIp}" Width="110"/>
                                         <DataGridTextColumn Header="PC IP" Binding="{Binding PcIp}" Width="110"/>
-                                        <DataGridTextColumn Header="Assigned Zone ID" Binding="{Binding ZoneId}" Width="*"/>
+                                        <DataGridTextColumn Header="Assigned Gate" Binding="{Binding GateName}" Width="*"/>
                                         <DataGridTemplateColumn Header="Action" Width="60">
                                             <DataGridTemplateColumn.CellTemplate>
                                                 <DataTemplate>
@@ -425,11 +418,11 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="50"/>
                                     </Grid.ColumnDefinitions>
-                                     <TextBox Text="{Binding NewControllerName, UpdateSourceTrigger=PropertyChanged}" Grid.Column="0" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26"/>
-                                     <TextBox Text="{Binding NewControllerIp, UpdateSourceTrigger=PropertyChanged}" Grid.Column="1" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26"/>
-                                     <TextBox Text="{Binding NewControllerServerIp, UpdateSourceTrigger=PropertyChanged}" Grid.Column="2" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26"/>
-                                     <TextBox Text="{Binding NewControllerPcIp, UpdateSourceTrigger=PropertyChanged}" Grid.Column="3" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26"/>
-                                     <ComboBox ItemsSource="{Binding Zones}" SelectedItem="{Binding SelectedControllerZone}" DisplayMemberPath="ZoneCode" Grid.Column="4" Margin="0,0,4,0" Background="#222" Height="26"/>
+                                     <TextBox Text="{Binding NewControllerName, UpdateSourceTrigger=PropertyChanged}" Grid.Column="0" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26" ToolTip="Tên Controller"/>
+                                     <TextBox Text="{Binding NewControllerIp, UpdateSourceTrigger=PropertyChanged}" Grid.Column="1" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26" ToolTip="Tủ IP"/>
+                                     <TextBox Text="{Binding NewControllerServerIp, UpdateSourceTrigger=PropertyChanged}" Grid.Column="2" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26" ToolTip="Server IP"/>
+                                     <TextBox Text="{Binding NewControllerPcIp, UpdateSourceTrigger=PropertyChanged}" Grid.Column="3" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26" ToolTip="Máy PC IP"/>
+                                     <ComboBox ItemsSource="{Binding Gates}" SelectedItem="{Binding SelectedControllerGate}" DisplayMemberPath="GateName" Grid.Column="4" Margin="0,0,4,0" Background="#222" Height="26" ToolTip="Chọn Cổng"/>
                                      <Button Command="{Binding SaveControllerCommand}" Content="Add" Grid.Column="5" Height="26" Padding="5,0" FontSize="11"/>
                                 </Grid>
                             </Grid>

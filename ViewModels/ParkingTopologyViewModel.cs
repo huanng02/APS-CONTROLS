@@ -17,6 +17,7 @@ namespace QuanLyGiuXe.ViewModels
         // EXISTING collections (preserved as-is)
         // ──────────────────────────────────────────────
         public ObservableCollection<ParkingSite> Sites { get; set; } = new ObservableCollection<ParkingSite>();
+        public ObservableCollection<ParkingGate> Gates { get; set; } = new ObservableCollection<ParkingGate>();
         public ObservableCollection<ParkingZone> Zones { get; set; } = new ObservableCollection<ParkingZone>();
         public ObservableCollection<LaneConfig> Lanes { get; set; } = new ObservableCollection<LaneConfig>();
         public ObservableCollection<C3ControllerConfig> Controllers { get; set; } = new ObservableCollection<C3ControllerConfig>();
@@ -29,6 +30,13 @@ namespace QuanLyGiuXe.ViewModels
         {
             get => _selectedSite;
             set { _selectedSite = value; OnPropertyChanged(); CommandManager.InvalidateRequerySuggested(); }
+        }
+
+        private ParkingGate _selectedGate;
+        public ParkingGate SelectedGate
+        {
+            get => _selectedGate;
+            set { _selectedGate = value; OnPropertyChanged(); CommandManager.InvalidateRequerySuggested(); }
         }
 
         private ParkingZone _selectedZone;
@@ -67,6 +75,7 @@ namespace QuanLyGiuXe.ViewModels
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(HasSelection));
                 OnPropertyChanged(nameof(IsSiteSelected));
+                OnPropertyChanged(nameof(IsGateSelected));
                 OnPropertyChanged(nameof(IsZoneSelected));
                 OnPropertyChanged(nameof(IsLaneSelected));
                 OnPropertyChanged(nameof(IsControllerSelected));
@@ -109,11 +118,31 @@ namespace QuanLyGiuXe.ViewModels
         // ──────────────────────────────────────────────
         public bool HasSelection => SelectedNode != null;
         public bool IsSiteSelected => SelectedNode?.NodeType == "Site";
+        public bool IsGateSelected => SelectedNode?.NodeType == "Gate";
         public bool IsZoneSelected => SelectedNode?.NodeType == "Zone";
         public bool IsLaneSelected => SelectedNode?.NodeType == "Lane";
         public bool IsControllerSelected => SelectedNode?.NodeType == "Controller";
         public bool IsReaderSelected => SelectedNode?.NodeType == "Reader";
         public string SelectedNodeType => SelectedNode?.NodeType ?? string.Empty;
+
+        // Gate detail
+        private string _detailGateName = string.Empty;
+        public string DetailGateName { get => _detailGateName; set { _detailGateName = value; OnPropertyChanged(); } }
+
+        private string _detailGateCode = string.Empty;
+        public string DetailGateCode { get => _detailGateCode; set { _detailGateCode = value; OnPropertyChanged(); } }
+
+        private string _detailGateDescription = string.Empty;
+        public string DetailGateDescription { get => _detailGateDescription; set { _detailGateDescription = value; OnPropertyChanged(); } }
+
+        private bool _detailGateIsActive;
+        public bool DetailGateIsActive { get => _detailGateIsActive; set { _detailGateIsActive = value; OnPropertyChanged(); } }
+
+        private int _detailGateLanes;
+        public int DetailGateLanes { get => _detailGateLanes; set { _detailGateLanes = value; OnPropertyChanged(); } }
+
+        private int _detailGateControllers;
+        public int DetailGateControllers { get => _detailGateControllers; set { _detailGateControllers = value; OnPropertyChanged(); } }
 
         // Site detail
         private string _detailSiteName = string.Empty;
@@ -181,6 +210,9 @@ namespace QuanLyGiuXe.ViewModels
         private bool _detailLaneIsActive;
         public bool DetailLaneIsActive { get => _detailLaneIsActive; set { _detailLaneIsActive = value; OnPropertyChanged(); } }
 
+        private string _detailLaneLoaiXeName = string.Empty;
+        public string DetailLaneLoaiXeName { get => _detailLaneLoaiXeName; set { _detailLaneLoaiXeName = value; OnPropertyChanged(); } }
+
         private ObservableCollection<ReaderLaneMapping> _detailLaneReaders = new();
         public ObservableCollection<ReaderLaneMapping> DetailLaneReaders { get => _detailLaneReaders; set { _detailLaneReaders = value; OnPropertyChanged(); } }
 
@@ -223,6 +255,10 @@ namespace QuanLyGiuXe.ViewModels
         public ICommand EditSiteCommand { get; }
         public ICommand DeleteSiteCommand { get; }
 
+        public ICommand AddGateCommand { get; }
+        public ICommand EditGateCommand { get; }
+        public ICommand DeleteGateCommand { get; }
+
         public ICommand AddZoneCommand { get; }
         public ICommand EditZoneCommand { get; }
         public ICommand DeleteZoneCommand { get; }
@@ -253,6 +289,10 @@ namespace QuanLyGiuXe.ViewModels
             AddSiteCommand = new RelayCommand(async _ => await AddSite());
             EditSiteCommand = new RelayCommand(async _ => await EditSite(), _ => SelectedSite != null);
             DeleteSiteCommand = new RelayCommand(async _ => await DeleteSite(), _ => SelectedSite != null);
+
+            AddGateCommand = new RelayCommand(async _ => await AddGate());
+            EditGateCommand = new RelayCommand(async _ => await EditGate(), _ => SelectedGate != null);
+            DeleteGateCommand = new RelayCommand(async _ => await DeleteGate(), _ => SelectedGate != null);
 
             AddZoneCommand = new RelayCommand(async _ => await AddZone());
             EditZoneCommand = new RelayCommand(async _ => await EditZone(), _ => SelectedZone != null);
@@ -285,6 +325,7 @@ namespace QuanLyGiuXe.ViewModels
             {
                 IsLoading = true;
                 var sites = await ParkingTopologyService.Instance.GetSitesAsync();
+                var gates = await ParkingTopologyService.Instance.GetGatesAsync();
                 var zones = await ParkingTopologyService.Instance.GetZonesAsync();
                 var lanes = await ParkingTopologyService.Instance.GetLanesAsync();
                 var controllers = await ParkingTopologyService.Instance.GetControllersAsync();
@@ -293,6 +334,9 @@ namespace QuanLyGiuXe.ViewModels
                 {
                     Sites.Clear();
                     foreach (var s in sites) Sites.Add(s);
+
+                    Gates.Clear();
+                    foreach (var g in gates) Gates.Add(g);
 
                     Zones.Clear();
                     foreach (var z in zones) Zones.Add(z);
@@ -325,9 +369,8 @@ namespace QuanLyGiuXe.ViewModels
 
             foreach (var site in Sites)
             {
+                var siteGates = Gates.Where(g => g.SiteId == site.Id).ToList();
                 var siteZones = Zones.Where(z => z.SiteId == site.Id).ToList();
-                var siteLaneCount = 0;
-                var siteControllerCount = 0;
 
                 var siteNode = new TopologyTreeNode
                 {
@@ -337,31 +380,42 @@ namespace QuanLyGiuXe.ViewModels
                     DataItem = site,
                     IsActive = site.IsActive,
                     IsExpanded = true,
-                    Badge = site.SiteCode
+                    Badge = site.SiteCode,
+                    Subtitle = $"{siteGates.Count} cổng • {siteZones.Count} phân khu"
                 };
 
-                foreach (var zone in siteZones)
+                // Group 1: PHYSICAL GATES
+                var gatesGroupNode = new TopologyTreeNode
                 {
-                    var zoneLanes = Lanes.Where(l => l.ZoneId == zone.Id).ToList();
-                    var zoneControllers = Controllers.Where(c => c.ZoneId == zone.Id).ToList();
-                    siteLaneCount += zoneLanes.Count;
-                    siteControllerCount += zoneControllers.Count;
+                    Name = "Cổng kiểm soát vật lý",
+                    Icon = "🚪",
+                    NodeType = "GateGroup",
+                    IsActive = true,
+                    IsExpanded = true,
+                    Subtitle = $"{siteGates.Count} cổng kiểm soát"
+                };
 
-                    var zoneNode = new TopologyTreeNode
+                foreach (var gate in siteGates)
+                {
+                    var gateLanes = Lanes.Where(l => l.GateId == gate.Id).ToList();
+                    var gateControllers = Controllers.Where(c => c.GateId == gate.Id).ToList();
+
+                    var gateNode = new TopologyTreeNode
                     {
-                        Name = zone.ZoneName,
-                        Icon = "📍",
-                        NodeType = "Zone",
-                        DataItem = zone,
-                        IsActive = zone.IsActive,
+                        Name = gate.GateName,
+                        Icon = "🚪",
+                        NodeType = "Gate",
+                        DataItem = gate,
+                        IsActive = gate.IsActive,
                         IsExpanded = true,
-                        Badge = zone.ZoneCode,
-                        Subtitle = $"{zoneLanes.Count} làn • {zoneControllers.Count} controller"
+                        Badge = gate.GateCode,
+                        Subtitle = $"{gateLanes.Count} làn • {gateControllers.Count} controller"
                     };
 
-                    foreach (var lane in zoneLanes)
+                    foreach (var lane in gateLanes)
                     {
                         var laneReaders = readerMappings.Where(r => r.LaneId == lane.Id).ToList();
+                        string targetZone = !string.IsNullOrEmpty(lane.ZoneName) ? $" • Phân khu: {lane.ZoneName}" : "";
 
                         var laneNode = new TopologyTreeNode
                         {
@@ -371,7 +425,7 @@ namespace QuanLyGiuXe.ViewModels
                             DataItem = lane,
                             IsActive = lane.IsActive,
                             Badge = lane.Direction,
-                            Subtitle = $"{lane.LaneCode} • {laneReaders.Count} reader"
+                            Subtitle = $"{lane.LaneCode} • {laneReaders.Count} reader{targetZone}"
                         };
 
                         foreach (var reader in laneReaders)
@@ -388,10 +442,10 @@ namespace QuanLyGiuXe.ViewModels
                             laneNode.Children.Add(readerNode);
                         }
 
-                        zoneNode.Children.Add(laneNode);
+                        gateNode.Children.Add(laneNode);
                     }
 
-                    foreach (var controller in zoneControllers)
+                    foreach (var controller in gateControllers)
                     {
                         var controllerNode = new TopologyTreeNode
                         {
@@ -402,33 +456,72 @@ namespace QuanLyGiuXe.ViewModels
                             IsActive = controller.IsActive,
                             Badge = controller.IpAddress
                         };
-                        zoneNode.Children.Add(controllerNode);
+                        gateNode.Children.Add(controllerNode);
                     }
 
-                    siteNode.Children.Add(zoneNode);
+                    gatesGroupNode.Children.Add(gateNode);
                 }
 
-                siteNode.Subtitle = $"{siteZones.Count} khu vực • {siteLaneCount} làn";
+                if (gatesGroupNode.Children.Any())
+                {
+                    siteNode.Children.Add(gatesGroupNode);
+                }
+
+                // Group 2: LOGICAL ZONES
+                var zonesGroupNode = new TopologyTreeNode
+                {
+                    Name = "Phân khu đỗ xe (Logic)",
+                    Icon = "🅿️",
+                    NodeType = "ZoneGroup",
+                    IsActive = true,
+                    IsExpanded = true,
+                    Subtitle = $"{siteZones.Count} phân khu sức chứa"
+                };
+
+                foreach (var zone in siteZones)
+                {
+                    var zoneLanes = Lanes.Where(l => l.ZoneId == zone.Id).ToList();
+
+                    var zoneNode = new TopologyTreeNode
+                    {
+                        Name = zone.ZoneName,
+                        Icon = "📍",
+                        NodeType = "Zone",
+                        DataItem = zone,
+                        IsActive = zone.IsActive,
+                        IsExpanded = false,
+                        Badge = zone.ZoneCode,
+                        Subtitle = $"{zoneLanes.Count} làn xe • Sức chứa: {zone.MaxCapacity}"
+                    };
+
+                    zonesGroupNode.Children.Add(zoneNode);
+                }
+
+                if (zonesGroupNode.Children.Any())
+                {
+                    siteNode.Children.Add(zonesGroupNode);
+                }
+
                 TreeNodes.Add(siteNode);
             }
 
-            // Add lanes not assigned to any zone (orphan lanes)
-            var orphanLanes = Lanes.Where(l => !l.ZoneId.HasValue).ToList();
+            // Orphan Lanes (unassigned to any Gate)
+            var orphanLanes = Lanes.Where(l => !l.GateId.HasValue).ToList();
             if (orphanLanes.Any())
             {
                 var orphanNode = new TopologyTreeNode
                 {
-                    Name = "Chưa phân vùng",
+                    Name = "Làn xe chưa gán Cổng",
                     Icon = "⚠",
                     NodeType = "OrphanGroup",
                     IsActive = true,
                     IsExpanded = true,
-                    Subtitle = $"{orphanLanes.Count} làn chưa gán zone"
+                    Subtitle = $"{orphanLanes.Count} làn chưa gán cổng vật lý"
                 };
 
                 foreach (var lane in orphanLanes)
                 {
-                    var laneReaders = ReaderLaneMappingService.Instance.GetMappingsByLane(lane.Id);
+                    var laneReaders = readerMappings.Where(r => r.LaneId == lane.Id).ToList();
                     var laneNode = new TopologyTreeNode
                     {
                         Name = lane.LaneName,
@@ -458,6 +551,37 @@ namespace QuanLyGiuXe.ViewModels
                 }
 
                 TreeNodes.Add(orphanNode);
+            }
+
+            // Orphan Controllers (unassigned to any Gate)
+            var orphanControllers = Controllers.Where(c => !c.GateId.HasValue).ToList();
+            if (orphanControllers.Any())
+            {
+                var orphanCtrlNode = new TopologyTreeNode
+                {
+                    Name = "Controller chưa gán Cổng",
+                    Icon = "⚠",
+                    NodeType = "OrphanControllerGroup",
+                    IsActive = true,
+                    IsExpanded = true,
+                    Subtitle = $"{orphanControllers.Count} controller chưa gán cổng vật lý"
+                };
+
+                foreach (var ctrl in orphanControllers)
+                {
+                    var ctrlNode = new TopologyTreeNode
+                    {
+                        Name = ctrl.ControllerName,
+                        Icon = "🧠",
+                        NodeType = "Controller",
+                        DataItem = ctrl,
+                        IsActive = ctrl.IsActive,
+                        Badge = ctrl.IpAddress
+                    };
+                    orphanCtrlNode.Children.Add(ctrlNode);
+                }
+
+                TreeNodes.Add(orphanCtrlNode);
             }
         }
 
@@ -529,6 +653,7 @@ namespace QuanLyGiuXe.ViewModels
             // Sync the tree selection with existing SelectedXxx properties
             // so that existing Edit/Delete commands still work
             SelectedSite = null;
+            SelectedGate = null;
             SelectedZone = null;
             SelectedLane = null;
             SelectedController = null;
@@ -539,6 +664,9 @@ namespace QuanLyGiuXe.ViewModels
             {
                 case "Site":
                     SelectedSite = SelectedNode.DataItem as ParkingSite;
+                    break;
+                case "Gate":
+                    SelectedGate = SelectedNode.DataItem as ParkingGate;
                     break;
                 case "Zone":
                     SelectedZone = SelectedNode.DataItem as ParkingZone;
@@ -564,6 +692,9 @@ namespace QuanLyGiuXe.ViewModels
                 case "Site":
                     UpdateSiteDetail(SelectedNode.DataItem as ParkingSite);
                     break;
+                case "Gate":
+                    UpdateGateDetail(SelectedNode.DataItem as ParkingGate);
+                    break;
                 case "Zone":
                     UpdateZoneDetail(SelectedNode.DataItem as ParkingZone);
                     break;
@@ -587,12 +718,24 @@ namespace QuanLyGiuXe.ViewModels
             DetailSiteDescription = site.Description;
             DetailSiteIsActive = site.IsActive;
 
-            var siteZones = Zones.Where(z => z.SiteId == site.Id).ToList();
-            DetailTotalZones = siteZones.Count;
-            DetailTotalLanes = Lanes.Count(l => siteZones.Any(z => z.Id == l.ZoneId));
-            var siteControllers = Controllers.Where(c => siteZones.Any(z => z.Id == c.ZoneId)).ToList();
+            var siteGates = Gates.Where(g => g.SiteId == site.Id).ToList();
+            DetailTotalZones = Zones.Count(z => z.SiteId == site.Id);
+            DetailTotalLanes = Lanes.Count(l => siteGates.Any(g => g.Id == l.GateId));
+            var siteControllers = Controllers.Where(c => siteGates.Any(g => g.Id == c.GateId)).ToList();
             DetailTotalControllers = siteControllers.Count;
             DetailActiveControllers = siteControllers.Count(c => c.IsActive);
+        }
+
+        private void UpdateGateDetail(ParkingGate gate)
+        {
+            if (gate == null) return;
+            DetailGateName = gate.GateName;
+            DetailGateCode = gate.GateCode;
+            DetailGateDescription = gate.Description;
+            DetailGateIsActive = gate.IsActive;
+
+            DetailGateLanes = Lanes.Count(l => l.GateId == gate.Id);
+            DetailGateControllers = Controllers.Count(c => c.GateId == gate.Id);
         }
 
         private void UpdateZoneDetail(ParkingZone zone)
@@ -618,6 +761,7 @@ namespace QuanLyGiuXe.ViewModels
             DetailLaneDirection = lane.Direction;
             DetailLaneZone = lane.ZoneName;
             DetailLaneIsActive = lane.IsActive;
+            DetailLaneLoaiXeName = lane.LoaiXeName;
 
             var readers = ReaderLaneMappingService.Instance.GetMappingsByLane(lane.Id);
             DetailLaneReaders = new ObservableCollection<ReaderLaneMapping>(readers);
@@ -630,7 +774,7 @@ namespace QuanLyGiuXe.ViewModels
             DetailControllerIp = controller.IpAddress;
             DetailControllerServerIp = controller.ServerIp;
             DetailControllerPcIp = controller.PcIp;
-            DetailControllerZone = controller.ZoneName;
+            DetailControllerZone = controller.GateName; // repurposed Zone to GateName display in UI details panel
             DetailControllerIsActive = controller.IsActive;
         }
 
@@ -654,6 +798,7 @@ namespace QuanLyGiuXe.ViewModels
             switch (SelectedNode.NodeType)
             {
                 case "Site": await EditSite(); break;
+                case "Gate": await EditGate(); break;
                 case "Zone": await EditZone(); break;
                 case "Lane": await EditLane(); break;
                 case "Controller": await EditController(); break;
@@ -666,6 +811,7 @@ namespace QuanLyGiuXe.ViewModels
             switch (SelectedNode.NodeType)
             {
                 case "Site": await DeleteSite(); break;
+                case "Gate": await DeleteGate(); break;
                 case "Zone": await DeleteZone(); break;
                 case "Lane": await DeleteLane(); break;
                 case "Controller": await DeleteController(); break;
@@ -802,6 +948,74 @@ namespace QuanLyGiuXe.ViewModels
                     else
                     {
                         MessageBox.Show("Đã xóa Zone trong bộ nhớ tạm (Offline). Dữ liệu sẽ được đồng bộ lên Server sau.", "Thông báo Offline", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    }
+                    await LoadDataAsync();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Lỗi xóa", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+            }
+        }
+
+        // --- GATE ---
+        private async Task AddGate()
+        {
+            var newItem = new ParkingGate();
+            var dialog = new GenericAddEditWindow(newItem) { Title = "Thêm Cổng" };
+            if (dialog.ShowDialog() == true)
+            {
+                try
+                {
+                    bool success = await ParkingTopologyService.Instance.SaveGateAsync(newItem);
+                    if (success)
+                        MessageBox.Show("Thêm Cổng kiểm soát thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                    else
+                        MessageBox.Show("Đã lưu Cổng vào bộ nhớ tạm (Offline). Dữ liệu sẽ được đồng bộ lên Server sau.", "Thông báo Offline", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    await LoadDataAsync();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Lỗi thêm Cổng", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+            }
+        }
+
+        private async Task EditGate()
+        {
+            var dialog = new GenericAddEditWindow(SelectedGate) { Title = "Sửa Cổng" };
+            if (dialog.ShowDialog() == true)
+            {
+                try
+                {
+                    bool success = await ParkingTopologyService.Instance.SaveGateAsync(SelectedGate);
+                    if (success)
+                        MessageBox.Show("Sửa Cổng kiểm soát thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                    else
+                        MessageBox.Show("Đã lưu thay đổi vào bộ nhớ tạm (Offline). Dữ liệu sẽ được đồng bộ lên Server sau.", "Thông báo Offline", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    await LoadDataAsync();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Lỗi sửa Cổng", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+            }
+        }
+
+        private async Task DeleteGate()
+        {
+            if (MessageBox.Show("Bạn có chắc muốn xóa cổng này?", "Xác nhận", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+            {
+                try
+                {
+                    bool success = await ParkingTopologyService.Instance.DeleteGateAsync(SelectedGate.Id);
+                    if (success)
+                    {
+                        MessageBox.Show("Xóa Cổng kiểm soát thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    else
+                    {
+                        MessageBox.Show("Đã xóa Cổng trong bộ nhớ tạm (Offline). Dữ liệu sẽ được đồng bộ lên Server sau.", "Thông báo Offline", MessageBoxButton.OK, MessageBoxImage.Warning);
                     }
                     await LoadDataAsync();
                 }

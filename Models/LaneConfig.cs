@@ -22,10 +22,18 @@ namespace QuanLyGiuXe.Models
 
         [Description("ID của Zone chứa làn này (có thể để trống)")]
         public int? ZoneId { get; set; }
+
+        [Description("ID của Cổng kiểm soát chứa làn này (có thể để trống)")]
+        public int? GateId { get; set; }
         public bool IsActive { get; set; } = true;
         public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
 
-        // Display helper
+        [Description("Loại xe được phép qua làn (để trống = hỗn hợp)")]
+        public int? LoaiXeId { get; set; }
+
+        // Display helpers
         public string ZoneName { get; set; } = string.Empty;
+        public string GateName { get; set; } = string.Empty;
+        public string LoaiXeName { get; set; } = string.Empty;
     }
 }

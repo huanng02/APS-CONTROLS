@@ -77,7 +77,7 @@ namespace QuanLyGiuXe.Services
                                 SiteId = r.GetInt32(1),
                                 ZoneCode = r.GetString(2),
                                 ZoneName = r.GetString(3),
-                                                        Description = r.IsDBNull(4) ? string.Empty : r.GetString(4),
+                                Description = r.IsDBNull(4) ? string.Empty : r.GetString(4),
                                 MaxCapacity = r.GetInt32(5),
                                 IsActive = r.GetBoolean(6),
                                 CreatedUtc = r.GetDateTime(7),
@@ -91,6 +91,45 @@ namespace QuanLyGiuXe.Services
             ) ?? new List<ParkingZone>();
         }
 
+        public List<ParkingGate> GetGates() => Task.Run(() => GetGatesAsync()).GetAwaiter().GetResult();
+
+        public async Task<List<ParkingGate>> GetGatesAsync()
+        {
+            return await ConnectivityAwareRepository.Instance.ExecuteReadAsync<List<ParkingGate>>(
+                "LIST_GATES",
+                async conn =>
+                {
+                    var list = new List<ParkingGate>();
+                    string sql = @"
+                        SELECT g.Id, g.SiteId, g.GateCode, g.GateName, g.Description, g.IsActive, g.CreatedUtc,
+                               s.SiteCode, s.SiteName
+                        FROM dbo.ParkingGates g
+                        JOIN dbo.ParkingSites s ON g.SiteId = s.Id
+                        ORDER BY g.GateCode";
+                    using (var cmd = new SqlCommand(sql, conn))
+                    using (var r = await cmd.ExecuteReaderAsync())
+                    {
+                        while (await r.ReadAsync())
+                        {
+                            list.Add(new ParkingGate
+                            {
+                                Id = r.GetInt32(0),
+                                SiteId = r.GetInt32(1),
+                                GateCode = r.GetString(2),
+                                GateName = r.GetString(3),
+                                Description = r.IsDBNull(4) ? string.Empty : r.GetString(4),
+                                IsActive = r.GetBoolean(5),
+                                CreatedUtc = r.GetDateTime(6),
+                                SiteCode = r.GetString(7),
+                                SiteName = r.GetString(8)
+                            });
+                        }
+                    }
+                    return list;
+                }
+            ) ?? new List<ParkingGate>();
+        }
+
         public List<C3ControllerConfig> GetControllers() => Task.Run(() => GetControllersAsync()).GetAwaiter().GetResult();
 
         public async Task<List<C3ControllerConfig>> GetControllersAsync()
@@ -101,10 +140,10 @@ namespace QuanLyGiuXe.Services
                 {
                     var list = new List<C3ControllerConfig>();
                     string sql = @"
-                        SELECT c.Id, c.ControllerName, c.IpAddress, c.ZoneId, c.IsActive, c.CreatedUtc,
-                               z.ZoneName, c.ServerIp, c.PcIp
+                        SELECT c.Id, c.ControllerName, c.IpAddress, c.GateId, c.IsActive, c.CreatedUtc,
+                               g.GateName, c.ServerIp, c.PcIp
                         FROM dbo.C3Controllers c
-                        JOIN dbo.ParkingZones z ON c.ZoneId = z.Id
+                        JOIN dbo.ParkingGates g ON c.GateId = g.Id
                         ORDER BY c.ControllerName";
                     using (var cmd = new SqlCommand(sql, conn))
                     using (var r = await cmd.ExecuteReaderAsync())
@@ -116,10 +155,10 @@ namespace QuanLyGiuXe.Services
                                 Id = r.GetInt32(0),
                                 ControllerName = r.GetString(1),
                                 IpAddress = r.GetString(2),
-                                ZoneId = r.GetInt32(3),
+                                GateId = r.IsDBNull(3) ? null : r.GetInt32(3),
                                 IsActive = r.GetBoolean(4),
                                 CreatedUtc = r.GetDateTime(5),
-                                ZoneName = r.GetString(6),
+                                GateName = r.GetString(6),
                                 ServerIp = r.IsDBNull(7) ? "127.0.0.1" : r.GetString(7),
                                 PcIp = r.IsDBNull(8) ? "127.0.0.1" : r.GetString(8)
                             });
@@ -140,10 +179,12 @@ namespace QuanLyGiuXe.Services
                 {
                     var list = new List<LaneConfig>();
                     string sql = @"
-                        SELECT l.Id, l.LaneCode, l.LaneName, l.Direction, l.ZoneId, l.IsActive, l.CreatedUtc,
-                               z.ZoneName
+                        SELECT l.Id, l.LaneCode, l.LaneName, l.Direction, l.ZoneId, l.GateId, l.IsActive, l.CreatedUtc,
+                               z.ZoneName, g.GateName, l.LoaiXeId, lx.TenLoai
                         FROM dbo.Lanes l
                         LEFT JOIN dbo.ParkingZones z ON l.ZoneId = z.Id
+                        LEFT JOIN dbo.ParkingGates g ON l.GateId = g.Id
+                        LEFT JOIN dbo.LoaiXe lx ON l.LoaiXeId = lx.Id
                         ORDER BY l.LaneCode";
                     using (var cmd = new SqlCommand(sql, conn))
                     using (var r = await cmd.ExecuteReaderAsync())
@@ -157,9 +198,13 @@ namespace QuanLyGiuXe.Services
                                 LaneName = r.GetString(2),
                                 Direction = r.GetString(3),
                                 ZoneId = r.IsDBNull(4) ? null : r.GetInt32(4),
-                                IsActive = r.GetBoolean(5),
-                                CreatedUtc = r.GetDateTime(6),
-                                ZoneName = r.IsDBNull(7) ? string.Empty : r.GetString(7)
+                                GateId = r.IsDBNull(5) ? null : r.GetInt32(5),
+                                IsActive = r.GetBoolean(6),
+                                CreatedUtc = r.GetDateTime(7),
+                                ZoneName = r.IsDBNull(8) ? string.Empty : r.GetString(8),
+                                GateName = r.IsDBNull(9) ? string.Empty : r.GetString(9),
+                                LoaiXeId = r.IsDBNull(10) ? null : r.GetInt32(10),
+                                LoaiXeName = r.IsDBNull(11) ? string.Empty : r.GetString(11)
                             });
                         }
                     }
@@ -186,6 +231,14 @@ namespace QuanLyGiuXe.Services
         {
             var zones = await GetZonesAsync();
             return zones.FirstOrDefault(z => z.Id == id);
+        }
+
+        public ParkingGate? GetGate(int id) => Task.Run(() => GetGateAsync(id)).GetAwaiter().GetResult();
+
+        public async Task<ParkingGate?> GetGateAsync(int id)
+        {
+            var gates = await GetGatesAsync();
+            return gates.FirstOrDefault(g => g.Id == id);
         }
 
         public ParkingZone? GetZoneByLane(int laneId) => Task.Run(() => GetZoneByLaneAsync(laneId)).GetAwaiter().GetResult();
@@ -232,7 +285,23 @@ namespace QuanLyGiuXe.Services
         public async Task<List<C3ControllerConfig>> GetControllersByZoneAsync(int zoneId)
         {
             var controllers = await GetControllersAsync();
-            return controllers.Where(c => c.ZoneId == zoneId).ToList();
+            return controllers.Where(c => c.GateId == zoneId).ToList(); // Map zoneId parameter to GateId for Settings window compatibility
+        }
+
+        public List<C3ControllerConfig> GetControllersByGate(int gateId) => Task.Run(() => GetControllersByGateAsync(gateId)).GetAwaiter().GetResult();
+
+        public async Task<List<C3ControllerConfig>> GetControllersByGateAsync(int gateId)
+        {
+            var controllers = await GetControllersAsync();
+            return controllers.Where(c => c.GateId == gateId).ToList();
+        }
+
+        public List<LaneConfig> GetLanesByGate(int gateId) => Task.Run(() => GetLanesByGateAsync(gateId)).GetAwaiter().GetResult();
+
+        public async Task<List<LaneConfig>> GetLanesByGateAsync(int gateId)
+        {
+            var lanes = await GetLanesAsync();
+            return lanes.Where(l => l.GateId == gateId).ToList();
         }
 
         // ──────────────────────────────────────────────
@@ -563,6 +632,120 @@ namespace QuanLyGiuXe.Services
             );
         }
 
+        public async Task<bool> SaveGateAsync(ParkingGate gate)
+        {
+            bool isNew = gate.Id == 0;
+            return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+                isNew ? "CREATE_GATE" : "UPDATE_GATE",
+                gate,
+                async conn =>
+                {
+                    string sql;
+                    if (isNew)
+                    {
+                        sql = "INSERT INTO dbo.ParkingGates (SiteId, GateCode, GateName, Description, IsActive, CreatedUtc) OUTPUT INSERTED.Id VALUES (@siteId, @code, @name, @desc, @active, @created)";
+                    }
+                    else
+                    {
+                        sql = "UPDATE dbo.ParkingGates SET SiteId = @siteId, GateCode = @code, GateName = @name, Description = @desc, IsActive = @active WHERE Id = @id";
+                    }
+
+                    using (var cmd = new SqlCommand(sql, conn))
+                    {
+                        if (!isNew) cmd.Parameters.AddWithValue("@id", gate.Id);
+                        cmd.Parameters.AddWithValue("@siteId", gate.SiteId);
+                        cmd.Parameters.AddWithValue("@code", gate.GateCode);
+                        cmd.Parameters.AddWithValue("@name", gate.GateName);
+                        cmd.Parameters.AddWithValue("@desc", gate.Description ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@active", gate.IsActive);
+                        cmd.Parameters.AddWithValue("@created", gate.CreatedUtc);
+                        
+                        if (isNew)
+                        {
+                            var newId = await cmd.ExecuteScalarAsync();
+                            if (newId != null && newId != DBNull.Value) gate.Id = Convert.ToInt32(newId);
+                        }
+                        else
+                        {
+                            await cmd.ExecuteNonQueryAsync();
+                        }
+                    }
+                },
+                async () =>
+                {
+                    var gates = await GetGatesAsync();
+                    if (isNew)
+                    {
+                        gate.Id = gates.Any() ? gates.Max(g => g.Id) + 1 : 1;
+                        var site = await GetSiteAsync(gate.SiteId);
+                        if (site != null)
+                        {
+                            gate.SiteCode = site.SiteCode;
+                            gate.SiteName = site.SiteName;
+                        }
+                        gates.Add(gate);
+                    }
+                    else
+                    {
+                        var existing = gates.FirstOrDefault(g => g.Id == gate.Id);
+                        if (existing != null)
+                        {
+                            existing.SiteId = gate.SiteId;
+                            existing.GateCode = gate.GateCode;
+                            existing.GateName = gate.GateName;
+                            existing.Description = gate.Description;
+                            existing.IsActive = gate.IsActive;
+                            var site = await GetSiteAsync(gate.SiteId);
+                            if (site != null)
+                            {
+                                existing.SiteCode = site.SiteCode;
+                                existing.SiteName = site.SiteName;
+                            }
+                        }
+                    }
+                    await OfflineCacheService.Instance.SaveCacheAsync("LIST_GATES", gates);
+                }
+            );
+        }
+
+        public async Task<bool> DeleteGateAsync(int id)
+        {
+            var lanes = await GetLanesAsync();
+            if (lanes.Any(l => l.GateId == id))
+            {
+                throw new Exception("Không thể xóa Cổng này vì vẫn còn Làn (Lane) trực thuộc.");
+            }
+            var controllers = await GetControllersAsync();
+            if (controllers.Any(c => c.GateId == id))
+            {
+                throw new Exception("Không thể xóa Cổng này vì vẫn còn Tủ điều khiển (Controller) trực thuộc.");
+            }
+
+            return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+                "DELETE_GATE",
+                new { Id = id },
+                async conn =>
+                {
+                    string sql = "DELETE FROM dbo.ParkingGates WHERE Id = @id";
+                    using (var cmd = new SqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@id", id);
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+                },
+                async () =>
+                {
+                    var gates = await GetGatesAsync();
+                    var existing = gates.FirstOrDefault(g => g.Id == id);
+                    if (existing != null)
+                    {
+                        gates.Remove(existing);
+                        await OfflineCacheService.Instance.SaveCacheAsync("LIST_GATES", gates);
+                    }
+                }
+            );
+        }
+
         public async Task<bool> SaveControllerAsync(C3ControllerConfig controller)
         {
             bool isNew = controller.Id == 0;
@@ -574,11 +757,11 @@ namespace QuanLyGiuXe.Services
                     string sql;
                     if (isNew)
                     {
-                        sql = "INSERT INTO dbo.C3Controllers (ControllerName, IpAddress, ServerIp, PcIp, ZoneId, IsActive, CreatedUtc) OUTPUT INSERTED.Id VALUES (@name, @ip, @serverIp, @pcIp, @zoneId, @active, @created)";
+                        sql = "INSERT INTO dbo.C3Controllers (ControllerName, IpAddress, ServerIp, PcIp, GateId, IsActive, CreatedUtc) OUTPUT INSERTED.Id VALUES (@name, @ip, @serverIp, @pcIp, @gateId, @active, @created)";
                     }
                     else
                     {
-                        sql = "UPDATE dbo.C3Controllers SET ControllerName = @name, IpAddress = @ip, ServerIp = @serverIp, PcIp = @pcIp, ZoneId = @zoneId, IsActive = @active WHERE Id = @id";
+                        sql = "UPDATE dbo.C3Controllers SET ControllerName = @name, IpAddress = @ip, ServerIp = @serverIp, PcIp = @pcIp, GateId = @gateId, IsActive = @active WHERE Id = @id";
                     }
 
                     using (var cmd = new SqlCommand(sql, conn))
@@ -588,7 +771,7 @@ namespace QuanLyGiuXe.Services
                         cmd.Parameters.AddWithValue("@ip", controller.IpAddress);
                         cmd.Parameters.AddWithValue("@serverIp", controller.ServerIp ?? "127.0.0.1");
                         cmd.Parameters.AddWithValue("@pcIp", controller.PcIp ?? "127.0.0.1");
-                        cmd.Parameters.AddWithValue("@zoneId", controller.ZoneId);
+                        cmd.Parameters.AddWithValue("@gateId", (object?)controller.GateId ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("@active", controller.IsActive);
                         cmd.Parameters.AddWithValue("@created", controller.CreatedUtc);
                         
@@ -609,10 +792,13 @@ namespace QuanLyGiuXe.Services
                     if (isNew)
                     {
                         controller.Id = controllers.Any() ? controllers.Max(c => c.Id) + 1 : 1;
-                        var zone = await GetZoneAsync(controller.ZoneId);
-                        if (zone != null)
+                        if (controller.GateId.HasValue)
                         {
-                            controller.ZoneName = zone.ZoneName;
+                            var gate = await GetGateAsync(controller.GateId.Value);
+                            if (gate != null)
+                            {
+                                controller.GateName = gate.GateName;
+                            }
                         }
                         controllers.Add(controller);
                     }
@@ -625,12 +811,19 @@ namespace QuanLyGiuXe.Services
                             existing.IpAddress = controller.IpAddress;
                             existing.ServerIp = controller.ServerIp;
                             existing.PcIp = controller.PcIp;
-                            existing.ZoneId = controller.ZoneId;
+                            existing.GateId = controller.GateId;
                             existing.IsActive = controller.IsActive;
-                            var zone = await GetZoneAsync(controller.ZoneId);
-                            if (zone != null)
+                            if (controller.GateId.HasValue)
                             {
-                                existing.ZoneName = zone.ZoneName;
+                                var gate = await GetGateAsync(controller.GateId.Value);
+                                if (gate != null)
+                                {
+                                    existing.GateName = gate.GateName;
+                                }
+                            }
+                            else
+                            {
+                                existing.GateName = string.Empty;
                             }
                         }
                     }
@@ -677,11 +870,11 @@ namespace QuanLyGiuXe.Services
                     string sql;
                     if (isNew)
                     {
-                        sql = "INSERT INTO dbo.Lanes (LaneCode, LaneName, Direction, ZoneId, IsActive, CreatedUtc) OUTPUT INSERTED.Id VALUES (@code, @name, @dir, @zoneId, @active, @created)";
+                        sql = "INSERT INTO dbo.Lanes (LaneCode, LaneName, Direction, ZoneId, GateId, LoaiXeId, IsActive, CreatedUtc) OUTPUT INSERTED.Id VALUES (@code, @name, @dir, @zoneId, @gateId, @loaiXeId, @active, @created)";
                     }
                     else
                     {
-                        sql = "UPDATE dbo.Lanes SET LaneCode = @code, LaneName = @name, Direction = @dir, ZoneId = @zoneId, IsActive = @active WHERE Id = @id";
+                        sql = "UPDATE dbo.Lanes SET LaneCode = @code, LaneName = @name, Direction = @dir, ZoneId = @zoneId, GateId = @gateId, LoaiXeId = @loaiXeId, IsActive = @active WHERE Id = @id";
                     }
 
                     using (var cmd = new SqlCommand(sql, conn))
@@ -691,6 +884,8 @@ namespace QuanLyGiuXe.Services
                         cmd.Parameters.AddWithValue("@name", lane.LaneName);
                         cmd.Parameters.AddWithValue("@dir", lane.Direction);
                         cmd.Parameters.AddWithValue("@zoneId", (object?)lane.ZoneId ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@gateId", (object?)lane.GateId ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@loaiXeId", (object?)lane.LoaiXeId ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("@active", lane.IsActive);
                         cmd.Parameters.AddWithValue("@created", lane.CreatedUtc);
                         
@@ -716,6 +911,11 @@ namespace QuanLyGiuXe.Services
                             var zone = await GetZoneAsync(lane.ZoneId.Value);
                             if (zone != null) lane.ZoneName = zone.ZoneName;
                         }
+                        if (lane.GateId.HasValue)
+                        {
+                            var gate = await GetGateAsync(lane.GateId.Value);
+                            if (gate != null) lane.GateName = gate.GateName;
+                        }
                         lanes.Add(lane);
                     }
                     else
@@ -727,6 +927,8 @@ namespace QuanLyGiuXe.Services
                             existing.LaneName = lane.LaneName;
                             existing.Direction = lane.Direction;
                             existing.ZoneId = lane.ZoneId;
+                            existing.GateId = lane.GateId;
+                            existing.LoaiXeId = lane.LoaiXeId;
                             existing.IsActive = lane.IsActive;
                             if (lane.ZoneId.HasValue)
                             {
@@ -737,6 +939,16 @@ namespace QuanLyGiuXe.Services
                             {
                                 existing.ZoneName = string.Empty;
                             }
+                            if (lane.GateId.HasValue)
+                            {
+                                var gate = await GetGateAsync(lane.GateId.Value);
+                                if (gate != null) existing.GateName = gate.GateName;
+                            }
+                            else
+                            {
+                                existing.GateName = string.Empty;
+                            }
+                            existing.LoaiXeName = lane.LoaiXeName;
                         }
                     }
                     await OfflineCacheService.Instance.SaveCacheAsync("LIST_LANES", lanes);
@@ -844,6 +1056,43 @@ namespace QuanLyGiuXe.Services
             );
         }
 
+        public async Task<bool> AssignLaneToGateAsync(int laneId, int? gateId)
+        {
+            return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+                "ASSIGN_LANE_GATE",
+                new { LaneId = laneId, GateId = gateId },
+                async conn =>
+                {
+                    string sql = "UPDATE dbo.Lanes SET GateId = @gateId WHERE Id = @laneId";
+                    using (var cmd = new SqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@laneId", laneId);
+                        cmd.Parameters.AddWithValue("@gateId", (object?)gateId ?? DBNull.Value);
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+                },
+                async () =>
+                {
+                    var lanes = await GetLanesAsync();
+                    var lane = lanes.FirstOrDefault(l => l.Id == laneId);
+                    if (lane != null)
+                    {
+                        lane.GateId = gateId;
+                        if (gateId.HasValue)
+                        {
+                            var gate = await GetGateAsync(gateId.Value);
+                            lane.GateName = gate?.GateName ?? string.Empty;
+                        }
+                        else
+                        {
+                            lane.GateName = string.Empty;
+                        }
+                        await OfflineCacheService.Instance.SaveCacheAsync("LIST_LANES", lanes);
+                    }
+                }
+            );
+        }
+
         // ──────────────────────────────────────────────
         // QA Simulation Helper Methods
         // ──────────────────────────────────────────────
@@ -852,17 +1101,44 @@ namespace QuanLyGiuXe.Services
         {
             var lanes = await GetLanesAsync();
             var lane = lanes.FirstOrDefault(l => l.Id == laneId || l.LaneCode == $"LANE-{laneId}");
-            if (lane == null || !lane.ZoneId.HasValue) return false;
-            var zone = await GetZoneAsync(lane.ZoneId.Value);
-            if (zone == null) return false;
+            if (lane == null) return false;
+
+            int? zoneId = lane.ZoneId;
+            int? siteId = null;
+
+            if (zoneId.HasValue)
+            {
+                var zone = await GetZoneAsync(zoneId.Value);
+                if (zone != null)
+                {
+                    siteId = zone.SiteId;
+                }
+            }
+            else if (lane.GateId.HasValue)
+            {
+                var gates = await GetGatesAsync();
+                var gate = gates.FirstOrDefault(g => g.Id == lane.GateId.Value);
+                if (gate != null)
+                {
+                    siteId = gate.SiteId;
+                    var zones = await GetZonesAsync();
+                    var defaultZone = zones.FirstOrDefault(z => z.SiteId == siteId);
+                    if (defaultZone != null)
+                    {
+                        zoneId = defaultZone.Id;
+                    }
+                }
+            }
+
+            if (!zoneId.HasValue || !siteId.HasValue) return false;
 
             var session = new VehicleSession
             {
                 CardId = cardId,
                 BienSo = plate,
                 ThoiGianVao = DateTime.Now,
-                SiteId = zone.SiteId,
-                ZoneId = zone.Id,
+                SiteId = siteId,
+                ZoneId = zoneId,
                 EntryLaneId = lane.Id,
                 TrangThai = "Active"
             };

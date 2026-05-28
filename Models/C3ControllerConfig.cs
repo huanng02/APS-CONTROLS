@@ -24,13 +24,27 @@ namespace QuanLyGiuXe.Models
         [Description("Địa chỉ IP của máy dùng để quản lý/điều khiển board (VD: 192.168.1.50)")]
         public string PcIp { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Vui lòng nhập Zone ID")]
-        [Description("ID của Zone chứa tủ này (VD: 1)")]
-        public int ZoneId { get; set; }
+        [Description("ID của Cổng kiểm soát chứa tủ này (VD: 1)")]
+        public int? GateId { get; set; }
         public bool IsActive { get; set; } = true;
         public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
 
         // Display helper
-        public string ZoneName { get; set; } = string.Empty;
+        public string GateName { get; set; } = string.Empty;
+
+        // Backward Compatibility for legacy controllers/views
+        [Obsolete("Use GateId instead")]
+        public int ZoneId
+        {
+            get => GateId ?? 0;
+            set => GateId = value == 0 ? null : value;
+        }
+
+        [Obsolete("Use GateName instead")]
+        public string ZoneName
+        {
+            get => GateName;
+            set => GateName = value;
+        }
     }
 }

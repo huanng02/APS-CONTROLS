@@ -240,6 +240,7 @@
                                     <MenuItem Header="🗑️ Xóa" Command="{Binding DeleteSelectedCommand}"/>
                                     <Separator/>
                                     <MenuItem Header="🏢 Thêm Site" Command="{Binding AddSiteCommand}"/>
+                                    <MenuItem Header="🚪 Thêm Cổng" Command="{Binding AddGateCommand}"/>
                                     <MenuItem Header="📍 Thêm Zone" Command="{Binding AddZoneCommand}"/>
                                     <MenuItem Header="🚗 Thêm Lane" Command="{Binding AddLaneCommand}"/>
                                     <MenuItem Header="🧠 Thêm Controller" Command="{Binding AddControllerCommand}"/>
@@ -450,6 +451,78 @@
                                 </UniformGrid>
                             </StackPanel>
 
+                            <!-- ─── GATE DETAIL ─────────────────────────── -->
+                            <StackPanel Visibility="{Binding IsGateSelected, Converter={StaticResource BoolToVisibilityConverter}}">
+                                <!-- Gate Header Card -->
+                                <Border Style="{StaticResource DetailCardStyle}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                                <TextBlock Text="🚪" FontSize="24" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                                <TextBlock Text="{Binding DetailGateName}" FontSize="22" FontWeight="Bold"
+                                                           FontFamily="Segoe UI, Inter, Arial"
+                                                           Foreground="{StaticResource TopoTextPrimaryBrush}"
+                                                           VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                            <TextBlock Text="{Binding DetailGateCode}" FontSize="13"
+                                                       FontFamily="Segoe UI, Inter, Arial"
+                                                       Foreground="{StaticResource TopoTextSecondaryBrush}" Margin="0,0,0,4"/>
+                                            <TextBlock Text="{Binding DetailGateDescription}" FontSize="13"
+                                                       FontFamily="Segoe UI, Inter, Arial"
+                                                       Foreground="{StaticResource TopoTextMutedBrush}"
+                                                       TextWrapping="Wrap"/>
+                                        </StackPanel>
+                                        <Border Grid.Column="1" CornerRadius="6" Padding="12,6"
+                                                VerticalAlignment="Top">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="#E8F5E9"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding DetailGateIsActive}" Value="False">
+                                                            <Setter Property="Background" Value="#FFEBEE"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <TextBlock FontSize="12" FontWeight="SemiBold" FontFamily="Segoe UI, Inter, Arial">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Text" Value="● Active"/>
+                                                        <Setter Property="Foreground" Value="{StaticResource TopoSuccessBrush}"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding DetailGateIsActive}" Value="False">
+                                                                <Setter Property="Text" Value="● Inactive"/>
+                                                                <Setter Property="Foreground" Value="{StaticResource TopoDangerBrush}"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </Border>
+                                    </Grid>
+                                </Border>
+
+                                <!-- Gate Stats Grid -->
+                                <UniformGrid Columns="4" Margin="0,0,0,4">
+                                    <Border Style="{StaticResource StatCardStyle}" Margin="0,0,8,8">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding DetailGateLanes}" Style="{StaticResource StatNumberStyle}"/>
+                                            <TextBlock Text="Làn vật lý (Lanes)" Style="{StaticResource StatLabelStyle}"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource StatCardStyle}" Margin="4,0,4,8">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding DetailGateControllers}" Style="{StaticResource StatNumberStyle}"/>
+                                            <TextBlock Text="Mạch điều khiển (Controllers)" Style="{StaticResource StatLabelStyle}"/>
+                                        </StackPanel>
+                                    </Border>
+                                </UniformGrid>
+                            </StackPanel>
+
                             <!-- ─── LANE DETAIL ─────────────────────────── -->
                             <StackPanel Visibility="{Binding IsLaneSelected, Converter={StaticResource BoolToVisibilityConverter}}">
                                 <Border Style="{StaticResource DetailCardStyle}">
@@ -529,6 +602,7 @@
                                             <Grid.RowDefinitions>
                                                 <RowDefinition Height="Auto"/>
                                                 <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
                                             </Grid.RowDefinitions>
 
                                             <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,0,12">
@@ -554,6 +628,23 @@
                                                                 <DataTrigger Binding="{Binding DetailLaneIsActive}" Value="False">
                                                                     <Setter Property="Text" Value="● Inactive"/>
                                                                     <Setter Property="Foreground" Value="{StaticResource TopoDangerBrush}"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </StackPanel>
+                                            <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,12">
+                                                <TextBlock Text="🏷️ Loại xe" Style="{StaticResource InfoLabelStyle}"/>
+                                                <TextBlock Text="{Binding DetailLaneLoaiXeName}">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock" BasedOn="{StaticResource InfoValueStyle}">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding DetailLaneLoaiXeName}" Value="{x:Null}">
+                                                                    <Setter Property="Text" Value="🔀 Hỗn hợp (tất cả)"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding DetailLaneLoaiXeName}" Value="">
+                                                                    <Setter Property="Text" Value="🔀 Hỗn hợp (tất cả)"/>
                                                                 </DataTrigger>
                                                             </Style.Triggers>
                                                         </Style>
@@ -873,6 +964,13 @@
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="🏢" FontSize="14" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                         <TextBlock Text="Thêm Site" FontSize="13" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+
+                                <Button Command="{Binding AddGateCommand}" Style="{StaticResource TopoActionButton}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="🚪" FontSize="14" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                        <TextBlock Text="Thêm Cổng" FontSize="13" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </Button>
 

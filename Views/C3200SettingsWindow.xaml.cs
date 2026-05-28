@@ -14,6 +14,7 @@ namespace QuanLyGiuXe
         private bool _isInitializing = false;
         private List<LaneConfig> _lanes;
         private List<ParkingSite> _sites;
+        private List<LoaiXe> _vehicleTypes;
 
         public C3200SettingsWindow()
         {
@@ -52,54 +53,54 @@ namespace QuanLyGiuXe
             try
             {
                 _isInitializing = true;
-
+ 
                 // Load all data
                 _sites = await ParkingTopologyService.Instance.GetSitesAsync();
-                var allZones = await ParkingTopologyService.Instance.GetZonesAsync();
+                var allGates = await ParkingTopologyService.Instance.GetGatesAsync();
                 var allControllers = await ParkingTopologyService.Instance.GetControllersAsync();
                 _lanes = await ParkingTopologyService.Instance.GetLanesAsync();
-
+ 
                 // Find active controller based on saved IP
                 var activeController = allControllers.FirstOrDefault(c => c.IpAddress == _cfg.ZKTeco.IpAddress);
-                ParkingZone activeZone = null;
+                ParkingGate activeGate = null;
                 ParkingSite activeSite = null;
-
+ 
                 if (activeController != null)
                 {
-                    activeZone = allZones.FirstOrDefault(z => z.Id == activeController.ZoneId);
-                    if (activeZone != null)
+                    activeGate = allGates.FirstOrDefault(g => g.Id == activeController.GateId);
+                    if (activeGate != null)
                     {
-                        activeSite = _sites.FirstOrDefault(s => s.Id == activeZone.SiteId);
+                        activeSite = _sites.FirstOrDefault(s => s.Id == activeGate.SiteId);
                     }
                 }
-
-                // If no active controller is found, fallback to first controller/zone/site
+ 
+                // If no active controller is found, fallback to first controller/gate/site
                 if (activeController == null && _sites.Any())
                 {
                     activeSite = _sites.FirstOrDefault();
                     if (activeSite != null)
                     {
-                        var siteZones = allZones.Where(z => z.SiteId == activeSite.Id).ToList();
-                        if (siteZones.Any())
+                        var siteGates = allGates.Where(g => g.SiteId == activeSite.Id).ToList();
+                        if (siteGates.Any())
                         {
-                            activeZone = siteZones.FirstOrDefault();
-                            if (activeZone != null)
+                            activeGate = siteGates.FirstOrDefault();
+                            if (activeGate != null)
                             {
-                                var zoneControllers = allControllers.Where(c => c.ZoneId == activeZone.Id).ToList();
-                                if (zoneControllers.Any())
+                                var gateControllers = allControllers.Where(c => c.GateId == activeGate.Id).ToList();
+                                if (gateControllers.Any())
                                 {
-                                    activeController = zoneControllers.FirstOrDefault();
+                                    activeController = gateControllers.FirstOrDefault();
                                 }
                             }
                         }
                     }
                 }
-
+ 
                 // 1. Populate and select Site
                 SiteCombo.ItemsSource = _sites;
                 SiteCombo.DisplayMemberPath = "SiteName";
                 SiteCombo.SelectedValuePath = "Id";
-
+ 
                 if (activeSite != null)
                 {
                     SiteCombo.SelectedValue = activeSite.Id;
@@ -108,19 +109,19 @@ namespace QuanLyGiuXe
                 {
                     SiteCombo.SelectedIndex = 0;
                 }
-
-                // 2. Populate and select Zone for the selected Site
+ 
+                // 2. Populate and select Gate (bound to ZoneCombo control for compatibility) for the selected Site
                 int selectedSiteId = SiteCombo.SelectedValue != null ? Convert.ToInt32(SiteCombo.SelectedValue) : 0;
-                var zonesForSite = allZones.Where(z => z.SiteId == selectedSiteId).ToList();
-                ZoneCombo.ItemsSource = zonesForSite;
-                ZoneCombo.DisplayMemberPath = "ZoneName";
+                var gatesForSite = allGates.Where(g => g.SiteId == selectedSiteId).ToList();
+                ZoneCombo.ItemsSource = gatesForSite;
+                ZoneCombo.DisplayMemberPath = "GateName";
                 ZoneCombo.SelectedValuePath = "Id";
-
-                if (activeZone != null && zonesForSite.Any(z => z.Id == activeZone.Id))
+ 
+                if (activeGate != null && gatesForSite.Any(g => g.Id == activeGate.Id))
                 {
-                    ZoneCombo.SelectedValue = activeZone.Id;
+                    ZoneCombo.SelectedValue = activeGate.Id;
                 }
-                else if (zonesForSite.Any())
+                else if (gatesForSite.Any())
                 {
                     ZoneCombo.SelectedIndex = 0;
                 }
@@ -128,19 +129,19 @@ namespace QuanLyGiuXe
                 {
                     ZoneCombo.SelectedIndex = -1;
                 }
-
-                // 3. Populate and select Controller for the selected Zone
-                int selectedZoneId = ZoneCombo.SelectedValue != null ? Convert.ToInt32(ZoneCombo.SelectedValue) : 0;
-                var controllersForZone = allControllers.Where(c => c.ZoneId == selectedZoneId).ToList();
-                TopologyCombo.ItemsSource = controllersForZone;
+ 
+                // 3. Populate and select Controller for the selected Gate
+                int selectedGateId = ZoneCombo.SelectedValue != null ? Convert.ToInt32(ZoneCombo.SelectedValue) : 0;
+                var controllersForGate = allControllers.Where(c => c.GateId == selectedGateId).ToList();
+                TopologyCombo.ItemsSource = controllersForGate;
                 TopologyCombo.DisplayMemberPath = "ControllerName";
                 TopologyCombo.SelectedValuePath = "Id";
-
-                if (activeController != null && controllersForZone.Any(c => c.Id == activeController.Id))
+ 
+                if (activeController != null && controllersForGate.Any(c => c.Id == activeController.Id))
                 {
                     TopologyCombo.SelectedValue = activeController.Id;
                 }
-                else if (controllersForZone.Any())
+                else if (controllersForGate.Any())
                 {
                     TopologyCombo.SelectedIndex = 0;
                 }
@@ -148,24 +149,36 @@ namespace QuanLyGiuXe
                 {
                     TopologyCombo.SelectedIndex = -1;
                 }
-
-                // 4. Populate and select Lanes for the selected Zone
-                var lanesForZone = _lanes.Where(l => l.ZoneId == selectedZoneId).ToList();
-                Door1LaneCombo.ItemsSource = lanesForZone;
-                Door2LaneCombo.ItemsSource = lanesForZone;
-
+ 
+                // 4. Populate and select Lanes for the selected Gate
+                var lanesForGate = _lanes.Where(l => l.GateId == selectedGateId).ToList();
+                Door1LaneCombo.ItemsSource = lanesForGate;
+                Door2LaneCombo.ItemsSource = lanesForGate;
+ 
                 Door1LaneCombo.DisplayMemberPath = "LaneName";
                 Door1LaneCombo.SelectedValuePath = "Id";
-
+ 
                 Door2LaneCombo.DisplayMemberPath = "LaneName";
                 Door2LaneCombo.SelectedValuePath = "Id";
+ 
+                // 5. Load vehicle types for lane-type combos
+                _vehicleTypes = new DatabaseService().GetLoaiXe();
+                var mixedItem = new LoaiXe { Id = 0, TenLoai = "🔀 Hỗn hợp (tất cả)", TrangThai = "Active" };
+                var door1VtList = new List<LoaiXe> { mixedItem };
+                door1VtList.AddRange(_vehicleTypes);
+                var door2VtList = new List<LoaiXe> { mixedItem };
+                door2VtList.AddRange(_vehicleTypes);
+                Door1VehicleTypeCombo.ItemsSource = door1VtList;
+                Door2VehicleTypeCombo.ItemsSource = door2VtList;
+                Door1VehicleTypeCombo.SelectedIndex = 0;
+                Door2VehicleTypeCombo.SelectedIndex = 0;
 
                 // Load reader mappings (saved selections)
                 LoadReaderSelection();
-
+ 
                 // Make sure IP box shows current saved IP
                 IpBox.Text = _cfg.ZKTeco.IpAddress;
-
+ 
                 _isInitializing = false;
             }
             catch (Exception ex)
@@ -189,29 +202,29 @@ namespace QuanLyGiuXe
             {
                 int siteId = Convert.ToInt32(SiteCombo.SelectedValue);
 
-                var allZones = await ParkingTopologyService.Instance.GetZonesAsync();
+                var allGates = await ParkingTopologyService.Instance.GetGatesAsync();
 
-                var zones = allZones
-                    .Where(z => z.SiteId == siteId)
+                var gates = allGates
+                    .Where(g => g.SiteId == siteId)
                     .ToList();
 
-                ZoneCombo.ItemsSource = zones;
-                ZoneCombo.DisplayMemberPath = "ZoneName";
+                ZoneCombo.ItemsSource = gates;
+                ZoneCombo.DisplayMemberPath = "GateName";
                 ZoneCombo.SelectedValuePath = "Id";
 
-                if (zones.Any())
+                if (gates.Any())
                     ZoneCombo.SelectedIndex = 0;
                 else
                     ZoneCombo.SelectedIndex = -1;
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Load zones failed: {ex.Message}");
+                MessageBox.Show($"Load gates failed: {ex.Message}");
             }
         }
 
         // =============================
-        // ZONE CHANGED
+        // GATE CHANGED
         // =============================
         private async void ZoneCombo_SelectionChanged(
             object sender,
@@ -222,10 +235,10 @@ namespace QuanLyGiuXe
 
             try
             {
-                int zoneId = Convert.ToInt32(ZoneCombo.SelectedValue);
+                int gateId = Convert.ToInt32(ZoneCombo.SelectedValue);
 
-                // load controller
-                var controllers = await ParkingTopologyService.Instance.GetControllersByZoneAsync(zoneId);
+                // load controllers by GateId
+                var controllers = await ParkingTopologyService.Instance.GetControllersByGateAsync(gateId);
 
                 TopologyCombo.ItemsSource = controllers;
                 TopologyCombo.DisplayMemberPath = "ControllerName";
@@ -236,11 +249,11 @@ namespace QuanLyGiuXe
                 else
                     TopologyCombo.SelectedIndex = -1;
 
-                // load lanes
+                // load lanes by GateId
                 var allLanes = await ParkingTopologyService.Instance.GetLanesAsync();
 
                 var lanes = allLanes
-                    .Where(l => l.ZoneId == zoneId)
+                    .Where(l => l.GateId == gateId)
                     .ToList();
 
                 Door1LaneCombo.ItemsSource = lanes;
@@ -252,15 +265,11 @@ namespace QuanLyGiuXe
                 Door2LaneCombo.DisplayMemberPath = "LaneName";
                 Door2LaneCombo.SelectedValuePath = "Id";
 
-                if (lanes.Count > 0)
-                    Door1LaneCombo.SelectedIndex = 0;
-
-                if (lanes.Count > 1)
-                    Door2LaneCombo.SelectedIndex = 1;
+                LoadReaderSelection();
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Load zone failed: {ex.Message}");
+                MessageBox.Show($"Load gate failed: {ex.Message}");
             }
         }
 
@@ -349,6 +358,10 @@ namespace QuanLyGiuXe
 
             _isSyncingCombos = false;
 
+            // Sync vehicle type combos based on selected lane
+            SyncVehicleTypeCombo(Door1LaneCombo, Door1VehicleTypeCombo);
+            SyncVehicleTypeCombo(Door2LaneCombo, Door2VehicleTypeCombo);
+
             void BindReader(
                 int readerNo,
                 ComboBox dirCombo,
@@ -421,6 +434,24 @@ namespace QuanLyGiuXe
             }
 
             _isSyncingCombos = false;
+
+            // Sync vehicle type for Door1
+            SyncVehicleTypeCombo(Door1LaneCombo, Door1VehicleTypeCombo);
+        }
+
+        private void SyncVehicleTypeCombo(ComboBox laneCombo, ComboBox vehicleTypeCombo)
+        {
+            if (laneCombo.SelectedItem is LaneConfig selectedLane)
+            {
+                if (selectedLane.LoaiXeId.HasValue && selectedLane.LoaiXeId.Value > 0)
+                {
+                    vehicleTypeCombo.SelectedValue = selectedLane.LoaiXeId.Value;
+                }
+                else
+                {
+                    vehicleTypeCombo.SelectedIndex = 0; // Hỗn hợp
+                }
+            }
         }
 
         private void Door2LaneCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -448,6 +479,9 @@ namespace QuanLyGiuXe
             }
 
             _isSyncingCombos = false;
+
+            // Sync vehicle type for Door2
+            SyncVehicleTypeCombo(Door2LaneCombo, Door2VehicleTypeCombo);
         }
 
         private async void TestConnection_Click(object sender, RoutedEventArgs e)
@@ -571,6 +605,17 @@ namespace QuanLyGiuXe
 
             ReaderLaneMappingService.Instance.UpdateMappings(newMappings);
 
+            // Save vehicle type to lanes (async fire-and-forget)
+            try
+            {
+                SaveLaneVehicleType(Door1LaneCombo, Door1VehicleTypeCombo);
+                SaveLaneVehicleType(Door2LaneCombo, Door2VehicleTypeCombo);
+            }
+            catch (Exception vtEx)
+            {
+                try { LoggingService.Instance.LogError("SaveVehicleType", "C3200Settings", "Failed to save lane vehicle type", vtEx); } catch { }
+            }
+
             try
             {
                 var changes = new System.Text.StringBuilder();
@@ -615,5 +660,23 @@ namespace QuanLyGiuXe
         }
 
         private void Close_Click(object sender, RoutedEventArgs e) => Close();
+
+        private async void SaveLaneVehicleType(ComboBox laneCombo, ComboBox vehicleTypeCombo)
+        {
+            if (laneCombo.SelectedItem is LaneConfig lane && vehicleTypeCombo.SelectedItem is LoaiXe selectedType)
+            {
+                int? newLoaiXeId = selectedType.Id > 0 ? selectedType.Id : (int?)null;
+                
+                // Only save if changed
+                if (lane.LoaiXeId != newLoaiXeId)
+                {
+                    lane.LoaiXeId = newLoaiXeId;
+                    lane.LoaiXeName = selectedType.Id > 0 ? selectedType.TenLoai : string.Empty;
+                    await ParkingTopologyService.Instance.SaveLaneAsync(lane);
+                    LoggingService.Instance.LogInfo("SaveVehicleType", "C3200Settings", 
+                        $"Lane {lane.LaneCode} LoaiXeId set to {(newLoaiXeId.HasValue ? newLoaiXeId.Value.ToString() : "NULL (Mixed)")}");
+                }
+            }
+        }
     }
 }
