@@ -289,6 +289,7 @@ namespace QuanLyGiuXe.ViewModels
 
             bool isInbound = true;
             string laneName = $"LÀN {uiLaneIndex}";
+            string vehicleTypeSuffix = "Hỗn hợp";
 
             if (mapping != null)
             {
@@ -300,6 +301,9 @@ namespace QuanLyGiuXe.ViewModels
                 if (laneDb != null)
                 {
                     laneName = laneDb.LaneName;
+                    vehicleTypeSuffix = (laneDb.LoaiXeId.HasValue && !string.IsNullOrEmpty(laneDb.LoaiXeName)) 
+                        ? laneDb.LoaiXeName 
+                        : "Hỗn hợp";
                 }
                 
                 var (_, zoneId, _, siteName, zoneName, maxCapacity, _, gateName) = await ResolveTopologyForLaneAsync(mapping.LaneId);
@@ -321,7 +325,7 @@ namespace QuanLyGiuXe.ViewModels
                 }
             }
             
-            string title = $"{laneName.ToUpper()} [{(isInbound ? "VÀO" : "RA")}]";
+            string title = $"{laneName.ToUpper()} [{(isInbound ? "VÀO" : "RA")}] - {vehicleTypeSuffix.ToUpper()}";
 
             if (uiLaneIndex == 1)
             {
