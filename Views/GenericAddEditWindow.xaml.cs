@@ -8,6 +8,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using QuanLyGiuXe.Services;
+using QuanLyGiuXe.Models;
 
 namespace QuanLyGiuXe.Views
 {
@@ -136,6 +137,44 @@ namespace QuanLyGiuXe.Views
                                 CopyMatchingProperties(cb.SelectedItem);
                             }
                         };
+                        input = cb;
+                    }
+                    else if (p.Name == "LoaiXeId")
+                    {
+                        var cb = new ComboBox { Width = 200, HorizontalAlignment = HorizontalAlignment.Left, Style = (Style)Application.Current.FindResource("ModernComboBox") };
+                        var vehicleTypes = await new DatabaseService().GetLoaiXeAsync();
+                        var comboItems = new List<LoaiXe> { new LoaiXe { Id = 0, TenLoai = "🔀 Hỗn hợp (tất cả)" } };
+                        if (vehicleTypes != null)
+                        {
+                            comboItems.AddRange(vehicleTypes);
+                        }
+                        cb.ItemsSource = comboItems;
+                        cb.DisplayMemberPath = "TenLoai";
+                        cb.SelectedValuePath = "Id";
+                        int? currentLoaiXeId = (int?)(p.GetValue(_model));
+                        if (currentLoaiXeId.HasValue && currentLoaiXeId.Value != 0) cb.SelectedValue = currentLoaiXeId.Value;
+                        else cb.SelectedIndex = 0;
+
+                        cb.SelectionChanged += (s, e) => {
+                            if (cb.SelectedItem is LoaiXe lx)
+                            {
+                                string nameVal = lx.Id == 0 ? string.Empty : lx.TenLoai;
+                                var nameProp = _model.GetType().GetProperty("LoaiXeName");
+                                if (nameProp != null && nameProp.CanWrite)
+                                {
+                                    nameProp.SetValue(_model, nameVal);
+                                    foreach (var field in FieldsPanel.Children.OfType<StackPanel>())
+                                    {
+                                        var innerInput = field.Children.OfType<Control>().FirstOrDefault();
+                                        if (innerInput?.Tag is PropertyInfo pi && pi.Name == "LoaiXeName")
+                                        {
+                                            if (innerInput is TextBox tb) tb.Text = nameVal;
+                                        }
+                                    }
+                                }
+                            }
+                        };
+
                         input = cb;
                     }
                     
@@ -532,10 +571,10 @@ private void Save_Click(object sender, RoutedEventArgs e)
                             prop.SetValue(_model, Convert.ChangeType(selectedVal, typeof(int)));
                         }
                     }
-                    else if (prop.Name == "SiteId" || prop.Name == "ZoneId" || prop.Name == "GateId")
+                    else if (prop.Name == "SiteId" || prop.Name == "ZoneId" || prop.Name == "GateId" || prop.Name == "LoaiXeId")
                     {
                         var selectedVal = cb.SelectedValue;
-                        if (selectedVal != null)
+                        if (selectedVal != null && (prop.Name != "LoaiXeId" || Convert.ToInt32(selectedVal) != 0))
                         {
                             var targetType = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
                             prop.SetValue(_model, Convert.ChangeType(selectedVal, targetType));

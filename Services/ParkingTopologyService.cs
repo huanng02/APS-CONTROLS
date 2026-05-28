@@ -902,6 +902,17 @@ namespace QuanLyGiuXe.Services
                 },
                 async () =>
                 {
+                    if (lane.LoaiXeId.HasValue)
+                    {
+                        var vehicleTypes = await new DatabaseService().GetLoaiXeAsync();
+                        var vt = vehicleTypes?.FirstOrDefault(x => x.Id == lane.LoaiXeId.Value);
+                        lane.LoaiXeName = vt?.TenLoai ?? string.Empty;
+                    }
+                    else
+                    {
+                        lane.LoaiXeName = string.Empty;
+                    }
+
                     var lanes = await GetLanesAsync();
                     if (isNew)
                     {
