@@ -763,7 +763,7 @@ namespace QuanLyGiuXe.ViewModels
             RefreshSettings();
         }
 
-        public void RefreshSettings()
+        public async void RefreshSettings()
         {
             try
             {
@@ -788,6 +788,45 @@ namespace QuanLyGiuXe.ViewModels
                 OnPropertyChanged(nameof(Lane2ReaderMappingIn));
                 OnPropertyChanged(nameof(Lane2ReaderMappingOut));
                 OnPropertyChanged(nameof(Lane2ReaderMappingEmpty));
+
+                // Ensure SitesList is populated
+                if (!SitesList.Any())
+                {
+                    var sites = await ParkingTopologyService.Instance.GetSitesAsync();
+                    Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
+                    {
+                        SitesList.Clear();
+                        foreach (var s in sites) SitesList.Add(s);
+                    }));
+                }
+
+                // Determine selected site based on saved controller IP
+                var sitesAll = await ParkingTopologyService.Instance.GetSitesAsync();
+                var gates = await ParkingTopologyService.Instance.GetGatesAsync();
+                var controllers = await ParkingTopologyService.Instance.GetControllersAsync();
+                var activeController = controllers.FirstOrDefault(c => c.IpAddress == cfg.ZKTeco.IpAddress);
+                ParkingSite activeSite = null;
+                if (activeController != null)
+                {
+                    var activeGate = gates.FirstOrDefault(g => g.Id == activeController.GateId);
+                    if (activeGate != null)
+                    {
+                        activeSite = sitesAll.FirstOrDefault(s => s.Id == activeGate.SiteId);
+                    }
+                }
+                // Fallback to first site if none matched
+                if (activeSite == null && sitesAll.Any())
+                {
+                    activeSite = sitesAll[0];
+                }
+                // Update SelectedSite on UI thread
+                if (activeSite != null)
+                {
+                    Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
+                    {
+                        SelectedSite = activeSite;
+                    }));
+                }
             }
             catch { }
         }

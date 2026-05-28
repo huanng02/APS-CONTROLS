@@ -555,8 +555,6 @@
                 </Grid.ColumnDefinitions>
                 
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="🏢 Bãi xe:" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <ComboBox ItemsSource="{Binding SitesList}" SelectedItem="{Binding SelectedSite, Mode=TwoWay}" DisplayMemberPath="SiteName" Width="200" Height="28" VerticalAlignment="Center" Style="{StaticResource ModernComboBox}" Margin="0,0,25,0"/>
                     
                     <TextBlock Text="📋" Margin="0,0,8,0" VerticalAlignment="Center"/>
                     <TextBlock Text="{Binding SoXeTrongBai}" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}" VerticalAlignment="Center"/>

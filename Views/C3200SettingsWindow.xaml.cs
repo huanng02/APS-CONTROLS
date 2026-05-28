@@ -540,7 +540,7 @@ namespace QuanLyGiuXe
             }
         }
 
-        private void Save_Click(object sender, RoutedEventArgs e)
+        private async void Save_Click(object sender, RoutedEventArgs e)
         {
             var prevIp = _cfg.ZKTeco.IpAddress;
             var prevPort = _cfg.ZKTeco.TcpPort;
@@ -608,8 +608,8 @@ namespace QuanLyGiuXe
             // Save vehicle type to lanes (async fire-and-forget)
             try
             {
-                SaveLaneVehicleType(Door1LaneCombo, Door1VehicleTypeCombo);
-                SaveLaneVehicleType(Door2LaneCombo, Door2VehicleTypeCombo);
+                await SaveLaneVehicleType(Door1LaneCombo, Door1VehicleTypeCombo);
+                await SaveLaneVehicleType(Door2LaneCombo, Door2VehicleTypeCombo);
             }
             catch (Exception vtEx)
             {
@@ -649,6 +649,8 @@ namespace QuanLyGiuXe
                 {
                     try { LoggingService.Instance.LogAudit("CONFIG_CHANGED_UI", "C3200Settings", "config.json", null, new { Diffs = changes.ToString() }, source: "C3200SettingsWindow", details: $"Config updated via UI: {changes}"); } catch { }
                 }
+
+                await RefreshSiteSelectionAsync();
             }
             catch (Exception ex)
             {
@@ -659,9 +661,49 @@ namespace QuanLyGiuXe
             MessageBox.Show("Saved", "Settings", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
+        
+
+        private async Task RefreshSiteSelectionAsync()
+        {
+            try
+            {
+                var sites = await ParkingTopologyService.Instance.GetSitesAsync();
+                var gates = await ParkingTopologyService.Instance.GetGatesAsync();
+                var controllers = await ParkingTopologyService.Instance.GetControllersAsync();
+
+                var activeController = controllers.FirstOrDefault(c => c.IpAddress == _cfg.ZKTeco.IpAddress);
+                ParkingSite activeSite = null;
+                if (activeController != null)
+                {
+                    var activeGate = gates.FirstOrDefault(g => g.Id == activeController.GateId);
+                    if (activeGate != null)
+                    {
+                        activeSite = sites.FirstOrDefault(s => s.Id == activeGate.SiteId);
+                    }
+                }
+                if (activeSite == null && sites.Any())
+                {
+                    activeSite = sites.First();
+                }
+
+                if (activeSite != null)
+                {
+                    SiteCombo.SelectedValue = activeSite.Id;
+                }
+                else if (sites.Any())
+                {
+                    SiteCombo.SelectedIndex = 0;
+                }
+                // SelectionChanged will fire automatically
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to refresh site selection: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
         private void Close_Click(object sender, RoutedEventArgs e) => Close();
 
-        private async void SaveLaneVehicleType(ComboBox laneCombo, ComboBox vehicleTypeCombo)
+        private async Task SaveLaneVehicleType(ComboBox laneCombo, ComboBox vehicleTypeCombo)
         {
             if (laneCombo.SelectedItem is LaneConfig lane && vehicleTypeCombo.SelectedItem is LoaiXe selectedType)
             {

@@ -153,7 +153,7 @@ namespace QuanLyGiuXe.Views
                         cb.SelectedValuePath = "Id";
                         int? currentLoaiXeId = (int?)(p.GetValue(_model));
                         if (currentLoaiXeId.HasValue && currentLoaiXeId.Value != 0) cb.SelectedValue = currentLoaiXeId.Value;
-                        else cb.SelectedIndex = 0;
+                        else cb.SelectedIndex = -1; // No default selection, allow blank
 
                         cb.SelectionChanged += (s, e) => {
                             if (cb.SelectedItem is LoaiXe lx)
@@ -185,7 +185,7 @@ namespace QuanLyGiuXe.Views
                             Width = 200,
                             HorizontalAlignment = HorizontalAlignment.Left,
                             Style = (Style)Application.Current.FindResource("ModernComboBox"),
-                            IsEditable = false
+                            IsEditable = true
                         };
                         var candidateIps = new List<string>();
 
@@ -237,7 +237,7 @@ namespace QuanLyGiuXe.Views
 
                         // Set ItemsSource and enable state based on reachable IPs
                         cb.ItemsSource = reachableIps;
-                        cb.IsEnabled = reachableIps.Count > 0;
+                        cb.IsEnabled = true;
 
                         if (reachableIps.Count > 0)
                         {
@@ -254,8 +254,6 @@ namespace QuanLyGiuXe.Views
                         }
                         else
                         {
-                            cb.ItemsSource = null;
-                            cb.IsEnabled = false;
                             cb.Text = string.Empty;
                         }
                         input = cb;

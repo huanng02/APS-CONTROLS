@@ -201,12 +201,29 @@ namespace QuanLyGiuXe
             catch { }
         }
 
-        private void MoC3200Settings_Click(object sender, RoutedEventArgs e)
+        private async void MoC3200Settings_Click(object sender, RoutedEventArgs e)
         {
             new C3200SettingsWindow().ShowDialog();
             if (DataContext is MainViewModel vm)
             {
                 vm.RefreshSettings();
+                // Determine site based on saved config and set it
+                var cfg = AppConfig.Load();
+                var sites = await ParkingTopologyService.Instance.GetSitesAsync();
+                var gates = await ParkingTopologyService.Instance.GetGatesAsync();
+                var controllers = await ParkingTopologyService.Instance.GetControllersAsync();
+                var activeController = controllers.FirstOrDefault(c => c.IpAddress == cfg.ZKTeco.IpAddress);
+                ParkingSite activeSite = null;
+                if (activeController != null)
+                {
+                    var activeGate = gates.FirstOrDefault(g => g.Id == activeController.GateId);
+                    if (activeGate != null)
+                        activeSite = sites.FirstOrDefault(s => s.Id == activeGate.SiteId);
+                }
+                if (activeSite != null)
+                    vm.SelectedSite = activeSite;
+                // Update vehicle count to reflect new site/zone configuration immediately
+                vm.UpdateVehicleCount();
             }
             RestoreSidebarSelection();
         }
