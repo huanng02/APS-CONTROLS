@@ -645,6 +645,22 @@ namespace QuanLyGiuXe
                 C3200Service.Instance.Configure(_cfg.ZKTeco.IpAddress, _cfg.ZKTeco.TcpPort,
                     _cfg.ZKTeco.Password, _cfg.ZKTeco.Timeout, _cfg.ZKTeco.BarrierDuration);
 
+                // Reset the connection monitor status cache to discard the old IP address cache immediately
+                ConnectionMonitorService.Instance.ResetState();
+
+                // Reconnect to C3-200 Controller immediately in the background with the new configuration
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await C3200Service.Instance.ConnectAsync();
+                    }
+                    catch (Exception connEx)
+                    {
+                        try { LoggingService.Instance.LogError("ConfigChangeReconnect", "C3200Settings", "Failed to reconnect to C3200 after config change", connEx); } catch { }
+                    }
+                });
+
                 if (changes.Length > 0)
                 {
                     try { LoggingService.Instance.LogAudit("CONFIG_CHANGED_UI", "C3200Settings", "config.json", null, new { Diffs = changes.ToString() }, source: "C3200SettingsWindow", details: $"Config updated via UI: {changes}"); } catch { }

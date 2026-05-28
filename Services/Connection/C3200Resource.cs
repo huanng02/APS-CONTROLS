@@ -11,18 +11,21 @@ namespace QuanLyGiuXe.Services.Connection
 
         public async Task<bool> CheckHealthAsync(CancellationToken token)
         {
-            // Tận dụng logic ping sẵn có
-            return await ConnectionMonitorService.Instance.CheckC3Async(token);
+            // The resource is healthy ONLY if it is pingable AND the SDK is actually connected
+            bool isPingable = await ConnectionMonitorService.Instance.CheckC3Async(token);
+            return isPingable && C3200Service.Instance.IsConnected;
         }
 
         public async Task<bool> ReconnectAsync(CancellationToken token)
         {
-            // Với C3, reconnect có thể bao gồm việc khởi tạo lại SDK nếu cần
-            // Ở đây bước đầu ta dùng check health (Ping)
-            bool isPingable = await CheckHealthAsync(token);
+            // If the controller is pingable, try to connect the SDK if it's currently disconnected
+            bool isPingable = await ConnectionMonitorService.Instance.CheckC3Async(token);
             if (isPingable)
             {
-                // Thử connect SDK nếu cần (giả định Service tự quản lý session)
+                if (!C3200Service.Instance.IsConnected)
+                {
+                    return await C3200Service.Instance.ConnectAsync();
+                }
                 return true;
             }
             return false;
