@@ -44,7 +44,7 @@ namespace QuanLyGiuXe.Services
                     opened ? (byte)1 : (byte)0,
                     platePath,
                     fullPath,
-                    Environment.UserName, // Người thực hiện (nếu là manual)
+                    QuanLyGiuXe.Models.CurrentUserContext.Instance.Username ?? "Operator", // Người thực hiện (nếu là manual)
                     null,
                     note
                 );

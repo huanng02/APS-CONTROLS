@@ -541,6 +541,7 @@
                     <Separator Margin="0,5,0,10"/>
                     <Button Content="⚙ Account Settings" Style="{StaticResource ModernOutlineButton}" Click="MoThongTinCaNhan_Click" Height="35" HorizontalAlignment="Stretch" Margin="0,0,0,8" BorderBrush="{StaticResource APSBlueBrush}" Foreground="{StaticResource APSBlueBrush}"/>
                     <Button Content="🔑 Change Password" Style="{StaticResource ModernOutlineButton}" Click="DoiMatKhau_Click" Height="35" HorizontalAlignment="Stretch" Margin="0,0,0,8" BorderBrush="{StaticResource APSBlueBrush}" Foreground="{StaticResource APSBlueBrush}"/>
+                    <Button x:Name="btnMaTranPhanQuyen" Content="🛡 Ma trận phân quyền" Style="{StaticResource ModernOutlineButton}" Click="MoMaTranPhanQuyen_Click" Height="35" HorizontalAlignment="Stretch" Margin="0,0,0,8" BorderBrush="{StaticResource WarningBrush}" Foreground="{StaticResource WarningBrush}"/>
                     <Button Content="🚪 Logout" Style="{StaticResource ModernOutlineButton}" Command="{Binding LogoutCommand}" Height="35" HorizontalAlignment="Stretch"/>
                 </StackPanel>
             </Border>

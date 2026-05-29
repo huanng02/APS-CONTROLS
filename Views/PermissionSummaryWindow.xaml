@@ -1,0 +1,93 @@
+<Window x:Class="QuanLyGiuXe.Views.PermissionSummaryWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="🛡 Bảng tổng hợp Ma trận Phân quyền &amp; Physical Access" Height="620" Width="850"
+        WindowStartupLocation="CenterOwner" ResizeMode="CanResize" Background="{StaticResource BgLightBrush}">
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Background="{StaticResource APSBlueBrush}" CornerRadius="6" Padding="15" Margin="0,0,0,15">
+            <StackPanel>
+                <TextBlock Text="🛡 MA TRẬN PHÂN QUYỀN &amp; CHÍNH SÁCH TRUY CẬP VẬT LÝ" Foreground="White" FontSize="18" FontWeight="Bold"/>
+                <TextBlock Text="Xem chi tiết thiết lập Software RBAC và Physical Access Schedules trước khi tiến hành vận hành" Foreground="#D0E0F0" FontSize="12" Margin="0,4,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Main Content (Tabs) -->
+        <TabControl Grid.Row="1" Background="White" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1">
+            
+            <!-- Tab 1: Users & Active Scopes -->
+            <TabItem Header="👤 Người dùng &amp; Phạm vi Làn" Padding="12,6">
+                <Grid Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="DANH SÁCH NHÂN VIÊN &amp; VAI TRÒ HỆ THỐNG" FontWeight="Bold" FontSize="14" Foreground="{StaticResource APSBlueBrush}" Margin="0,0,0,10"/>
+                    <DataGrid Grid.Row="1" x:Name="gridUsers" AutoGenerateColumns="False" IsReadOnly="True" 
+                              Background="White" RowHeaderWidth="0" GridLinesVisibility="Horizontal" BorderThickness="0"
+                              SelectionUnit="FullRow">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Username" Binding="{Binding Username}" Width="120" FontWeight="Bold"/>
+                            <DataGridTextColumn Header="Họ và Tên" Binding="{Binding Ten}" Width="160"/>
+                            <DataGridTextColumn Header="Vai trò (Role)" Binding="{Binding RoleName}" Width="120"/>
+                            <DataGridTextColumn Header="Trạng thái" Binding="{Binding TrangThai}" Width="100"/>
+                            <DataGridTextColumn Header="Làn được kiểm soát" Binding="{Binding AllowedLanes}" Width="*"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+
+            <!-- Tab 2: Roles & Software Permissions -->
+            <TabItem Header="🛡 Vai trò &amp; Quyền hạn Software" Padding="12,6">
+                <Grid Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="MA TRẬN QUYỀN HẠN TỪNG CHỨC NĂNG (RBAC)" FontWeight="Bold" FontSize="14" Foreground="{StaticResource APSBlueBrush}" Margin="0,0,0,10"/>
+                    <DataGrid Grid.Row="1" x:Name="gridPermissions" AutoGenerateColumns="False" IsReadOnly="True" 
+                              Background="White" RowHeaderWidth="0" GridLinesVisibility="Horizontal" BorderThickness="0">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Vai trò (Role)" Binding="{Binding RoleName}" Width="140" FontWeight="Bold"/>
+                            <DataGridTextColumn Header="Mã Quyền (Code)" Binding="{Binding PermissionCode}" Width="160"/>
+                            <DataGridTextColumn Header="Tên Quyền" Binding="{Binding PermissionName}" Width="180"/>
+                            <DataGridTextColumn Header="Mô tả chức năng" Binding="{Binding Description}" Width="*"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+
+            <!-- Tab 3: RFID Groups & Physical Schedules -->
+            <TabItem Header="🔑 Physical RFID Access Schedules" Padding="12,6">
+                <Grid Margin="10">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="CHÍNH SÁCH QUẸT THẺ VẬT LÝ THEO KHUNG GIỜ &amp; PHÂN LÀN" FontWeight="Bold" FontSize="14" Foreground="{StaticResource APSBlueBrush}" Margin="0,0,0,10"/>
+                    <DataGrid Grid.Row="1" x:Name="gridPhysical" AutoGenerateColumns="False" IsReadOnly="True" 
+                              Background="White" RowHeaderWidth="0" GridLinesVisibility="Horizontal" BorderThickness="0">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Nhóm Thẻ (Card Group)" Binding="{Binding GroupName}" Width="160" FontWeight="Bold"/>
+                            <DataGridTextColumn Header="Làn Vận Hành (Lane)" Binding="{Binding LaneName}" Width="130"/>
+                            <DataGridTextColumn Header="Tên Lịch Trình (Schedule)" Binding="{Binding ScheduleName}" Width="180"/>
+                            <DataGridTextColumn Header="Khung Giờ" Binding="{Binding TimeRange}" Width="120"/>
+                            <DataGridTextColumn Header="Ngày áp dụng" Binding="{Binding DaysOfWeek}" Width="*"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+        </TabControl>
+
+        <!-- Footer -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
+            <Button Content="ĐÓNG CỬA SỔ" Style="{StaticResource ModernButton}" Background="{StaticResource APSBlueBrush}" Width="130" Height="38" Click="BtnClose_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

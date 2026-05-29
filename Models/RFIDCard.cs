@@ -22,5 +22,6 @@ namespace QuanLyGiuXe.Models
         public DateTime NgayTao { get; set; }
         // Optional expiry date stored in DB (nullable)
         public DateTime? NgayHetHan { get; set; }
+        public int? GroupId { get; set; }
     }
 }

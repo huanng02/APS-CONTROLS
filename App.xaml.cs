@@ -106,10 +106,26 @@ namespace QuanLyGiuXe
             {
                 LoggingService.Instance.LogInfo("App", "App", "StartLoginFlow: Login successful.");
                 
-                // Run SQL Server schema migrations AFTER login (DB connection confirmed)
+                // Run SQL Server schema migrations and seed offline cache AFTER login (DB connection confirmed)
                 System.Threading.Tasks.Task.Run(async () =>
                 {
-                    await DatabaseService.EnsureMigrationsAppliedAsync();
+                    try
+                    {
+                        await DatabaseService.EnsureMigrationsAppliedAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        LoggingService.Instance.LogError("APP_STARTUP_MIGRATION", "Startup", "SQL Server migrations failed", ex);
+                    }
+
+                    try
+                    {
+                        await QuanLyGiuXe.Services.OfflineCache.OfflineCacheService.Instance.PreloadCacheAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        LoggingService.Instance.LogError("APP_STARTUP_CACHE", "Startup", "Preloading offline cache failed", ex);
+                    }
                 });
                 
                 // Now we can safely close the old window

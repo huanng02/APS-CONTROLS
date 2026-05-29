@@ -1,6 +1,99 @@
 SET XACT_ABORT ON;
 BEGIN TRANSACTION;
 
+-- 0. Safely migrate Roles.TrangThai and NhanVien.TrangThai from INT/BIT to NVARCHAR(20) if needed
+IF OBJECT_ID(N'dbo.Roles') IS NOT NULL
+BEGIN
+    -- Unconditionally drop check constraints on TrangThai column (CK_Roles_TrangThai)
+    DECLARE @CheckConstraintRoles NVARCHAR(200);
+    SELECT @CheckConstraintRoles = name 
+    FROM sys.check_constraints 
+    WHERE parent_object_id = OBJECT_ID(N'dbo.Roles') 
+      AND definition LIKE '%TrangThai%';
+
+    IF @CheckConstraintRoles IS NOT NULL
+    BEGIN
+        EXEC('ALTER TABLE dbo.Roles DROP CONSTRAINT [' + @CheckConstraintRoles + ']');
+    END
+
+    -- Update old string '1'/'0' values to 'Active'/'Inactive' if they exist
+    EXEC('UPDATE dbo.Roles SET TrangThai = ''Active'' WHERE TrangThai = ''1'' OR TrangThai IS NULL');
+    EXEC('UPDATE dbo.Roles SET TrangThai = ''Inactive'' WHERE TrangThai = ''0''');
+
+    IF EXISTS (
+        SELECT 1 FROM sys.columns c
+        INNER JOIN sys.types t ON c.user_type_id = t.user_type_id
+        WHERE c.object_id = OBJECT_ID(N'dbo.Roles')
+          AND LOWER(c.name) = 'trangthai'
+          AND t.name NOT IN ('nvarchar', 'varchar', 'nchar', 'char')
+    )
+    BEGIN
+        DECLARE @ConstraintNameRoles NVARCHAR(200);
+        SELECT @ConstraintNameRoles = d.name 
+        FROM sys.default_constraints d
+        INNER JOIN sys.columns c ON d.parent_column_id = c.column_id AND d.parent_object_id = c.object_id
+        WHERE d.parent_object_id = OBJECT_ID(N'dbo.Roles') 
+          AND LOWER(c.name) = 'trangthai';
+          
+        IF @ConstraintNameRoles IS NOT NULL
+        BEGIN
+            EXEC('ALTER TABLE dbo.Roles DROP CONSTRAINT [' + @ConstraintNameRoles + ']');
+        END
+
+        ALTER TABLE dbo.Roles ALTER COLUMN TrangThai NVARCHAR(20) NULL;
+        EXEC('UPDATE dbo.Roles SET TrangThai = ''Active'' WHERE TrangThai = ''1'' OR TrangThai IS NULL');
+        EXEC('UPDATE dbo.Roles SET TrangThai = ''Inactive'' WHERE TrangThai = ''0''');
+        ALTER TABLE dbo.Roles ALTER COLUMN TrangThai NVARCHAR(20) NOT NULL;
+        ALTER TABLE dbo.Roles ADD CONSTRAINT DF_Roles_TrangThai DEFAULT 'Active' FOR TrangThai;
+    END
+END
+
+IF OBJECT_ID(N'dbo.NhanVien') IS NOT NULL
+BEGIN
+    -- Unconditionally drop check constraints on NhanVien.TrangThai if they exist
+    DECLARE @CheckConstraintNhanVien NVARCHAR(200);
+    SELECT @CheckConstraintNhanVien = name 
+    FROM sys.check_constraints 
+    WHERE parent_object_id = OBJECT_ID(N'dbo.NhanVien') 
+      AND definition LIKE '%TrangThai%';
+
+    IF @CheckConstraintNhanVien IS NOT NULL
+    BEGIN
+        EXEC('ALTER TABLE dbo.NhanVien DROP CONSTRAINT [' + @CheckConstraintNhanVien + ']');
+    END
+
+    -- Update old string '1'/'0' values to 'Active'/'Inactive' if they exist
+    EXEC('UPDATE dbo.NhanVien SET TrangThai = ''Active'' WHERE TrangThai = ''1'' OR TrangThai IS NULL');
+    EXEC('UPDATE dbo.NhanVien SET TrangThai = ''Inactive'' WHERE TrangThai = ''0''');
+
+    IF EXISTS (
+        SELECT 1 FROM sys.columns c
+        INNER JOIN sys.types t ON c.user_type_id = t.user_type_id
+        WHERE c.object_id = OBJECT_ID(N'dbo.NhanVien')
+          AND LOWER(c.name) = 'trangthai'
+          AND t.name NOT IN ('nvarchar', 'varchar', 'nchar', 'char')
+    )
+    BEGIN
+        DECLARE @ConstraintNameNhanVien NVARCHAR(200);
+        SELECT @ConstraintNameNhanVien = d.name 
+        FROM sys.default_constraints d
+        INNER JOIN sys.columns c ON d.parent_column_id = c.column_id AND d.parent_object_id = c.object_id
+        WHERE d.parent_object_id = OBJECT_ID(N'dbo.NhanVien') 
+          AND LOWER(c.name) = 'trangthai';
+          
+        IF @ConstraintNameNhanVien IS NOT NULL
+        BEGIN
+            EXEC('ALTER TABLE dbo.NhanVien DROP CONSTRAINT [' + @ConstraintNameNhanVien + ']');
+        END
+
+        ALTER TABLE dbo.NhanVien ALTER COLUMN TrangThai NVARCHAR(20) NULL;
+        EXEC('UPDATE dbo.NhanVien SET TrangThai = ''Active'' WHERE TrangThai = ''1'' OR TrangThai IS NULL');
+        EXEC('UPDATE dbo.NhanVien SET TrangThai = ''Inactive'' WHERE TrangThai = ''0''');
+        ALTER TABLE dbo.NhanVien ALTER COLUMN TrangThai NVARCHAR(20) NOT NULL;
+        ALTER TABLE dbo.NhanVien ADD CONSTRAINT DF_NhanVien_TrangThai DEFAULT 'Active' FOR TrangThai;
+    END
+END
+
 -- 1. Create Permissions table
 IF OBJECT_ID(N'dbo.Permissions', N'U') IS NULL
 BEGIN

@@ -48,6 +48,7 @@ namespace QuanLyGiuXe.ViewModels
         }
 
         public string LastScannedUID { get; set; } = "";
+        public bool CanOpenBarrier => PermissionService.Instance.CheckPermission("OPEN_BARRIER");
 
         public object CurrentView { get; set; }
         public ObservableCollection<Xe> DanhSachXe { get; set; }
@@ -1078,6 +1079,15 @@ namespace QuanLyGiuXe.ViewModels
                 if (card == null || card.Id == 0)
                 {
                     SetLaneStatus(uiLaneIndex, $"❌ Thẻ {uid} chưa đăng ký!");
+                    LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
+                    return;
+                }
+
+                // --- PHYSICAL ACCESS SECURITY CHECK (GROUP & SCHEDULE VALIDATION) ---
+                var (allowed, reason) = await CardAccessPolicyService.Instance.ValidatePhysicalAccessAsync(uid, dbLaneId);
+                if (!allowed)
+                {
+                    SetLaneStatus(uiLaneIndex, $"❌ Từ chối: {reason}");
                     LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
                     return;
                 }

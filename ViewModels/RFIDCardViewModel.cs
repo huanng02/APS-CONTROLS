@@ -46,7 +46,10 @@ namespace QuanLyGiuXe.ViewModels
         public bool IsLoaiVeSelectable => IsAllTabSelected;
 
         // Whether Add button should be enabled. Disable when current tab is 'Tất cả'.
-        public bool CanAdd => !IsAllTabSelected;
+        public bool CanAdd => !IsAllTabSelected && (PermissionService.Instance.CheckPermission("MANAGE_PRICING") || PermissionService.Instance.CheckPermission("RFID_CREATE"));
+        public bool CanEdit => PermissionService.Instance.CheckPermission("MANAGE_PRICING") || PermissionService.Instance.CheckPermission("RFID_UPDATE");
+        public bool CanDelete => PermissionService.Instance.CheckPermission("MANAGE_PRICING") || PermissionService.Instance.CheckPermission("RFID_DELETE");
+        public bool CanRenew => PermissionService.Instance.CheckPermission("MANAGE_PRICING") || PermissionService.Instance.CheckPermission("RFID_RENEW");
 
         // When opening add form, provide DefaultLoaiVeId to form VM
         private int? _defaultLoaiVeId;

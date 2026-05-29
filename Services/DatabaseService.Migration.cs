@@ -100,6 +100,20 @@ namespace QuanLyGiuXe.Services
                         LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Enterprise RBAC migration applied successfully.");
                     }
 
+                    // Execute RBAC Function Separation migration (20260529_rbac_function_separation.sql)
+                    string scriptPathFuncSep = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260529_rbac_function_separation.sql");
+                    if (File.Exists(scriptPathFuncSep))
+                    {
+                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Executing Enterprise Function Separation migration...");
+                        string sqlFuncSep = await File.ReadAllTextAsync(scriptPathFuncSep);
+                        using (var cmd = new SqlCommand(sqlFuncSep, conn))
+                        {
+                            cmd.CommandTimeout = 60;
+                            await cmd.ExecuteNonQueryAsync();
+                        }
+                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Enterprise Function Separation migration applied successfully.");
+                    }
+
                     _migrationsApplied = true;
                     LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "SQL Server topology migrations applied successfully.");
                 }
@@ -548,6 +562,20 @@ namespace QuanLyGiuXe.Services
                             await cmd.ExecuteNonQueryAsync();
                         }
                         LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Enterprise RBAC migration applied successfully.");
+                    }
+
+                    // 7. Now run the Enterprise RBAC Function Separation migration script (20260529_rbac_function_separation.sql)
+                    string scriptPathFuncSep = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260529_rbac_function_separation.sql");
+                    if (File.Exists(scriptPathFuncSep))
+                    {
+                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Executing Enterprise Function Separation migration...");
+                        string sqlFuncSep = await File.ReadAllTextAsync(scriptPathFuncSep);
+                        using (var cmd = new SqlCommand(sqlFuncSep, conn))
+                        {
+                            cmd.CommandTimeout = 60;
+                            await cmd.ExecuteNonQueryAsync();
+                        }
+                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Enterprise Function Separation migration applied successfully.");
                     }
 
                     _baseSchemaChecked = true;

@@ -140,7 +140,7 @@
                                     </StackPanel>
                                     
                                     <!-- Action Button -->
-                                    <Button Content="{Binding DataContext.Lane1ButtonText, RelativeSource={RelativeSource AncestorType=Window}}" Style="{StaticResource ModernButton}" Background="{Binding DataContext.Lane1Color, RelativeSource={RelativeSource AncestorType=Window}}" Click="OpenGateIn_Click" Width="110" Height="30" HorizontalAlignment="Right"/>
+                                    <Button Content="{Binding DataContext.Lane1ButtonText, RelativeSource={RelativeSource AncestorType=Window}}" Style="{StaticResource ModernButton}" Background="{Binding DataContext.Lane1Color, RelativeSource={RelativeSource AncestorType=Window}}" Click="OpenGateIn_Click" IsEnabled="{Binding DataContext.CanOpenBarrier, RelativeSource={RelativeSource AncestorType=Window}}" Width="110" Height="30" HorizontalAlignment="Right"/>
                                 </StackPanel>
                             </Grid>
                         </Border>
@@ -277,7 +277,7 @@
                                     </StackPanel>
                                     
                                     <!-- Action Button -->
-                                    <Button Content="{Binding DataContext.Lane2ButtonText, RelativeSource={RelativeSource AncestorType=Window}}" Style="{StaticResource ModernButton}" Background="{Binding DataContext.Lane2Color, RelativeSource={RelativeSource AncestorType=Window}}" Click="OpenGateOut_Click" Width="110" Height="30" HorizontalAlignment="Right"/>
+                                    <Button Content="{Binding DataContext.Lane2ButtonText, RelativeSource={RelativeSource AncestorType=Window}}" Style="{StaticResource ModernButton}" Background="{Binding DataContext.Lane2Color, RelativeSource={RelativeSource AncestorType=Window}}" Click="OpenGateOut_Click" IsEnabled="{Binding DataContext.CanOpenBarrier, RelativeSource={RelativeSource AncestorType=Window}}" Width="110" Height="30" HorizontalAlignment="Right"/>
                                 </StackPanel>
                             </Grid>
                         </Border>

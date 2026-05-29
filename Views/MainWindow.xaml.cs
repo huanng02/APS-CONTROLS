@@ -94,15 +94,23 @@ namespace QuanLyGiuXe
         {
             // --- 1. CATEGORIES LEVEL VISIBILITY ---
 
-            MenuVanHanh.Visibility = (PermissionService.Instance.CheckPermission("VIEW_LOG") || PermissionService.Instance.CheckPermission("OPEN_BARRIER"))
+            MenuVanHanh.Visibility = (PermissionService.Instance.CheckPermission("VIEW_LOG") || 
+                                      PermissionService.Instance.CheckPermission("VIEW_REALTIME_LOG") || 
+                                      PermissionService.Instance.CheckPermission("OPEN_BARRIER"))
                 ? Visibility.Visible 
                 : Visibility.Collapsed;
 
-            MenuBaoCao.Visibility = PermissionService.Instance.CheckPermission("VIEW_REPORT")
+            MenuBaoCao.Visibility = (PermissionService.Instance.CheckPermission("VIEW_REPORT") || 
+                                     PermissionService.Instance.CheckPermission("VIEW_REVENUE"))
                 ? Visibility.Visible 
                 : Visibility.Collapsed;
 
-            MenuAdmin.Visibility = (PermissionService.Instance.CheckPermission("USER_VIEW") || PermissionService.Instance.CheckPermission("MANAGE_PRICING"))
+            MenuAdmin.Visibility = (PermissionService.Instance.CheckPermission("USER_VIEW") || 
+                                    PermissionService.Instance.CheckPermission("MANAGE_PRICING") ||
+                                    PermissionService.Instance.CheckPermission("RFID_CREATE") ||
+                                    PermissionService.Instance.CheckPermission("RFID_UPDATE") ||
+                                    PermissionService.Instance.CheckPermission("RFID_DELETE") ||
+                                    PermissionService.Instance.CheckPermission("RFID_RENEW"))
                 ? Visibility.Visible 
                 : Visibility.Collapsed;
 
@@ -119,14 +127,33 @@ namespace QuanLyGiuXe
             btnNguoiDung.Visibility = PermissionService.Instance.CheckPermission("USER_VIEW") ? Visibility.Visible : Visibility.Collapsed;
             btnLoaiXe.Visibility = PermissionService.Instance.CheckPermission("MANAGE_PRICING") ? Visibility.Visible : Visibility.Collapsed;
             btnLoaiVe.Visibility = PermissionService.Instance.CheckPermission("MANAGE_PRICING") ? Visibility.Visible : Visibility.Collapsed;
-            btnRFID.Visibility = PermissionService.Instance.CheckPermission("MANAGE_PRICING") ? Visibility.Visible : Visibility.Collapsed;
             btnBangGia.Visibility = PermissionService.Instance.CheckPermission("MANAGE_PRICING") ? Visibility.Visible : Visibility.Collapsed;
+
+            btnRFID.Visibility = (PermissionService.Instance.CheckPermission("MANAGE_PRICING") ||
+                                  PermissionService.Instance.CheckPermission("RFID_CREATE") ||
+                                  PermissionService.Instance.CheckPermission("RFID_UPDATE") ||
+                                  PermissionService.Instance.CheckPermission("RFID_DELETE") ||
+                                  PermissionService.Instance.CheckPermission("RFID_RENEW")) 
+                ? Visibility.Visible 
+                : Visibility.Collapsed;
+
+            btnDashboard.Visibility = PermissionService.Instance.CheckPermission("VIEW_DASHBOARD") ? Visibility.Visible : Visibility.Collapsed;
+            btnTopologySettings.Visibility = PermissionService.Instance.CheckPermission("CONFIG_SYSTEM") ? Visibility.Visible : Visibility.Collapsed;
 
             btnSQLTool.Visibility = PermissionService.Instance.CheckPermission("DATABASE_EXPLORER") ? Visibility.Visible : Visibility.Collapsed;
             btnBackupRestore.Visibility = PermissionService.Instance.CheckPermission("BACKUP_RESTORE") ? Visibility.Visible : Visibility.Collapsed;
             btnCameraSettings.Visibility = PermissionService.Instance.CheckPermission("CONFIG_SYSTEM") ? Visibility.Visible : Visibility.Collapsed;
             btnC3200Settings.Visibility = PermissionService.Instance.CheckPermission("CONFIG_CONTROLLER") ? Visibility.Visible : Visibility.Collapsed;
             btnQAPanel.Visibility = PermissionService.Instance.CheckPermission("SIMULATE_RECOVERY") ? Visibility.Visible : Visibility.Collapsed;
+
+            // Matrix button visibility (only visible to SuperAdmin, Admin, Manager, Auditor who have VIEW_AUDIT_LOG or ROLE_ASSIGN)
+            if (btnMaTranPhanQuyen != null)
+            {
+                btnMaTranPhanQuyen.Visibility = (PermissionService.Instance.CheckPermission("ROLE_ASSIGN") || 
+                                                 PermissionService.Instance.CheckPermission("VIEW_AUDIT_LOG"))
+                    ? Visibility.Visible 
+                    : Visibility.Collapsed;
+            }
         }
 
         private void GenerateTestLogs_Click(object sender, RoutedEventArgs e)
@@ -433,8 +460,20 @@ namespace QuanLyGiuXe
                 return;
             }
 
+            string reason = "Mở từ giao diện phần mềm";
+            var dialog = new ReasonInputDialog();
+            dialog.Owner = this;
+            if (dialog.ShowDialog() == true)
+            {
+                reason = dialog.EnteredReason;
+            }
+            else
+            {
+                return; // Operator cancelled
+            }
+
             // Gọi Service xử lý trọn gói: Chụp ảnh -> Mở cổng -> Ghi Log
-            await _gateControlService.ProcessGateActionAsync(doorNumber, _currentFrames, "MANUAL_OPEN", "Mở từ giao diện phần mềm");
+            await _gateControlService.ProcessGateActionAsync(doorNumber, _currentFrames, "MANUAL_OPEN", reason);
 
             // (Tùy chọn) Cập nhật trạng thái lên UI để người dùng biết
             if (DataContext is MainViewModel vm)
@@ -675,6 +714,15 @@ namespace QuanLyGiuXe
             {
                 Owner = this,
                 DataContext = new ViewModels.UserProfileViewModel()
+            };
+            win.ShowDialog();
+        }
+
+        private void MoMaTranPhanQuyen_Click(object sender, RoutedEventArgs e)
+        {
+            var win = new Views.PermissionSummaryWindow
+            {
+                Owner = this
             };
             win.ShowDialog();
         }

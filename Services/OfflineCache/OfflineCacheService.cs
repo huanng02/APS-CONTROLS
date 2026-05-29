@@ -421,6 +421,12 @@ namespace QuanLyGiuXe.Services.OfflineCache
                 // 2.5 Sync RFID Cards for offline scanning
                 await SaveCacheAsync("LIST_RFID_CARDS", await new DatabaseService().GetRFIDCardsAsync());
 
+                // 2.6 Sync Access Schedules & Card Group Permissions (Physical Security)
+                await SaveCacheAsync("LIST_ACCESS_SCHEDULES", await CardAccessPolicyService.Instance.GetAccessSchedulesFromSqlAsync());
+                await SaveCacheAsync("LIST_CARD_GROUPS", await CardAccessPolicyService.Instance.GetCardGroupsFromSqlAsync());
+                await SaveCacheAsync("LIST_CARD_GROUP_LANE_PERMISSIONS", await CardAccessPolicyService.Instance.GetCardGroupLanePermissionsFromSqlAsync());
+                await SaveCacheAsync("LIST_RFID_ACCESS_RULES", await CardAccessPolicyService.Instance.GetRFIDAccessRulesFromSqlAsync());
+
                 // 3. System Settings
                 await SaveCacheAsync("SYSTEM_CONFIG", AppConfig.Load());
                 
@@ -449,6 +455,53 @@ namespace QuanLyGiuXe.Services.OfflineCache
                 else
                 {
                     LoggingService.Instance.LogInfo("CACHE_INIT", "Preload", "App started offline, relying on existing SQLite cache.");
+                }
+
+                // If the cache is empty for physical security, seed defaults directly in SQLite so offline mode works out-of-the-box
+                var existingSchedules = await GetCacheAsync<List<AccessSchedule>>("LIST_ACCESS_SCHEDULES");
+                if (existingSchedules == null || !existingSchedules.Any())
+                {
+                    LoggingService.Instance.LogInfo("CACHE_INIT", "Preload", "Offline cache empty. Seeding default access control schedules...");
+                    
+                    var seedSchedules = new List<AccessSchedule>
+                    {
+                        new AccessSchedule { Id = 1, ScheduleName = "24/7 Full Access", StartTime = new TimeSpan(0, 0, 0), EndTime = new TimeSpan(23, 59, 59), DaysOfWeek = "Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday", IsEmergencyOverride = false, TrangThai = "Active" },
+                        new AccessSchedule { Id = 2, ScheduleName = "Office Hours Only", StartTime = new TimeSpan(8, 0, 0), EndTime = new TimeSpan(17, 0, 0), DaysOfWeek = "Monday,Tuesday,Wednesday,Thursday,Friday", IsEmergencyOverride = false, TrangThai = "Active" },
+                        new AccessSchedule { Id = 3, ScheduleName = "Emergency Override Mode", StartTime = new TimeSpan(0, 0, 0), EndTime = new TimeSpan(23, 59, 59), DaysOfWeek = "Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday", IsEmergencyOverride = true, TrangThai = "Active" }
+                    };
+                    await SaveCacheAsync("LIST_ACCESS_SCHEDULES", seedSchedules);
+
+                    var seedGroups = new List<CardGroup>
+                    {
+                        new CardGroup { Id = 1, GroupName = "Default Card Group", Description = "Nhóm thẻ mặc định", TrangThai = "Active" },
+                        new CardGroup { Id = 2, GroupName = "Technician Access", Description = "Nhóm kỹ thuật truy cập", TrangThai = "Active" }
+                    };
+                    await SaveCacheAsync("LIST_CARD_GROUPS", seedGroups);
+
+                    var seedPerms = new List<CardGroupLanePermission>
+                    {
+                        new CardGroupLanePermission { Id = 1, GroupId = 1, LaneId = 1, ScheduleId = 1, TrangThai = "Active" },
+                        new CardGroupLanePermission { Id = 2, GroupId = 1, LaneId = 2, ScheduleId = 1, TrangThai = "Active" },
+                        new CardGroupLanePermission { Id = 3, GroupId = 2, LaneId = 1, ScheduleId = 1, TrangThai = "Active" },
+                        new CardGroupLanePermission { Id = 4, GroupId = 2, LaneId = 2, ScheduleId = 1, TrangThai = "Active" }
+                    };
+                    await SaveCacheAsync("LIST_CARD_GROUP_LANE_PERMISSIONS", seedPerms);
+
+                    var seedRules = new List<RFIDAccessRule>();
+                    await SaveCacheAsync("LIST_RFID_ACCESS_RULES", seedRules);
+                }
+
+                var existingCards = await GetCacheAsync<List<RFIDCard>>("LIST_RFID_CARDS");
+                if (existingCards == null || !existingCards.Any())
+                {
+                    LoggingService.Instance.LogInfo("CACHE_INIT", "Preload", "Offline cache empty. Seeding default RFID cards...");
+                    var seedCards = new List<RFIDCard>
+                    {
+                        new RFIDCard { Id = 1, UID = "CARD_DEFAULT", BienSo = "29A-12345", CardName = "Thẻ Mặc Định", LoaiVeId = 2, LoaiXeId = 1, TrangThai = "Active", NgayTao = DateTime.Now, GroupId = 1 },
+                        new RFIDCard { Id = 2, UID = "CARD_TECH", BienSo = "30B-67890", CardName = "Thẻ Kỹ Thuật", LoaiVeId = 2, LoaiXeId = 1, TrangThai = "Active", NgayTao = DateTime.Now, GroupId = 2 },
+                        new RFIDCard { Id = 3, UID = "CARD_NO_GROUP", BienSo = "29C-55555", CardName = "Thẻ Không Nhóm", LoaiVeId = 1, LoaiXeId = 2, TrangThai = "Active", NgayTao = DateTime.Now, GroupId = null }
+                    };
+                    await SaveCacheAsync("LIST_RFID_CARDS", seedCards);
                 }
             }
             catch (Exception ex)
