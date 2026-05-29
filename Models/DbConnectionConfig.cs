@@ -15,7 +15,8 @@ namespace QuanLyGiuXe.Models
         
         public string BuildConnectionString(int timeout = 15)
         {
-            return $"Server={ServerIP},{Port};Database={Database};User Id={Username};Password={Password};TrustServerCertificate=True;Connect Timeout={timeout};";
+            string decryptedPassword = CredentialEncryptionService.Decrypt(Password);
+            return $"Server={ServerIP},{Port};Database={Database};User Id={Username};Password={decryptedPassword};TrustServerCertificate=True;Connect Timeout={timeout};";
         }
 
         public static void SaveToFile(DbConnectionConfig config, string filePath = "dbconfig.json")

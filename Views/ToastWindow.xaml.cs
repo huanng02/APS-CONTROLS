@@ -18,6 +18,8 @@ namespace QuanLyGiuXe.Views
         private readonly Action _onClosed;
         private readonly DispatcherTimer _timer;
 
+        private bool _isClosedInvoked = false;
+
         public ToastWindow(ToastItem item, Action onClosed)
         {
             InitializeComponent();
@@ -35,6 +37,22 @@ namespace QuanLyGiuXe.Views
             _timer.Tick += (_, _) => BeginClose();
 
             Loaded += OnLoaded;
+            Closed += OnClosed;
+        }
+
+        private void InvokeOnClosed()
+        {
+            if (!_isClosedInvoked)
+            {
+                _isClosedInvoked = true;
+                _onClosed?.Invoke();
+            }
+        }
+
+        private void OnClosed(object sender, EventArgs e)
+        {
+            _timer?.Stop();
+            InvokeOnClosed();
         }
 
         // ── Appearance ────────────────────────────────────────────────────────────
@@ -99,7 +117,7 @@ namespace QuanLyGiuXe.Views
 
         private void FadeOut_Completed(object sender, EventArgs e)
         {
-            _onClosed?.Invoke();
+            InvokeOnClosed();
             Close();
         }
 

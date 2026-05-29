@@ -758,7 +758,7 @@ namespace QuanLyGiuXe.ViewModels
                 }
             });
 
-            // Subscriptions
+            // Subscriptions    
             ConnectivityStateService.Instance.PropertyChanged += OnConnectivityChanged;
 
             // Kick off heavy initialization in the background

@@ -46,6 +46,8 @@ namespace QuanLyGiuXe.Services
         private ConnectionManager()
         {
             _currentConfig = DbConnectionConfig.LoadFromFile();
+            // Giải mã mật khẩu DPAPI sang dạng thô chạy trong bộ nhớ
+            _currentConfig.Password = CredentialEncryptionService.Decrypt(_currentConfig.Password);
             CurrentConnectionString = _currentConfig.BuildConnectionString();
             LoggingService.Instance.LogInfo("ConnectionManager", "Init",
                 $"Đã load config: {_currentConfig.ServerIP}:{_currentConfig.Port}/{_currentConfig.Database}");
@@ -113,13 +115,24 @@ namespace QuanLyGiuXe.Services
         /// </summary>
         public void UpdateConnection(DbConnectionConfig newConfig)
         {
-            DbConnectionConfig.SaveToFile(newConfig);
+            // Đảm bảo lưu file luôn là bản mật khẩu được mã hóa DPAPI an toàn
+            var configToSave = new DbConnectionConfig
+            {
+                ServerIP = newConfig.ServerIP,
+                Port     = newConfig.Port,
+                Database = newConfig.Database,
+                Username = newConfig.Username,
+                Password = CredentialEncryptionService.Encrypt(CredentialEncryptionService.Decrypt(newConfig.Password))
+            };
+            DbConnectionConfig.SaveToFile(configToSave);
 
+            // Cập nhật cấu hình thô chạy trong bộ nhớ
             _currentConfig = newConfig;
-            CurrentConnectionString = newConfig.BuildConnectionString();
+            _currentConfig.Password = CredentialEncryptionService.Decrypt(newConfig.Password);
+            CurrentConnectionString = _currentConfig.BuildConnectionString();
 
             LoggingService.Instance.LogInfo("ConnectionManager", "UpdateConnection",
-                $"Connection đã đổi sang: {newConfig.ServerIP}:{newConfig.Port}/{newConfig.Database}");
+                $"Connection đã đổi sang: {_currentConfig.ServerIP}:{_currentConfig.Port}/{_currentConfig.Database}");
 
             ConnectionChanged?.Invoke(this, EventArgs.Empty);
         }

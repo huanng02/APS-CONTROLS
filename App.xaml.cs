@@ -163,8 +163,20 @@ namespace QuanLyGiuXe
         {
             LoggingService.Instance.LogInfo("AppExit", "App", $"Application exiting with code: {e.ApplicationExitCode}");
             
-            ConnectivityStateService.Instance.Stop();
-            QuanLyGiuXe.Services.OfflineCache.AutoSyncService.Instance.Stop();
+            try
+            {
+                // Dừng toàn bộ các dịch vụ chạy nền để giải phóng luồng hoàn toàn
+                ConnectionMonitorService.Instance.Stop();
+                ConnectivityStateService.Instance.Stop();
+                QuanLyGiuXe.Services.Connection.AutoReconnectService.Instance.Stop();
+                QuanLyGiuXe.Services.OfflineCache.AutoSyncService.Instance.Stop();
+                QuanLyGiuXe.Services.Backup.BackupScheduler.Instance.Stop();
+                QuanLyGiuXe.Services.OfflineCache.SessionHealthMonitor.Instance.Stop();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error stopping background services: {ex.Message}");
+            }
             
             LoggingService.Instance.Shutdown();
             base.OnExit(e);

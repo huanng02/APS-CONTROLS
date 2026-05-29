@@ -104,13 +104,18 @@ namespace QuanLyGiuXe.Services
         private async Task ShowSingleToastAsync(ToastItem item)
         {
             var tcs = new TaskCompletionSource<bool>();
+            Views.ToastWindow toast = null;
 
             // Toast phải tạo trên UI thread
             Application.Current?.Dispatcher?.Invoke(() =>
             {
                 try
                 {
-                    var toast = new Views.ToastWindow(item, () => tcs.TrySetResult(true));
+                    toast = new Views.ToastWindow(item, () => tcs.TrySetResult(true));
+                    if (Application.Current.MainWindow != null && Application.Current.MainWindow != toast)
+                    {
+                        toast.Owner = Application.Current.MainWindow;
+                    }
                     toast.Show();
                 }
                 catch
@@ -121,7 +126,20 @@ namespace QuanLyGiuXe.Services
 
             // Đợi toast đóng (có timeout để không treo mãi)
             var timeoutTask = Task.Delay(item.DurationMs + 2000);   
-            await Task.WhenAny(tcs.Task, timeoutTask).ConfigureAwait(false);
+            var completedTask = await Task.WhenAny(tcs.Task, timeoutTask).ConfigureAwait(false);
+
+            if (completedTask == timeoutTask && toast != null)
+            {
+                // Nếu quá thời gian (timeout) mà toast chưa đóng → Cưỡng chế đóng trên UI thread để tránh rác UI/Alt+Tab
+                Application.Current?.Dispatcher?.Invoke(() =>
+                {
+                    try
+                    {
+                        toast.Close();
+                    }
+                    catch { }
+                });
+            }
         }
     }
 }
