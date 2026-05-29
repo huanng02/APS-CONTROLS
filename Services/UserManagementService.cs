@@ -13,12 +13,16 @@ namespace QuanLyGiuXe.Services
 
         public Task<List<UserListItem>> SearchUsersAsync(int currentUserId,
                                                          string search, int? roleId,
-                                                         string? status) =>
-            _repo.SearchUsersAsync(currentUserId, search, roleId, status);
+                                                         string? status)
+        {
+            AuthorizationGuard.Protect("USER_VIEW", "Search Users");
+            return _repo.SearchUsersAsync(currentUserId, search, roleId, status);
+        }
 
         public async Task<(bool Success, string Message)> CreateUserAsync(
             UserUpsertModel model, int actorUserId)
         {
+            AuthorizationGuard.Protect("USER_CREATE", "Create User");
             if (string.IsNullOrWhiteSpace(model.Ten) ||
                 string.IsNullOrWhiteSpace(model.Username) ||
                 string.IsNullOrWhiteSpace(model.Password))
@@ -54,6 +58,7 @@ namespace QuanLyGiuXe.Services
         public async Task<(bool Success, string Message)> UpdateUserAsync(
             int id, string ten, int roleId, string trangThai, int actorUserId)
         {
+            AuthorizationGuard.Protect("USER_UPDATE", "Update User");
             if (id <= 0)
                 return (false, "User không hợp lệ.");
             if (string.IsNullOrWhiteSpace(ten))
@@ -102,6 +107,7 @@ namespace QuanLyGiuXe.Services
         public async Task<(bool Success, string Message)> DisableUserAsync(
             int id, int actorUserId)
         {
+            AuthorizationGuard.Protect("USER_UPDATE", "Disable User");
             if (id <= 0)
                 return (false, "User không hợp lệ.");
             var previous = await _repo.GetUserByIdAsync(id).ConfigureAwait(false);
@@ -128,6 +134,7 @@ namespace QuanLyGiuXe.Services
 
         public async Task<(bool Success, string Message)> EnableUserAsync(int id, int actorUserId)
         {
+            AuthorizationGuard.Protect("USER_UPDATE", "Enable User");
             if (id <= 0) return (false, "User không hợp lệ.");
             var previous = await _repo.GetUserByIdAsync(id).ConfigureAwait(false);
             var oldValues = previous == null ? null : new { Ten = previous.Ten, Username = previous.Username, TrangThai = previous.TrangThai };
@@ -153,6 +160,7 @@ namespace QuanLyGiuXe.Services
 
         public async Task<(bool Success, string Message)> DeleteUserAsync(int id, int actorUserId)
         {
+            AuthorizationGuard.Protect("USER_DELETE", "Delete User");
             if (id <= 0) return (false, "User không hợp lệ.");
 
             var previous = await _repo.GetUserByIdAsync(id).ConfigureAwait(false);
@@ -179,6 +187,7 @@ namespace QuanLyGiuXe.Services
         public async Task<(bool Success, string Message)> ResetPasswordAsync(
             int id, int actorUserId)
         {
+            AuthorizationGuard.Protect("USER_UPDATE", "Reset User Password");
             if (id <= 0)
                 return (false, "User không hợp lệ.");
             const string defaultPassword = "123456";

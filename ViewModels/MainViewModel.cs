@@ -643,14 +643,24 @@ namespace QuanLyGiuXe.ViewModels
 
             DanhSachXe = new ObservableCollection<Xe>();
             DanhSachXe.CollectionChanged += (_, _) => OnPropertyChanged(nameof(SoXeTrongBai));
-            XeVaoCommand = new RelayCommand(async _ => {
+            XeVaoCommand = new SecureCommand("OPEN_BARRIER", async _ => {
                 var mapping = ReaderLaneMappingService.Instance.GetMappingByReader(1);
                 int laneId = mapping?.LaneId ?? 1;
+                if (!Services.PermissionService.Instance.HasLaneAccess(CurrentUserContext.Instance.Id, laneId))
+                {
+                    MessageBox.Show("Không có quyền thao tác trên làn này!", "Lỗi phân quyền", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
                 await ProcessActionAsync(1, laneId, IsLane1Inbound, LastScannedUID);
             });
-            XeRaCommand = new RelayCommand(async _ => {
+            XeRaCommand = new SecureCommand("OPEN_BARRIER", async _ => {
                 var mapping = ReaderLaneMappingService.Instance.GetMappingByReader(3);
                 int laneId = mapping?.LaneId ?? 2;
+                if (!Services.PermissionService.Instance.HasLaneAccess(CurrentUserContext.Instance.Id, laneId))
+                {
+                    MessageBox.Show("Không có quyền thao tác trên làn này!", "Lỗi phân quyền", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
                 await ProcessActionAsync(2, laneId, IsLane2Inbound, LastScannedUID);
             });
             XeChiTietCommand = new RelayCommand<Xe>(XeChiTiet);
@@ -676,7 +686,7 @@ namespace QuanLyGiuXe.ViewModels
             TrangChuCommand = new RelayCommand(_ => SetView(new TrangChuViewModel()));
             TimKiemCommand = new RelayCommand(_ => SetView(new TimKiemViewModel()));
             LichSuCommand = new RelayCommand(_ => SetView(new LichSuViewModel()));
-            DatabaseExplorerCommand = new RelayCommand(_ => SetView(new DatabaseExplorerViewModel()));
+            DatabaseExplorerCommand = new SecureCommand("DATABASE_EXPLORER", _ => SetView(new DatabaseExplorerViewModel()));
             ToggleUserPopupCommand = new RelayCommand(_ => IsUserPopupOpen = !IsUserPopupOpen);
             EditProfileCommand = new RelayCommand(_ =>
             {
@@ -733,7 +743,7 @@ namespace QuanLyGiuXe.ViewModels
                 }
             });
 
-            BackupRestoreCommand = new RelayCommand(_ =>
+            BackupRestoreCommand = new SecureCommand("BACKUP_RESTORE", _ =>
             {
                 try
                 {

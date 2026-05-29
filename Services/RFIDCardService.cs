@@ -100,6 +100,7 @@ namespace QuanLyGiuXe.Services
 
         public async System.Threading.Tasks.Task AddAsync(RFIDCards model)
         {
+            AuthorizationGuard.Protect("MANAGE_PRICING", "Add RFID Card");
             if (model == null) throw new ArgumentNullException(nameof(model));
             if (string.IsNullOrWhiteSpace(model.CardUID)) throw new ArgumentException("CardUID không được rỗng");
 
@@ -111,6 +112,7 @@ namespace QuanLyGiuXe.Services
 
         public async System.Threading.Tasks.Task UpdateAsync(RFIDCards model)
         {
+            AuthorizationGuard.Protect("MANAGE_PRICING", "Update RFID Card");
             if (model == null || model.Id <= 0) throw new ArgumentException("Model không hợp lệ");
 
             await db.UpdateRFIDCardAsync(model.Id, model.CardUID ?? string.Empty, model.BienSo ?? string.Empty, model.CardName ?? string.Empty, model.LoaiVeId ?? 0, model.LoaiXeId ?? 0, model.TrangThai ?? string.Empty, model.NgayDangKy, model.NgayHetHan);
@@ -118,6 +120,7 @@ namespace QuanLyGiuXe.Services
 
         public async System.Threading.Tasks.Task DeleteAsync(int id)
         {
+            AuthorizationGuard.Protect("MANAGE_PRICING", "Delete RFID Card");
             if (id <= 0) throw new ArgumentException("ID không hợp lệ");
             await db.DeleteRFIDCardAsync(id);
         }
@@ -145,6 +148,7 @@ namespace QuanLyGiuXe.Services
 
         public async System.Threading.Tasks.Task GiaHanAsync(int id, int soThang)
         {
+            AuthorizationGuard.Protect("MANAGE_PRICING", "Renew RFID Card");
             if (id <= 0 || soThang <= 0) throw new ArgumentException("Tham số không hợp lệ");
             await db.GiaHanRFIDCardAsync(id, soThang);
 

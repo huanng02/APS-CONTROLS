@@ -92,54 +92,41 @@ namespace QuanLyGiuXe
 
         private void ApplyPermissions()
         {
-            string role = CurrentUser.Role?.ToUpper() ?? "";
-
             // --- 1. CATEGORIES LEVEL VISIBILITY ---
 
-            // Logs & Monitor (Vận hành) -> Visible to: SUPERADMIN, ADMIN, MANAGER, OPERATOR, TECHNICIAN
-            MenuVanHanh.Visibility = (role == "SUPERADMIN" || role == "ADMIN" || role == "MANAGER" || role == "OPERATOR" || role == "TECHNICIAN") 
+            MenuVanHanh.Visibility = (PermissionService.Instance.CheckPermission("VIEW_LOG") || PermissionService.Instance.CheckPermission("OPEN_BARRIER"))
                 ? Visibility.Visible 
                 : Visibility.Collapsed;
 
-            // History (Báo cáo) -> Visible to: SUPERADMIN, ADMIN, MANAGER, CASHIER, VIEWER
-            MenuBaoCao.Visibility = (role == "SUPERADMIN" || role == "ADMIN" || role == "MANAGER" || role == "CASHIER" || role == "VIEWER") 
+            MenuBaoCao.Visibility = PermissionService.Instance.CheckPermission("VIEW_REPORT")
                 ? Visibility.Visible 
                 : Visibility.Collapsed;
 
-            // Management (Nhân viên/Cấu hình) -> Visible to: SUPERADMIN, ADMIN, MANAGER
-            MenuAdmin.Visibility = (role == "SUPERADMIN" || role == "ADMIN" || role == "MANAGER") 
+            MenuAdmin.Visibility = (PermissionService.Instance.CheckPermission("USER_VIEW") || PermissionService.Instance.CheckPermission("MANAGE_PRICING"))
                 ? Visibility.Visible 
                 : Visibility.Collapsed;
 
-            // System & Tools (Hệ thống) -> Visible to: SUPERADMIN, ADMIN, TECHNICIAN
-            MenuTools.Visibility = (role == "SUPERADMIN" || role == "ADMIN" || role == "TECHNICIAN") 
+            MenuTools.Visibility = (PermissionService.Instance.CheckPermission("CONFIG_SYSTEM") || 
+                                    PermissionService.Instance.CheckPermission("CONFIG_CONTROLLER") || 
+                                    PermissionService.Instance.CheckPermission("DATABASE_EXPLORER") || 
+                                    PermissionService.Instance.CheckPermission("BACKUP_RESTORE") || 
+                                    PermissionService.Instance.CheckPermission("SIMULATE_RECOVERY"))
                 ? Visibility.Visible 
                 : Visibility.Collapsed;
 
             // --- 2. GRANULAR BUTTON LEVEL VISIBILITY (Inside Categories) ---
 
-            // Inside MenuAdmin (Management):
-            // - Người dùng (User Management): ONLY SuperAdmin and Admin can manage users!
-            btnNguoiDung.Visibility = (role == "SUPERADMIN" || role == "ADMIN") ? Visibility.Visible : Visibility.Collapsed;
-            // - LoaiXe, LoaiVe, RFID, BangGia: SuperAdmin, Admin, and Manager can manage.
-            btnLoaiXe.Visibility = (role == "SUPERADMIN" || role == "ADMIN" || role == "MANAGER") ? Visibility.Visible : Visibility.Collapsed;
-            btnLoaiVe.Visibility = (role == "SUPERADMIN" || role == "ADMIN" || role == "MANAGER") ? Visibility.Visible : Visibility.Collapsed;
-            btnRFID.Visibility = (role == "SUPERADMIN" || role == "ADMIN" || role == "MANAGER") ? Visibility.Visible : Visibility.Collapsed;
-            btnBangGia.Visibility = (role == "SUPERADMIN" || role == "ADMIN" || role == "MANAGER") ? Visibility.Visible : Visibility.Collapsed;
+            btnNguoiDung.Visibility = PermissionService.Instance.CheckPermission("USER_VIEW") ? Visibility.Visible : Visibility.Collapsed;
+            btnLoaiXe.Visibility = PermissionService.Instance.CheckPermission("MANAGE_PRICING") ? Visibility.Visible : Visibility.Collapsed;
+            btnLoaiVe.Visibility = PermissionService.Instance.CheckPermission("MANAGE_PRICING") ? Visibility.Visible : Visibility.Collapsed;
+            btnRFID.Visibility = PermissionService.Instance.CheckPermission("MANAGE_PRICING") ? Visibility.Visible : Visibility.Collapsed;
+            btnBangGia.Visibility = PermissionService.Instance.CheckPermission("MANAGE_PRICING") ? Visibility.Visible : Visibility.Collapsed;
 
-            // Inside MenuTools (System & Tools):
-            // - SQL Tool: ONLY SuperAdmin and Admin can execute direct SQL queries!
-            btnSQLTool.Visibility = (role == "SUPERADMIN" || role == "ADMIN") ? Visibility.Visible : Visibility.Collapsed;
-            
-            // - Backup / Restore: SuperAdmin and Admin can backup/restore!
-            btnBackupRestore.Visibility = (role == "SUPERADMIN" || role == "ADMIN") ? Visibility.Visible : Visibility.Collapsed;
-
-            // - Camera & System Configuration (C3-200): SuperAdmin, Admin, and Technician can configure hardware!
-            btnCameraSettings.Visibility = (role == "SUPERADMIN" || role == "ADMIN" || role == "TECHNICIAN") ? Visibility.Visible : Visibility.Collapsed;
-            btnC3200Settings.Visibility = (role == "SUPERADMIN" || role == "ADMIN" || role == "TECHNICIAN") ? Visibility.Visible : Visibility.Collapsed;
-
-            // - Resiliency QA (QA Panel): SuperAdmin, Admin, and Technician can view/simulate recoveries!
-            btnQAPanel.Visibility = (role == "SUPERADMIN" || role == "ADMIN" || role == "TECHNICIAN") ? Visibility.Visible : Visibility.Collapsed;
+            btnSQLTool.Visibility = PermissionService.Instance.CheckPermission("DATABASE_EXPLORER") ? Visibility.Visible : Visibility.Collapsed;
+            btnBackupRestore.Visibility = PermissionService.Instance.CheckPermission("BACKUP_RESTORE") ? Visibility.Visible : Visibility.Collapsed;
+            btnCameraSettings.Visibility = PermissionService.Instance.CheckPermission("CONFIG_SYSTEM") ? Visibility.Visible : Visibility.Collapsed;
+            btnC3200Settings.Visibility = PermissionService.Instance.CheckPermission("CONFIG_CONTROLLER") ? Visibility.Visible : Visibility.Collapsed;
+            btnQAPanel.Visibility = PermissionService.Instance.CheckPermission("SIMULATE_RECOVERY") ? Visibility.Visible : Visibility.Collapsed;
         }
 
         private void GenerateTestLogs_Click(object sender, RoutedEventArgs e)
@@ -203,6 +190,16 @@ namespace QuanLyGiuXe
 
         private async void MoC3200Settings_Click(object sender, RoutedEventArgs e)
         {
+            try
+            {
+                AuthorizationGuard.Protect("CONFIG_CONTROLLER", "C3-200 Hardware Configuration");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Không có quyền truy cập", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             new C3200SettingsWindow().ShowDialog();
             if (DataContext is MainViewModel vm)
             {
@@ -419,6 +416,23 @@ namespace QuanLyGiuXe
 
         private async Task OpenGateAsync(int doorNumber)
         {
+            try
+            {
+                // Perform manual gate authorization check
+                AuthorizationGuard.Protect("OPEN_BARRIER", $"Manual Open Gate {doorNumber}");
+                
+                // Perform lane access authorization check
+                int readerNo = (doorNumber == 1) ? 1 : 3;
+                var mapping = ReaderLaneMappingService.Instance.GetMappingByReader(readerNo);
+                int laneId = mapping?.LaneId ?? doorNumber;
+                AuthorizationGuard.ProtectLane(laneId, $"Manual Open Gate {doorNumber}");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Lỗi phân quyền", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             // Gọi Service xử lý trọn gói: Chụp ảnh -> Mở cổng -> Ghi Log
             await _gateControlService.ProcessGateActionAsync(doorNumber, _currentFrames, "MANUAL_OPEN", "Mở từ giao diện phần mềm");
 
@@ -686,6 +700,8 @@ namespace QuanLyGiuXe
         {
             try
             {
+                AuthorizationGuard.Protect("DATABASE_EXPLORER", "SQL Query Tool");
+                
                 var config = Models.DbConnectionConfig.LoadFromFile();
                 var vm = new ConnectDatabaseViewModel();
                 
@@ -713,12 +729,22 @@ namespace QuanLyGiuXe
             catch (Exception ex)
             {
                 LoggingService.Instance.LogError("SQLTool", "MoSQLTool_Click", "Lỗi khi mở SQL Tool", ex);
-                MessageBox.Show($"Lỗi: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(ex.Message, "Không thể thực hiện", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
         private void MoCameraSettings_Click(object sender, RoutedEventArgs e)
         {
+            try
+            {
+                AuthorizationGuard.Protect("CONFIG_SYSTEM", "Camera Settings Window");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Không có quyền", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             new CameraSettingsWindow { Owner = this }.ShowDialog();
             RestoreSidebarSelection();
         }
@@ -763,6 +789,8 @@ namespace QuanLyGiuXe
         {
             try
             {
+                AuthorizationGuard.Protect("USER_VIEW", "User Management Panel");
+                
                 using var frm = new QuanLyGiuXe.Views.UserManagementForm();
                 frm.ShowDialog();
                 RestoreSidebarSelection();
@@ -770,16 +798,18 @@ namespace QuanLyGiuXe
             catch (Exception ex)
             {
                 LoggingService.Instance.LogError("UserManagement", "MoQuanLyNguoiDung_Click", "Lỗi mở Quản lý người dùng", ex);
-                MessageBox.Show($"Không thể mở Quản lý người dùng: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(ex.Message, "Không có quyền truy cập", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
 
         // ===== MODULE CRUD HANDLER =====
         private void OpenModule_Click(object sender, RoutedEventArgs e)
         {
-            var tag = (sender as FrameworkElement)?.Tag?.ToString();
             try
             {
+                AuthorizationGuard.Protect("MANAGE_PRICING", "Pricing / Category Configuration");
+                
+                var tag = (sender as FrameworkElement)?.Tag?.ToString();
                 UserControl content = null;
                 string title = "";
                 switch (tag)
@@ -819,7 +849,7 @@ namespace QuanLyGiuXe
             catch (Exception ex)
             {
                 try { System.IO.File.AppendAllText(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ModuleOpenErrors.txt"), DateTime.Now.ToString("o") + "\t" + ex.ToString() + "\n\n"); } catch { }
-                MessageBox.Show(ex.ToString(), "Lỗi khi mở module", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(ex.Message, "Lỗi phân quyền", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -853,6 +883,16 @@ namespace QuanLyGiuXe
         //}
         private void MoQAPanel_Click(object sender, RoutedEventArgs e)
         {
+            try
+            {
+                AuthorizationGuard.Protect("SIMULATE_RECOVERY", "QA Resiliency Dashboard");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Không có quyền", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             var win = new OfflineQADashboard { Owner = this };
             win.Closed += (s, ev) => RestoreSidebarSelection();
             win.Show();
@@ -860,6 +900,16 @@ namespace QuanLyGiuXe
 
         private void MoBackupRestore_Click(object sender, RoutedEventArgs e)
         {
+            try
+            {
+                AuthorizationGuard.Protect("BACKUP_RESTORE", "Backup / Restore dialog");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Không có quyền", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             if (DataContext is MainViewModel vm)
             {
                 vm.BackupRestoreCommand.Execute(null);

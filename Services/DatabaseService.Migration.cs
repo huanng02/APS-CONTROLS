@@ -86,6 +86,20 @@ namespace QuanLyGiuXe.Services
                         LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Cổng kiểm soát (ParkingGates) migration applied successfully.");
                     }
 
+                    // Execute RBAC migration (20260529_rbac_enterprise.sql)
+                    string scriptPathRbac = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260529_rbac_enterprise.sql");
+                    if (File.Exists(scriptPathRbac))
+                    {
+                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Executing Enterprise RBAC migration...");
+                        string sqlRbac = await File.ReadAllTextAsync(scriptPathRbac);
+                        using (var cmd = new SqlCommand(sqlRbac, conn))
+                        {
+                            cmd.CommandTimeout = 60;
+                            await cmd.ExecuteNonQueryAsync();
+                        }
+                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Enterprise RBAC migration applied successfully.");
+                    }
+
                     _migrationsApplied = true;
                     LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "SQL Server topology migrations applied successfully.");
                 }
@@ -520,6 +534,20 @@ namespace QuanLyGiuXe.Services
                             cmd.CommandTimeout = 60;
                             await cmd.ExecuteNonQueryAsync();
                         }
+                    }
+
+                    // 6. Now run the Enterprise RBAC migration script (20260529_rbac_enterprise.sql)
+                    string scriptPathRbac = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260529_rbac_enterprise.sql");
+                    if (File.Exists(scriptPathRbac))
+                    {
+                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Executing Enterprise RBAC migration...");
+                        string sqlRbac = await File.ReadAllTextAsync(scriptPathRbac);
+                        using (var cmd = new SqlCommand(sqlRbac, conn))
+                        {
+                            cmd.CommandTimeout = 60;
+                            await cmd.ExecuteNonQueryAsync();
+                        }
+                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Enterprise RBAC migration applied successfully.");
                     }
 
                     _baseSchemaChecked = true;

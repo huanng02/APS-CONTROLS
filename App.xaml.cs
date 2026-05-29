@@ -42,13 +42,13 @@ namespace QuanLyGiuXe
         public void PerformLogout()
         {
             // Audit logout for current user (best-effort)
-            try { LoggingService.Instance.LogSecurity("LOGOUT", "Auth", "{\"Action\":\"Logout\"}", userId: CurrentUser.Id > 0 ? CurrentUser.Id.ToString() : null, username: CurrentUser.Username); } catch { }
+            try { LoggingService.Instance.LogSecurity("LOGOUT", "Auth", "{\"Action\":\"Logout\"}", userId: CurrentUserContext.Instance.Id > 0 ? CurrentUserContext.Instance.Id.ToString() : null, username: CurrentUserContext.Instance.Username); } catch { }
 
             _isLoggingOut = true;
             try
             {
                 // 1. Clear session
-                CurrentUser.Clear();
+                CurrentUserContext.Instance.Clear();
                 
                 // 2. Suppress toasts immediately (prevent DB/C3 toasts during transition)
                 ToastNotificationService.Instance.IsSuppressed = true;

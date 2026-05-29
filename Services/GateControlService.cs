@@ -13,6 +13,16 @@ namespace QuanLyGiuXe.Services
 
         public async Task ProcessGateActionAsync(int physicalDoor, Dictionary<string, Bitmap> currentFrames, string actionType, string? note = null)
         {
+            // Software-triggered gate open action requires strict permission and scope validation
+            if (actionType == "MANUAL_OPEN" || actionType == "MANUAL")
+            {
+                AuthorizationGuard.Protect("OPEN_BARRIER", "Manual Barrier Opening");
+                int readerNo = (physicalDoor == 1) ? 1 : 3;
+                var mapping = ReaderLaneMappingService.Instance.GetMappingByReader(readerNo);
+                int laneId = mapping?.LaneId ?? physicalDoor;
+                AuthorizationGuard.ProtectLane(laneId, "Manual Barrier Opening");
+            }
+
             try
             {
                 // 1. Chụp và lưu ảnh ngay lập tức để tránh trễ hình

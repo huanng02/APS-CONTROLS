@@ -257,12 +257,23 @@ namespace QuanLyGiuXe.Views
                     // Small delay so user sees the success message
                     await Task.Delay(400);
 
-                    CurrentUser.Id = userFound.Id;
-                    CurrentUser.Username = userFound.Username;
-                    CurrentUser.Ten = userFound.Ten;
-                    CurrentUser.Role = userFound.Role;
+                    // Fetch permissions and assignments asynchronously
+                    int userId = (int)userFound.Id;
+                    var permsService = QuanLyGiuXe.Services.PermissionService.Instance;
+                    var permissions = await permsService.GetPermissionsForUserAsync(userId);
+                    var (laneIds, siteIds) = await permsService.GetAssignedLanesAndSitesAsync(userId);
 
-                    try { LoggingService.Instance.LogSecurity("LOGIN_SUCCESS", "Auth", null, userId: CurrentUser.Id.ToString(), username: CurrentUser.Username); } catch { }
+                    CurrentUserContext.Instance.SetCurrentUser(
+                        userId,
+                        userFound.Username,
+                        userFound.Role,
+                        userFound.Ten,
+                        permissions,
+                        laneIds,
+                        siteIds
+                    );
+
+                    try { LoggingService.Instance.LogSecurity("LOGIN_SUCCESS", "Auth", null, userId: CurrentUserContext.Instance.Id.ToString(), username: CurrentUserContext.Instance.Username); } catch { }
                     this.DialogResult = DialogResult.OK;
                     this.Close();
                 }
