@@ -68,7 +68,7 @@ namespace QuanLyGiuXe.Services.Connection
             }
         }
 
-        private string GetDisplayName(string resourceId)
+        public string GetDisplayName(string resourceId)
         {
             if (resourceId.StartsWith("Camera_"))
             {

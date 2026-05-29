@@ -126,10 +126,6 @@ namespace QuanLyGiuXe.Services.Connection
                 {
                     ConnectionStateService.Instance.UpdateState(resource.ResourceId, ConnectionState.Connected);
                     _retryCounts[resource.ResourceId] = 0;
-                    if (resource.Type != ResourceType.Camera)
-                    {
-                        ToastNotificationService.Instance.ShowToast($"{resource.ResourceId} đã được kết nối lại.", ToastType.Success);
-                    }
                 }
                 else
                 {
@@ -139,7 +135,8 @@ namespace QuanLyGiuXe.Services.Connection
                         // Chỉ hiện toast cảnh báo định kỳ để không spam
                         if (retries % 5 == 0 && resource.Type != ResourceType.Camera)
                         {
-                            ToastNotificationService.Instance.ShowToast($"Không thể kết nối lại {resource.ResourceId}. Đang tiếp tục thử trong nền.", ToastType.Warning);
+                            string displayName = ConnectionStateService.Instance.GetDisplayName(resource.ResourceId);
+                            ToastNotificationService.Instance.ShowToast($"Không thể kết nối lại {displayName}. Đang tiếp tục thử trong nền.", ToastType.Warning);
                         }
                     }
                     else

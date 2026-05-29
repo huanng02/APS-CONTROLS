@@ -37,13 +37,11 @@ namespace QuanLyGiuXe.Services.ErrorHandling
             // Ghi log lỗi
             ErrorLoggingService.LogError(e.Exception, "Global.Dispatcher");
 
-            // Hiển thị thông báo cho người dùng
-            ToastNotificationService.Instance.ShowToast(
+            // Hiển thị thông báo cho người dùng dưới dạng in-app card
+            InAppNotificationService.Instance.ShowNotification(
                 "Đã có lỗi hệ thống xảy ra. Ứng dụng sẽ cố gắng tiếp tục hoạt động.", 
-                ToastType.Error, 
+                Models.NotificationType.Error, 
                 6000);
-
-            // Gợi ý: Nếu lỗi quá nghiêm trọng, có thể yêu cầu khởi động lại app ở đây
         }
 
         private static void OnAppDomainUnhandledException(object sender, UnhandledExceptionEventArgs e)
@@ -55,9 +53,9 @@ namespace QuanLyGiuXe.Services.ErrorHandling
 
             if (!e.IsTerminating)
             {
-                ToastNotificationService.Instance.ShowToast(
+                InAppNotificationService.Instance.ShowNotification(
                     "Lỗi hệ thống nghiêm trọng đã được ghi lại.", 
-                    ToastType.Error);
+                    Models.NotificationType.Error);
             }
         }
 
@@ -69,9 +67,9 @@ namespace QuanLyGiuXe.Services.ErrorHandling
             // Đánh giá là đã quan sát để tránh crash (tùy thuộc vào .NET version)
             e.SetObserved();
 
-            ToastNotificationService.Instance.ShowToast(
+            InAppNotificationService.Instance.ShowNotification(
                 "Phát hiện lỗi trong tác vụ chạy ngầm.", 
-                ToastType.Warning);
+                Models.NotificationType.Warning);
         }
     }
 }

@@ -9,6 +9,7 @@
         xmlns:local="clr-namespace:QuanLyGiuXe.Views"
         xmlns:viewmodels="clr-namespace:QuanLyGiuXe.ViewModels"
         xmlns:comps="clr-namespace:QuanLyGiuXe.Views.Components"
+        xmlns:services="clr-namespace:QuanLyGiuXe.Services"
         Background="{StaticResource BgLightBrush}">
 
     <Window.Resources>
@@ -565,6 +566,120 @@
                            Foreground="{StaticResource SuccessBrush}" FontSize="11" FontWeight="SemiBold"/>
             </Grid>
         </Border>
+        <!-- IN-APP NOTIFICATION OVERLAY (NON-INTRUSIVE) -->
+        <ItemsControl Grid.Row="0" Grid.RowSpan="3"
+                      HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                      Margin="0,0,24,60" Panel.ZIndex="9999" MaxWidth="360"
+                      ItemsSource="{Binding ActiveNotifications, Source={x:Static services:InAppNotificationService.Instance}}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel Orientation="Vertical" VerticalAlignment="Bottom"/>
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Border x:Name="NotificationBorder" CornerRadius="12" Padding="14,10" Margin="0,8,0,0" BorderThickness="1" SnapsToDevicePixels="True" MaxWidth="340">
+                        <Border.Effect>
+                            <DropShadowEffect Color="#0F172A" Opacity="0.25" BlurRadius="20" ShadowDepth="4"/>
+                        </Border.Effect>
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Background" Value="#2563eb"/>
+                                <Setter Property="BorderBrush" Value="#60a5fa"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Type}" Value="Success">
+                                        <Setter Property="Background" Value="#16a34a"/>
+                                        <Setter Property="BorderBrush" Value="#4ade80"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Type}" Value="Error">
+                                        <Setter Property="Background" Value="#dc2626"/>
+                                        <Setter Property="BorderBrush" Value="#f87171"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Type}" Value="Warning">
+                                        <Setter Property="Background" Value="#f59e0b"/>
+                                        <Setter Property="BorderBrush" Value="#fbbf24"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Type}" Value="Info">
+                                        <Setter Property="Background" Value="#2563eb"/>
+                                        <Setter Property="BorderBrush" Value="#60a5fa"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        
+                        <Border.Triggers>
+                            <EventTrigger RoutedEvent="Loaded">
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetProperty="Opacity" From="0" To="1" Duration="0:0:0.35"/>
+                                        <ThicknessAnimation Storyboard.TargetProperty="Margin" From="0,20,-100,0" To="0,8,0,0" Duration="0:0:0.35">
+                                            <ThicknessAnimation.EasingFunction>
+                                                <CubicEase EasingMode="EaseOut"/>
+                                            </ThicknessAnimation.EasingFunction>
+                                        </ThicknessAnimation>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </EventTrigger>
+                        </Border.Triggers>
+                        
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <!-- Icon -->
+                            <Border Grid.Column="0" Width="28" Height="28" CornerRadius="14" Background="#26FFFFFF" Margin="0,0,10,0" VerticalAlignment="Center">
+                                <TextBlock x:Name="IconText" Text="ℹ️" Foreground="White" FontSize="13" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Type}" Value="Success">
+                                                    <Setter Property="Text" Value="✅"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Type}" Value="Error">
+                                                    <Setter Property="Text" Value="❌"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Type}" Value="Warning">
+                                                    <Setter Property="Text" Value="⚠️"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Type}" Value="Info">
+                                                    <Setter Property="Text" Value="ℹ️"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Border>
+                            
+                            <!-- Message -->
+                            <TextBlock Grid.Column="1" Text="{Binding Message}" Foreground="White" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="250" FontFamily="Segoe UI"/>
+                            
+                            <!-- Dismiss Button -->
+                            <Button Grid.Column="2" Command="{Binding DismissCommand}" Background="Transparent" BorderThickness="0" Foreground="#B3FFFFFF" FontSize="14" FontWeight="Bold" Margin="10,0,0,0" Cursor="Hand" VerticalAlignment="Center">
+                                <Button.Style>
+                                    <Style TargetType="Button">
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="Button">
+                                                    <TextBlock Text="×" Margin="5,-2,5,2"/>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
 
     </Grid>
 </Window>

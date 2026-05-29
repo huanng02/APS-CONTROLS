@@ -31,11 +31,6 @@ namespace QuanLyGiuXe.Services
             new Lazy<ToastNotificationService>(() => new ToastNotificationService());
         public static ToastNotificationService Instance => _lazy.Value;
 
-        // ── Queue ─────────────────────────────────────────────────────────────────
-        private readonly ConcurrentQueue<ToastItem> _queue = new();
-        private volatile bool _isShowing = false;
-        private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
-
         // ── Suppression ───────────────────────────────────────────────────────────
         /// <summary>
         /// Khi true, tất cả toast mới sẽ bị bỏ qua (dùng khi đăng xuất/đăng nhập).
@@ -43,11 +38,11 @@ namespace QuanLyGiuXe.Services
         public bool IsSuppressed { get; set; } = false;
 
         /// <summary>
-        /// Xóa tất cả toast đang chờ trong queue.
+        /// Xóa tất cả toast đang chờ hoặc đang hiển thị.
         /// </summary>
         public void ClearQueue()
         {
-            while (_queue.TryDequeue(out _)) { }
+            InAppNotificationService.Instance.ClearActiveNotifications();
         }
 
         private ToastNotificationService() { }
@@ -62,84 +57,16 @@ namespace QuanLyGiuXe.Services
             // Bỏ qua toast nếu đang trong trạng thái suppressed (đăng xuất/đăng nhập)
             if (IsSuppressed) return;
 
-            _queue.Enqueue(new ToastItem
+            // Ánh xạ kiểu Toast sang In-App Notification
+            Models.NotificationType inAppType = type switch
             {
-                Message    = message,
-                Type       = type,
-                DurationMs = durationMs
-            });
+                ToastType.Success => Models.NotificationType.Success,
+                ToastType.Error   => Models.NotificationType.Error,
+                ToastType.Warning => Models.NotificationType.Warning,
+                _                 => Models.NotificationType.Info
+            };
 
-            // Kích hoạt xử lý queue nếu chưa có toast nào đang hiện
-            if (!_isShowing)
-                _ = ProcessQueueAsync();
-        }
-
-        // ── Queue processor ───────────────────────────────────────────────────────
-
-        private async Task ProcessQueueAsync()
-        {
-            // Chỉ cho phép 1 processor chạy cùng lúc
-            if (!await _semaphore.WaitAsync(0).ConfigureAwait(false))
-                return;
-
-            _isShowing = true;
-            try
-            {
-                while (_queue.TryDequeue(out var item))
-                {
-                    await ShowSingleToastAsync(item).ConfigureAwait(false);
-
-                    // Khoảng cách nhỏ giữa các toast liên tiếp
-                    if (!_queue.IsEmpty)
-                        await Task.Delay(300).ConfigureAwait(false);
-                }
-            }
-            finally
-            {
-                _isShowing = false;
-                _semaphore.Release();
-            }
-        }
-
-        private async Task ShowSingleToastAsync(ToastItem item)
-        {
-            var tcs = new TaskCompletionSource<bool>();
-            Views.ToastWindow toast = null;
-
-            // Toast phải tạo trên UI thread
-            Application.Current?.Dispatcher?.Invoke(() =>
-            {
-                try
-                {
-                    toast = new Views.ToastWindow(item, () => tcs.TrySetResult(true));
-                    if (Application.Current.MainWindow != null && Application.Current.MainWindow != toast)
-                    {
-                        toast.Owner = Application.Current.MainWindow;
-                    }
-                    toast.Show();
-                }
-                catch
-                {
-                    tcs.TrySetResult(true);
-                }
-            });
-
-            // Đợi toast đóng (có timeout để không treo mãi)
-            var timeoutTask = Task.Delay(item.DurationMs + 2000);   
-            var completedTask = await Task.WhenAny(tcs.Task, timeoutTask).ConfigureAwait(false);
-
-            if (completedTask == timeoutTask && toast != null)
-            {
-                // Nếu quá thời gian (timeout) mà toast chưa đóng → Cưỡng chế đóng trên UI thread để tránh rác UI/Alt+Tab
-                Application.Current?.Dispatcher?.Invoke(() =>
-                {
-                    try
-                    {
-                        toast.Close();
-                    }
-                    catch { }
-                });
-            }
+            InAppNotificationService.Instance.ShowNotification(message, inAppType, durationMs);
         }
     }
 }
