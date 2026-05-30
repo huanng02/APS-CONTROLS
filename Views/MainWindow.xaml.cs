@@ -39,8 +39,18 @@ namespace QuanLyGiuXe
 
             this.Loaded += MainWindow_Loaded;
             
-            RFIDService.Instance.OnCardScanned += OnRfidScanned;
-            C3200Service.Instance.OnCardScanned += OnC3200Scanned;
+            // Register standard Handlers with centralized RFID Event Router
+            var vehicleAccessHandler = new VehicleAccessHandler();
+            vehicleAccessHandler.OnVehicleAccessTriggered += async (readerNo, uid) =>
+            {
+                await Dispatcher.InvokeAsync(() => XuLyQuetThe(uid, readerNo));
+            };
+            RFIDEventRouterService.Instance.RegisterHandler(vehicleAccessHandler);
+            RFIDEventRouterService.Instance.RegisterHandler(new CardEnrollmentHandler());
+            RFIDEventRouterService.Instance.RegisterHandler(new AdminOverrideHandler());
+
+            RFIDService.Instance.OnCardScanned += RawRfidScanned;
+            C3200Service.Instance.OnCardScanned += RawC3200Scanned;
             // subscribe to full RT events to record button presses
             C3200Service.Instance.OnEvent += OnC3200Event;
             
@@ -71,8 +81,8 @@ namespace QuanLyGiuXe
         protected override void OnClosed(EventArgs e)
         {
             // IMPORTANT: Unsubscribe from all global events to prevent leaks and duplication!
-            RFIDService.Instance.OnCardScanned -= OnRfidScanned;
-            C3200Service.Instance.OnCardScanned -= OnC3200Scanned;
+            RFIDService.Instance.OnCardScanned -= RawRfidScanned;
+            C3200Service.Instance.OnCardScanned -= RawC3200Scanned;
             C3200Service.Instance.OnEvent -= OnC3200Event;
 
             // Stop camera to release resources
@@ -280,6 +290,17 @@ namespace QuanLyGiuXe
             XuLyQuetThe(uid, readerNo);
         }
 
+        private void RawRfidScanned(string uid)
+        {
+            Task.Run(async () => await RFIDEventRouterService.Instance.RouteEventAsync(uid, 1, 1));
+        }
+
+        private void RawC3200Scanned(string uid, int door, int inOutState)
+        {
+            int readerNo = (door - 1) * 2 + (inOutState == 1 ? 2 : 1);
+            Task.Run(async () => await RFIDEventRouterService.Instance.RouteEventAsync(uid, readerNo, door));
+        }
+
         // ── Xử lý quẹt thẻ (dùng chung cho RFID USB + C3-200) ───────────────────
 
         private void XuLyQuetThe(string uid, int readerNo = 1)
@@ -379,13 +400,8 @@ namespace QuanLyGiuXe
 
         private void MoQuanLyThe(object sender, RoutedEventArgs e)
         {
-            RFIDService.Instance.OnCardScanned -= OnRfidScanned;
-            C3200Service.Instance.OnCardScanned -= OnC3200Scanned;
-
+            // Context is switched automatically inside QuanLyThe.xaml.cs!
             new QuanLyThe().ShowDialog();
-
-            RFIDService.Instance.OnCardScanned += OnRfidScanned;
-            C3200Service.Instance.OnCardScanned += OnC3200Scanned;
             RestoreSidebarSelection();
         }
 

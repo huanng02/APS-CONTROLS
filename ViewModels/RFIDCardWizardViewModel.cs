@@ -56,12 +56,11 @@ namespace QuanLyGiuXe.ViewModels
 
         public RFIDCardWizardViewModel()
         {
-            // subscribe to scanner events to populate CardUID in Add mode
+            // subscribe to centralized enrollment event
             try
             {
-                QuanLyGiuXe.Services.RFIDService.Instance.OnCardScanned += Scanner_OnCardScanned;
-                // also subscribe to C3200 (network) scanner if available
-                try { QuanLyGiuXe.Services.C3200Service.Instance.OnCardScanned += Scanner_OnCardScanned_C3200; } catch { }
+                RFIDEventRouterService.Instance.SetTerminalContext(Environment.MachineName, RFIDContextType.CardEnrollment);
+                CardEnrollmentHandler.OnCardEnrolled += Scanner_OnCardEnrolled;
                 _scannerSubscribed = true;
             }
             catch { }
@@ -99,31 +98,20 @@ namespace QuanLyGiuXe.ViewModels
             if (!_scannerSubscribed) return;
             try
             {
-                QuanLyGiuXe.Services.RFIDService.Instance.OnCardScanned -= Scanner_OnCardScanned;
-                try { QuanLyGiuXe.Services.C3200Service.Instance.OnCardScanned -= Scanner_OnCardScanned_C3200; } catch { }
+                CardEnrollmentHandler.OnCardEnrolled -= Scanner_OnCardEnrolled;
+                RFIDEventRouterService.Instance.ResetTerminalToDefault(Environment.MachineName);
             }
             catch { }
             _scannerSubscribed = false;
         }
 
-        private void Scanner_OnCardScanned(string uid)
+        private void Scanner_OnCardEnrolled(string uid)
         {
             // update CardUID only in Add mode
             if (IsEditMode) return;
 
-            var normalized = QuanLyGiuXe.Services.RFIDService.ChuanHoaUID(uid);
+            var normalized = RFIDEventRouterService.ChuanHoaUID(uid);
             // marshal to UI thread
-            System.Windows.Application.Current?.Dispatcher?.Invoke(() =>
-            {
-                if (ActiveTabIndex == 1) MonthlyCardUID = normalized; else GuestCardUID = normalized;
-            });
-        }
-
-        // C3200 supplies cardNo and door; adapt to same update flow
-        private void Scanner_OnCardScanned_C3200(string cardNo, int door, int inOutState)
-        {
-            if (IsEditMode) return;
-            var normalized = QuanLyGiuXe.Services.RFIDService.ChuanHoaUID(cardNo);
             System.Windows.Application.Current?.Dispatcher?.Invoke(() =>
             {
                 if (ActiveTabIndex == 1) MonthlyCardUID = normalized; else GuestCardUID = normalized;

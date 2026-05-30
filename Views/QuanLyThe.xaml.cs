@@ -13,21 +13,18 @@ namespace QuanLyGiuXe.Views
         public QuanLyThe()
         {
             InitializeComponent();
-            RFIDService.Instance.OnCardScanned += OnCardScanned;
-            C3200Service.Instance.OnCardScanned += OnC3200CardScanned;
+            RFIDEventRouterService.Instance.SetTerminalContext(Environment.MachineName, RFIDContextType.CardEnrollment);
+            CardEnrollmentHandler.OnCardEnrolled += OnCardEnrolledByRouter;
         }
 
         protected override void OnClosed(EventArgs e)
         {
-            RFIDService.Instance.OnCardScanned -= OnCardScanned;
-            C3200Service.Instance.OnCardScanned -= OnC3200CardScanned;
+            CardEnrollmentHandler.OnCardEnrolled -= OnCardEnrolledByRouter;
+            RFIDEventRouterService.Instance.ResetTerminalToDefault(Environment.MachineName);
             base.OnClosed(e);
         }
 
-        private void OnCardScanned(string uid) =>
-            Dispatcher.BeginInvoke(new Action(() => txtUID.Text = uid));
-
-        private void OnC3200CardScanned(string uid, int door, int inOutState) =>
+        private void OnCardEnrolledByRouter(string uid) =>
             Dispatcher.BeginInvoke(new Action(() => txtUID.Text = uid));
 
         private void SaveCard(object sender, RoutedEventArgs e)
