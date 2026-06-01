@@ -984,6 +984,39 @@ namespace QuanLyGiuXe.ViewModels
 
         public void SetView(object view)
         {
+            if (CurrentView != null)
+            {
+                string oldTabName = CurrentView.GetType().Name switch
+                {
+                    "TrangChuViewModel" => "Bàn giám sát",
+                    "TimKiemViewModel" => "Tìm kiếm xe",
+                    "RealtimeEventFeedViewModel" => "Live Event Feed",
+                    "LichSuViewModel" => "Lịch sử xe",
+                    "DatabaseExplorerViewModel" => "Mini Database Explorer",
+                    "DashboardViewModel" => "Dashboard Thống kê",
+                    "MonitoringDashboardViewModel" => "Parking Monitoring Dashboard",
+                    "ParkingTopologyViewModel" => "Cấu hình sơ đồ",
+                    _ => CurrentView.GetType().Name
+                };
+                LoggingService.Instance.LogInfo("TAB_CLOSE", "UI", $"Đóng tab: {oldTabName}");
+            }
+
+            if (view != null)
+            {
+                string tabName = view.GetType().Name switch
+                {
+                    "TrangChuViewModel" => "Bàn giám sát",
+                    "TimKiemViewModel" => "Tìm kiếm xe",
+                    "RealtimeEventFeedViewModel" => "Live Event Feed",
+                    "LichSuViewModel" => "Lịch sử xe",
+                    "DatabaseExplorerViewModel" => "Mini Database Explorer",
+                    "DashboardViewModel" => "Dashboard Thống kê",
+                    "MonitoringDashboardViewModel" => "Parking Monitoring Dashboard",
+                    "ParkingTopologyViewModel" => "Cấu hình sơ đồ",
+                    _ => view.GetType().Name
+                };
+                LoggingService.Instance.LogInfo("TAB_OPEN", "UI", $"Chuyển sang tab: {tabName}");
+            }
             CurrentView = view;
             OnPropertyChanged(nameof(CurrentView));
         }

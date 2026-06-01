@@ -311,7 +311,29 @@ namespace QuanLyGiuXe.Services
         public async Task<bool> SaveSiteAsync(ParkingSite site)
         {
             bool isNew = site.Id == 0;
-            return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+            ParkingSite? previous = null;
+            if (!isNew)
+            {
+                try
+                {
+                    var sites = await GetSitesAsync();
+                    var prevObj = sites.FirstOrDefault(s => s.Id == site.Id);
+                    if (prevObj != null)
+                    {
+                        previous = new ParkingSite
+                        {
+                            Id = prevObj.Id,
+                            SiteCode = prevObj.SiteCode,
+                            SiteName = prevObj.SiteName,
+                            Description = prevObj.Description,
+                            IsActive = prevObj.IsActive
+                        };
+                    }
+                }
+                catch { }
+            }
+
+            var success = await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
                 isNew ? "CREATE_SITE" : "UPDATE_SITE",
                 site,
                 async conn =>
@@ -369,6 +391,25 @@ namespace QuanLyGiuXe.Services
                     await OfflineCacheService.Instance.SaveCacheAsync("LIST_SITES", sites);
                 }
             );
+
+            if (success)
+            {
+                try
+                {
+                    LoggingService.Instance.LogCrud(
+                        isNew ? "CREATE_SITE" : "UPDATE_SITE",
+                        "ParkingSite",
+                        site.Id.ToString(),
+                        oldValues: previous,
+                        newValues: site,
+                        details: isNew ? $"Thêm site mới: {site.SiteName} ({site.SiteCode})" : $"Cập nhật site ID {site.Id}: {site.SiteName} ({site.SiteCode})",
+                        source: "ParkingTopologyService"
+                    );
+                }
+                catch { }
+            }
+
+            return success;
         }
 
         public async Task<bool> DeleteSiteAsync(int id)
@@ -379,7 +420,26 @@ namespace QuanLyGiuXe.Services
                 throw new Exception("Không thể xóa Site này vì vẫn còn Zone (khu vực) trực thuộc. Vui lòng xóa các Zone trước.");
             }
 
-            return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+            ParkingSite? previous = null;
+            try
+            {
+                var sites = await GetSitesAsync();
+                var prevObj = sites.FirstOrDefault(s => s.Id == id);
+                if (prevObj != null)
+                {
+                    previous = new ParkingSite
+                    {
+                        Id = prevObj.Id,
+                        SiteCode = prevObj.SiteCode,
+                        SiteName = prevObj.SiteName,
+                        Description = prevObj.Description,
+                        IsActive = prevObj.IsActive
+                    };
+                }
+            }
+            catch { }
+
+            var success = await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
                 "DELETE_SITE",
                 new { Id = id },
                 async conn =>
@@ -457,12 +517,55 @@ namespace QuanLyGiuXe.Services
                     }
                 }
             );
+
+            if (success)
+            {
+                try
+                {
+                    LoggingService.Instance.LogCrud(
+                        "DELETE_SITE",
+                        "ParkingSite",
+                        id.ToString(),
+                        oldValues: previous,
+                        newValues: null,
+                        details: $"Xóa site ID {id}: {previous?.SiteName} ({previous?.SiteCode})",
+                        source: "ParkingTopologyService"
+                    );
+                }
+                catch { }
+            }
+
+            return success;
         }
 
         public async Task<bool> SaveZoneAsync(ParkingZone zone)
         {
             bool isNew = zone.Id == 0;
-            return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+            ParkingZone? previous = null;
+            if (!isNew)
+            {
+                try
+                {
+                    var zones = await GetZonesAsync();
+                    var prevObj = zones.FirstOrDefault(z => z.Id == zone.Id);
+                    if (prevObj != null)
+                    {
+                        previous = new ParkingZone
+                        {
+                            Id = prevObj.Id,
+                            SiteId = prevObj.SiteId,
+                            ZoneCode = prevObj.ZoneCode,
+                            ZoneName = prevObj.ZoneName,
+                            Description = prevObj.Description,
+                            MaxCapacity = prevObj.MaxCapacity,
+                            IsActive = prevObj.IsActive
+                        };
+                    }
+                }
+                catch { }
+            }
+
+            var success = await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
                 isNew ? "CREATE_ZONE" : "UPDATE_ZONE",
                 zone,
                 async conn =>
@@ -537,6 +640,25 @@ namespace QuanLyGiuXe.Services
                     await OfflineCacheService.Instance.SaveCacheAsync("LIST_ZONES", zones);
                 }
             );
+
+            if (success)
+            {
+                try
+                {
+                    LoggingService.Instance.LogCrud(
+                        isNew ? "CREATE_ZONE" : "UPDATE_ZONE",
+                        "ParkingZone",
+                        zone.Id.ToString(),
+                        oldValues: previous,
+                        newValues: zone,
+                        details: isNew ? $"Thêm zone mới: {zone.ZoneName} ({zone.ZoneCode})" : $"Cập nhật zone ID {zone.Id}: {zone.ZoneName} ({zone.ZoneCode})",
+                        source: "ParkingTopologyService"
+                    );
+                }
+                catch { }
+            }
+
+            return success;
         }
 
         public async Task<bool> DeleteZoneAsync(int id)
@@ -552,7 +674,28 @@ namespace QuanLyGiuXe.Services
                 throw new Exception("Không thể xóa Zone này vì vẫn còn Tủ điều khiển (Controller) trực thuộc.");
             }
 
-            return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+            ParkingZone? previous = null;
+            try
+            {
+                var zones = await GetZonesAsync();
+                var prevObj = zones.FirstOrDefault(z => z.Id == id);
+                if (prevObj != null)
+                {
+                    previous = new ParkingZone
+                    {
+                        Id = prevObj.Id,
+                        SiteId = prevObj.SiteId,
+                        ZoneCode = prevObj.ZoneCode,
+                        ZoneName = prevObj.ZoneName,
+                        Description = prevObj.Description,
+                        MaxCapacity = prevObj.MaxCapacity,
+                        IsActive = prevObj.IsActive
+                    };
+                }
+            }
+            catch { }
+
+            var success = await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
                 "DELETE_ZONE",
                 new { Id = id },
                 async conn =>
@@ -630,12 +773,54 @@ namespace QuanLyGiuXe.Services
                     }
                 }
             );
+
+            if (success)
+            {
+                try
+                {
+                    LoggingService.Instance.LogCrud(
+                        "DELETE_ZONE",
+                        "ParkingZone",
+                        id.ToString(),
+                        oldValues: previous,
+                        newValues: null,
+                        details: $"Xóa zone ID {id}: {previous?.ZoneName} ({previous?.ZoneCode})",
+                        source: "ParkingTopologyService"
+                    );
+                }
+                catch { }
+            }
+
+            return success;
         }
 
         public async Task<bool> SaveGateAsync(ParkingGate gate)
         {
             bool isNew = gate.Id == 0;
-            return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+            ParkingGate? previous = null;
+            if (!isNew)
+            {
+                try
+                {
+                    var gates = await GetGatesAsync();
+                    var prevObj = gates.FirstOrDefault(g => g.Id == gate.Id);
+                    if (prevObj != null)
+                    {
+                        previous = new ParkingGate
+                        {
+                            Id = prevObj.Id,
+                            SiteId = prevObj.SiteId,
+                            GateCode = prevObj.GateCode,
+                            GateName = prevObj.GateName,
+                            Description = prevObj.Description,
+                            IsActive = prevObj.IsActive
+                        };
+                    }
+                }
+                catch { }
+            }
+
+            var success = await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
                 isNew ? "CREATE_GATE" : "UPDATE_GATE",
                 gate,
                 async conn =>
@@ -706,6 +891,25 @@ namespace QuanLyGiuXe.Services
                     await OfflineCacheService.Instance.SaveCacheAsync("LIST_GATES", gates);
                 }
             );
+
+            if (success)
+            {
+                try
+                {
+                    LoggingService.Instance.LogCrud(
+                        isNew ? "CREATE_GATE" : "UPDATE_GATE",
+                        "ParkingGate",
+                        gate.Id.ToString(),
+                        oldValues: previous,
+                        newValues: gate,
+                        details: isNew ? $"Thêm cổng mới: {gate.GateName} ({gate.GateCode})" : $"Cập nhật cổng ID {gate.Id}: {gate.GateName} ({gate.GateCode})",
+                        source: "ParkingTopologyService"
+                    );
+                }
+                catch { }
+            }
+
+            return success;
         }
 
         public async Task<bool> DeleteGateAsync(int id)
@@ -721,7 +925,27 @@ namespace QuanLyGiuXe.Services
                 throw new Exception("Không thể xóa Cổng này vì vẫn còn Tủ điều khiển (Controller) trực thuộc.");
             }
 
-            return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+            ParkingGate? previous = null;
+            try
+            {
+                var gates = await GetGatesAsync();
+                var prevObj = gates.FirstOrDefault(g => g.Id == id);
+                if (prevObj != null)
+                {
+                    previous = new ParkingGate
+                    {
+                        Id = prevObj.Id,
+                        SiteId = prevObj.SiteId,
+                        GateCode = prevObj.GateCode,
+                        GateName = prevObj.GateName,
+                        Description = prevObj.Description,
+                        IsActive = prevObj.IsActive
+                    };
+                }
+            }
+            catch { }
+
+            var success = await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
                 "DELETE_GATE",
                 new { Id = id },
                 async conn =>
@@ -744,12 +968,56 @@ namespace QuanLyGiuXe.Services
                     }
                 }
             );
+
+            if (success)
+            {
+                try
+                {
+                    LoggingService.Instance.LogCrud(
+                        "DELETE_GATE",
+                        "ParkingGate",
+                        id.ToString(),
+                        oldValues: previous,
+                        newValues: null,
+                        details: $"Xóa cổng ID {id}: {previous?.GateName} ({previous?.GateCode})",
+                        source: "ParkingTopologyService"
+                    );
+                }
+                catch { }
+            }
+
+            return success;
         }
 
         public async Task<bool> SaveControllerAsync(C3ControllerConfig controller)
         {
             bool isNew = controller.Id == 0;
-            return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+            C3ControllerConfig? previous = null;
+            if (!isNew)
+            {
+                try
+                {
+                    var controllers = await GetControllersAsync();
+                    var prevObj = controllers.FirstOrDefault(c => c.Id == controller.Id);
+                    if (prevObj != null)
+                    {
+                        previous = new C3ControllerConfig
+                        {
+                            Id = prevObj.Id,
+                            ControllerName = prevObj.ControllerName,
+                            IpAddress = prevObj.IpAddress,
+                            ServerIp = prevObj.ServerIp,
+                            PcIp = prevObj.PcIp,
+                            GateId = prevObj.GateId,
+                            ZoneId = prevObj.ZoneId,
+                            IsActive = prevObj.IsActive
+                        };
+                    }
+                }
+                catch { }
+            }
+
+            var success = await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
                 isNew ? "CREATE_CONTROLLER" : "UPDATE_CONTROLLER",
                 controller,
                 async conn =>
@@ -830,11 +1098,52 @@ namespace QuanLyGiuXe.Services
                     await OfflineCacheService.Instance.SaveCacheAsync("LIST_CONTROLLERS", controllers);
                 }
             );
+
+            if (success)
+            {
+                try
+                {
+                    LoggingService.Instance.LogCrud(
+                        isNew ? "CREATE_CONTROLLER" : "UPDATE_CONTROLLER",
+                        "C3Controller",
+                        controller.Id.ToString(),
+                        oldValues: previous,
+                        newValues: controller,
+                        details: isNew ? $"Thêm bộ điều khiển mới: {controller.ControllerName} ({controller.IpAddress})" : $"Cập nhật bộ điều khiển ID {controller.Id}: {controller.ControllerName} ({controller.IpAddress})",
+                        source: "ParkingTopologyService"
+                    );
+                }
+                catch { }
+            }
+
+            return success;
         }
 
         public async Task<bool> DeleteControllerAsync(int id)
         {
-            return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+            C3ControllerConfig? previous = null;
+            try
+            {
+                var controllers = await GetControllersAsync();
+                var prevObj = controllers.FirstOrDefault(c => c.Id == id);
+                if (prevObj != null)
+                {
+                    previous = new C3ControllerConfig
+                    {
+                        Id = prevObj.Id,
+                        ControllerName = prevObj.ControllerName,
+                        IpAddress = prevObj.IpAddress,
+                        ServerIp = prevObj.ServerIp,
+                        PcIp = prevObj.PcIp,
+                        GateId = prevObj.GateId,
+                        ZoneId = prevObj.ZoneId,
+                        IsActive = prevObj.IsActive
+                    };
+                }
+            }
+            catch { }
+
+            var success = await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
                 "DELETE_CONTROLLER",
                 new { Id = id },
                 async conn =>
@@ -857,12 +1166,56 @@ namespace QuanLyGiuXe.Services
                     }
                 }
             );
+
+            if (success)
+            {
+                try
+                {
+                    LoggingService.Instance.LogCrud(
+                        "DELETE_CONTROLLER",
+                        "C3Controller",
+                        id.ToString(),
+                        oldValues: previous,
+                        newValues: null,
+                        details: $"Xóa bộ điều khiển ID {id}: {previous?.ControllerName} ({previous?.IpAddress})",
+                        source: "ParkingTopologyService"
+                    );
+                }
+                catch { }
+            }
+
+            return success;
         }
 
         public async Task<bool> SaveLaneAsync(LaneConfig lane)
         {
             bool isNew = lane.Id == 0;
-            return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+            LaneConfig? previous = null;
+            if (!isNew)
+            {
+                try
+                {
+                    var lanes = await GetLanesAsync();
+                    var prevObj = lanes.FirstOrDefault(l => l.Id == lane.Id);
+                    if (prevObj != null)
+                    {
+                        previous = new LaneConfig
+                        {
+                            Id = prevObj.Id,
+                            LaneCode = prevObj.LaneCode,
+                            LaneName = prevObj.LaneName,
+                            Direction = prevObj.Direction,
+                            ZoneId = prevObj.ZoneId,
+                            GateId = prevObj.GateId,
+                            LoaiXeId = prevObj.LoaiXeId,
+                            IsActive = prevObj.IsActive
+                        };
+                    }
+                }
+                catch { }
+            }
+
+            var success = await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
                 isNew ? "CREATE_LANE" : "UPDATE_LANE",
                 lane,
                 async conn =>
@@ -965,11 +1318,52 @@ namespace QuanLyGiuXe.Services
                     await OfflineCacheService.Instance.SaveCacheAsync("LIST_LANES", lanes);
                 }
             );
+
+            if (success)
+            {
+                try
+                {
+                    LoggingService.Instance.LogCrud(
+                        isNew ? "CREATE_LANE" : "UPDATE_LANE",
+                        "Lane",
+                        lane.Id.ToString(),
+                        oldValues: previous,
+                        newValues: lane,
+                        details: isNew ? $"Thêm làn mới: {lane.LaneName} ({lane.LaneCode})" : $"Cập nhật làn ID {lane.Id}: {lane.LaneName} ({lane.LaneCode})",
+                        source: "ParkingTopologyService"
+                    );
+                }
+                catch { }
+            }
+
+            return success;
         }
 
         public async Task<bool> DeleteLaneAsync(int id)
         {
-            return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+            LaneConfig? previous = null;
+            try
+            {
+                var lanes = await GetLanesAsync();
+                var prevObj = lanes.FirstOrDefault(l => l.Id == id);
+                if (prevObj != null)
+                {
+                    previous = new LaneConfig
+                    {
+                        Id = prevObj.Id,
+                        LaneCode = prevObj.LaneCode,
+                        LaneName = prevObj.LaneName,
+                        Direction = prevObj.Direction,
+                        ZoneId = prevObj.ZoneId,
+                        GateId = prevObj.GateId,
+                        LoaiXeId = prevObj.LoaiXeId,
+                        IsActive = prevObj.IsActive
+                    };
+                }
+            }
+            catch { }
+
+            var success = await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
                 "DELETE_LANE",
                 new { Id = id },
                 async conn =>
@@ -1028,11 +1422,30 @@ namespace QuanLyGiuXe.Services
                     ReaderLaneMappingService.Instance.RemoveMappingsByLane(id);
                 }
             );
+
+            if (success)
+            {
+                try
+                {
+                    LoggingService.Instance.LogCrud(
+                        "DELETE_LANE",
+                        "Lane",
+                        id.ToString(),
+                        oldValues: previous,
+                        newValues: null,
+                        details: $"Xóa làn ID {id}: {previous?.LaneName} ({previous?.LaneCode})",
+                        source: "ParkingTopologyService"
+                    );
+                }
+                catch { }
+            }
+
+            return success;
         }
 
         public async Task<bool> AssignLaneToZoneAsync(int laneId, int? zoneId)
         {
-            return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+            var success = await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
                 "ASSIGN_LANE_ZONE",
                 new { LaneId = laneId, ZoneId = zoneId },
                 async conn =>
@@ -1065,11 +1478,30 @@ namespace QuanLyGiuXe.Services
                     }
                 }
             );
+
+            if (success)
+            {
+                try
+                {
+                    LoggingService.Instance.LogCrud(
+                        "ASSIGN_LANE_ZONE",
+                        "Lane",
+                        laneId.ToString(),
+                        oldValues: null,
+                        newValues: new { ZoneId = zoneId },
+                        details: $"Gán làn ID {laneId} vào Zone ID: {zoneId}",
+                        source: "ParkingTopologyService"
+                    );
+                }
+                catch { }
+            }
+
+            return success;
         }
 
         public async Task<bool> AssignLaneToGateAsync(int laneId, int? gateId)
         {
-            return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+            var success = await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
                 "ASSIGN_LANE_GATE",
                 new { LaneId = laneId, GateId = gateId },
                 async conn =>
@@ -1102,6 +1534,25 @@ namespace QuanLyGiuXe.Services
                     }
                 }
             );
+
+            if (success)
+            {
+                try
+                {
+                    LoggingService.Instance.LogCrud(
+                        "ASSIGN_LANE_GATE",
+                        "Lane",
+                        laneId.ToString(),
+                        oldValues: null,
+                        newValues: new { GateId = gateId },
+                        details: $"Gán làn ID {laneId} vào Cổng ID: {gateId}",
+                        source: "ParkingTopologyService"
+                    );
+                }
+                catch { }
+            }
+
+            return success;
         }
 
         // ──────────────────────────────────────────────

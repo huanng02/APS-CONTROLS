@@ -94,6 +94,7 @@ namespace QuanLyGiuXe.Services
             try
             {
                 if (_suppressLogging.Value) return;
+                if (ShouldSuppressOffline(action, source, null)) return;
                 var entry = new LogEntry
                 {
                     Timestamp = DateTime.UtcNow,
@@ -128,6 +129,7 @@ namespace QuanLyGiuXe.Services
             try
             {
                 if (_suppressLogging.Value) return;
+                if (ShouldSuppressOffline(eventType, source, null)) return;
                 var entry = new LogEntry
                 {
                     Timestamp = DateTime.UtcNow,
@@ -161,6 +163,7 @@ namespace QuanLyGiuXe.Services
         {
             try
             {
+                if (ShouldSuppressOffline(action, source, null)) return;
                 var entry = new LogEntry
                 {
                     Timestamp = DateTime.UtcNow,
@@ -247,6 +250,7 @@ namespace QuanLyGiuXe.Services
             try
             {
                 if (_suppressLogging.Value) return;
+                if (ShouldSuppressOffline(action, source, eventType.ToString())) return;
 
                 var entry = new LogEntry
                 {
@@ -334,6 +338,35 @@ namespace QuanLyGiuXe.Services
                 return json;
             }
             catch { return string.Empty; }
+        }
+
+        private bool IsAppOffline()
+        {
+            try
+            {
+                var connService = ConnectivityStateService.Instance;
+                if (connService.MonitorThreadState == "STOPPED") return false;
+                return connService.IsSimulatingOffline || !connService.IsOnline;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private bool ShouldSuppressOffline(string? action, string? source, string? eventType)
+        {
+            if (!IsAppOffline()) return false;
+
+            if (string.Equals(action, "CONNECTIVITY", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(source, "CONNECTIVITY", StringComparison.OrdinalIgnoreCase) ||
+                (eventType != null && eventType.Contains("reconnect", StringComparison.OrdinalIgnoreCase)) ||
+                (action != null && action.Contains("reconnect", StringComparison.OrdinalIgnoreCase)))
+            {
+                return false;
+            }
+
+            return true;
         }
 
         private void EnqueueAndPersist(LogEntry entry)

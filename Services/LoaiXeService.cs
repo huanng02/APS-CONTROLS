@@ -17,16 +17,19 @@ namespace QuanLyGiuXe.Services
         public async System.Threading.Tasks.Task AddAsync(string ten, string trangThai)
         {
             await _db.InsertLoaiXeAsync(ten, trangThai);
+            LoggingService.Instance.LogCrud("CREATE_LOAIXE", "LoaiXe", details: $"Thêm loại xe: {ten} ({trangThai})", source: "LoaiXeService");
         }
 
         public async System.Threading.Tasks.Task UpdateAsync(int id, string ten, string trangThai)
         {
             await _db.UpdateLoaiXeAsync(id, ten, trangThai);
+            LoggingService.Instance.LogCrud("UPDATE_LOAIXE", "LoaiXe", id.ToString(), details: $"Cập nhật loại xe ID: {id} thành: {ten} ({trangThai})", source: "LoaiXeService");
         }
 
         public async System.Threading.Tasks.Task DeleteAsync(int id)
         {
             await _db.DeleteLoaiXeAsync(id);
+            LoggingService.Instance.LogCrud("DELETE_LOAIXE", "LoaiXe", id.ToString(), details: $"Xóa loại xe ID: {id}", source: "LoaiXeService");
         }
 
         // Legacy synchronous wrappers for UI compatibility

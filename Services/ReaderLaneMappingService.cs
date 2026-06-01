@@ -172,6 +172,7 @@ namespace QuanLyGiuXe.Services
             }
 
             Save();
+            LoggingService.Instance.LogInfo("CONFIG_CHANGE", "ReaderMapping", $"Cập nhật đầu đọc: Reader {readerNo} -> Làn {laneId} ({direction}, enabled={enabled})");
         }
 
         public void UpdateMappings(List<ReaderLaneMapping> mappings)
@@ -190,6 +191,7 @@ namespace QuanLyGiuXe.Services
             {
                 _mappings.Remove(existing);
                 Save();
+                LoggingService.Instance.LogInfo("CONFIG_CHANGE", "ReaderMapping", $"Xóa đầu đọc: Reader {readerNo}");
             }
         }
 
@@ -197,6 +199,7 @@ namespace QuanLyGiuXe.Services
         {
             _mappings.Clear();
             Save();
+            LoggingService.Instance.LogInfo("CONFIG_CHANGE", "ReaderMapping", "Xóa toàn bộ cấu hình ánh xạ đầu đọc");
         }
     }
 }

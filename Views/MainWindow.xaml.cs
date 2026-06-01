@@ -401,7 +401,9 @@ namespace QuanLyGiuXe
         private void MoQuanLyThe(object sender, RoutedEventArgs e)
         {
             // Context is switched automatically inside QuanLyThe.xaml.cs!
+            LoggingService.Instance.LogInfo("TAB_OPEN", "UI", "Mở tab: Quản lý thẻ");
             new QuanLyThe().ShowDialog();
+            LoggingService.Instance.LogInfo("TAB_CLOSE", "UI", "Đóng tab: Quản lý thẻ");
             RestoreSidebarSelection();
         }
 
@@ -420,11 +422,13 @@ namespace QuanLyGiuXe
         {
             try
             {
+                LoggingService.Instance.LogInfo("TAB_OPEN", "UI", $"Mở tab: {title}");
                 var win = creator();
                 win.Title = title;
                 win.Owner = this;
                 win.WindowStartupLocation = WindowStartupLocation.CenterOwner;
                 win.ShowDialog();
+                LoggingService.Instance.LogInfo("TAB_CLOSE", "UI", $"Đóng tab: {title}");
                 
                 // Cập nhật lại nút Sidebar dựa trên View đang hiển thị
                 RestoreSidebarSelection();
@@ -720,31 +724,37 @@ namespace QuanLyGiuXe
 
         private void DoiMatKhau_Click(object sender, RoutedEventArgs e)
         {
+            LoggingService.Instance.LogInfo("TAB_OPEN", "UI", "Mở tab: Đổi mật khẩu");
             var win = new Views.ChangePasswordWindow
             {
                 Owner = this,
                 DataContext = new ViewModels.ChangePasswordViewModel()
             };
             win.ShowDialog();
+            LoggingService.Instance.LogInfo("TAB_CLOSE", "UI", "Đóng tab: Đổi mật khẩu");
         }
 
         private void MoThongTinCaNhan_Click(object sender, RoutedEventArgs e)
         {
+            LoggingService.Instance.LogInfo("TAB_OPEN", "UI", "Mở tab: Thông tin cá nhân");
             var win = new Views.UserProfileWindow
             {
                 Owner = this,
                 DataContext = new ViewModels.UserProfileViewModel()
             };
             win.ShowDialog();
+            LoggingService.Instance.LogInfo("TAB_CLOSE", "UI", "Đóng tab: Thông tin cá nhân");
         }
 
         private void MoMaTranPhanQuyen_Click(object sender, RoutedEventArgs e)
         {
+            LoggingService.Instance.LogInfo("TAB_OPEN", "UI", "Mở tab: Ma trận phân quyền");
             var win = new Views.PermissionSummaryWindow
             {
                 Owner = this
             };
             win.ShowDialog();
+            LoggingService.Instance.LogInfo("TAB_CLOSE", "UI", "Đóng tab: Ma trận phân quyền");
         }
 
         private void UserPanel_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
@@ -757,7 +767,9 @@ namespace QuanLyGiuXe
 
         private void MoLichSu(object sender, RoutedEventArgs e)
         {
+            LoggingService.Instance.LogInfo("TAB_OPEN", "UI", "Mở tab: Lịch sử xe");
             new HistoryWindow().ShowDialog();
+            LoggingService.Instance.LogInfo("TAB_CLOSE", "UI", "Đóng tab: Lịch sử xe");
             RestoreSidebarSelection();
         }
 
@@ -813,14 +825,20 @@ namespace QuanLyGiuXe
                 return;
             }
 
+            LoggingService.Instance.LogInfo("TAB_OPEN", "UI", "Mở tab: Cấu hình camera");
             new CameraSettingsWindow { Owner = this }.ShowDialog();
+            LoggingService.Instance.LogInfo("TAB_CLOSE", "UI", "Đóng tab: Cấu hình camera");
             RestoreSidebarSelection();
         }
 
         private void DataGrid_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
         {
             if (sender is System.Windows.Controls.DataGrid dg && dg.SelectedItem is Xe xe)
+            {
+                LoggingService.Instance.LogInfo("TAB_OPEN", "UI", $"Mở tab: Chi tiết xe ({xe.BienSo})");
                 new VehicleDetailWindow(xe).ShowDialog();
+                LoggingService.Instance.LogInfo("TAB_CLOSE", "UI", $"Đóng tab: Chi tiết xe ({xe.BienSo})");
+            }
         }
 
 
@@ -977,8 +995,12 @@ namespace QuanLyGiuXe
                 return;
             }
 
+            LoggingService.Instance.LogInfo("TAB_OPEN", "UI", "Mở tab: QA Resiliency Dashboard");
             var win = new OfflineQADashboard { Owner = this };
-            win.Closed += (s, ev) => RestoreSidebarSelection();
+            win.Closed += (s, ev) => {
+                LoggingService.Instance.LogInfo("TAB_CLOSE", "UI", "Đóng tab: QA Resiliency Dashboard");
+                RestoreSidebarSelection();
+            };
             win.Show();
         }
 
