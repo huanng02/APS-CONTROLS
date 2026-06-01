@@ -222,7 +222,7 @@ namespace QuanLyGiuXe.Services
                 results.Add(new RfidReaderStatusDto
                 {
                     ReaderNo = 1,
-                    ReaderName = "Đầu đọc USB Đăng ký / Cổng",
+                    ReaderName = "Đầu đọc RFID USB đăng ký thẻ (COM3)",
                     ConnectionType = "USB COM Port",
                     PortOrAddress = "COM3",
                     AssociatedLaneName = "Cổng/Bàn Đăng ký",
@@ -230,19 +230,29 @@ namespace QuanLyGiuXe.Services
                     StatusDetails = usbDetails
                 });
 
-                // 2. Add C3 Controller Readers
-                var controllers = await ParkingTopologyService.Instance.GetControllersAsync();
+                // 2. Add C3 Controller Readers (Only display readers from active controllers to prevent ghost readers and incorrect mappings)
+                var allControllers = await ParkingTopologyService.Instance.GetControllersAsync();
+                var controllers = allControllers.Where(c => c.IsActive).ToList();
                 foreach (var ctrl in controllers)
                 {
                     var ctrlStatus = controllerStatuses.FirstOrDefault(c => c.Id == ctrl.Id);
                     bool ctrlOnline = ctrlStatus?.IsOnline ?? false;
 
-                    // A ZK C3-200 / C3-400 supports 2 or 4 readers
-                    int readerCount = ctrl.ControllerName.Contains("400") ? 4 : 2;
+                    // Both ZK C3-200 and C3-400 support up to 4 readers physically (Door 1 IN/OUT and Door 2 IN/OUT for C3-200, and Door 1-4 for C3-400).
+                    // The UI settings also always configure 4 readers (Reader 1-4).
+                    int readerCount = 4;
                     for (int r = 1; r <= readerCount; r++)
                     {
                         int globalReaderNo = (ctrl.Id - 1) * 4 + r; // Unique ID formula for multiple controllers
-                        var mapping = mappings.FirstOrDefault(m => m.ReaderNo == globalReaderNo);
+                        
+                        // Check if this is the active controller configured in AppConfig, or the only controller
+                        bool isActiveController = string.Equals(ctrl.IpAddress, AppConfig.Load().ZKTeco.IpAddress, StringComparison.OrdinalIgnoreCase) 
+                                               || controllers.Count == 1;
+
+                        // Active controller reader numbers are configured as 1, 2, 3, 4
+                        int lookupReaderNo = isActiveController ? r : globalReaderNo;
+
+                        var mapping = mappings.FirstOrDefault(m => m.ReaderNo == lookupReaderNo);
                         string laneName = "Chưa cấu hình làn";
                         
                         if (mapping != null)
@@ -254,17 +264,41 @@ namespace QuanLyGiuXe.Services
                             }
                         }
 
+                        string readerDisplayName;
+                        if (mapping != null)
+                        {
+                            var lane = lanes.FirstOrDefault(l => l.Id == mapping.LaneId);
+                            if (lane != null)
+                            {
+                                string gatePart = string.IsNullOrWhiteSpace(lane.GateName) ? string.Empty : $"Cổng: {lane.GateName} - ";
+                                readerDisplayName = $"Đầu đọc Wiegand {r} ({gatePart}Làn: {lane.LaneName})";
+                            }
+                            else
+                            {
+                                readerDisplayName = $"Đầu đọc Wiegand {r} (Tủ: {ctrl.ControllerName})";
+                            }
+                        }
+                        else
+                        {
+                            readerDisplayName = $"Đầu đọc Wiegand {r} (Tủ: {ctrl.ControllerName} - Chưa gán)";
+                        }
+
+                        // Determine if reader is enabled in the configuration
+                        bool isReaderEnabled = mapping?.IsEnabled ?? true;
+                        bool isOnlineAndEnabled = ctrlOnline && isReaderEnabled;
+                        string statusText = !isReaderEnabled 
+                            ? "Vô hiệu hóa (Disabled)" 
+                            : (ctrlOnline ? "Hoạt động (Wiegand D0/D1 OK)" : $"Mất kết nối tủ điều khiển ({ctrl.ControllerName} Offline)");
+
                         results.Add(new RfidReaderStatusDto
                         {
-                            ReaderNo = globalReaderNo,
-                            ReaderName = $"Đầu đọc Wiegand {r} (Tủ {ctrl.ControllerName})",
+                            ReaderNo = lookupReaderNo,
+                            ReaderName = readerDisplayName,
                             ConnectionType = "C3 Wiegand",
                             PortOrAddress = $"Reader Pin #{r} @ {ctrl.IpAddress}",
                             AssociatedLaneName = laneName,
-                            IsOnline = ctrlOnline,
-                            StatusDetails = ctrlOnline 
-                                ? $"Hoạt động (Wiegand D0/D1 OK)" 
-                                : $"Mất kết nối tủ điều khiển ({ctrl.ControllerName} Offline)"
+                            IsOnline = isOnlineAndEnabled,
+                            StatusDetails = statusText
                         });
                     }
                 }
