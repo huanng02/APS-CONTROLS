@@ -1,4 +1,4 @@
-#if DEBUG
+
 using System;
 using System.Globalization;
 using System.Windows;
@@ -32,4 +32,4 @@ namespace QuanLyGiuXe.DebugTools.Views
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) => throw new NotImplementedException();
     }
 }
-#endif
+

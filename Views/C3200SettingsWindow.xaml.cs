@@ -524,70 +524,85 @@ namespace QuanLyGiuXe
 
         private async void Save_Click(object sender, RoutedEventArgs e)
         {
-            var prevIp = _cfg.ZKTeco.IpAddress;
-            var prevPort = _cfg.ZKTeco.TcpPort;
-            var prevPwd = _cfg.ZKTeco.Password;
-            var prevTimeout = _cfg.ZKTeco.Timeout;
-            var prevBarrier = _cfg.ZKTeco.BarrierDuration;
-            var prevCooldown = _cfg.ZKTeco.CardCooldownMs;
-            var prevForceIn = _cfg.ZKTeco.ForceAllIn;
-            var prevForceOut = _cfg.ZKTeco.ForceAllOut;
-            var prevBtn1 = _cfg.ZKTeco.Button1Action;
-            var prevBtn2 = _cfg.ZKTeco.Button2Action;
-
-            _cfg.ZKTeco.IpAddress = IpBox.Text;
-            _cfg.ZKTeco.TcpPort = int.TryParse(PortBox.Text, out var p) ? p : _cfg.ZKTeco.TcpPort;
-            _cfg.ZKTeco.Password = PwdBox.Text;
-            _cfg.ZKTeco.Timeout = int.TryParse(TimeoutBox.Text, out var t) ? t : _cfg.ZKTeco.Timeout;
-            _cfg.ZKTeco.BarrierDuration = int.TryParse(BarrierBox.Text, out var b) ? b : _cfg.ZKTeco.BarrierDuration;
-            _cfg.ZKTeco.CardCooldownMs = int.TryParse(CooldownBox.Text, out var c) ? c : _cfg.ZKTeco.CardCooldownMs;
-            
-            // ForceMode obsolete
-            _cfg.ZKTeco.ForceAllIn = false;
-            _cfg.ZKTeco.ForceAllOut = false;
-
-            var b1 = this.FindName("Button1ActionCombo") as ComboBox;
-            var b2 = this.FindName("Button2ActionCombo") as ComboBox;
-            if (b1?.SelectedItem is ComboBoxItem bi1) _cfg.ZKTeco.Button1Action = bi1.Tag?.ToString() ?? _cfg.ZKTeco.Button1Action;
-            if (b2?.SelectedItem is ComboBoxItem bi2) _cfg.ZKTeco.Button2Action = bi2.Tag?.ToString() ?? _cfg.ZKTeco.Button2Action;
-
-            // save reader mappings
-            var newMappings = new List<ReaderLaneMapping>();
-            
-            void ExtractReaderMap(int readerNo, ComboBox laneCombo, ComboBox dirCombo, CheckBox enableCheck)
+            try
             {
-                int mappedLane = laneCombo.SelectedValue != null ? (int)laneCombo.SelectedValue : readerNo;
-                newMappings.Add(new ReaderLaneMapping
+                var prevIp = _cfg.ZKTeco.IpAddress;
+                var prevPort = _cfg.ZKTeco.TcpPort;
+                var prevPwd = _cfg.ZKTeco.Password;
+                var prevTimeout = _cfg.ZKTeco.Timeout;
+                var prevBarrier = _cfg.ZKTeco.BarrierDuration;
+                var prevCooldown = _cfg.ZKTeco.CardCooldownMs;
+                var prevForceIn = _cfg.ZKTeco.ForceAllIn;
+                var prevForceOut = _cfg.ZKTeco.ForceAllOut;
+                var prevBtn1 = _cfg.ZKTeco.Button1Action;
+                var prevBtn2 = _cfg.ZKTeco.Button2Action;
+
+                _cfg.ZKTeco.IpAddress = IpBox.Text;
+                _cfg.ZKTeco.TcpPort = int.TryParse(PortBox.Text, out var p) ? p : _cfg.ZKTeco.TcpPort;
+                _cfg.ZKTeco.Password = PwdBox.Text;
+                _cfg.ZKTeco.Timeout = int.TryParse(TimeoutBox.Text, out var t) ? t : _cfg.ZKTeco.Timeout;
+                _cfg.ZKTeco.BarrierDuration = int.TryParse(BarrierBox.Text, out var b) ? b : _cfg.ZKTeco.BarrierDuration;
+                _cfg.ZKTeco.CardCooldownMs = int.TryParse(CooldownBox.Text, out var c) ? c : _cfg.ZKTeco.CardCooldownMs;
+
+                // ForceMode obsolete
+                _cfg.ZKTeco.ForceAllIn = false;
+                _cfg.ZKTeco.ForceAllOut = false;
+
+                var b1 = this.FindName("Button1ActionCombo") as ComboBox;
+                var b2 = this.FindName("Button2ActionCombo") as ComboBox;
+                if (b1?.SelectedItem is ComboBoxItem bi1) _cfg.ZKTeco.Button1Action = bi1.Tag?.ToString() ?? _cfg.ZKTeco.Button1Action;
+                if (b2?.SelectedItem is ComboBoxItem bi2) _cfg.ZKTeco.Button2Action = bi2.Tag?.ToString() ?? _cfg.ZKTeco.Button2Action;
+
+                // save reader mappings
+                var newMappings = new List<ReaderLaneMapping>();
+
+                void ExtractReaderMap(int readerNo, ComboBox laneCombo, ComboBox dirCombo, CheckBox enableCheck)
                 {
-                    ReaderNo = readerNo,
-                    LaneId = mappedLane,
-                    Direction = ((ComboBoxItem)dirCombo.SelectedItem)?.Tag?.ToString() ?? "IN",
-                    IsEnabled = enableCheck.IsChecked == true
-                });
-            }
- 
-            ExtractReaderMap(1, R1LaneCombo, R1DirCombo, R1EnableCheck);
-            ExtractReaderMap(2, R2LaneCombo, R2DirCombo, R2EnableCheck);
-            ExtractReaderMap(3, R3LaneCombo, R3DirCombo, R3EnableCheck);
-            ExtractReaderMap(4, R4LaneCombo, R4DirCombo, R4EnableCheck);
- 
-            ReaderLaneMappingService.Instance.UpdateMappings(newMappings);
- 
-            // Save vehicle type to lanes (async fire-and-forget)
-            try
-            {
-                await SaveLaneVehicleType(R1LaneCombo, R1VehicleTypeCombo);
-                await SaveLaneVehicleType(R2LaneCombo, R2VehicleTypeCombo);
-                await SaveLaneVehicleType(R3LaneCombo, R3VehicleTypeCombo);
-                await SaveLaneVehicleType(R4LaneCombo, R4VehicleTypeCombo);
-            }
-            catch (Exception vtEx)
-            {
-                try { LoggingService.Instance.LogError("SaveVehicleType", "C3200Settings", "Failed to save lane vehicle type", vtEx); } catch { }
-            }
+                    int mappedLane = readerNo; // safe default
+                    if (laneCombo.SelectedValue is int selVal)
+                    {
+                        mappedLane = selVal;
+                    }
+                    else if (laneCombo.SelectedValue != null && int.TryParse(laneCombo.SelectedValue.ToString(), out var parsed))
+                    {
+                        mappedLane = parsed;
+                    }
 
-            try
-            {
+                    string direction = "IN"; // safe default
+                    if (dirCombo.SelectedItem is ComboBoxItem dirItem)
+                    {
+                        direction = dirItem.Tag?.ToString() ?? "IN";
+                    }
+
+                    newMappings.Add(new ReaderLaneMapping
+                    {
+                        ReaderNo = readerNo,
+                        LaneId = mappedLane,
+                        Direction = direction,
+                        IsEnabled = enableCheck.IsChecked == true
+                    });
+                }
+
+                ExtractReaderMap(1, R1LaneCombo, R1DirCombo, R1EnableCheck);
+                ExtractReaderMap(2, R2LaneCombo, R2DirCombo, R2EnableCheck);
+                ExtractReaderMap(3, R3LaneCombo, R3DirCombo, R3EnableCheck);
+                ExtractReaderMap(4, R4LaneCombo, R4DirCombo, R4EnableCheck);
+
+                ReaderLaneMappingService.Instance.UpdateMappings(newMappings);
+
+                // Save vehicle type to lanes
+                try
+                {
+                    await SaveLaneVehicleType(R1LaneCombo, R1VehicleTypeCombo);
+                    await SaveLaneVehicleType(R2LaneCombo, R2VehicleTypeCombo);
+                    await SaveLaneVehicleType(R3LaneCombo, R3VehicleTypeCombo);
+                    await SaveLaneVehicleType(R4LaneCombo, R4VehicleTypeCombo);
+                }
+                catch (Exception vtEx)
+                {
+                    try { LoggingService.Instance.LogError("SaveVehicleType", "C3200Settings", "Failed to save lane vehicle type", vtEx); } catch { }
+                }
+
                 var changes = new System.Text.StringBuilder();
                 void AddChange(string name, object oldV, object newV)
                 {
@@ -637,14 +652,14 @@ namespace QuanLyGiuXe
                 }
 
                 await RefreshSiteSelectionAsync();
+
+                MessageBox.Show("Saved", "Settings", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to save config: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                return;
+                try { LoggingService.Instance.LogError("Save_Click", "C3200Settings", "Crash during save", ex); } catch { }
+                MessageBox.Show($"Lỗi khi lưu cấu hình: {ex.Message}\n\n{ex.StackTrace}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
-
-            MessageBox.Show("Saved", "Settings", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         
@@ -653,15 +668,19 @@ namespace QuanLyGiuXe
         {
             try
             {
+                _isInitializing = true;
+
                 var sites = await ParkingTopologyService.Instance.GetSitesAsync();
                 var gates = await ParkingTopologyService.Instance.GetGatesAsync();
                 var controllers = await ParkingTopologyService.Instance.GetControllersAsync();
 
                 var activeController = controllers.FirstOrDefault(c => c.IpAddress == _cfg.ZKTeco.IpAddress);
                 ParkingSite activeSite = null;
+                ParkingGate activeGate = null;
+
                 if (activeController != null)
                 {
-                    var activeGate = gates.FirstOrDefault(g => g.Id == activeController.GateId);
+                    activeGate = gates.FirstOrDefault(g => g.Id == activeController.GateId);
                     if (activeGate != null)
                     {
                         activeSite = sites.FirstOrDefault(s => s.Id == activeGate.SiteId);
@@ -672,6 +691,8 @@ namespace QuanLyGiuXe
                     activeSite = sites.First();
                 }
 
+                // Update Site combo
+                SiteCombo.ItemsSource = sites;
                 if (activeSite != null)
                 {
                     SiteCombo.SelectedValue = activeSite.Id;
@@ -680,11 +701,58 @@ namespace QuanLyGiuXe
                 {
                     SiteCombo.SelectedIndex = 0;
                 }
-                // SelectionChanged will fire automatically
+
+                // Manually cascade: update Gate combo for selected site
+                int selectedSiteId = SiteCombo.SelectedValue != null ? Convert.ToInt32(SiteCombo.SelectedValue) : 0;
+                var gatesForSite = gates.Where(g => g.SiteId == selectedSiteId).ToList();
+                ZoneCombo.ItemsSource = gatesForSite;
+                ZoneCombo.DisplayMemberPath = "GateName";
+                ZoneCombo.SelectedValuePath = "Id";
+
+                if (activeGate != null && gatesForSite.Any(g => g.Id == activeGate.Id))
+                {
+                    ZoneCombo.SelectedValue = activeGate.Id;
+                }
+                else if (gatesForSite.Any())
+                {
+                    ZoneCombo.SelectedIndex = 0;
+                }
+
+                // Manually cascade: update Controller combo for selected gate
+                int selectedGateId = ZoneCombo.SelectedValue != null ? Convert.ToInt32(ZoneCombo.SelectedValue) : 0;
+                var controllersForGate = controllers.Where(c => c.GateId == selectedGateId).ToList();
+                TopologyCombo.ItemsSource = controllersForGate;
+                TopologyCombo.DisplayMemberPath = "ControllerName";
+                TopologyCombo.SelectedValuePath = "Id";
+
+                if (activeController != null && controllersForGate.Any(c => c.Id == activeController.Id))
+                {
+                    TopologyCombo.SelectedValue = activeController.Id;
+                }
+                else if (controllersForGate.Any())
+                {
+                    TopologyCombo.SelectedIndex = 0;
+                }
+
+                // Manually cascade: update Lane combos for selected gate
+                var allLanes = await ParkingTopologyService.Instance.GetLanesAsync();
+                var lanesForGate = allLanes.Where(l => l.GateId == selectedGateId).ToList();
+
+                R1LaneCombo.ItemsSource = new List<LaneConfig>(lanesForGate);
+                R2LaneCombo.ItemsSource = new List<LaneConfig>(lanesForGate);
+                R3LaneCombo.ItemsSource = new List<LaneConfig>(lanesForGate);
+                R4LaneCombo.ItemsSource = new List<LaneConfig>(lanesForGate);
+
+                // Reload reader selections
+                LoadReaderSelection();
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Failed to refresh site selection: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                _isInitializing = false;
             }
         }
         private void Close_Click(object sender, RoutedEventArgs e) => Close();
