@@ -283,47 +283,93 @@ namespace QuanLyGiuXe.ViewModels
         }
         // ─────────────────────────────────────────────────────────────────────────
 
+        public int? GetDbLaneIdForUiIndex(int uiLaneIndex)
+        {
+            var activeMappings = ReaderLaneMappingService.Instance.GetAll()
+                .Where(m => m.IsEnabled)
+                .ToList();
+            
+            var distinctLaneIds = activeMappings
+                .Select(m => m.LaneId)
+                .Distinct()
+                .ToList();
+
+            if (uiLaneIndex == 1)
+            {
+                if (distinctLaneIds.Count > 0) return distinctLaneIds[0];
+                return 1; // default fallback
+            }
+            else // uiLaneIndex == 2
+            {
+                if (distinctLaneIds.Count > 1) return distinctLaneIds[1];
+                if (distinctLaneIds.Count == 1) return null; // only 1 lane configured
+                return 2; // default fallback
+            }
+        }
+
         private async Task SyncLaneUIStateAsync(int uiLaneIndex)
         {
-            var mapping = ReaderLaneMappingService.Instance.GetMappingByReader(uiLaneIndex == 1 ? 1 : 3) 
-                       ?? ReaderLaneMappingService.Instance.GetMappingByReader(uiLaneIndex == 1 ? 2 : 4);
+            int? dbLaneId = GetDbLaneIdForUiIndex(uiLaneIndex);
+
+            if (dbLaneId == null)
+            {
+                if (uiLaneIndex == 2)
+                {
+                    Lane2Title = "LÀN 2 [CHƯA CẤU HÌNH]";
+                    Lane2TopologyText = "Chưa gán đầu đọc hoạt động";
+                    Lane2InfoLabel = "THÔNG TIN XE RA";
+                    Lane2Color = (System.Windows.Media.Brush)Application.Current.Resources["APSRedBrush"];
+                    
+                    OnPropertyChanged(nameof(Lane2FeeVisibility));
+                    OnPropertyChanged(nameof(Lane2TimeVisibility));
+                    OnPropertyChanged(nameof(Lane2ReaderMappingIn));
+                    OnPropertyChanged(nameof(Lane2ReaderMappingOut));
+                    OnPropertyChanged(nameof(Lane2ReaderMappingEmpty));
+                }
+                return;
+            }
 
             bool isInbound = true;
             string laneName = $"LÀN {uiLaneIndex}";
             string vehicleTypeSuffix = "Hỗn hợp";
 
-            if (mapping != null)
+            var activeMappingsForLane = ReaderLaneMappingService.Instance.GetAll()
+                .Where(m => m.IsEnabled && m.LaneId == dbLaneId.Value)
+                .ToList();
+
+            var state = LaneRuntimeManager.Instance.GetLaneState(dbLaneId.Value);
+            if (state != null)
             {
-                var state = LaneRuntimeManager.Instance.GetLaneState(mapping.LaneId);
                 isInbound = state.CurrentDirection == "IN";
+            }
+            else if (activeMappingsForLane.Any())
+            {
+                isInbound = activeMappingsForLane.First().Direction == "IN";
+            }
 
-                var lanes = await ParkingTopologyService.Instance.GetLanesAsync();
-                var laneDb = lanes.FirstOrDefault(l => l.Id == mapping.LaneId);
-                if (laneDb != null)
-                {
-                    laneName = laneDb.LaneName;
-                    vehicleTypeSuffix = (laneDb.LoaiXeId.HasValue && !string.IsNullOrEmpty(laneDb.LoaiXeName)) 
-                        ? laneDb.LoaiXeName 
-                        : "Hỗn hợp";
-                }
-                
-                var (_, zoneId, _, siteName, zoneName, maxCapacity, _, gateName) = await ResolveTopologyForLaneAsync(mapping.LaneId);
-                string displayLocation = !string.IsNullOrEmpty(gateName) ? $"Cổng: {gateName}" : (!string.IsNullOrEmpty(zoneName) ? $"Zone: {zoneName}" : "Chưa cấu hình");
-                string topoText = string.IsNullOrEmpty(siteName) ? "Chưa cấu hình Cổng" : $"Site: {siteName} - {displayLocation}";
-                int count = 0;
-                if (zoneId.HasValue) count = await db.GetXeTrongBaiCountByZoneAsync(zoneId.Value);
-                //string capText = maxCapacity > 0 ? $"Sức chứa: {count}/{maxCapacity}" : "Sức chứa: N/A";
+            var lanes = await ParkingTopologyService.Instance.GetLanesAsync();
+            var laneDb = lanes.FirstOrDefault(l => l.Id == dbLaneId.Value);
+            if (laneDb != null)
+            {
+                laneName = laneDb.LaneName;
+                vehicleTypeSuffix = (laneDb.LoaiXeId.HasValue && !string.IsNullOrEmpty(laneDb.LoaiXeName)) 
+                    ? laneDb.LoaiXeName 
+                    : "Hỗn hợp";
+            }
+            
+            var (_, zoneId, _, siteName, zoneName, maxCapacity, _, gateName) = await ResolveTopologyForLaneAsync(dbLaneId.Value);
+            string displayLocation = !string.IsNullOrEmpty(gateName) ? $"Cổng: {gateName}" : (!string.IsNullOrEmpty(zoneName) ? $"Zone: {zoneName}" : "Chưa cấu hình");
+            string topoText = string.IsNullOrEmpty(siteName) ? "Chưa cấu hình Cổng" : $"Site: {siteName} - {displayLocation}";
+            int count = 0;
+            if (zoneId.HasValue) count = await db.GetXeTrongBaiCountByZoneAsync(zoneId.Value);
 
-                if (uiLaneIndex == 1)
-                {
-                    Lane1TopologyText = topoText;
-                    //Lane1CapacityText = capText;
-                }
-                else
-                {
-                    Lane2TopologyText = topoText;
-                    //Lane2CapacityText = capText;
-                }
+            if (uiLaneIndex == 1)
+            {
+                Lane1TopologyText = topoText;
+            }
+            else
+            {
+                Lane2TopologyText = topoText;
             }
             
             string title = $"{laneName.ToUpper()} [{(isInbound ? "VÀO" : "RA")}] - {vehicleTypeSuffix.ToUpper()}";
@@ -360,11 +406,13 @@ namespace QuanLyGiuXe.ViewModels
 
         private string GetReaderMappingIn(int uiLaneIndex)
         {
-            var readers = uiLaneIndex == 1 ? new[] { 1, 2 } : new[] { 3, 4 };
+            int? dbLaneId = GetDbLaneIdForUiIndex(uiLaneIndex);
+            if (dbLaneId == null) return "";
+
             var inReaders = ReaderLaneMappingService.Instance
                 .GetAll()
                 .Where(m =>
-                    readers.Contains(m.ReaderNo) &&
+                    m.LaneId == dbLaneId.Value &&
                     m.IsEnabled &&
                     m.Direction == "IN")
                 .Select(m => "R" + m.ReaderNo)
@@ -377,11 +425,13 @@ namespace QuanLyGiuXe.ViewModels
 
         private string GetReaderMappingOut(int uiLaneIndex)
         {
-            var readers = uiLaneIndex == 1 ? new[] { 1, 2 } : new[] { 3, 4 };
+            int? dbLaneId = GetDbLaneIdForUiIndex(uiLaneIndex);
+            if (dbLaneId == null) return "";
+
             var outReaders = ReaderLaneMappingService.Instance
                 .GetAll()
                 .Where(m =>
-                    readers.Contains(m.ReaderNo) &&
+                    m.LaneId == dbLaneId.Value &&
                     m.IsEnabled &&
                     m.Direction == "OUT")
                 .Select(m => "R" + m.ReaderNo)
@@ -646,8 +696,7 @@ namespace QuanLyGiuXe.ViewModels
             DanhSachXe = new ObservableCollection<Xe>();
             DanhSachXe.CollectionChanged += (_, _) => OnPropertyChanged(nameof(SoXeTrongBai));
             XeVaoCommand = new SecureCommand("OPEN_BARRIER", async _ => {
-                var mapping = ReaderLaneMappingService.Instance.GetMappingByReader(1);
-                int laneId = mapping?.LaneId ?? 1;
+                int laneId = GetDbLaneIdForUiIndex(1) ?? 1;
                 if (!Services.PermissionService.Instance.HasLaneAccess(CurrentUserContext.Instance.Id, laneId))
                 {
                     MessageBox.Show("Không có quyền thao tác trên làn này!", "Lỗi phân quyền", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -656,8 +705,7 @@ namespace QuanLyGiuXe.ViewModels
                 await ProcessActionAsync(1, laneId, IsLane1Inbound, LastScannedUID);
             });
             XeRaCommand = new SecureCommand("OPEN_BARRIER", async _ => {
-                var mapping = ReaderLaneMappingService.Instance.GetMappingByReader(3);
-                int laneId = mapping?.LaneId ?? 2;
+                int laneId = GetDbLaneIdForUiIndex(2) ?? 2;
                 if (!Services.PermissionService.Instance.HasLaneAccess(CurrentUserContext.Instance.Id, laneId))
                 {
                     MessageBox.Show("Không có quyền thao tác trên làn này!", "Lỗi phân quyền", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -672,8 +720,8 @@ namespace QuanLyGiuXe.ViewModels
             LaneRuntimeManager.Instance.OnLaneDirectionChanged += (laneId) => {
                 // Find UI lane index corresponding to this db lane
                 int uiLaneIndex = -1;
-                if (ReaderLaneMappingService.Instance.GetMappingsByLane(laneId).Any(m => m.ReaderNo == 1 || m.ReaderNo == 2)) uiLaneIndex = 1;
-                else if (ReaderLaneMappingService.Instance.GetMappingsByLane(laneId).Any(m => m.ReaderNo == 3 || m.ReaderNo == 4)) uiLaneIndex = 2;
+                if (GetDbLaneIdForUiIndex(1) == laneId) uiLaneIndex = 1;
+                else if (GetDbLaneIdForUiIndex(2) == laneId) uiLaneIndex = 2;
                 
                 if (uiLaneIndex != -1)
                 {
@@ -1043,7 +1091,11 @@ namespace QuanLyGiuXe.ViewModels
             }
 
             int dbLaneId = mapping.LaneId;
-            int uiLaneIndex = (readerNo == 1 || readerNo == 2) ? 1 : 2; // C3-200: R1/R2 = Door 1 (UI 1), R3/R4 = Door 2 (UI 2)
+            int uiLaneIndex = 1;
+            if (GetDbLaneIdForUiIndex(2) == dbLaneId)
+            {
+                uiLaneIndex = 2;
+            }
 
             var laneState = LaneRuntimeManager.Instance.GetLaneState(dbLaneId);
 

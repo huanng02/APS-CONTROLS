@@ -337,7 +337,11 @@ namespace QuanLyGiuXe
                 if (mapping != null && mapping.IsEnabled)
                 {
                     // UI hiện tại chỉ support 2 lane hiển thị
-                    int uiLaneIndex = readerNo <= 2 ? 1 : 2;
+                    int uiLaneIndex = 1;
+                    if (vm.GetDbLaneIdForUiIndex(2) == mapping.LaneId)
+                    {
+                        uiLaneIndex = 2;
+                    }
 
                     Task.Run(async () =>
                     {

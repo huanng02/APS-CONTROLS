@@ -152,26 +152,38 @@ namespace QuanLyGiuXe
  
                 // 4. Populate and select Lanes for the selected Gate
                 var lanesForGate = _lanes.Where(l => l.GateId == selectedGateId).ToList();
-                Door1LaneCombo.ItemsSource = lanesForGate;
-                Door2LaneCombo.ItemsSource = lanesForGate;
+                R1LaneCombo.ItemsSource = new List<LaneConfig>(lanesForGate);
+                R2LaneCombo.ItemsSource = new List<LaneConfig>(lanesForGate);
+                R3LaneCombo.ItemsSource = new List<LaneConfig>(lanesForGate);
+                R4LaneCombo.ItemsSource = new List<LaneConfig>(lanesForGate);
  
-                Door1LaneCombo.DisplayMemberPath = "LaneName";
-                Door1LaneCombo.SelectedValuePath = "Id";
- 
-                Door2LaneCombo.DisplayMemberPath = "LaneName";
-                Door2LaneCombo.SelectedValuePath = "Id";
+                R1LaneCombo.DisplayMemberPath = "LaneName";
+                R1LaneCombo.SelectedValuePath = "Id";
+                R2LaneCombo.DisplayMemberPath = "LaneName";
+                R2LaneCombo.SelectedValuePath = "Id";
+                R3LaneCombo.DisplayMemberPath = "LaneName";
+                R3LaneCombo.SelectedValuePath = "Id";
+                R4LaneCombo.DisplayMemberPath = "LaneName";
+                R4LaneCombo.SelectedValuePath = "Id";
  
                 // 5. Load vehicle types for lane-type combos
                 _vehicleTypes = new DatabaseService().GetLoaiXe();
                 var mixedItem = new LoaiXe { Id = 0, TenLoai = "🔀 Hỗn hợp (tất cả)", TrangThai = "Active" };
-                var door1VtList = new List<LoaiXe> { mixedItem };
-                door1VtList.AddRange(_vehicleTypes);
-                var door2VtList = new List<LoaiXe> { mixedItem };
-                door2VtList.AddRange(_vehicleTypes);
-                Door1VehicleTypeCombo.ItemsSource = door1VtList;
-                Door2VehicleTypeCombo.ItemsSource = door2VtList;
-                Door1VehicleTypeCombo.SelectedIndex = 0;
-                Door2VehicleTypeCombo.SelectedIndex = 0;
+                
+                var r1VtList = new List<LoaiXe> { mixedItem }; r1VtList.AddRange(_vehicleTypes);
+                var r2VtList = new List<LoaiXe> { mixedItem }; r2VtList.AddRange(_vehicleTypes);
+                var r3VtList = new List<LoaiXe> { mixedItem }; r3VtList.AddRange(_vehicleTypes);
+                var r4VtList = new List<LoaiXe> { mixedItem }; r4VtList.AddRange(_vehicleTypes);
+                
+                R1VehicleTypeCombo.ItemsSource = r1VtList;
+                R2VehicleTypeCombo.ItemsSource = r2VtList;
+                R3VehicleTypeCombo.ItemsSource = r3VtList;
+                R4VehicleTypeCombo.ItemsSource = r4VtList;
+                
+                R1VehicleTypeCombo.SelectedIndex = 0;
+                R2VehicleTypeCombo.SelectedIndex = 0;
+                R3VehicleTypeCombo.SelectedIndex = 0;
+                R4VehicleTypeCombo.SelectedIndex = 0;
 
                 // Load reader mappings (saved selections)
                 LoadReaderSelection();
@@ -256,14 +268,22 @@ namespace QuanLyGiuXe
                     .Where(l => l.GateId == gateId)
                     .ToList();
 
-                Door1LaneCombo.ItemsSource = lanes;
-                Door2LaneCombo.ItemsSource = lanes;
+                R1LaneCombo.ItemsSource = new List<LaneConfig>(lanes);
+                R2LaneCombo.ItemsSource = new List<LaneConfig>(lanes);
+                R3LaneCombo.ItemsSource = new List<LaneConfig>(lanes);
+                R4LaneCombo.ItemsSource = new List<LaneConfig>(lanes);
 
-                Door1LaneCombo.DisplayMemberPath = "LaneName";
-                Door1LaneCombo.SelectedValuePath = "Id";
+                R1LaneCombo.DisplayMemberPath = "LaneName";
+                R1LaneCombo.SelectedValuePath = "Id";
 
-                Door2LaneCombo.DisplayMemberPath = "LaneName";
-                Door2LaneCombo.SelectedValuePath = "Id";
+                R2LaneCombo.DisplayMemberPath = "LaneName";
+                R2LaneCombo.SelectedValuePath = "Id";
+
+                R3LaneCombo.DisplayMemberPath = "LaneName";
+                R3LaneCombo.SelectedValuePath = "Id";
+
+                R4LaneCombo.DisplayMemberPath = "LaneName";
+                R4LaneCombo.SelectedValuePath = "Id";
 
                 LoadReaderSelection();
             }
@@ -335,33 +355,31 @@ namespace QuanLyGiuXe
         private void LoadReaderSelection()
         {
             var mappings = ReaderLaneMappingService.Instance.GetAll();
-
+ 
             _isSyncingCombos = true;
-
-            // Reader 1-2 = Door 1
-            var door1Mapping = mappings
-                .FirstOrDefault(m => m.ReaderNo == 1);
-
-            if (door1Mapping != null)
+ 
+            void BindReaderLane(int readerNo, ComboBox laneCombo, ComboBox vehicleTypeCombo)
             {
-                Door1LaneCombo.SelectedValue = door1Mapping.LaneId;
+                var map = mappings.FirstOrDefault(m => m.ReaderNo == readerNo);
+                if (map != null)
+                {
+                    laneCombo.SelectedValue = map.LaneId;
+                }
             }
 
-            // Reader 3-4 = Door 2
-            var door2Mapping = mappings
-                .FirstOrDefault(m => m.ReaderNo == 3);
-
-            if (door2Mapping != null)
-            {
-                Door2LaneCombo.SelectedValue = door2Mapping.LaneId;
-            }
-
+            BindReaderLane(1, R1LaneCombo, R1VehicleTypeCombo);
+            BindReaderLane(2, R2LaneCombo, R2VehicleTypeCombo);
+            BindReaderLane(3, R3LaneCombo, R3VehicleTypeCombo);
+            BindReaderLane(4, R4LaneCombo, R4VehicleTypeCombo);
+ 
             _isSyncingCombos = false;
-
+ 
             // Sync vehicle type combos based on selected lane
-            SyncVehicleTypeCombo(Door1LaneCombo, Door1VehicleTypeCombo);
-            SyncVehicleTypeCombo(Door2LaneCombo, Door2VehicleTypeCombo);
-
+            SyncVehicleTypeCombo(R1LaneCombo, R1VehicleTypeCombo);
+            SyncVehicleTypeCombo(R2LaneCombo, R2VehicleTypeCombo);
+            SyncVehicleTypeCombo(R3LaneCombo, R3VehicleTypeCombo);
+            SyncVehicleTypeCombo(R4LaneCombo, R4VehicleTypeCombo);
+ 
             void BindReader(
                 int readerNo,
                 ComboBox dirCombo,
@@ -369,7 +387,7 @@ namespace QuanLyGiuXe
             {
                 var map = mappings
                     .FirstOrDefault(m => m.ReaderNo == readerNo);
-
+ 
                 if (map != null)
                 {
                     foreach (ComboBoxItem item in dirCombo.Items)
@@ -380,7 +398,7 @@ namespace QuanLyGiuXe
                             break;
                         }
                     }
-
+ 
                     enableCheck.IsChecked = map.IsEnabled;
                 }
                 else
@@ -389,13 +407,13 @@ namespace QuanLyGiuXe
                     enableCheck.IsChecked = true;
                 }
             }
-
+ 
             BindReader(1, R1DirCombo, R1EnableCheck);
             BindReader(2, R2DirCombo, R2EnableCheck);
             BindReader(3, R3DirCombo, R3EnableCheck);
             BindReader(4, R4DirCombo, R4EnableCheck);
         }
-
+ 
         private void SetComboValue(ComboBox combo, string tag)
         {
             if (combo == null) return;
@@ -408,37 +426,31 @@ namespace QuanLyGiuXe
                 }
             }
         }
-
-        private void Door1LaneCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+ 
+        private void R1LaneCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (_isInitializing || _isSyncingCombos)
-                return;
-
-            if (Door1LaneCombo.SelectedValue == null)
-                return;
-
-            int door1Lane =
-                Convert.ToInt32(Door1LaneCombo.SelectedValue);
-
-            _isSyncingCombos = true;
-
-            foreach (var item in Door2LaneCombo.Items)
-            {
-                dynamic lane = item;
-
-                if (lane.Id != door1Lane)
-                {
-                    Door2LaneCombo.SelectedItem = item;
-                    break;
-                }
-            }
-
-            _isSyncingCombos = false;
-
-            // Sync vehicle type for Door1
-            SyncVehicleTypeCombo(Door1LaneCombo, Door1VehicleTypeCombo);
+            if (_isInitializing || _isSyncingCombos) return;
+            SyncVehicleTypeCombo(R1LaneCombo, R1VehicleTypeCombo);
         }
 
+        private void R2LaneCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isInitializing || _isSyncingCombos) return;
+            SyncVehicleTypeCombo(R2LaneCombo, R2VehicleTypeCombo);
+        }
+
+        private void R3LaneCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isInitializing || _isSyncingCombos) return;
+            SyncVehicleTypeCombo(R3LaneCombo, R3VehicleTypeCombo);
+        }
+
+        private void R4LaneCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isInitializing || _isSyncingCombos) return;
+            SyncVehicleTypeCombo(R4LaneCombo, R4VehicleTypeCombo);
+        }
+ 
         private void SyncVehicleTypeCombo(ComboBox laneCombo, ComboBox vehicleTypeCombo)
         {
             if (laneCombo.SelectedItem is LaneConfig selectedLane)
@@ -452,36 +464,6 @@ namespace QuanLyGiuXe
                     vehicleTypeCombo.SelectedIndex = 0; // Hỗn hợp
                 }
             }
-        }
-
-        private void Door2LaneCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (_isInitializing || _isSyncingCombos)
-                return;
-
-            if (Door2LaneCombo.SelectedValue == null)
-                return;
-
-            int door2Lane =
-                Convert.ToInt32(Door2LaneCombo.SelectedValue);
-
-            _isSyncingCombos = true;
-
-            foreach (var item in Door1LaneCombo.Items)
-            {
-                dynamic lane = item;    
-
-                if (lane.Id != door2Lane)
-                {
-                    Door1LaneCombo.SelectedItem = item;
-                    break;
-                }
-            }
-
-            _isSyncingCombos = false;
-
-            // Sync vehicle type for Door2
-            SyncVehicleTypeCombo(Door2LaneCombo, Door2VehicleTypeCombo);
         }
 
         private async void TestConnection_Click(object sender, RoutedEventArgs e)
@@ -570,25 +552,11 @@ namespace QuanLyGiuXe
             if (b2?.SelectedItem is ComboBoxItem bi2) _cfg.ZKTeco.Button2Action = bi2.Tag?.ToString() ?? _cfg.ZKTeco.Button2Action;
 
             // save reader mappings
-            int laneForDoor1 = 1;
-            if (Door1LaneCombo.SelectedValue != null)
-            {
-                laneForDoor1 = (int)Door1LaneCombo.SelectedValue;
-            }
-            int laneForDoor2 = 1;
-            if (Door2LaneCombo.SelectedValue != null)
-            {
-                laneForDoor2 = (int)Door2LaneCombo.SelectedValue;
-            }
-            else
-            {
-                laneForDoor2 = (laneForDoor1 == 1) ? 2 : 1;
-            }
-
             var newMappings = new List<ReaderLaneMapping>();
             
-            void ExtractReaderMap(int readerNo, int mappedLane, ComboBox dirCombo, CheckBox enableCheck)
+            void ExtractReaderMap(int readerNo, ComboBox laneCombo, ComboBox dirCombo, CheckBox enableCheck)
             {
+                int mappedLane = laneCombo.SelectedValue != null ? (int)laneCombo.SelectedValue : readerNo;
                 newMappings.Add(new ReaderLaneMapping
                 {
                     ReaderNo = readerNo,
@@ -597,19 +565,21 @@ namespace QuanLyGiuXe
                     IsEnabled = enableCheck.IsChecked == true
                 });
             }
-
-            ExtractReaderMap(1, laneForDoor1, R1DirCombo, R1EnableCheck);
-            ExtractReaderMap(2, laneForDoor1, R2DirCombo, R2EnableCheck);
-            ExtractReaderMap(3, laneForDoor2, R3DirCombo, R3EnableCheck);
-            ExtractReaderMap(4, laneForDoor2, R4DirCombo, R4EnableCheck);
-
+ 
+            ExtractReaderMap(1, R1LaneCombo, R1DirCombo, R1EnableCheck);
+            ExtractReaderMap(2, R2LaneCombo, R2DirCombo, R2EnableCheck);
+            ExtractReaderMap(3, R3LaneCombo, R3DirCombo, R3EnableCheck);
+            ExtractReaderMap(4, R4LaneCombo, R4DirCombo, R4EnableCheck);
+ 
             ReaderLaneMappingService.Instance.UpdateMappings(newMappings);
-
+ 
             // Save vehicle type to lanes (async fire-and-forget)
             try
             {
-                await SaveLaneVehicleType(Door1LaneCombo, Door1VehicleTypeCombo);
-                await SaveLaneVehicleType(Door2LaneCombo, Door2VehicleTypeCombo);
+                await SaveLaneVehicleType(R1LaneCombo, R1VehicleTypeCombo);
+                await SaveLaneVehicleType(R2LaneCombo, R2VehicleTypeCombo);
+                await SaveLaneVehicleType(R3LaneCombo, R3VehicleTypeCombo);
+                await SaveLaneVehicleType(R4LaneCombo, R4VehicleTypeCombo);
             }
             catch (Exception vtEx)
             {

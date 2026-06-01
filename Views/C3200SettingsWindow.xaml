@@ -173,70 +173,70 @@
                     </Border.Effect>
                     <StackPanel>
                         <TextBlock Text="📡 CẤU HÌNH ĐẦU ĐỌC (READER ASSIGNMENT)" Style="{StaticResource Heading2Style}" Foreground="#143A7D" Margin="0,0,0,15"/>
-                        
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="20"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-
-                                                 <!-- Lane 1 Readers (Gate 1) -->
-                            <Border Grid.Column="0" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="8" Padding="15">
+                        <UniformGrid Columns="2">
+                            <!-- Reader 1 -->
+                            <Border BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="8" Padding="15" Margin="5">
                                 <StackPanel>
-                                    <TextBlock Text=" READER 1 &amp; 2" FontWeight="Bold" FontSize="14" Foreground="#143A7D" Margin="0,0,0,10"/>
-                                    
-                                    <Grid Margin="0,0,0,15">
+                                    <TextBlock Text="📡 READER 1 (Cổng vào mặc định)" FontWeight="Bold" FontSize="14" Foreground="#143A7D" Margin="0,0,0,10"/>
+                                    <Grid Margin="0,0,0,10">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="90"/>
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="Gán vào Làn:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#666"/>
-                                        <ComboBox x:Name="Door1LaneCombo"
-                                          Grid.Column="1"
-                                          Style="{StaticResource ModernComboBox}"
-                                          SelectionChanged="Door1LaneCombo_SelectionChanged"
-                                          DisplayMemberPath="LaneName"
-                                          SelectedValuePath="Id"/>
+                                        <ComboBox x:Name="R1LaneCombo" Grid.Column="1" Style="{StaticResource ModernComboBox}" SelectionChanged="R1LaneCombo_SelectionChanged" DisplayMemberPath="LaneName" SelectedValuePath="Id"/>
                                     </Grid>
-                                    <Grid Margin="0,0,0,15">
+                                    <Grid Margin="0,0,0,10">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="90"/>
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="Loại xe:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#666"/>
-                                        <ComboBox x:Name="Door1VehicleTypeCombo"
-                                                  Grid.Column="1"
-                                                  Style="{StaticResource ModernComboBox}"
-                                                  DisplayMemberPath="TenLoai"
-                                                  SelectedValuePath="Id"/>
+                                        <ComboBox x:Name="R1VehicleTypeCombo" Grid.Column="1" Style="{StaticResource ModernComboBox}" DisplayMemberPath="TenLoai" SelectedValuePath="Id"/>
                                     </Grid>
-                                    
-                                    <Separator Margin="0,0,0,15" Background="#F0F0F0"/>
-
-                                    <!-- R1 -->
-                                    <Grid Margin="0,0,0,10">
+                                    <Grid>
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="80"/>
+                                            <ColumnDefinition Width="90"/>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="50"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="Reader 1" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#666"/>
+                                        <TextBlock Text="Chiều / Bật:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#666"/>
                                         <ComboBox x:Name="R1DirCombo" Grid.Column="1" Margin="0,0,5,0" Style="{StaticResource ModernComboBox}">
                                             <ComboBoxItem Tag="IN">Chiều VÀO</ComboBoxItem>
                                             <ComboBoxItem Tag="OUT">Chiều RA</ComboBoxItem>
                                         </ComboBox>
                                         <CheckBox x:Name="R1EnableCheck" Grid.Column="2" Content="Bật" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                                     </Grid>
- 
-                                    <!-- R2 -->
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Reader 2 -->
+                            <Border BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="8" Padding="15" Margin="5">
+                                <StackPanel>
+                                    <TextBlock Text="📡 READER 2" FontWeight="Bold" FontSize="14" Foreground="#143A7D" Margin="0,0,0,10"/>
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="90"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Gán vào Làn:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#666"/>
+                                        <ComboBox x:Name="R2LaneCombo" Grid.Column="1" Style="{StaticResource ModernComboBox}" SelectionChanged="R2LaneCombo_SelectionChanged" DisplayMemberPath="LaneName" SelectedValuePath="Id"/>
+                                    </Grid>
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="90"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Loại xe:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#666"/>
+                                        <ComboBox x:Name="R2VehicleTypeCombo" Grid.Column="1" Style="{StaticResource ModernComboBox}" DisplayMemberPath="TenLoai" SelectedValuePath="Id"/>
+                                    </Grid>
                                     <Grid>
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="80"/>
+                                            <ColumnDefinition Width="90"/>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="50"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="Reader 2" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#666"/>
+                                        <TextBlock Text="Chiều / Bật:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#666"/>
                                         <ComboBox x:Name="R2DirCombo" Grid.Column="1" Margin="0,0,5,0" Style="{StaticResource ModernComboBox}">
                                             <ComboBoxItem Tag="IN">Chiều VÀO</ComboBoxItem>
                                             <ComboBoxItem Tag="OUT">Chiều RA</ComboBoxItem>
@@ -245,63 +245,70 @@
                                     </Grid>
                                 </StackPanel>
                             </Border>
- 
-                            <!-- Lane 2 Readers (Gate 2) -->
-                            <Border Grid.Column="2" BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="8" Padding="15">
+
+                            <!-- Reader 3 -->
+                            <Border BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="8" Padding="15" Margin="5">
                                 <StackPanel>
-                                    <TextBlock Text=" READER 3 &amp; 4" FontWeight="Bold" FontSize="14" Foreground="#143A7D" Margin="0,0,0,10"/>
-                                    
-                                    <Grid Margin="0,0,0,15">
+                                    <TextBlock Text="📡 READER 3 (Cổng ra mặc định)" FontWeight="Bold" FontSize="14" Foreground="#143A7D" Margin="0,0,0,10"/>
+                                    <Grid Margin="0,0,0,10">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="90"/>
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="Gán vào Làn:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#666"/>
-                                        <ComboBox x:Name="Door2LaneCombo"
-                                          Grid.Column="1"
-                                          Style="{StaticResource ModernComboBox}"
-                                          SelectionChanged="Door2LaneCombo_SelectionChanged"
-                                          DisplayMemberPath="LaneName"
-                                          SelectedValuePath="Id"/>
+                                        <ComboBox x:Name="R3LaneCombo" Grid.Column="1" Style="{StaticResource ModernComboBox}" SelectionChanged="R3LaneCombo_SelectionChanged" DisplayMemberPath="LaneName" SelectedValuePath="Id"/>
                                     </Grid>
-                                    <Grid Margin="0,0,0,15">
+                                    <Grid Margin="0,0,0,10">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="90"/>
                                             <ColumnDefinition Width="*"/>
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Text="Loại xe:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#666"/>
-                                        <ComboBox x:Name="Door2VehicleTypeCombo"
-                                                  Grid.Column="1"
-                                                  Style="{StaticResource ModernComboBox}"
-                                                  DisplayMemberPath="TenLoai"
-                                                  SelectedValuePath="Id"/>
+                                        <ComboBox x:Name="R3VehicleTypeCombo" Grid.Column="1" Style="{StaticResource ModernComboBox}" DisplayMemberPath="TenLoai" SelectedValuePath="Id"/>
                                     </Grid>
-                                    
-                                    <Separator Margin="0,0,0,15" Background="#F0F0F0"/>
-
-                                    <!-- R3 -->
-                                    <Grid Margin="0,0,0,10">
+                                    <Grid>
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="80"/>
+                                            <ColumnDefinition Width="90"/>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="50"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="Reader 3" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#666"/>
+                                        <TextBlock Text="Chiều / Bật:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#666"/>
                                         <ComboBox x:Name="R3DirCombo" Grid.Column="1" Margin="0,0,5,0" Style="{StaticResource ModernComboBox}">
                                             <ComboBoxItem Tag="IN">Chiều VÀO</ComboBoxItem>
                                             <ComboBoxItem Tag="OUT">Chiều RA</ComboBoxItem>
                                         </ComboBox>
                                         <CheckBox x:Name="R3EnableCheck" Grid.Column="2" Content="Bật" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                                     </Grid>
- 
-                                    <!-- R4 -->
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Reader 4 -->
+                            <Border BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="8" Padding="15" Margin="5">
+                                <StackPanel>
+                                    <TextBlock Text="📡 READER 4" FontWeight="Bold" FontSize="14" Foreground="#143A7D" Margin="0,0,0,10"/>
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="90"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Gán vào Làn:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#666"/>
+                                        <ComboBox x:Name="R4LaneCombo" Grid.Column="1" Style="{StaticResource ModernComboBox}" SelectionChanged="R4LaneCombo_SelectionChanged" DisplayMemberPath="LaneName" SelectedValuePath="Id"/>
+                                    </Grid>
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="90"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Loại xe:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#666"/>
+                                        <ComboBox x:Name="R4VehicleTypeCombo" Grid.Column="1" Style="{StaticResource ModernComboBox}" DisplayMemberPath="TenLoai" SelectedValuePath="Id"/>
+                                    </Grid>
                                     <Grid>
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="80"/>
+                                            <ColumnDefinition Width="90"/>
                                             <ColumnDefinition Width="*"/>
                                             <ColumnDefinition Width="50"/>
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="Reader 4" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#666"/>
+                                        <TextBlock Text="Chiều / Bật:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#666"/>
                                         <ComboBox x:Name="R4DirCombo" Grid.Column="1" Margin="0,0,5,0" Style="{StaticResource ModernComboBox}">
                                             <ComboBoxItem Tag="IN">Chiều VÀO</ComboBoxItem>
                                             <ComboBoxItem Tag="OUT">Chiều RA</ComboBoxItem>
@@ -310,7 +317,7 @@
                                     </Grid>
                                 </StackPanel>
                             </Border>
-                        </Grid>
+                        </UniformGrid>
                     </StackPanel>
                 </Border>
 

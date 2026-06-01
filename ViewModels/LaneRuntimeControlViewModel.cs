@@ -127,12 +127,26 @@ namespace QuanLyGiuXe.ViewModels
             {
                 var lanes = await ParkingTopologyService.Instance.GetLanesAsync();
 
+                var activeMappings = ReaderLaneMappingService.Instance.GetAll()
+                    .Where(m => m.IsEnabled)
+                    .ToList();
+                
+                var distinctLaneIds = activeMappings
+                    .Select(m => m.LaneId)
+                    .Distinct()
+                    .ToList();
+
                 for (int i = 1; i <= 2; i++)
                 {
-                    var mapping = ReaderLaneMappingService.Instance.GetMappingByReader(i == 1 ? 1 : 3) 
-                               ?? ReaderLaneMappingService.Instance.GetMappingByReader(i == 1 ? 2 : 4);
-                    
-                    int dbLaneId = mapping?.LaneId ?? i;
+                    int dbLaneId = i;
+                    if (i == 1)
+                    {
+                        dbLaneId = distinctLaneIds.Count > 0 ? distinctLaneIds[0] : 1;
+                    }
+                    else
+                    {
+                        dbLaneId = distinctLaneIds.Count > 1 ? distinctLaneIds[1] : 2;
+                    }
                     var laneDb = lanes.FirstOrDefault(l => l.Id == dbLaneId);
                     string laneName = laneDb?.LaneName ?? $"LÀN SỐ {i}";
 
