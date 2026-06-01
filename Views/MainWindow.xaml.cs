@@ -445,6 +445,10 @@ namespace QuanLyGiuXe
                 {
                     btnDashboard.IsChecked = true;
                 }
+                else if (vm.CurrentView is MonitoringDashboardViewModel)
+                {
+                    btnMonitoringDashboard.IsChecked = true;
+                }
                 else if (vm.CurrentView is ParkingTopologyViewModel)
                 {
                     btnTopologySettings.IsChecked = true;
@@ -835,6 +839,14 @@ namespace QuanLyGiuXe
             if (DataContext is MainViewModel vm)
             {
                 vm.SetView(new DashboardViewModel());
+            }
+        }
+
+        private void MoMonitoringDashboard_Click(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is MainViewModel vm)
+            {
+                vm.SetView(new MonitoringDashboardViewModel());
             }
         }
 

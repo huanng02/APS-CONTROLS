@@ -764,61 +764,109 @@ namespace QuanLyGiuXe.ViewModels
 
         private void LoadRevenueChart(System.Data.DataTable dt)
         {
-            if (dt == null || RevenueSeries == null || RevenueLabels == null) return;
-
-            RevenueSeries.Clear();
-            RevenueLabels.Clear();
-
-            var values = new ChartValues<double>();
-
-            foreach (System.Data.DataRow row in dt.Rows)
+            try
             {
-                if (row["Ngay"] == DBNull.Value || row["DoanhThu"] == DBNull.Value) continue;
+                if (RevenueSeries == null || RevenueLabels == null) return;
 
-                DateTime date = Convert.ToDateTime(row["Ngay"]);
-                double rev = Convert.ToDouble(row["DoanhThu"]);
+                RevenueSeries.Clear();
+                RevenueLabels.Clear();
 
-                RevenueLabels.Add(date.ToString("dd/MM"));
-                values.Add(rev);
+                if (dt == null || !dt.Columns.Contains("Ngay") || !dt.Columns.Contains("DoanhThu"))
+                    return;
+
+                var values = new ChartValues<double>();
+
+                foreach (System.Data.DataRow row in dt.Rows)
+                {
+                    if (row == null) continue;
+
+                    object ngayVal = row["Ngay"];
+                    object doanhThuVal = row["DoanhThu"];
+
+                    if (ngayVal == null || ngayVal == DBNull.Value ||
+                        doanhThuVal == null || doanhThuVal == DBNull.Value)
+                        continue;
+
+                    try
+                    {
+                        DateTime date = Convert.ToDateTime(ngayVal);
+                        double rev = Convert.ToDouble(doanhThuVal);
+
+                        RevenueLabels.Add(date.ToString("dd/MM"));
+                        values.Add(rev);
+                    }
+                    catch (Exception valEx)
+                    {
+                        LoggingService.Instance.LogError("DashboardViewModel", "LoadRevenueChart_Row", "Error parsing row values", valEx);
+                    }
+                }
+
+                RevenueSeries.Add(new LineSeries
+                {
+                    Title = "Doanh thu",
+                    Values = values,
+                    PointGeometrySize = 10,
+                    StrokeThickness = 3,
+                    Stroke = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(39, 174, 96)),
+                    Fill = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(50, 39, 174, 96))
+                });
             }
-
-            RevenueSeries.Add(new LineSeries
+            catch (Exception ex)
             {
-                Title = "Doanh thu",
-                Values = values,
-                PointGeometrySize = 10,
-                StrokeThickness = 3,
-                Stroke = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(39, 174, 96)),
-                Fill = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(50, 39, 174, 96))
-            });
+                LoggingService.Instance.LogError("DashboardViewModel", "LoadRevenueChart", "Error loading revenue chart", ex);
+            }
         }
 
         private void LoadHourlyChart(System.Data.DataTable dt)
         {
-            if (dt == null || HourlySeries == null || HourlyLabels == null) return;
-
-            HourlySeries.Clear();
-            HourlyLabels.Clear();
-
-            var values = new ChartValues<double>();
-
-            foreach (System.Data.DataRow row in dt.Rows)
+            try
             {
-                if (row["Gio"] == DBNull.Value || row["SoLuot"] == DBNull.Value) continue;
+                if (HourlySeries == null || HourlyLabels == null) return;
 
-                int hour = Convert.ToInt32(row["Gio"]);
-                double count = Convert.ToDouble(row["SoLuot"]);
+                HourlySeries.Clear();
+                HourlyLabels.Clear();
 
-                HourlyLabels.Add(hour.ToString("00") + ":00");
-                values.Add(count);
+                if (dt == null || !dt.Columns.Contains("Gio") || !dt.Columns.Contains("SoLuot"))
+                    return;
+
+                var values = new ChartValues<double>();
+
+                foreach (System.Data.DataRow row in dt.Rows)
+                {
+                    if (row == null) continue;
+
+                    object gioVal = row["Gio"];
+                    object soLuotVal = row["SoLuot"];
+
+                    if (gioVal == null || gioVal == DBNull.Value ||
+                        soLuotVal == null || soLuotVal == DBNull.Value)
+                        continue;
+
+                    try
+                    {
+                        int hour = Convert.ToInt32(gioVal);
+                        double count = Convert.ToDouble(soLuotVal);
+
+                        HourlyLabels.Add(hour.ToString("00") + ":00");
+                        values.Add(count);
+                    }
+                    catch (Exception valEx)
+                    {
+                        LoggingService.Instance.LogError("DashboardViewModel", "LoadHourlyChart_Row", "Error parsing row values", valEx);
+                    }
+                }
+
+                HourlySeries.Add(new ColumnSeries
+                {
+                    Title = "Lượt vào",
+                    Values = values,
+                    Fill = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(74, 144, 226))
+                });
             }
-
-            HourlySeries.Add(new ColumnSeries
+            catch (Exception ex)
             {
-                Title = "Lượt vào",
-                Values = values,
-                Fill = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(74, 144, 226))
-            });
+                LoggingService.Instance.LogError("DashboardViewModel", "LoadHourlyChart", "Error loading hourly chart", ex);
+            }
         }
 
         // Clean up
