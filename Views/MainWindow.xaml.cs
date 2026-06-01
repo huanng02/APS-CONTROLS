@@ -850,6 +850,14 @@ namespace QuanLyGiuXe
             }
         }
 
+        private void MoRealtimeEventFeed_Click(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is MainViewModel vm)
+            {
+                vm.SetView(new RealtimeEventFeedViewModel());
+            }
+        }
+
         private void MoTopologySettings_Click(object sender, RoutedEventArgs e)
         {
             if (DataContext is MainViewModel vm)

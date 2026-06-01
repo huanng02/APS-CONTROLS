@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using QuanLyGiuXe.Models;
 
 namespace QuanLyGiuXe.Services
 {
@@ -182,6 +183,26 @@ namespace QuanLyGiuXe.Services
         {
             System.Diagnostics.Debug.WriteLine($"🚗 [VehicleAccessHandler] Triggering parking flow for card: {rfidEvent.CardUID}");
             
+            try
+            {
+                var topo = EventBus.Instance.ResolveTopologyForReader(rfidEvent.ReaderNo);
+                bool isEntry = rfidEvent.ReaderNo % 2 == 1; // Odd = Entry, Even = Exit
+                
+                EventBus.Instance.Publish(new RealtimeEvent
+                {
+                    Timestamp = DateTime.Now,
+                    EventType = isEntry ? "VEHICLE_ENTRY" : "VEHICLE_EXIT",
+                    Severity = RealtimeEventSeverity.Success,
+                    Source = "VehicleAccessHandler",
+                    Message = $"{(isEntry ? "Xe vào bãi" : "Xe ra khỏi bãi")}. Thẻ UID: {rfidEvent.CardUID} quẹt tại làn kiểm soát.",
+                    Site = topo.Site,
+                    Zone = topo.Zone,
+                    Gate = topo.Gate,
+                    Lane = topo.Lane
+                });
+            }
+            catch { }
+
             if (OnVehicleAccessTriggered != null)
             {
                 // Gọi callback bất đồng bộ để thực hiện quy trình nghiệp vụ bãi xe hiện tại
@@ -200,6 +221,23 @@ namespace QuanLyGiuXe.Services
         {
             System.Diagnostics.Debug.WriteLine($"💳 [CardEnrollmentHandler] Enrolling card: {rfidEvent.CardUID}");
             
+            try
+            {
+                EventBus.Instance.Publish(new RealtimeEvent
+                {
+                    Timestamp = DateTime.Now,
+                    EventType = "CARD_REGISTERED",
+                    Severity = RealtimeEventSeverity.Success,
+                    Source = "CardEnrollmentHandler",
+                    Message = $"Tiến trình đăng ký thẻ mới được kích hoạt. Đọc thẻ UID: {rfidEvent.CardUID}",
+                    Site = "HQ Office",
+                    Zone = "Khu đăng ký",
+                    Gate = "Bàn làm việc",
+                    Lane = "Đăng ký thẻ"
+                });
+            }
+            catch { }
+
             OnCardEnrolled?.Invoke(rfidEvent.CardUID);
             return Task.CompletedTask;
         }

@@ -635,6 +635,7 @@ namespace QuanLyGiuXe.ViewModels
         public ICommand ChangePasswordCommand { get; }
         public ICommand ToggleSidebarCommand { get; }
         public ICommand BackupRestoreCommand { get; }
+        public ICommand RealtimeEventFeedCommand { get; }
 
         // ── Constructor ───────────────────────────────────────────────────────────
 
@@ -686,6 +687,7 @@ namespace QuanLyGiuXe.ViewModels
             
             TrangChuCommand = new RelayCommand(_ => SetView(new TrangChuViewModel()));
             TimKiemCommand = new RelayCommand(_ => SetView(new TimKiemViewModel()));
+            RealtimeEventFeedCommand = new RelayCommand(_ => SetView(new RealtimeEventFeedViewModel()));
             LichSuCommand = new RelayCommand(_ => SetView(new LichSuViewModel()));
             DatabaseExplorerCommand = new SecureCommand("DATABASE_EXPLORER", _ => SetView(new DatabaseExplorerViewModel()));
             ToggleUserPopupCommand = new RelayCommand(_ => IsUserPopupOpen = !IsUserPopupOpen);

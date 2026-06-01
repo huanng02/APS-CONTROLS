@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.IO;
+using QuanLyGiuXe.Models;
 
 namespace QuanLyGiuXe.Services
 {
@@ -204,6 +205,23 @@ namespace QuanLyGiuXe.Services
 
                 // success: keep LastError empty but record ret for trace
                 LastError = $"ret={r}";
+                try
+                {
+                    var topo = EventBus.Instance.ResolveTopologyForReader(doorNumber == 1 ? 1 : 3);
+                    EventBus.Instance.Publish(new RealtimeEvent
+                    {
+                        Timestamp = DateTime.Now,
+                        EventType = "BARRIER_OPEN",
+                        Severity = RealtimeEventSeverity.Success,
+                        Source = "C3200Service",
+                        Message = $"Mở Barrier thành công tại Cổng: '{topo.Gate}', Làn: '{topo.Lane}'",
+                        Site = topo.Site,
+                        Zone = topo.Zone,
+                        Gate = topo.Gate,
+                        Lane = topo.Lane
+                    });
+                }
+                catch { }
                 return true;
             }, 
             source: $"C3200Service.OpenBarrier({doorNumber})",
@@ -220,7 +238,27 @@ namespace QuanLyGiuXe.Services
             {
                 // operationID=2 (CancelAlarm / close)
                 int r = PLControlDevice(_handle, 2, doorNumber, 0, 0, 0, "");
-                if (r >= 0) return Task.FromResult(true);
+                if (r >= 0)
+                {
+                    try
+                    {
+                        var topo = EventBus.Instance.ResolveTopologyForReader(doorNumber == 1 ? 1 : 3);
+                        EventBus.Instance.Publish(new RealtimeEvent
+                        {
+                            Timestamp = DateTime.Now,
+                            EventType = "BARRIER_CLOSE",
+                            Severity = RealtimeEventSeverity.Info,
+                            Source = "C3200Service",
+                            Message = $"Lệnh đóng Barrier gửi thành công cho Cổng: '{topo.Gate}', Làn: '{topo.Lane}'",
+                            Site = topo.Site,
+                            Zone = topo.Zone,
+                            Gate = topo.Gate,
+                            Lane = topo.Lane
+                        });
+                    }
+                    catch { }
+                    return Task.FromResult(true);
+                }
 
                 LastError = $"CloseBarrier thất bại (ret={r}, sdkError={GetSdkError()})";
                 return Task.FromResult(false);

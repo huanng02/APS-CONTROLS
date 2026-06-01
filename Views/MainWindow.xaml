@@ -206,6 +206,25 @@
                                     </TextBlock>
                                 </StackPanel>
                             </RadioButton>
+
+                            <RadioButton x:Name="btnRealtimeEventFeed" Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Click="MoRealtimeEventFeed_Click" ToolTip="NOC Event Feed (SOC/NOC)">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Data="M4,15H7V18H4V15M4,10H7V13H4V10M4,5H7V8H4V5M9,15H20V18H9V15M9,10H20V13H9V10M9,5H20V8H9V5Z" 
+                                          Fill="White" Width="18" Height="18" Stretch="Uniform" VerticalAlignment="Center"/>
+                                    <TextBlock Text=" NOC Event Feed" Margin="10,0,0,0">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsSidebarExpanded}" Value="False">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </StackPanel>
+                            </RadioButton>
                             
                             <StackPanel x:Name="MenuVanHanh">
                                 <TextBlock Text="LOGS &amp; MONITOR" Style="{StaticResource Heading2Style}" Foreground="#B0C4DE" FontSize="11" Margin="20,20,0,10"
@@ -536,6 +555,9 @@
                     </DataTemplate>
                     <DataTemplate DataType="{x:Type viewmodels:ParkingTopologyViewModel}">
                         <local:ParkingTopologyView/>
+                    </DataTemplate>
+                    <DataTemplate DataType="{x:Type viewmodels:RealtimeEventFeedViewModel}">
+                        <local:RealtimeEventFeedView/>
                     </DataTemplate>
                 </ContentControl.Resources>
             </ContentControl>
