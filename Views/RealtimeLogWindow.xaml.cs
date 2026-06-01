@@ -48,15 +48,8 @@ namespace QuanLyGiuXe.Views
                 {
                     try
                     {
-                        if (LogGrid.Items.Count > 0)
-                        {
-                            // Scroll to the newest item (index 0 since we Insert(0, item))
-                            var firstItem = LogGrid.Items[0];
-                            if (firstItem != null)
-                            {
-                                LogGrid.ScrollIntoView(firstItem);
-                            }
-                        }
+                        // Scroll to the top of the feed (newest entries are at the top)
+                        LogFeedScroll.ScrollToTop();
                     }
                     catch { }
                 }), System.Windows.Threading.DispatcherPriority.Background);

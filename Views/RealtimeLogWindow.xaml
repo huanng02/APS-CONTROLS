@@ -3,273 +3,571 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:sys="clr-namespace:System;assembly=System.Runtime"
         xmlns:local="clr-namespace:QuanLyGiuXe.Converters"
-        Title="Enterprise Real-time Log Dashboard" 
-        Height="768" Width="1200" 
+        Title="📋 Production System Log — Real-time Feed" 
+        Height="850" Width="1400" 
         WindowStartupLocation="CenterScreen"
-        Background="{StaticResource BgLightBrush}">
+        Background="#F0F2F5">
 
     <Window.Resources>
-        <local:EventToBrushConverter x:Key="EventToBrush" />
-        <BooleanToVisibilityConverter x:Key="BoolToVis" />
-        <local:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
-        <local:BoolToTextConverter x:Key="BoolToTextConverter" />
-        <local:BoolToTextConverter x:Key="AutoScrollConverter" TrueText="📜 Auto Scroll: ON" FalseText="📜 Auto Scroll: OFF" />
+        <local:LogLevelToBrushConverter x:Key="LevelToBrush"/>
+        <local:NullableToVisibilityConverter x:Key="NullableToVis"/>
+        <local:StringToVisibilityConverter x:Key="StringToVis"/>
+        <local:BoolToTextConverter x:Key="BoolToTextConverter"/>
+        <local:BoolToTextConverter x:Key="AutoScrollConverter" TrueText="📜 Auto Scroll: ON" FalseText="📜 Auto Scroll: OFF"/>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+
+        <!-- Modern Scrollbar Thumb -->
+        <Style x:Key="FeedScrollViewerStyle" TargetType="ScrollViewer">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollViewer">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <ScrollContentPresenter Grid.Column="0"/>
+                            <ScrollBar x:Name="PART_VerticalScrollBar" Grid.Column="1"
+                                       Value="{TemplateBinding VerticalOffset}" 
+                                       Maximum="{TemplateBinding ScrollableHeight}" 
+                                       ViewportSize="{TemplateBinding ViewportHeight}" 
+                                       Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}" 
+                                       Width="6" Margin="2,0,2,0"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <Grid Margin="20">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
+            <!-- SOC Metrics -->
+            <RowDefinition Height="Auto"/>
+            <!-- Filters & Actions -->
+            <RowDefinition Height="Auto"/>
+            <!-- Timeline Feed -->
+            <RowDefinition Height="*"/>
+            <!-- Paging Footer -->
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- HEADER -->
-        <Border Grid.Row="0" Style="{StaticResource EnterpriseCardBorder}" Margin="0,0,0,15" Padding="20,15">
+        <!-- ═══════════════ ROW 0: LIVE SOC METRICS ═══════════════ -->
+        <Grid Grid.Row="0" Margin="0,0,0,15">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Total -->
+            <Border Grid.Column="0" Margin="0,0,10,0" Background="White" CornerRadius="10" Padding="14" BorderThickness="0,0,0,4" BorderBrush="#3498DB">
+                <Border.Effect><DropShadowEffect BlurRadius="10" ShadowDepth="1" Opacity="0.06"/></Border.Effect>
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="TỔNG LOG" FontSize="9" FontWeight="ExtraBold" Foreground="#95A5A6"/>
+                        <TextBlock Text="{Binding TotalItems}" FontSize="26" FontWeight="ExtraBold" Foreground="#2C3E50" Margin="0,2,0,0"/>
+                    </StackPanel>
+                    <TextBlock Grid.Column="1" Text="📊" FontSize="28" Opacity="0.25" VerticalAlignment="Center"/>
+                </Grid>
+            </Border>
+
+            <!-- Info -->
+            <Border Grid.Column="1" Margin="0,0,10,0" Background="White" CornerRadius="10" Padding="14" BorderThickness="0,0,0,4" BorderBrush="#2980B9">
+                <Border.Effect><DropShadowEffect BlurRadius="10" ShadowDepth="1" Opacity="0.06"/></Border.Effect>
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="INFO" FontSize="9" FontWeight="ExtraBold" Foreground="#95A5A6"/>
+                        <TextBlock Text="{Binding InfoCount}" FontSize="26" FontWeight="ExtraBold" Foreground="#2980B9" Margin="0,2,0,0"/>
+                    </StackPanel>
+                    <TextBlock Grid.Column="1" Text="🔵" FontSize="24" Opacity="0.25" VerticalAlignment="Center"/>
+                </Grid>
+            </Border>
+
+            <!-- Success -->
+            <Border Grid.Column="2" Margin="0,0,10,0" Background="White" CornerRadius="10" Padding="14" BorderThickness="0,0,0,4" BorderBrush="#27AE60">
+                <Border.Effect><DropShadowEffect BlurRadius="10" ShadowDepth="1" Opacity="0.06"/></Border.Effect>
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="SUCCESS" FontSize="9" FontWeight="ExtraBold" Foreground="#95A5A6"/>
+                        <TextBlock Text="{Binding SuccessCount}" FontSize="26" FontWeight="ExtraBold" Foreground="#27AE60" Margin="0,2,0,0"/>
+                    </StackPanel>
+                    <TextBlock Grid.Column="1" Text="🟢" FontSize="24" Opacity="0.25" VerticalAlignment="Center"/>
+                </Grid>
+            </Border>
+
+            <!-- Warning -->
+            <Border Grid.Column="3" Margin="0,0,10,0" Background="White" CornerRadius="10" Padding="14" BorderThickness="0,0,0,4" BorderBrush="#F39C12">
+                <Border.Effect><DropShadowEffect BlurRadius="10" ShadowDepth="1" Opacity="0.06"/></Border.Effect>
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="WARNING" FontSize="9" FontWeight="ExtraBold" Foreground="#95A5A6"/>
+                        <TextBlock Text="{Binding WarningCount}" FontSize="26" FontWeight="ExtraBold" Foreground="#F39C12" Margin="0,2,0,0"/>
+                    </StackPanel>
+                    <TextBlock Grid.Column="1" Text="🟡" FontSize="24" Opacity="0.25" VerticalAlignment="Center"/>
+                </Grid>
+            </Border>
+
+            <!-- Error -->
+            <Border Grid.Column="4" Margin="0,0,10,0" Background="White" CornerRadius="10" Padding="14" BorderThickness="0,0,0,4" BorderBrush="#E74C3C">
+                <Border.Effect><DropShadowEffect BlurRadius="10" ShadowDepth="1" Opacity="0.06"/></Border.Effect>
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="ERROR" FontSize="9" FontWeight="ExtraBold" Foreground="#95A5A6"/>
+                        <TextBlock Text="{Binding ErrorCount}" FontSize="26" FontWeight="ExtraBold" Foreground="#E74C3C" Margin="0,2,0,0"/>
+                    </StackPanel>
+                    <TextBlock Grid.Column="1" Text="🟠" FontSize="24" Opacity="0.25" VerticalAlignment="Center"/>
+                </Grid>
+            </Border>
+
+            <!-- Critical -->
+            <Border Grid.Column="5" Background="White" CornerRadius="10" Padding="14" BorderThickness="0,0,0,4" BorderBrush="#C0392B">
+                <Border.Effect><DropShadowEffect BlurRadius="10" ShadowDepth="1" Opacity="0.06"/></Border.Effect>
+                <Grid>
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <TextBlock Text="CRITICAL" FontSize="9" FontWeight="ExtraBold" Foreground="#95A5A6"/>
+                        <TextBlock Text="{Binding CriticalCount}" FontSize="26" FontWeight="ExtraBold" Foreground="#C0392B" Margin="0,2,0,0"/>
+                    </StackPanel>
+                    <TextBlock Grid.Column="1" Text="🔴" FontSize="24" Opacity="0.25" VerticalAlignment="Center"/>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- ═══════════════ ROW 1: FILTERS AND ACTIONS ═══════════════ -->
+        <Border Grid.Row="1" Background="White" CornerRadius="10" Padding="14,10" Margin="0,0,0,15">
+            <Border.Effect><DropShadowEffect BlurRadius="10" ShadowDepth="1" Opacity="0.06"/></Border.Effect>
             <Grid>
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <Border Background="{StaticResource APSBlueBrush}" CornerRadius="4" Padding="10" Margin="0,0,15,0">
-                        <TextBlock Text="🚀" FontSize="20" Foreground="White" VerticalAlignment="Center"/>
-                    </Border>
-                    <StackPanel>
-                        <TextBlock Text="PRODUCTION SYSTEM MONITORING" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}"/>
-                        <TextBlock Text="Live telemetry, health tracking, and automated audit trails" Style="{StaticResource SubTitleStyle}"/>
-                    </StackPanel>
+
+                <!-- Level Filter -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,20,0">
+                    <TextBlock Text="Level:" FontSize="12" FontWeight="Bold" Foreground="#7F8C8D" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                    <ComboBox ItemsSource="{Binding Levels}" 
+                              SelectedItem="{Binding SelectedLevel}" 
+                              Style="{StaticResource ModernComboBox}" Width="120"/>
+                </StackPanel>
+
+                <!-- Event Type Filter -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,20,0">
+                    <TextBlock Text="Type:" FontSize="12" FontWeight="Bold" Foreground="#7F8C8D" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                    <ComboBox ItemsSource="{Binding EventTypes}" 
+                              SelectedItem="{Binding SelectedEventType}" 
+                              Style="{StaticResource ModernComboBox}" Width="150"/>
+                </StackPanel>
+
+                <!-- Search -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="🔍" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center" Opacity="0.5"/>
+                    <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" 
+                             Style="{StaticResource ModernTextBox}" Width="260" />
                 </StackPanel>
 
                 <!-- Actions -->
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button x:Name="TogglePause" Margin="0,0,10,0"
-                            Command="{Binding PauseLogCommand}"
+                <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Command="{Binding PauseLogCommand}"
                             Content="{Binding IsPaused, Converter={StaticResource BoolToTextConverter}, FallbackValue='⏸ Pause'}"
-                            Style="{StaticResource ModernOutlineButton}"/>
+                            Style="{StaticResource ModernOutlineButton}" Margin="0,0,8,0" Padding="12,6"/>
                     
-                    <Button Margin="0,0,10,0"
-                            Command="{Binding ToggleAutoScrollCommand}"
-                            Content="{Binding AutoScroll, Converter={StaticResource AutoScrollConverter}, FallbackValue='📜 Auto Scroll'}"
-                            Style="{StaticResource ModernOutlineButton}"/>
+                    <Button Command="{Binding ToggleAutoScrollCommand}"
+                            Content="{Binding AutoScroll, Converter={StaticResource AutoScrollConverter}}"
+                            Style="{StaticResource ModernOutlineButton}" Margin="0,0,8,0" Padding="12,6"/>
 
-                    <Button Content="🗑 Clear" Command="{Binding ClearLogCommand}" Style="{StaticResource DangerButton}" Margin="0,0,10,0"/>
-                    <Button Content="📥 Export Excel" Command="{Binding ExportLogCommand}" Style="{StaticResource ModernButton}"/>
+                    <Button Content="🗑 Clear" Command="{Binding ClearLogCommand}" Style="{StaticResource DangerButton}" Margin="0,0,8,0" Padding="12,6"/>
+                    <Button Content="📥 Export Excel" Command="{Binding ExportLogCommand}" Style="{StaticResource ModernButton}" Padding="12,6"/>
                 </StackPanel>
             </Grid>
         </Border>
 
-        <!-- FILTERS -->
-        <Border Grid.Row="1" Style="{StaticResource EnterpriseCardBorder}" Margin="0,0,0,15" Padding="15,10">
+        <!-- ═══════════════ ROW 2: TIMELINE EVENT FEED ═══════════════ -->
+        <Border Grid.Row="2" Background="White" CornerRadius="10" Padding="15,20">
+            <Border.Effect><DropShadowEffect BlurRadius="10" ShadowDepth="1" Opacity="0.06"/></Border.Effect>
+            <Grid>
+                <!-- Timeline axis line -->
+                <Line X1="40" Y1="0" X2="40" Y2="{Binding ElementName=LogFeedScroll, Path=ActualHeight}" 
+                      Stroke="#DEE2E6" StrokeThickness="1.5" StrokeDashArray="4 4" 
+                      VerticalAlignment="Stretch" HorizontalAlignment="Left"/>
+
+                <ScrollViewer x:Name="LogFeedScroll" 
+                              Style="{StaticResource FeedScrollViewerStyle}"
+                              VerticalScrollBarVisibility="Auto" 
+                              HorizontalScrollBarVisibility="Disabled">
+                    
+                    <ItemsControl ItemsSource="{Binding LogEntries}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <VirtualizingStackPanel IsItemsHost="True"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Margin="0,0,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <!-- Timeline circle -->
+                                        <ColumnDefinition Width="80"/>
+                                        <!-- Card -->
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- ── TIMELINE NODE ── -->
+                                    <Grid Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,6,0,0">
+                                        <Border Width="28" Height="28" 
+                                                Background="{Binding Level, Converter={StaticResource LevelToBrush}, ConverterParameter=Background}" 
+                                                BorderBrush="{Binding Level, Converter={StaticResource LevelToBrush}, ConverterParameter=Foreground}" 
+                                                BorderThickness="2" CornerRadius="14">
+                                            <TextBlock Text="{Binding Level, Converter={StaticResource LevelToBrush}, ConverterParameter=Icon}" 
+                                                       FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                    </Grid>
+
+                                    <!-- ── EVENT CARD ── -->
+                                    <Border Grid.Column="1" CornerRadius="8" Padding="16,14" Cursor="Hand">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="#FAFCFF"/>
+                                                <Setter Property="BorderBrush" Value="#E8ECF0"/>
+                                                <Setter Property="BorderThickness" Value="1"/>
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="Background" Value="#F4F8FD"/>
+                                                        <Setter Property="BorderBrush" Value="{Binding Level, Converter={StaticResource LevelToBrush}, ConverterParameter=Foreground}"/>
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <!-- Row 0: Header (Time + Level + Action/Type) -->
+                                                <RowDefinition Height="Auto"/>
+                                                <!-- Row 1: Details message -->
+                                                <RowDefinition Height="Auto"/>
+                                                <!-- Row 2: Identity & Entity Section -->
+                                                <RowDefinition Height="Auto"/>
+                                                <!-- Row 3: Infrastructure & Diagnostics -->
+                                                <RowDefinition Height="Auto"/>
+                                                <!-- Row 4: Audit Trail (Old/New Values) -->
+                                                <RowDefinition Height="Auto"/>
+                                                <!-- Row 5: Exception -->
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+
+                                            <!-- ══ ROW 0: HEADER ══ -->
+                                            <Grid Grid.Row="0">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+
+                                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                    <!-- Timestamp -->
+                                                    <TextBlock Text="🕒" FontSize="10" Foreground="#BDC3C7" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                                    <TextBlock Text="{Binding Timestamp, StringFormat=HH:mm:ss.fff}" 
+                                                               Foreground="#2980B9" FontWeight="Bold" FontSize="12" 
+                                                               VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                                    
+                                                    <!-- Date -->
+                                                    <TextBlock Text="{Binding Timestamp, StringFormat=dd/MM/yyyy}" 
+                                                               Foreground="#BDC3C7" FontSize="10" 
+                                                               VerticalAlignment="Center" Margin="0,0,12,0"/>
+
+                                                    <!-- Level Badge -->
+                                                    <Border Background="{Binding Level, Converter={StaticResource LevelToBrush}, ConverterParameter=Background}" 
+                                                            CornerRadius="10" Padding="10,2" VerticalAlignment="Center" Margin="0,0,10,0">
+                                                        <TextBlock Text="{Binding Level}" 
+                                                                   Foreground="{Binding Level, Converter={StaticResource LevelToBrush}, ConverterParameter=Foreground}" 
+                                                                   FontWeight="ExtraBold" FontSize="9"/>
+                                                    </Border>
+
+                                                    <!-- EventType Badge -->
+                                                    <Border Background="#EBF5FB" CornerRadius="4" Padding="8,2" VerticalAlignment="Center" Margin="0,0,6,0"
+                                                            Visibility="{Binding EventType, Converter={StaticResource StringToVis}}">
+                                                        <TextBlock Text="{Binding EventType}" Foreground="#2980B9" FontSize="10" FontWeight="Bold"/>
+                                                    </Border>
+
+                                                    <!-- Action Badge -->
+                                                    <Border Background="#FEF9E7" CornerRadius="4" Padding="8,2" VerticalAlignment="Center"
+                                                            Visibility="{Binding Action, Converter={StaticResource StringToVis}}">
+                                                        <TextBlock Text="{Binding Action}" Foreground="#D35400" FontSize="10" FontWeight="Bold"/>
+                                                    </Border>
+                                                </StackPanel>
+
+                                                <!-- Right side: Source -->
+                                                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center"
+                                                            Visibility="{Binding Source, Converter={StaticResource StringToVis}}">
+                                                    <TextBlock Text="Nguồn: " Foreground="#BDC3C7" FontSize="10"/>
+                                                    <Border Background="#F2F4F8" BorderBrush="#E8ECF0" BorderThickness="1" CornerRadius="3" Padding="6,2">
+                                                        <TextBlock Text="{Binding Source}" Foreground="#7F8C8D" FontSize="9.5" FontFamily="Consolas"/>
+                                                    </Border>
+                                                </StackPanel>
+                                            </Grid>
+
+                                            <!-- ══ ROW 1: DETAILS MESSAGE ══ -->
+                                            <Border Grid.Row="1" Margin="0,8,0,0"
+                                                    Visibility="{Binding Details, Converter={StaticResource StringToVis}}">
+                                                <TextBlock Text="{Binding Details}" 
+                                                           Foreground="#2C3E50" FontSize="12.5" 
+                                                           TextWrapping="Wrap" LineHeight="19"/>
+                                            </Border>
+
+                                            <!-- ══ ROW 2: IDENTITY & ENTITY SECTION ══ -->
+                                            <Border Grid.Row="2" Margin="0,10,0,0">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <!-- Show if any identity/entity field has data -->
+                                                            <DataTrigger Binding="{Binding HasIdentityInfo}" Value="True">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <WrapPanel Orientation="Horizontal">
+                                                    <!-- User -->
+                                                    <Border Margin="0,0,8,4" Padding="6,3" Background="#F8F9FA" CornerRadius="4" 
+                                                            Visibility="{Binding Username, Converter={StaticResource StringToVis}}">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock Text="👤" FontSize="10" Margin="0,0,4,0"/>
+                                                            <TextBlock Text="{Binding Username}" Foreground="#2C3E50" FontSize="10.5" FontWeight="SemiBold"/>
+                                                        </StackPanel>
+                                                    </Border>
+
+                                                    <!-- UserId -->
+                                                    <Border Margin="0,0,8,4" Padding="6,3" Background="#F8F9FA" CornerRadius="4"
+                                                            Visibility="{Binding UserId, Converter={StaticResource StringToVis}}">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock Text="🆔" FontSize="10" Margin="0,0,4,0"/>
+                                                            <TextBlock Text="{Binding UserId}" Foreground="#7F8C8D" FontSize="10" FontFamily="Consolas"/>
+                                                        </StackPanel>
+                                                    </Border>
+
+                                                    <!-- Plate -->
+                                                    <Border Margin="0,0,8,4" Padding="6,3" Background="#EAFAF1" CornerRadius="4"
+                                                            Visibility="{Binding Plate, Converter={StaticResource StringToVis}}">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock Text="🚗" FontSize="10" Margin="0,0,4,0"/>
+                                                            <TextBlock Text="{Binding Plate}" Foreground="#27AE60" FontSize="10.5" FontWeight="Bold"/>
+                                                        </StackPanel>
+                                                    </Border>
+
+                                                    <!-- EntityName + EntityId -->
+                                                    <Border Margin="0,0,8,4" Padding="6,3" Background="#FEF9E7" CornerRadius="4"
+                                                            Visibility="{Binding EntityName, Converter={StaticResource StringToVis}}">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock Text="🏷️" FontSize="10" Margin="0,0,4,0"/>
+                                                            <TextBlock Text="{Binding EntityName}" Foreground="#D35400" FontSize="10" FontWeight="SemiBold"/>
+                                                            <TextBlock Text=" #" Foreground="#BDC3C7" FontSize="10" Visibility="{Binding EntityId, Converter={StaticResource StringToVis}}"/>
+                                                            <TextBlock Text="{Binding EntityId}" Foreground="#E67E22" FontSize="10" FontFamily="Consolas"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </WrapPanel>
+                                            </Border>
+
+                                            <!-- ══ ROW 3: INFRASTRUCTURE & DIAGNOSTICS ══ -->
+                                            <Border Grid.Row="3" Margin="0,6,0,0">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding HasInfraInfo}" Value="True">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <Border Background="#FAFAFA" CornerRadius="6" Padding="12,8" BorderBrush="#EAECEF" BorderThickness="1">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+
+                                                        <!-- Column 1: Machine/IP/Device -->
+                                                        <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                                            <Grid Margin="0,0,0,3" Visibility="{Binding MachineName, Converter={StaticResource StringToVis}}">
+                                                                <TextBlock Text="🖥️ Machine:" FontSize="10" Foreground="#95A5A6"/>
+                                                                <TextBlock Text="{Binding MachineName}" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Right" Foreground="#2C3E50"/>
+                                                            </Grid>
+                                                            <Grid Margin="0,0,0,3" Visibility="{Binding IpAddress, Converter={StaticResource StringToVis}}">
+                                                                <TextBlock Text="🌐 IP:" FontSize="10" Foreground="#95A5A6"/>
+                                                                <TextBlock Text="{Binding IpAddress}" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Right" Foreground="#2C3E50" FontFamily="Consolas"/>
+                                                            </Grid>
+                                                            <Grid Margin="0,0,0,3" Visibility="{Binding DeviceName, Converter={StaticResource StringToVis}}">
+                                                                <TextBlock Text="📱 Device:" FontSize="10" Foreground="#95A5A6"/>
+                                                                <TextBlock Text="{Binding DeviceName}" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Right" Foreground="#2C3E50"/>
+                                                            </Grid>
+                                                        </StackPanel>
+
+                                                        <!-- Column 2: Session/Correlation -->
+                                                        <StackPanel Grid.Column="1" Margin="10,0">
+                                                            <Grid Margin="0,0,0,3" Visibility="{Binding SessionId, Converter={StaticResource StringToVis}}">
+                                                                <TextBlock Text="🔑 Session:" FontSize="10" Foreground="#95A5A6"/>
+                                                                <TextBlock Text="{Binding SessionId}" FontSize="9" HorizontalAlignment="Right" Foreground="#7F8C8D" FontFamily="Consolas" 
+                                                                           TextTrimming="CharacterEllipsis" MaxWidth="140" ToolTip="{Binding SessionId}"/>
+                                                            </Grid>
+                                                            <Grid Margin="0,0,0,3" Visibility="{Binding CorrelationId, Converter={StaticResource StringToVis}}">
+                                                                <TextBlock Text="🔗 Trace:" FontSize="10" Foreground="#95A5A6"/>
+                                                                <TextBlock Text="{Binding CorrelationId}" FontSize="9" HorizontalAlignment="Right" Foreground="#7F8C8D" FontFamily="Consolas"
+                                                                           TextTrimming="CharacterEllipsis" MaxWidth="140" ToolTip="{Binding CorrelationId}"/>
+                                                            </Grid>
+                                                            <Grid Margin="0,0,0,3" Visibility="{Binding TestName, Converter={StaticResource StringToVis}}">
+                                                                <TextBlock Text="🧪 Test:" FontSize="10" Foreground="#95A5A6"/>
+                                                                <TextBlock Text="{Binding TestName}" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Right" Foreground="#E74C3C"/>
+                                                            </Grid>
+                                                        </StackPanel>
+
+                                                        <!-- Column 3: Performance Metrics -->
+                                                        <StackPanel Grid.Column="2" Margin="10,0,0,0">
+                                                            <Grid Margin="0,0,0,3" Visibility="{Binding DurationMs, Converter={StaticResource NullableToVis}}">
+                                                                <TextBlock Text="⏱️ Duration:" FontSize="10" Foreground="#95A5A6"/>
+                                                                <TextBlock Text="{Binding DurationMs, StringFormat='{}{0} ms'}" FontSize="10" FontWeight="Bold" HorizontalAlignment="Right" Foreground="#27AE60"/>
+                                                            </Grid>
+                                                            <Grid Margin="0,0,0,3" Visibility="{Binding RetryCount, Converter={StaticResource NullableToVis}}">
+                                                                <TextBlock Text="🔄 Retries:" FontSize="10" Foreground="#95A5A6"/>
+                                                                <TextBlock Text="{Binding RetryCount}" FontSize="10" FontWeight="Bold" HorizontalAlignment="Right" Foreground="#F39C12"/>
+                                                            </Grid>
+                                                            <Grid Margin="0,0,0,3" Visibility="{Binding FileSize, Converter={StaticResource NullableToVis}}">
+                                                                <TextBlock Text="💾 Size:" FontSize="10" Foreground="#95A5A6"/>
+                                                                <TextBlock Text="{Binding FileSize, StringFormat='{}{0} bytes'}" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Right" Foreground="#2C3E50"/>
+                                                            </Grid>
+                                                            <!-- IsRecovered badge -->
+                                                            <Border Margin="0,3,0,0" Background="#E3F2FD" BorderBrush="#BBDEFB" BorderThickness="1" CornerRadius="4" Padding="6,2"
+                                                                    Visibility="{Binding IsRecovered, Converter={StaticResource NullableToVis}}">
+                                                                <StackPanel Orientation="Horizontal">
+                                                                    <TextBlock Text="☁️" FontSize="10" Margin="0,0,4,0"/>
+                                                                    <TextBlock Text="Đồng bộ từ Offline Cache" FontSize="9" FontWeight="Bold" Foreground="#1976D2"/>
+                                                                </StackPanel>
+                                                            </Border>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Border>
+                                            </Border>
+
+                                            <!-- ══ ROW 4: AUDIT TRAIL (Old → New Values) ══ -->
+                                            <Border Grid.Row="4" Margin="0,8,0,0">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding HasAuditTrail}" Value="True">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+
+                                                    <!-- Old Values -->
+                                                    <Border Grid.Column="0" Background="#FFF5F5" BorderBrush="#FFCDD2" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,0,4,0"
+                                                            Visibility="{Binding OldValues, Converter={StaticResource StringToVis}}">
+                                                        <DockPanel>
+                                                            <TextBlock DockPanel.Dock="Top" Text="🔴 Previous State" FontSize="9" FontWeight="Bold" Foreground="#C62828" Margin="0,0,0,6"/>
+                                                            <ScrollViewer MaxHeight="100" VerticalScrollBarVisibility="Auto">
+                                                                <TextBlock Text="{Binding OldValues}" FontFamily="Consolas" FontSize="9.5" Foreground="#555" TextWrapping="Wrap"/>
+                                                            </ScrollViewer>
+                                                        </DockPanel>
+                                                    </Border>
+
+                                                    <!-- Arrow -->
+                                                    <TextBlock Grid.Column="1" Text="➡️" VerticalAlignment="Center" Margin="6,0" FontSize="14" Opacity="0.4"/>
+
+                                                    <!-- New Values -->
+                                                    <Border Grid.Column="2" Background="#E8F5E9" BorderBrush="#C8E6C9" BorderThickness="1" CornerRadius="6" Padding="10" Margin="4,0,0,0"
+                                                            Visibility="{Binding NewValues, Converter={StaticResource StringToVis}}">
+                                                        <DockPanel>
+                                                            <TextBlock DockPanel.Dock="Top" Text="🟢 Updated State" FontSize="9" FontWeight="Bold" Foreground="#2E7D32" Margin="0,0,0,6"/>
+                                                            <ScrollViewer MaxHeight="100" VerticalScrollBarVisibility="Auto">
+                                                                <TextBlock Text="{Binding NewValues}" FontFamily="Consolas" FontSize="9.5" Foreground="#222" TextWrapping="Wrap"/>
+                                                            </ScrollViewer>
+                                                        </DockPanel>
+                                                    </Border>
+                                                </Grid>
+                                            </Border>
+
+                                            <!-- ══ ROW 5: EXCEPTION ══ -->
+                                            <Border Grid.Row="5" Background="#FFF5F5" BorderBrush="#FFEBEE" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,8,0,0"
+                                                    Visibility="{Binding Exception, Converter={StaticResource StringToVis}}">
+                                                <DockPanel>
+                                                    <TextBlock DockPanel.Dock="Top" Text="⚠️ Exception Stack Trace" FontSize="9" FontWeight="Bold" Foreground="#E74C3C" Margin="0,0,0,6"/>
+                                                    <ScrollViewer MaxHeight="120" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                                                        <TextBlock Text="{Binding Exception}" FontFamily="Consolas" FontSize="9" Foreground="#D32F2F" TextWrapping="Wrap"/>
+                                                    </ScrollViewer>
+                                                </DockPanel>
+                                            </Border>
+
+                                            <!-- ══ ADDITIONAL DATA ══ -->
+                                            <Border Grid.Row="5" Margin="0,8,0,0" Background="#F8F9FA" BorderBrush="#E8ECF0" BorderThickness="1" CornerRadius="4" Padding="8"
+                                                    Visibility="{Binding AdditionalData, Converter={StaticResource StringToVis}}">
+                                                <DockPanel>
+                                                    <TextBlock DockPanel.Dock="Top" Text="🔧 Additional Payload" FontSize="9" FontWeight="Bold" Foreground="#7F8C8D" Margin="0,0,0,4"/>
+                                                    <ScrollViewer MaxHeight="80" VerticalScrollBarVisibility="Auto">
+                                                        <TextBlock Text="{Binding AdditionalData}" FontFamily="Consolas" FontSize="9" Foreground="#555" TextWrapping="Wrap"/>
+                                                    </ScrollViewer>
+                                                </DockPanel>
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+
+        <!-- ═══════════════ ROW 3: PAGING FOOTER ═══════════════ -->
+        <Border Grid.Row="3" Background="White" CornerRadius="10" Margin="0,15,0,0" Padding="15,10">
+            <Border.Effect><DropShadowEffect BlurRadius="10" ShadowDepth="1" Opacity="0.06"/></Border.Effect>
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,20,0">
-                    <TextBlock Text="Level:" Style="{StaticResource BaseTextBlockStyle}" Margin="0,0,10,0" Foreground="{StaticResource TextSecondaryBrush}"/>
-                    <ComboBox ItemsSource="{Binding Levels}" 
-                                SelectedItem="{Binding SelectedLevel}" 
-                                Style="{StaticResource ModernComboBox}" 
-                                Width="120" />
-                </StackPanel>
-
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,20,0">
-                    <TextBlock Text="Type:" Style="{StaticResource BaseTextBlockStyle}" Margin="0,0,10,0" Foreground="{StaticResource TextSecondaryBrush}"/>
-                    <ComboBox ItemsSource="{Binding EventTypes}" 
-                                SelectedItem="{Binding SelectedEventType}" 
-                                Style="{StaticResource ModernComboBox}" 
-                                Width="150" />
-                </StackPanel>
+                <TextBlock Grid.Column="0" Text="{Binding TotalItems, StringFormat='{}Tổng: {0} bản ghi'}" 
+                           FontSize="12" FontWeight="Bold" Foreground="#7F8C8D" VerticalAlignment="Center"/>
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="Search:" Style="{StaticResource BaseTextBlockStyle}" Margin="0,0,10,0" Foreground="{StaticResource TextSecondaryBrush}"/>
-                    <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" 
-                               Style="{StaticResource ModernTextBox}" 
-                               Width="250" />
-                </StackPanel>
-                
-                <StackPanel Grid.Column="3" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <TextBlock Text="{Binding TotalItems, StringFormat='{}Total Entries: {0}'}" Style="{StaticResource SubTitleStyle}" FontWeight="Bold"/>
+                    <TextBlock Text="Hiển thị:" FontSize="12" Foreground="#95A5A6" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                    <ComboBox Width="80" Style="{StaticResource ModernComboBox}" SelectedItem="{Binding PageSize, Mode=TwoWay}" Margin="0,0,20,0">
+                        <sys:Int32>25</sys:Int32>
+                        <sys:Int32>50</sys:Int32>
+                        <sys:Int32>100</sys:Int32>
+                        <sys:Int32>200</sys:Int32>
+                    </ComboBox>
+
+                    <Button Content="◀" Width="36" Height="30" Command="{Binding PrevPageCommand}" Style="{StaticResource ModernOutlineButton}" Margin="0,0,10,0"/>
+
+                    <TextBlock Text="{Binding CurrentPage}" FontSize="14" FontWeight="ExtraBold" Foreground="#2980B9" VerticalAlignment="Center"/>
+                    <TextBlock Text=" / " FontSize="12" Foreground="#BDC3C7" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding TotalPages}" FontSize="12" Foreground="#95A5A6" VerticalAlignment="Center" Margin="0,0,10,0"/>
+
+                    <Button Content="▶" Width="36" Height="30" Command="{Binding NextPageCommand}" Style="{StaticResource ModernOutlineButton}"/>
                 </StackPanel>
             </Grid>
-        </Border>
-
-        <!-- MAIN DATA GRID -->
-        <Border Grid.Row="2" Style="{StaticResource EnterpriseCardBorder}" Padding="1">
-            <DataGrid x:Name="LogGrid" ItemsSource="{Binding LogEntries}" 
-                      Style="{StaticResource ModernDataGrid}"
-                      EnableRowVirtualization="True"
-                      VirtualizingPanel.IsVirtualizing="True"
-                      VirtualizingPanel.VirtualizationMode="Recycling"
-                      ScrollViewer.CanContentScroll="True">
-                
-                <DataGrid.RowDetailsTemplate>
-                    <DataTemplate>
-                        <Border Background="{StaticResource BgLightBrush}" Padding="15" Margin="5" CornerRadius="4" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                
-                                <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                                    <TextBlock Text="Telemetric Info" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}" Margin="0,0,0,8"/>
-                                    <TextBlock Text="{Binding DurationMs, StringFormat='{}⏱ Duration: {0} ms'}" Style="{StaticResource BaseTextBlockStyle}" Margin="0,0,0,4" Visibility="{Binding DurationMs, Converter={StaticResource StringToVisibilityConverter}}"/>
-                                    <TextBlock Text="{Binding RetryCount, StringFormat='{}🔄 Retries: {0}'}" Style="{StaticResource BaseTextBlockStyle}" Margin="0,0,0,4" Visibility="{Binding RetryCount, Converter={StaticResource StringToVisibilityConverter}}"/>
-                                    <TextBlock Text="{Binding FileSize, StringFormat='{}💾 Size: {0} bytes'}" Style="{StaticResource BaseTextBlockStyle}" Visibility="{Binding FileSize, Converter={StaticResource StringToVisibilityConverter}}"/>
-                                    <TextBlock Text="{Binding TestName, StringFormat='{}🧪 Test: {0}'}" Style="{StaticResource BaseTextBlockStyle}" Margin="0,8,0,0" Foreground="{StaticResource APSRedBrush}" Visibility="{Binding TestName, Converter={StaticResource StringToVisibilityConverter}}"/>
-                                </StackPanel>
-                                
-                                <StackPanel Grid.Column="1" Margin="0,0,10,0">
-                                    <TextBlock Text="System Context" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,8"/>
-                                    <TextBlock Text="{Binding MachineName, StringFormat='{}Machine: {0}'}" Style="{StaticResource BaseTextBlockStyle}" Margin="0,0,0,2"/>
-                                    <TextBlock Text="{Binding IpAddress, StringFormat='{}IP: {0}'}" Style="{StaticResource BaseTextBlockStyle}" Margin="0,0,0,2"/>
-                                    <TextBlock Text="{Binding CorrelationId, StringFormat='{}Trace ID: {0}'}" Style="{StaticResource BaseTextBlockStyle}"/>
-                                </StackPanel>
-                                
-                                <StackPanel Grid.Column="2">
-                                    <TextBlock Text="Metadata &amp; Errors" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,8"/>
-                                    <TextBlock Text="{Binding AdditionalData, StringFormat='{}Data: {0}'}" Style="{StaticResource BaseTextBlockStyle}" TextWrapping="Wrap" MaxHeight="60" Visibility="{Binding AdditionalData, Converter={StaticResource StringToVisibilityConverter}}"/>
-                                    <TextBlock Text="{Binding Exception}" Foreground="{StaticResource DangerBrush}" TextWrapping="Wrap" Margin="0,10,0,0" FontSize="11" FontFamily="Consolas"/>
-                                </StackPanel>
-                            </Grid>
-                        </Border>
-                    </DataTemplate>
-                </DataGrid.RowDetailsTemplate>
-
-                <DataGrid.Columns>
-                    <DataGridTextColumn Header="TIME" Binding="{Binding Timestamp, StringFormat=HH:mm:ss.fff}" Width="110" />
-                    
-                    <DataGridTemplateColumn Header="LEVEL" Width="100">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate>
-                                <Border CornerRadius="4" Padding="8,2" HorizontalAlignment="Left" MinWidth="80">
-                                    <Border.Style>
-                                        <Style TargetType="Border">
-                                            <Setter Property="Background" Value="{StaticResource BorderLightBrush}"/>
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding Level}" Value="Success">
-                                                    <Setter Property="Background" Value="#E8F5E9"/>
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding Level}" Value="Info">
-                                                    <Setter Property="Background" Value="#E3F2FD"/>
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding Level}" Value="Warning">
-                                                    <Setter Property="Background" Value="#FFF3E0"/>
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding Level}" Value="Error">
-                                                    <Setter Property="Background" Value="#FFEBEE"/>
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding Level}" Value="Critical">
-                                                    <Setter Property="Background" Value="#212121"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Border.Style>
-                                    
-                                    <TextBlock Text="{Binding Level}" FontWeight="Bold" FontSize="10" HorizontalAlignment="Center">
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}"/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding Level}" Value="Success">
-                                                        <Setter Property="Foreground" Value="{StaticResource SuccessBrush}"/>
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding Level}" Value="Info">
-                                                        <Setter Property="Foreground" Value="{StaticResource InfoBrush}"/>
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding Level}" Value="Warning">
-                                                        <Setter Property="Foreground" Value="{StaticResource WarningBrush}"/>
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding Level}" Value="Error">
-                                                        <Setter Property="Foreground" Value="{StaticResource DangerBrush}"/>
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding Level}" Value="Critical">
-                                                        <Setter Property="Foreground" Value="White"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                </Border>
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
-
-                    <DataGridTemplateColumn Header="TYPE" Width="120">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate>
-                                <StackPanel Orientation="Horizontal">
-                                    <Ellipse Width="8" Height="8" Margin="0,0,8,0">
-                                        <Ellipse.Style>
-                                            <Style TargetType="Ellipse">
-                                                <Setter Property="Fill" Value="{StaticResource TextMutedBrush}"/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding EventType}" Value="Reconnect">
-                                                        <Setter Property="Fill" Value="{StaticResource APSBlueBrush}"/>
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding EventType}" Value="Backup">
-                                                        <Setter Property="Fill" Value="{StaticResource SuccessBrush}"/>
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding EventType}" Value="Restore">
-                                                        <Setter Property="Fill" Value="#9C27B0"/>
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding EventType}" Value="QaTest">
-                                                        <Setter Property="Fill" Value="{StaticResource APSRedBrush}"/>
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding EventType}" Value="Exception">
-                                                        <Setter Property="Fill" Value="{StaticResource DangerBrush}"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Ellipse.Style>
-                                    </Ellipse>
-                                    <TextBlock Text="{Binding EventType}" Style="{StaticResource BaseTextBlockStyle}" VerticalAlignment="Center"/>
-                                </StackPanel>
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
-                    
-                    <DataGridTextColumn Header="SOURCE" Binding="{Binding Source}" Width="120" />
-                    <DataGridTextColumn Header="USER" Binding="{Binding Username}" Width="100" />
-                    <DataGridTextColumn Header="PLATE" Binding="{Binding Plate}" Width="100" />
-                    
-                    <DataGridTemplateColumn Header="DETAILS" Width="*">
-                        <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding Details}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Details}" Style="{StaticResource BaseTextBlockStyle}"/>
-                            </DataTemplate>
-                        </DataGridTemplateColumn.CellTemplate>
-                    </DataGridTemplateColumn>
-                </DataGrid.Columns>
-            </DataGrid>
-        </Border>
-
-        <!-- PAGING FOOTER -->
-        <Border Grid.Row="3" Style="{StaticResource EnterpriseCardBorder}" Margin="0,15,0,0" Padding="15,10">
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <TextBlock Text="Entries per page:" Style="{StaticResource SubTitleStyle}" Margin="0,0,10,0" VerticalAlignment="Center"/>
-                <ComboBox Width="80" Style="{StaticResource ModernComboBox}" SelectedItem="{Binding PageSize, Mode=TwoWay}" Margin="0,0,20,0">
-                    <sys:Int32>25</sys:Int32>
-                    <sys:Int32>50</sys:Int32>
-                    <sys:Int32>100</sys:Int32>
-                    <sys:Int32>200</sys:Int32>
-                </ComboBox>
-
-                <Button Content="◀" Width="40" Command="{Binding PrevPageCommand}" Style="{StaticResource ModernOutlineButton}" Margin="0,0,15,0" Padding="5"/>
-
-                <TextBlock Text="{Binding CurrentPage}" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}" VerticalAlignment="Center"/>
-                <TextBlock Text="/" Style="{StaticResource BaseTextBlockStyle}" Margin="5,0" VerticalAlignment="Center" Foreground="{StaticResource TextMutedBrush}"/>
-                <TextBlock Text="{Binding TotalPages}" Style="{StaticResource BaseTextBlockStyle}" Margin="0,0,15,0" VerticalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}"/>
-
-                <Button Content="▶" Width="40" Command="{Binding NextPageCommand}" Style="{StaticResource ModernOutlineButton}" Padding="5"/>
-            </StackPanel>
         </Border>
     </Grid>
 </Window>

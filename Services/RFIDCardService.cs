@@ -108,6 +108,13 @@ namespace QuanLyGiuXe.Services
             var ngayHetHan = model.NgayHetHan;
 
             await db.InsertRFIDCardAsync(model.CardUID, model.BienSo ?? string.Empty, model.CardName ?? string.Empty, model.LoaiVeId ?? 0, model.LoaiXeId ?? 0, model.TrangThai ?? string.Empty, ngayDangKy, ngayHetHan);
+
+            try
+            {
+                var newValues = new { model.CardUID, model.BienSo, model.CardName, model.LoaiVeId, model.LoaiXeId, model.TrangThai, NgayDangKy = ngayDangKy, NgayHetHan = ngayHetHan };
+                LoggingService.Instance.LogCrud("CARD_REGISTERED", "RFIDCard", model.CardUID, null, newValues, source: "RFIDCardService", details: $"Đăng ký thẻ RFID mới UID: {model.CardUID}, Biển số: {model.BienSo}");
+            }
+            catch { }
         }
 
         public async Task UpdateAsync(RFIDCards model)
@@ -115,14 +122,33 @@ namespace QuanLyGiuXe.Services
             AuthorizationGuard.Protect("RFID_UPDATE", "Update RFID Card");
             if (model == null || model.Id <= 0) throw new ArgumentException("Model không hợp lệ");
 
+            var previous = await GetByIdAsync(model.Id);
+            var oldValues = previous == null ? null : new { previous.CardUID, previous.BienSo, previous.CardName, previous.LoaiVeId, previous.LoaiXeId, previous.TrangThai, previous.NgayDangKy, previous.NgayHetHan };
+            var newValues = new { model.CardUID, model.BienSo, model.CardName, model.LoaiVeId, model.LoaiXeId, model.TrangThai, model.NgayDangKy, model.NgayHetHan };
+
             await db.UpdateRFIDCardAsync(model.Id, model.CardUID ?? string.Empty, model.BienSo ?? string.Empty, model.CardName ?? string.Empty, model.LoaiVeId ?? 0, model.LoaiXeId ?? 0, model.TrangThai ?? string.Empty, model.NgayDangKy, model.NgayHetHan);
+
+            try
+            {
+                LoggingService.Instance.LogCrud("CARD_UPDATED", "RFIDCard", model.Id.ToString(), oldValues, newValues, source: "RFIDCardService", details: $"Cập nhật thẻ RFID UID: {model.CardUID}");
+            }
+            catch { }
         }
 
         public async Task DeleteAsync(int id)
         {
             AuthorizationGuard.Protect("RFID_DELETE", "Delete RFID Card");
             if (id <= 0) throw new ArgumentException("ID không hợp lệ");
+            var previous = await GetByIdAsync(id);
+            var oldValues = previous == null ? null : new { previous.CardUID, previous.BienSo, previous.CardName, previous.LoaiVeId, previous.LoaiXeId, previous.TrangThai, previous.NgayDangKy, previous.NgayHetHan };
+
             await db.DeleteRFIDCardAsync(id);
+
+            try
+            {
+                LoggingService.Instance.LogCrud("CARD_DELETED", "RFIDCard", id.ToString(), oldValues, null, source: "RFIDCardService", details: $"Xóa thẻ RFID ID: {id}, UID: {previous?.CardUID}");
+            }
+            catch { }
         }
 
         public async System.Threading.Tasks.Task<RFIDCards?> GetByIdAsync(int id)
@@ -150,7 +176,18 @@ namespace QuanLyGiuXe.Services
         {
             AuthorizationGuard.Protect("RFID_RENEW", "Renew RFID Card");
             if (id <= 0 || soThang <= 0) throw new ArgumentException("Tham số không hợp lệ");
+            var previous = await GetByIdAsync(id);
+            var oldValues = previous == null ? null : new { previous.CardUID, previous.BienSo, previous.CardName, previous.TrangThai, previous.NgayHetHan };
+
             await db.GiaHanRFIDCardAsync(id, soThang);
+
+            try
+            {
+                var updated = await GetByIdAsync(id);
+                var newValues = updated == null ? null : new { updated.CardUID, updated.BienSo, updated.CardName, updated.TrangThai, updated.NgayHetHan };
+                LoggingService.Instance.LogCrud("CARD_RENEWED", "RFIDCard", id.ToString(), oldValues, newValues, source: "RFIDCardService", details: $"Gia hạn thẻ RFID {soThang} tháng. UID: {previous?.CardUID}");
+            }
+            catch { }
 
             // Optimistic offline cache update
             try

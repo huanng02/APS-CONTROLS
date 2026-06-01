@@ -116,24 +116,32 @@ namespace QuanLyGiuXe.Services.OfflineCache
                 }
 
                 string reason = ex is OperationCanceledException ? "TIMEOUT" : "ERROR";
-                LoggingService.Instance.LogWarning("QUEUE_ADD", "Repository", $"SQL WRITE {reason} for {transactionType}. Adding to Offline Queue.");
-                
-                // Fingerprint to prevent duplicates during sync
-                string finger = $"{transactionType}_{DateTime.UtcNow.Ticks}";
-                try
-                {
-                    // Check if payload has a Fingerprint property safely
-                    var prop = payload?.GetType().GetProperty("Fingerprint");
-                    if (prop != null)
-                    {
-                        var val = prop.GetValue(payload);
-                        if (val != null) finger = val.ToString()!;
-                    }
-                }
-                catch { }
 
-                // Enqueue for background sync
-                await OfflineQueueService.Instance.EnqueueAsync(transactionType, payload, finger);
+                if (transactionType != "INSERT_LOG")
+                {
+                    LoggingService.Instance.LogWarning("QUEUE_ADD", "Repository", $"SQL WRITE {reason} for {transactionType}. Adding to Offline Queue.");
+                    
+                    // Fingerprint to prevent duplicates during sync
+                    string finger = $"{transactionType}_{DateTime.UtcNow.Ticks}";
+                    try
+                    {
+                        // Check if payload has a Fingerprint property safely
+                        var prop = payload?.GetType().GetProperty("Fingerprint");
+                        if (prop != null)
+                        {
+                            var val = prop.GetValue(payload);
+                            if (val != null) finger = val.ToString()!;
+                        }
+                    }
+                    catch { }
+
+                    // Enqueue for background sync
+                    await OfflineQueueService.Instance.EnqueueAsync(transactionType, payload, finger);
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"⚠️ [ConnectivityAwareRepository] SQL WRITE failed for INSERT_LOG: {ex.Message}");
+                }
 
                 // Update local cache immediately so subsequent READs see the new state
                 if (localCacheUpdater != null)
@@ -141,7 +149,10 @@ namespace QuanLyGiuXe.Services.OfflineCache
                     try { await localCacheUpdater(); }
                     catch (Exception cacheEx)
                     {
-                        LoggingService.Instance.LogWarning("CACHE_UPDATE", "Repository", $"Failed to update local cache after offline write: {cacheEx.Message}");
+                        if (transactionType != "INSERT_LOG")
+                        {
+                            LoggingService.Instance.LogWarning("CACHE_UPDATE", "Repository", $"Failed to update local cache after offline write: {cacheEx.Message}");
+                        }
                     }
                 }
 

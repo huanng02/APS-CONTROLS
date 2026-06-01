@@ -102,11 +102,18 @@ namespace QuanLyGiuXe.Services.Connection
         {
             // 1. Kiểm tra sức khỏe
             bool isHealthy = await resource.CheckHealthAsync(token);
+            var oldState = ConnectionStateService.Instance.GetState(resource.ResourceId);
 
             if (isHealthy)
             {
                 ConnectionStateService.Instance.UpdateState(resource.ResourceId, ConnectionState.Connected);
                 _retryCounts[resource.ResourceId] = 0; // Reset số lần thử nếu ok
+
+                if (oldState != ConnectionState.Connected)
+                {
+                    string displayName = ConnectionStateService.Instance.GetDisplayName(resource.ResourceId);
+                    LoggingService.Instance.LogInfo("CONNECTION", resource.ResourceId, $"{displayName} connected successfully.");
+                }
             }
             else
             {
@@ -116,9 +123,6 @@ namespace QuanLyGiuXe.Services.Connection
                 
                 ConnectionStateService.Instance.UpdateState(resource.ResourceId, ConnectionState.Reconnecting);
                 
-                TimeSpan delay = RetryPolicy.GetNextDelay(retries);
-                LoggingService.Instance.LogInfo("CONNECTION", resource.ResourceId, $"Lost connection. Retry #{retries} in {delay.TotalSeconds}s");
-
                 // Thử kết nối lại
                 bool success = await resource.ReconnectAsync(token);
                 
@@ -126,12 +130,26 @@ namespace QuanLyGiuXe.Services.Connection
                 {
                     ConnectionStateService.Instance.UpdateState(resource.ResourceId, ConnectionState.Connected);
                     _retryCounts[resource.ResourceId] = 0;
+
+                    if (oldState != ConnectionState.Connected)
+                    {
+                        string displayName = ConnectionStateService.Instance.GetDisplayName(resource.ResourceId);
+                        LoggingService.Instance.LogInfo("CONNECTION", resource.ResourceId, $"{displayName} reconnected successfully.");
+                    }
                 }
                 else
                 {
                     if (retries >= 5) // Sau 5 lần thất bại liên tiếp
                     {
                         ConnectionStateService.Instance.UpdateState(resource.ResourceId, ConnectionState.Failed);
+                        
+                        // Log only once when transitioning to failed state to avoid spamming the log feed
+                        if (oldState != ConnectionState.Failed)
+                        {
+                            string displayName = ConnectionStateService.Instance.GetDisplayName(resource.ResourceId);
+                            LoggingService.Instance.LogError("CONNECTION", resource.ResourceId, $"{displayName} connection failed (persistently offline).", null);
+                        }
+
                         // Chỉ hiện toast cảnh báo định kỳ để không spam
                         if (retries % 5 == 0 && resource.Type != ResourceType.Camera)
                         {
@@ -142,6 +160,13 @@ namespace QuanLyGiuXe.Services.Connection
                     else
                     {
                         ConnectionStateService.Instance.UpdateState(resource.ResourceId, ConnectionState.Disconnected);
+
+                        // Log only once when transitioning from online to offline
+                        if (oldState == ConnectionState.Connected)
+                        {
+                            string displayName = ConnectionStateService.Instance.GetDisplayName(resource.ResourceId);
+                            LoggingService.Instance.LogWarning("CONNECTION", resource.ResourceId, $"{displayName} disconnected. Retrying reconnection...");
+                        }
                     }
                 }
             }

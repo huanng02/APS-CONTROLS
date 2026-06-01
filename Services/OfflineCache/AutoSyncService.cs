@@ -16,6 +16,7 @@ namespace QuanLyGiuXe.Services.OfflineCache
 
         private CancellationTokenSource? _cts;
         private bool _isStarted = false;
+        private DateTime _lastLookupSyncTime = DateTime.MinValue;
 
         private AutoSyncService() { }
 
@@ -45,8 +46,12 @@ namespace QuanLyGiuXe.Services.OfflineCache
                     // Only sync if Online
                     if (ConnectivityStateService.Instance.IsOnline)
                     {
-                        // 1. Sync Lookups periodically (e.g., every 5 minutes or if queue empty)
-                        await OfflineCacheService.Instance.SyncLookupTablesAsync();
+                        // 1. Sync Lookups periodically (e.g., every 5 minutes)
+                        if (DateTime.UtcNow - _lastLookupSyncTime >= TimeSpan.FromMinutes(5))
+                        {
+                            await OfflineCacheService.Instance.SyncLookupTablesAsync();
+                            _lastLookupSyncTime = DateTime.UtcNow;
+                        }
 
                         // 2. Process Pending Queue
                         var pending = await OfflineQueueService.Instance.GetPendingAsync();
@@ -293,6 +298,7 @@ namespace QuanLyGiuXe.Services.OfflineCache
 
                 // 1. Sync lookup tables
                 await OfflineCacheService.Instance.SyncLookupTablesAsync();
+                _lastLookupSyncTime = DateTime.UtcNow;
 
                 // 2. Process pending queue
                 var pending = await OfflineQueueService.Instance.GetPendingAsync();

@@ -58,5 +58,28 @@ namespace QuanLyGiuXe.Services
         public string? TestName { get; set; }
         public bool? IsRecovered { get; set; }
         public string? AdditionalData { get; set; } // JSON format
+
+        // Computed helpers for timeline UI section visibility
+        public bool HasIdentityInfo =>
+            !string.IsNullOrWhiteSpace(Username) ||
+            !string.IsNullOrWhiteSpace(UserId) ||
+            !string.IsNullOrWhiteSpace(Plate) ||
+            !string.IsNullOrWhiteSpace(EntityName);
+
+        public bool HasInfraInfo =>
+            !string.IsNullOrWhiteSpace(MachineName) ||
+            !string.IsNullOrWhiteSpace(IpAddress) ||
+            !string.IsNullOrWhiteSpace(DeviceName) ||
+            !string.IsNullOrWhiteSpace(SessionId) ||
+            !string.IsNullOrWhiteSpace(CorrelationId) ||
+            !string.IsNullOrWhiteSpace(TestName) ||
+            DurationMs.HasValue ||
+            RetryCount.HasValue ||
+            FileSize.HasValue ||
+            (IsRecovered.HasValue && IsRecovered.Value);
+
+        public bool HasAuditTrail =>
+            !string.IsNullOrWhiteSpace(OldValues) ||
+            !string.IsNullOrWhiteSpace(NewValues);
     }
 }

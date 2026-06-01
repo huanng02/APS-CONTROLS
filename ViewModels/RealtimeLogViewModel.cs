@@ -112,6 +112,13 @@ namespace QuanLyGiuXe.ViewModels
             set { _totalItems = value; OnPropertyChanged(nameof(TotalItems)); }
         }
 
+        // ── SOC Live Metric Counters ──
+        private int _infoCount; public int InfoCount { get => _infoCount; set { _infoCount = value; OnPropertyChanged(nameof(InfoCount)); } }
+        private int _successCount; public int SuccessCount { get => _successCount; set { _successCount = value; OnPropertyChanged(nameof(SuccessCount)); } }
+        private int _warningCount; public int WarningCount { get => _warningCount; set { _warningCount = value; OnPropertyChanged(nameof(WarningCount)); } }
+        private int _errorCount; public int ErrorCount { get => _errorCount; set { _errorCount = value; OnPropertyChanged(nameof(ErrorCount)); } }
+        private int _criticalCount; public int CriticalCount { get => _criticalCount; set { _criticalCount = value; OnPropertyChanged(nameof(CriticalCount)); } }
+
         // Commands
         public ICommand ClearLogCommand { get; }
         public ICommand PauseLogCommand { get; }
@@ -127,6 +134,7 @@ namespace QuanLyGiuXe.ViewModels
             ClearLogCommand = new RelayCommand(_ => {
                 lock (_lockObj) { _fullLogEntries.Clear(); }
                 RefreshPagedLogs();
+                RecalculateStats();
             });
             
             PauseLogCommand = new RelayCommand(_ => IsPaused = !IsPaused);
@@ -266,6 +274,8 @@ namespace QuanLyGiuXe.ViewModels
                 {
                     LogEntries.Add(item);
                 }
+
+                RecalculateStats();
             }));
         }
 
@@ -302,6 +312,18 @@ namespace QuanLyGiuXe.ViewModels
                     RefreshPagedLogs();
                 }
             }, TaskScheduler.Default);
+        }
+
+        private void RecalculateStats()
+        {
+            lock (_lockObj)
+            {
+                InfoCount = _fullLogEntries.Count(e => string.Equals(e.Level, "Info", StringComparison.OrdinalIgnoreCase));
+                SuccessCount = _fullLogEntries.Count(e => string.Equals(e.Level, "Success", StringComparison.OrdinalIgnoreCase));
+                WarningCount = _fullLogEntries.Count(e => string.Equals(e.Level, "Warning", StringComparison.OrdinalIgnoreCase));
+                ErrorCount = _fullLogEntries.Count(e => string.Equals(e.Level, "Error", StringComparison.OrdinalIgnoreCase));
+                CriticalCount = _fullLogEntries.Count(e => string.Equals(e.Level, "Critical", StringComparison.OrdinalIgnoreCase));
+            }
         }
 
         private void ExportLogs()
