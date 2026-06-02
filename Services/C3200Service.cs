@@ -53,6 +53,10 @@ namespace QuanLyGiuXe.Services
             CallingConvention = CallingConvention.StdCall)]
         private static extern int PLPullLastError();
 
+        [DllImport("plcommpro.dll", EntryPoint = "GetDeviceParam",
+            CharSet = CharSet.Ansi, CallingConvention = CallingConvention.StdCall)]
+        private static extern int PLGetDeviceParam(IntPtr handle, StringBuilder buffer, int bufferSize, string itemValues);
+
         // ──────────────────────────────────────────────────────────────────────────
 
         private IntPtr _handle = IntPtr.Zero;
@@ -115,11 +119,13 @@ namespace QuanLyGiuXe.Services
                 {
                     LastError = $"Kết nối thất bại (sdkError={GetSdkError()})";
                     _handle = IntPtr.Zero;
+                    DetectedLockCount = -1;
                     OnConnectionChanged?.Invoke(false);
                     return false;
                 }
 
                 _handle = handle;
+                DetectedLockCount = GetLockCount(handle); // Query model capabilities immediately upon connect (before polling start)
                 OnConnectionChanged?.Invoke(true);
                 StartPolling();
                 return true;
@@ -127,6 +133,40 @@ namespace QuanLyGiuXe.Services
             source: "C3200Service.Connect", 
             defaultValue: false,
             friendlyMessage: "Không thể kết nối với bộ điều khiển C3-200. Vui lòng kiểm tra mạng.");
+        }
+
+        public int DetectedLockCount { get; private set; } = -1;
+
+        public int GetLockCount(IntPtr specificHandle = default)
+        {
+            // If checking on already connected device, return cached lock count to avoid active SDK polling contention
+            if (specificHandle == IntPtr.Zero)
+            {
+                if (IsConnected && DetectedLockCount > 0)
+                {
+                    return DetectedLockCount;
+                }
+                return -1;
+            }
+
+            lock (_globalSdkLock)
+            {
+                var buffer = new StringBuilder(256);
+                int ret = PLGetDeviceParam(specificHandle, buffer, buffer.Capacity, "LockCount");
+                if (ret >= 0)
+                {
+                    string resultStr = buffer.ToString();
+                    if (!string.IsNullOrEmpty(resultStr) && resultStr.Contains("LockCount="))
+                    {
+                        var parts = resultStr.Split('=');
+                        if (parts.Length > 1 && int.TryParse(parts[1].Trim(), out var lockCount))
+                        {
+                            return lockCount;
+                        }
+                    }
+                }
+                return -1;
+            }
         }
 
         public void Disconnect()
@@ -139,6 +179,7 @@ namespace QuanLyGiuXe.Services
                     try { PLDisconnect(_handle); } catch { }
                     _handle = IntPtr.Zero;
                 }
+                DetectedLockCount = -1;
             }
         }
 

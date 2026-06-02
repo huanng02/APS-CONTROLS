@@ -1,6 +1,7 @@
 using System.IO;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using QuanLyGiuXe.Models;
 
 namespace QuanLyGiuXe.Services
 {
@@ -79,6 +80,7 @@ namespace QuanLyGiuXe.Services
 
     public sealed class ZKTecoConfig
     {
+        public ControllerType ControllerType { get; set; } = ControllerType.C3200;
         public string Protocol { get; set; } = "TCP";
         public string IpAddress { get; set; } = "192.168.1.201";
         public int TcpPort { get; set; } = 4370;

@@ -44,6 +44,7 @@ namespace QuanLyGiuXe
                     if ((b2.Items[i] as ComboBoxItem)?.Tag?.ToString() == act2) { b2.SelectedIndex = i; break; }
                 }
             }
+            LoadControllerTypeSelection();
         }
 
         // =============================
@@ -347,7 +348,61 @@ namespace QuanLyGiuXe
             var b2c = this.FindName("Button2ActionCombo") as ComboBox;
             if (b1c != null) b1c.SelectedIndex = 1; // default OpenThisDoor
             if (b2c != null) b2c.SelectedIndex = 1;
+            LoadControllerTypeSelection();
             MessageBox.Show("Đã reset về mặc định", "Reset", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        private void ControllerTypeCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            UpdateCapabilitySummary();
+        }
+
+        private void UpdateControllerTypeSelection(ControllerType type)
+        {
+            if (ControllerTypeCombo == null) return;
+            string typeStr = type.ToString();
+            for (int i = 0; i < ControllerTypeCombo.Items.Count; i++)
+            {
+                if ((ControllerTypeCombo.Items[i] as ComboBoxItem)?.Tag?.ToString() == typeStr)
+                {
+                    ControllerTypeCombo.SelectedIndex = i;
+                    break;
+                }
+            }
+            UpdateCapabilitySummary();
+        }
+
+        private void UpdateCapabilitySummary()
+        {
+            if (ControllerTypeCombo == null || ReaderCountText == null || RelayCountText == null || MaxLanesText == null) return;
+            
+            if (ControllerTypeCombo.SelectedItem is ComboBoxItem selectedItem && 
+                Enum.TryParse<ControllerType>(selectedItem.Tag?.ToString(), out var selectedType))
+            {
+                var capability = ControllerCapabilityRegistry.GetCapability(selectedType);
+                ReaderCountText.Text = capability.ReaderCount.ToString();
+                RelayCountText.Text = capability.RelayCount.ToString();
+                MaxLanesText.Text = capability.MaxSupportedLanes.ToString();
+            }
+        }
+
+        private void LoadControllerTypeSelection()
+        {
+            if (ControllerTypeCombo == null) return;
+            var selectedTypeStr = _cfg.ZKTeco.ControllerType.ToString();
+            for (int i = 0; i < ControllerTypeCombo.Items.Count; i++)
+            {
+                if ((ControllerTypeCombo.Items[i] as ComboBoxItem)?.Tag?.ToString() == selectedTypeStr)
+                {
+                    ControllerTypeCombo.SelectedIndex = i;
+                    break;
+                }
+            }
+            if (ControllerTypeCombo.SelectedIndex == -1)
+            {
+                ControllerTypeCombo.SelectedIndex = 0;
+            }
+            UpdateCapabilitySummary();
         }
 
 
@@ -478,11 +533,39 @@ namespace QuanLyGiuXe
                     int.TryParse(BarrierBox.Text, out var b) ? b : 5);
 
                 var ok = await C3200Service.Instance.ConnectAsync();
-                MessageBox.Show(ok ? "Kết nối thành công" : $"Kết nối thất bại: {C3200Service.Instance.LastError}", "Test kết nối");
+                if (ok)
+                {
+                    int lockCount = C3200Service.Instance.GetLockCount();
+                    string typeMsg = "";
+                    if (lockCount == 2)
+                    {
+                        typeMsg = "\n\nNhận diện thiết bị: C3-200 (2 rơ-le / cổng).";
+                        UpdateControllerTypeSelection(ControllerType.C3200);
+                    }
+                    else if (lockCount == 4)
+                    {
+                        typeMsg = "\n\nNhận diện thiết bị: C3-400 (4 rơ-le / cổng).";
+                        UpdateControllerTypeSelection(ControllerType.C3400);
+                    }
+                    else if (lockCount == 1)
+                    {
+                        typeMsg = "\n\nNhận diện thiết bị: C3-100 (1 rơ-le / cổng).";
+                    }
+                    else
+                    {
+                        typeMsg = $"\n\nKhông nhận dạng được dòng tủ (LockCount={lockCount}).";
+                    }
+
+                    MessageBox.Show($"Kết nối thành công!{typeMsg}", "Test kết nối", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else
+                {
+                    MessageBox.Show($"Kết nối thất bại: {C3200Service.Instance.LastError}", "Test kết nối", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Lỗi: {ex.Message}", "Test kết nối");
+                MessageBox.Show($"Lỗi: {ex.Message}", "Test kết nối", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -538,12 +621,59 @@ namespace QuanLyGiuXe
                 var prevBtn1 = _cfg.ZKTeco.Button1Action;
                 var prevBtn2 = _cfg.ZKTeco.Button2Action;
 
-                _cfg.ZKTeco.IpAddress = IpBox.Text;
-                _cfg.ZKTeco.TcpPort = int.TryParse(PortBox.Text, out var p) ? p : _cfg.ZKTeco.TcpPort;
-                _cfg.ZKTeco.Password = PwdBox.Text;
-                _cfg.ZKTeco.Timeout = int.TryParse(TimeoutBox.Text, out var t) ? t : _cfg.ZKTeco.Timeout;
-                _cfg.ZKTeco.BarrierDuration = int.TryParse(BarrierBox.Text, out var b) ? b : _cfg.ZKTeco.BarrierDuration;
-                _cfg.ZKTeco.CardCooldownMs = int.TryParse(CooldownBox.Text, out var c) ? c : _cfg.ZKTeco.CardCooldownMs;
+                string targetIp = IpBox.Text;
+                int targetPort = int.TryParse(PortBox.Text, out var p) ? p : _cfg.ZKTeco.TcpPort;
+                string targetPwd = PwdBox.Text;
+                int targetTimeout = int.TryParse(TimeoutBox.Text, out var t) ? t : _cfg.ZKTeco.Timeout;
+                int targetBarrier = int.TryParse(BarrierBox.Text, out var b) ? b : _cfg.ZKTeco.BarrierDuration;
+                int targetCooldown = int.TryParse(CooldownBox.Text, out var c) ? c : _cfg.ZKTeco.CardCooldownMs;
+
+                // Configure service to test connection with new values
+                C3200Service.Instance.Configure(targetIp, targetPort, targetPwd, targetTimeout, targetBarrier);
+
+                ControllerType activeType = ControllerType.C3200; // default/fallback
+                if (ControllerTypeCombo?.SelectedItem is ComboBoxItem typeItem &&
+                    Enum.TryParse<ControllerType>(typeItem.Tag?.ToString(), out var parsedType))
+                {
+                    activeType = parsedType;
+                }
+
+                // Auto-detect actual model by connecting
+                bool isConnected = await C3200Service.Instance.ConnectAsync();
+                if (isConnected)
+                {
+                    int lockCount = C3200Service.Instance.GetLockCount();
+                    if (lockCount == 2)
+                    {
+                        activeType = ControllerType.C3200;
+                        UpdateControllerTypeSelection(ControllerType.C3200);
+                    }
+                    else if (lockCount == 4)
+                    {
+                        activeType = ControllerType.C3400;
+                        UpdateControllerTypeSelection(ControllerType.C3400);
+                    }
+                }
+                else
+                {
+                    var confirm = MessageBox.Show(
+                        $"Không thể kết nối đến tủ điều khiển để tự động nhận dạng loại thiết bị.\n\nHệ thống sẽ tiếp tục kiểm tra và lưu cấu hình với loại tủ hiện tại: {activeType}.\n\nBạn có muốn tiếp tục lưu không?",
+                        "Cảnh báo kết nối",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Warning);
+                    
+                    if (confirm != MessageBoxResult.Yes)
+                    {
+                        return; // Abort save
+                    }
+                }
+
+                _cfg.ZKTeco.IpAddress = targetIp;
+                _cfg.ZKTeco.TcpPort = targetPort;
+                _cfg.ZKTeco.Password = targetPwd;
+                _cfg.ZKTeco.Timeout = targetTimeout;
+                _cfg.ZKTeco.BarrierDuration = targetBarrier;
+                _cfg.ZKTeco.CardCooldownMs = targetCooldown;
 
                 // ForceMode obsolete
                 _cfg.ZKTeco.ForceAllIn = false;
@@ -589,6 +719,14 @@ namespace QuanLyGiuXe
                 ExtractReaderMap(3, R3LaneCombo, R3DirCombo, R3EnableCheck);
                 ExtractReaderMap(4, R4LaneCombo, R4DirCombo, R4EnableCheck);
 
+                var validationResult = ControllerLaneValidationService.Instance.ValidateLaneCapacity(activeType, newMappings);
+                if (!validationResult.IsValid)
+                {
+                    MessageBox.Show(validationResult.ErrorMessage, "Lỗi cấu hình làn", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return; // Block save
+                }
+
+                _cfg.ZKTeco.ControllerType = activeType;
                 ReaderLaneMappingService.Instance.UpdateMappings(newMappings);
 
                 // Auto-sync lane direction based on consistency analysis
