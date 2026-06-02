@@ -610,6 +610,8 @@ namespace QuanLyGiuXe
         {
             try
             {
+                var prevMappings = ReaderLaneMappingService.Instance.GetAll();
+                var prevControllerType = _cfg.ZKTeco.ControllerType;
                 var prevIp = _cfg.ZKTeco.IpAddress;
                 var prevPort = _cfg.ZKTeco.TcpPort;
                 var prevPwd = _cfg.ZKTeco.Password;
@@ -620,6 +622,23 @@ namespace QuanLyGiuXe
                 var prevForceOut = _cfg.ZKTeco.ForceAllOut;
                 var prevBtn1 = _cfg.ZKTeco.Button1Action;
                 var prevBtn2 = _cfg.ZKTeco.Button2Action;
+
+                var prevVehicleTypes = new Dictionary<int, (int? id, string name)>();
+                void CapturePrevVehicleType(int readerNo, ComboBox laneCombo)
+                {
+                    if (laneCombo.SelectedItem is LaneConfig lane)
+                    {
+                        prevVehicleTypes[readerNo] = (lane.LoaiXeId, lane.LoaiXeName);
+                    }
+                    else
+                    {
+                        prevVehicleTypes[readerNo] = (null, "Hỗn hợp");
+                    }
+                }
+                CapturePrevVehicleType(1, R1LaneCombo);
+                CapturePrevVehicleType(2, R2LaneCombo);
+                CapturePrevVehicleType(3, R3LaneCombo);
+                CapturePrevVehicleType(4, R4LaneCombo);
 
                 string targetIp = IpBox.Text;
                 int targetPort = int.TryParse(PortBox.Text, out var p) ? p : _cfg.ZKTeco.TcpPort;
@@ -766,13 +785,16 @@ namespace QuanLyGiuXe
                 var changes = new System.Text.StringBuilder();
                 void AddChange(string name, object oldV, object newV)
                 {
-                    if ((oldV?.ToString() ?? string.Empty) != (newV?.ToString() ?? string.Empty))
+                    string oldStr = oldV?.ToString() ?? string.Empty;
+                    string newStr = newV?.ToString() ?? string.Empty;
+                    if (oldStr != newStr)
                     {
                         if (changes.Length > 0) changes.Append("; ");
-                        changes.Append($"{name}: '{oldV}' -> '{newV}'");
+                        changes.Append($"{name}: '{oldStr}' -> '{newStr}'");
                     }
                 }
 
+                AddChange("Loại thiết bị", prevControllerType, _cfg.ZKTeco.ControllerType);
                 AddChange("IpAddress", prevIp, _cfg.ZKTeco.IpAddress);
                 AddChange("TcpPort", prevPort, _cfg.ZKTeco.TcpPort);
                 AddChange("Password", string.IsNullOrEmpty(prevPwd) ? "(empty)" : "(redacted)", string.IsNullOrEmpty(_cfg.ZKTeco.Password) ? "(empty)" : "(redacted)");
@@ -783,7 +805,63 @@ namespace QuanLyGiuXe
                 AddChange("ForceAllOut", prevForceOut, _cfg.ZKTeco.ForceAllOut);
                 AddChange("Button1Action", prevBtn1, _cfg.ZKTeco.Button1Action);
                 AddChange("Button2Action", prevBtn2, _cfg.ZKTeco.Button2Action);
-                AddChange("ReaderMappings", "updated", "updated");
+
+                // Check for reader mapping changes
+                for (int r = 1; r <= 4; r++)
+                {
+                    var prevMap = prevMappings.FirstOrDefault(m => m.ReaderNo == r);
+                    var newMap = newMappings.FirstOrDefault(m => m.ReaderNo == r);
+
+                    if (newMap != null)
+                    {
+                        bool isMapChanged = false;
+                        if (prevMap == null)
+                        {
+                            isMapChanged = true;
+                        }
+                        else if (prevMap.LaneId != newMap.LaneId ||
+                                 prevMap.Direction != newMap.Direction ||
+                                 prevMap.IsEnabled != newMap.IsEnabled)
+                        {
+                            isMapChanged = true;
+                        }
+
+                        if (isMapChanged)
+                        {
+                            string oldMapStr = prevMap != null 
+                                ? $"Làn {prevMap.LaneId} ({prevMap.Direction}, {(prevMap.IsEnabled ? "Bật" : "Tắt")})" 
+                                : "Chưa cấu hình";
+                            string newMapStr = $"Làn {newMap.LaneId} ({newMap.Direction}, {(newMap.IsEnabled ? "Bật" : "Tắt")})";
+                            
+                            if (changes.Length > 0) changes.Append("; ");
+                            changes.Append($"Đầu đọc {r}: {oldMapStr} -> {newMapStr}");
+                        }
+                    }
+                }
+
+                // Check for vehicle type changes
+                void CheckVehicleTypeChange(int readerNo, ComboBox laneCombo, ComboBox vehicleTypeCombo)
+                {
+                    if (laneCombo.SelectedItem is LaneConfig lane && vehicleTypeCombo.SelectedItem is LoaiXe selectedType)
+                    {
+                        int? newLoaiXeId = selectedType.Id > 0 ? selectedType.Id : (int?)null;
+                        string newLoaiXeName = selectedType.Id > 0 ? selectedType.TenLoai : "Hỗn hợp";
+                        
+                        if (prevVehicleTypes.TryGetValue(readerNo, out var prevVal))
+                        {
+                            if (prevVal.id != newLoaiXeId)
+                            {
+                                string oldName = string.IsNullOrEmpty(prevVal.name) ? "Hỗn hợp" : prevVal.name;
+                                if (changes.Length > 0) changes.Append("; ");
+                                changes.Append($"Loại xe Làn {lane.LaneCode} (Đầu đọc {readerNo}): '{oldName}' -> '{newLoaiXeName}'");
+                            }
+                        }
+                    }
+                }
+                CheckVehicleTypeChange(1, R1LaneCombo, R1VehicleTypeCombo);
+                CheckVehicleTypeChange(2, R2LaneCombo, R2VehicleTypeCombo);
+                CheckVehicleTypeChange(3, R3LaneCombo, R3VehicleTypeCombo);
+                CheckVehicleTypeChange(4, R4LaneCombo, R4VehicleTypeCombo);
 
                 _cfg.Save();
 
@@ -808,7 +886,24 @@ namespace QuanLyGiuXe
 
                 if (changes.Length > 0)
                 {
-                    try { LoggingService.Instance.LogAudit("CONFIG_CHANGED_UI", "C3200Settings", "config.json", null, new { Diffs = changes.ToString() }, source: "C3200SettingsWindow", details: $"Config updated via UI: {changes}"); } catch { }
+                    string activeSiteName = (SiteCombo.SelectedItem as ParkingSite)?.SiteName ?? SiteCombo.Text ?? "(Chưa chọn)";
+                    string activeGateName = (ZoneCombo.SelectedItem as ParkingGate)?.GateName ?? ZoneCombo.Text ?? "(Chưa chọn)";
+                    string activeControllerName = (TopologyCombo.SelectedItem as C3ControllerConfig)?.ControllerName ?? TopologyCombo.Text ?? "(Chưa chọn)";
+                    string auditDetails = $"Cấu hình tủ ZKTeco thay đổi tại Site: '{activeSiteName}', Cổng: '{activeGateName}', Controller: '{activeControllerName}'. Chi tiết thay đổi: {changes}";
+
+                    try 
+                    { 
+                        LoggingService.Instance.LogAudit(
+                            "CONFIG_CHANGED_UI", 
+                            "C3200Settings", 
+                            "config.json", 
+                            null, 
+                            new { Diffs = changes.ToString() }, 
+                            source: "C3200SettingsWindow", 
+                            details: auditDetails
+                        ); 
+                    } 
+                    catch { }
                 }
 
                 await RefreshSiteSelectionAsync();
