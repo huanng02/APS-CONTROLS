@@ -139,7 +139,7 @@
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right">
                                     <!-- Status / Fee Row -->
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,8">
-                                        <TextBlock Text="{Binding DataContext.Lane1TrangThai, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{StaticResource SuccessBrush}" FontWeight="Bold" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                        <TextBlock Text="{Binding DataContext.Lane1TrangThai, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{Binding DataContext.Lane1StatusColor, RelativeSource={RelativeSource AncestorType=Window}}" FontWeight="Bold" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                         <TextBlock Visibility="{Binding DataContext.Lane1FeeVisibility, RelativeSource={RelativeSource AncestorType=Window}}" Text="{Binding DataContext.Lane1Tien, RelativeSource={RelativeSource AncestorType=Window}, StringFormat='{}PHÍ: {0}'}" FontSize="13" FontWeight="Bold" Foreground="{StaticResource SuccessBrush}" VerticalAlignment="Center"/>
                                     </StackPanel>
                                     
@@ -276,7 +276,7 @@
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right">
                                     <!-- Status / Fee Row -->
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,8">
-                                        <TextBlock Text="{Binding DataContext.Lane2TrangThai, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{StaticResource WarningBrush}" FontWeight="Bold" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                        <TextBlock Text="{Binding DataContext.Lane2TrangThai, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{Binding DataContext.Lane2StatusColor, RelativeSource={RelativeSource AncestorType=Window}}" FontWeight="Bold" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
                                         <TextBlock Visibility="{Binding DataContext.Lane2FeeVisibility, RelativeSource={RelativeSource AncestorType=Window}}" Text="{Binding DataContext.Lane2Tien, RelativeSource={RelativeSource AncestorType=Window}, StringFormat='{}PHÍ: {0}'}" FontSize="13" FontWeight="Bold" Foreground="{StaticResource SuccessBrush}" VerticalAlignment="Center"/>
                                     </StackPanel>
                                     

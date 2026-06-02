@@ -57,7 +57,7 @@ namespace QuanLyGiuXe.Services
 
         private IntPtr _handle = IntPtr.Zero;
         private CancellationTokenSource? _cts;
-        private readonly object _sdkLock = new();
+        private static readonly object _globalSdkLock = new();
 
         private string _ip = "192.168.1.201";
         private int _port = 4370;
@@ -102,7 +102,10 @@ namespace QuanLyGiuXe.Services
                     IntPtr h = IntPtr.Zero;
                     foreach (var parameters in BuildConnectCandidates())
                     {
-                        h = PLConnect(parameters);
+                        lock (_globalSdkLock)
+                        {
+                            h = PLConnect(parameters);
+                        }
                         if (h != IntPtr.Zero) break;
                     }
                     return h;
@@ -129,10 +132,13 @@ namespace QuanLyGiuXe.Services
         public void Disconnect()
         {
             StopPolling();
-            if (_handle != IntPtr.Zero)
+            lock (_globalSdkLock)
             {
-                try { PLDisconnect(_handle); } catch { }
-                _handle = IntPtr.Zero;
+                if (_handle != IntPtr.Zero)
+                {
+                    try { PLDisconnect(_handle); } catch { }
+                    _handle = IntPtr.Zero;
+                }
             }
         }
 
@@ -164,7 +170,7 @@ namespace QuanLyGiuXe.Services
 
                 // Gửi lệnh ngay trên kết nối hiện tại
                 int r;
-                lock (_sdkLock)
+                lock (_globalSdkLock)
                 {
                     r = PLControlDevice(_handle, 1, doorNumber, 1, _barrierDuration, 0, "");
                 }
@@ -181,7 +187,7 @@ namespace QuanLyGiuXe.Services
                     }
 
                     StopPolling();
-                    lock (_sdkLock)
+                    lock (_globalSdkLock)
                     {
                         r = PLControlDevice(_handle, 1, doorNumber, 1, _barrierDuration, 0, "");
                     }
@@ -237,7 +243,11 @@ namespace QuanLyGiuXe.Services
             try
             {
                 // operationID=2 (CancelAlarm / close)
-                int r = PLControlDevice(_handle, 2, doorNumber, 0, 0, 0, "");
+                int r;
+                lock (_globalSdkLock)
+                {
+                    r = PLControlDevice(_handle, 2, doorNumber, 0, 0, 0, "");
+                }
                 if (r >= 0)
                 {
                     try
@@ -294,7 +304,7 @@ namespace QuanLyGiuXe.Services
                 {
                     buffer.Clear();
                     int result;
-                    lock (_sdkLock)
+                    lock (_globalSdkLock)
                     {
                         result = PLGetRTLog(_handle, buffer, buffer.Capacity);
                     }
@@ -396,7 +406,13 @@ namespace QuanLyGiuXe.Services
 
         private int GetSdkError()
         {
-            try { return PLPullLastError(); }
+            try
+            {
+                lock (_globalSdkLock)
+                {
+                    return PLPullLastError();
+                }
+            }
             catch { return -9999; }
         }
 
@@ -434,11 +450,22 @@ namespace QuanLyGiuXe.Services
                     tried.Add(p);
                     try
                     {
-                        IntPtr handle = PLConnect(p);
+                        IntPtr handle;
+                        lock (_globalSdkLock)
+                        {
+                            handle = PLConnect(p);
+                        }
                         if (handle != IntPtr.Zero)
                         {
                             // immediate disconnect
-                            try { PLDisconnect(handle); } catch { }
+                            try 
+                            { 
+                                lock (_globalSdkLock)
+                                {
+                                    PLDisconnect(handle); 
+                                }
+                            } 
+                            catch { }
                             success = true;
                             sdkErr = 0;
                             break;
@@ -446,12 +473,26 @@ namespace QuanLyGiuXe.Services
                         else
                         {
                             // read sdk error
-                            try { sdkErr = PLPullLastError(); } catch { sdkErr = -9999; }
+                            try 
+                            { 
+                                lock (_globalSdkLock)
+                                {
+                                    sdkErr = PLPullLastError(); 
+                                }
+                            } 
+                            catch { sdkErr = -9999; }
                         }
                     }
                     catch
                     {
-                        try { sdkErr = PLPullLastError(); } catch { sdkErr = -9999; }
+                        try 
+                        { 
+                            lock (_globalSdkLock)
+                            {
+                                sdkErr = PLPullLastError(); 
+                            }
+                        } 
+                        catch { sdkErr = -9999; }
                     }
                 }
 

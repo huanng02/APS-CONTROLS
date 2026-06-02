@@ -66,7 +66,12 @@ namespace QuanLyGiuXe.ViewModels
         public string Lane1TrangThai
         {
             get => _lane1TrangThai;
-            set { _lane1TrangThai = value; OnPropertyChanged(nameof(Lane1TrangThai)); }
+            set 
+            { 
+                _lane1TrangThai = value; 
+                OnPropertyChanged(nameof(Lane1TrangThai)); 
+                UpdateLaneStatusColor(1, value);
+            }
         }
 
         private string _lane1UID = "";
@@ -109,7 +114,12 @@ namespace QuanLyGiuXe.ViewModels
         public string Lane2TrangThai
         {
             get => _lane2TrangThai;
-            set { _lane2TrangThai = value; OnPropertyChanged(nameof(Lane2TrangThai)); }
+            set 
+            { 
+                _lane2TrangThai = value; 
+                OnPropertyChanged(nameof(Lane2TrangThai)); 
+                UpdateLaneStatusColor(2, value);
+            }
         }
 
         private string _lane2UID = "";
@@ -196,6 +206,20 @@ namespace QuanLyGiuXe.ViewModels
         {
             get => _lane2Color;
             set { _lane2Color = value; OnPropertyChanged(nameof(Lane2Color)); }
+        }
+
+        private System.Windows.Media.Brush _lane1StatusColor = System.Windows.Media.Brushes.Green;
+        public System.Windows.Media.Brush Lane1StatusColor
+        {
+            get => _lane1StatusColor;
+            set { _lane1StatusColor = value; OnPropertyChanged(nameof(Lane1StatusColor)); }
+        }
+
+        private System.Windows.Media.Brush _lane2StatusColor = System.Windows.Media.Brushes.Green;
+        public System.Windows.Media.Brush Lane2StatusColor
+        {
+            get => _lane2StatusColor;
+            set { _lane2StatusColor = value; OnPropertyChanged(nameof(Lane2StatusColor)); }
         }
 
         private string _lane1ButtonText = "MỞ CỔNG 1";
@@ -365,7 +389,7 @@ namespace QuanLyGiuXe.ViewModels
                     return;
                 }
 
-                bool isInbound = true;
+                string currentDir = "IN";
                 string laneName = $"LÀN {uiLaneIndex}";
                 string vehicleTypeSuffix = "Hỗn hợp";
 
@@ -376,12 +400,14 @@ namespace QuanLyGiuXe.ViewModels
                 var state = LaneRuntimeManager.Instance.GetLaneState(dbLaneId.Value);
                 if (state != null)
                 {
-                    isInbound = state.CurrentDirection == "IN";
+                    currentDir = state.CurrentDirection;
                 }
                 else if (activeMappingsForLane.Any())
                 {
-                    isInbound = activeMappingsForLane.First().Direction == "IN";
+                    currentDir = activeMappingsForLane.First().Direction;
                 }
+
+                bool isInbound = (currentDir != "OUT");
 
                 var lanes = await ParkingTopologyService.Instance.GetLanesAsync();
                 var laneDb = lanes.FirstOrDefault(l => l.Id == dbLaneId.Value);
@@ -408,18 +434,61 @@ namespace QuanLyGiuXe.ViewModels
                     Lane2TopologyText = topoText;
                 }
                 
-                string title = $"{laneName.ToUpper()} [{(isInbound ? "VÀO" : "RA")}] - {vehicleTypeSuffix.ToUpper()}";
+                string dirSuffix = "";
+                if (currentDir == "IN") dirSuffix = "VÀO";
+                else if (currentDir == "OUT") dirSuffix = "RA";
+                else if (currentDir == "MAINTENANCE") dirSuffix = "BẢO TRÌ";
+                else if (currentDir == "DISABLED") dirSuffix = "VÔ HIỆU HÓA";
 
-                var brushKey = isInbound ? "APSBlueBrush" : "APSRedBrush";
+                string title = $"{laneName.ToUpper()} [{dirSuffix}] - {vehicleTypeSuffix.ToUpper()}";
+
+                string brushKey = "APSBlueBrush";
+                if (currentDir == "OUT")
+                {
+                    brushKey = "APSRedBrush";
+                }
+                else if (currentDir == "MAINTENANCE")
+                {
+                    brushKey = "WarningBrush";
+                }
+                else if (currentDir == "DISABLED")
+                {
+                    brushKey = "TextSecondaryBrush";
+                }
+
                 var dynamicBrush = Application.Current?.Resources[brushKey] as System.Windows.Media.Brush;
+                if (dynamicBrush == null)
+                {
+                    if (brushKey == "APSBlueBrush")
+                        dynamicBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(30, 79, 163));
+                    else if (brushKey == "APSRedBrush")
+                        dynamicBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(229, 57, 85));
+                    else if (brushKey == "WarningBrush")
+                        dynamicBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 152, 0));
+                    else if (brushKey == "TextSecondaryBrush")
+                        dynamicBrush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(158, 158, 158));
+                }
 
                 if (uiLaneIndex == 1)
                 {
                     IsLane1Inbound = isInbound;
                     Lane1Title = title;
-                    Lane1InfoLabel = isInbound ? "THÔNG TIN XE VÀO" : "THÔNG TIN XE RA";
+                    Lane1InfoLabel = (currentDir == "MAINTENANCE" || currentDir == "DISABLED") ? "LÀN ĐANG BẢO TRÌ" : (isInbound ? "THÔNG TIN XE VÀO" : "THÔNG TIN XE RA");
                     Lane1ButtonText = "MỞ CỔNG 1";
                     if (dynamicBrush != null) Lane1Color = dynamicBrush;
+
+                    if (currentDir == "MAINTENANCE")
+                    {
+                        Lane1TrangThai = "Làn đang bảo trì";
+                    }
+                    else if (currentDir == "DISABLED")
+                    {
+                        Lane1TrangThai = "Làn đã vô hiệu hóa";
+                    }
+                    else if (Lane1TrangThai == "Làn đang bảo trì" || Lane1TrangThai == "Làn đã vô hiệu hóa")
+                    {
+                        Lane1TrangThai = "Chờ xe...";
+                    }
                     
                     OnPropertyChanged(nameof(Lane1FeeVisibility));
                     OnPropertyChanged(nameof(Lane1TimeVisibility));
@@ -431,9 +500,22 @@ namespace QuanLyGiuXe.ViewModels
                 {
                     IsLane2Inbound = isInbound;
                     Lane2Title = title;
-                    Lane2InfoLabel = isInbound ? "THÔNG TIN XE VÀO" : "THÔNG TIN XE RA";
+                    Lane2InfoLabel = (currentDir == "MAINTENANCE" || currentDir == "DISABLED") ? "LÀN ĐANG BẢO TRÌ" : (isInbound ? "THÔNG TIN XE VÀO" : "THÔNG TIN XE RA");
                     Lane2ButtonText = "MỞ CỔNG 2";
                     if (dynamicBrush != null) Lane2Color = dynamicBrush;
+
+                    if (currentDir == "MAINTENANCE")
+                    {
+                        Lane2TrangThai = "Làn đang bảo trì";
+                    }
+                    else if (currentDir == "DISABLED")
+                    {
+                        Lane2TrangThai = "Làn đã vô hiệu hóa";
+                    }
+                    else if (Lane2TrangThai == "Làn đang bảo trì" || Lane2TrangThai == "Làn đã vô hiệu hóa")
+                    {
+                        Lane2TrangThai = "Chờ xe...";
+                    }
                     
                     OnPropertyChanged(nameof(Lane2FeeVisibility));
                     OnPropertyChanged(nameof(Lane2TimeVisibility));
@@ -736,6 +818,8 @@ namespace QuanLyGiuXe.ViewModels
         public MainViewModel()
         {
             var cfg = AppConfig.Load();
+            UpdateLaneStatusColor(1, _lane1TrangThai);
+            UpdateLaneStatusColor(2, _lane2TrangThai);
 
             DanhSachXe = new ObservableCollection<Xe>();
             DanhSachXe.CollectionChanged += (_, _) => OnPropertyChanged(nameof(SoXeTrongBai));
@@ -1401,6 +1485,46 @@ namespace QuanLyGiuXe.ViewModels
         {
             if (lane == 1) Lane1TrangThai = msg;
             else Lane2TrangThai = msg;
+        }
+
+        private void UpdateLaneStatusColor(int lane, string status)
+        {
+            System.Windows.Media.Brush brush = null;
+            if (string.IsNullOrEmpty(status))
+            {
+                brush = Application.Current?.Resources["SuccessBrush"] as System.Windows.Media.Brush;
+            }
+            else if (status.Contains("❌") || status.Contains("Lỗi") || status.Contains("Làn đang bảo trì"))
+            {
+                brush = Application.Current?.Resources["DangerBrush"] as System.Windows.Media.Brush;
+            }
+            else if (status.Contains("⚠") || status.Contains("Cảnh báo") || status.Contains("bảo trì"))
+            {
+                brush = Application.Current?.Resources["WarningBrush"] as System.Windows.Media.Brush;
+            }
+            else if (status.Contains("vô hiệu hóa") || status.Contains("Vô hiệu hóa"))
+            {
+                brush = Application.Current?.Resources["TextSecondaryBrush"] as System.Windows.Media.Brush;
+            }
+            else
+            {
+                brush = Application.Current?.Resources["SuccessBrush"] as System.Windows.Media.Brush;
+            }
+
+            if (brush == null)
+            {
+                if (status != null && (status.Contains("❌") || status.Contains("Lỗi")))
+                    brush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.Red);
+                else if (status != null && (status.Contains("⚠") || status.Contains("bảo trì")))
+                    brush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 152, 0));
+                else if (status != null && status.Contains("vô hiệu hóa"))
+                    brush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(158, 158, 158));
+                else
+                    brush = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Colors.Green);
+            }
+
+            if (lane == 1) Lane1StatusColor = brush;
+            else Lane2StatusColor = brush;
         }
 
         private void SetLaneUID(int lane, string uid)
