@@ -1189,6 +1189,16 @@ namespace QuanLyGiuXe.Services
 
         public async Task<bool> SaveLaneAsync(LaneConfig lane)
         {
+            if (lane == null) return false;
+
+            // Enforce direction consistency rules
+            var analysis = LaneDirectionConsistencyService.Instance.AnalyzeLaneDirection(lane.Id);
+            var targetDir = lane.Direction.ToLaneDirection();
+            if ((lane.Direction == "IN" || lane.Direction == "OUT") && !analysis.AllowedDirections.Contains(targetDir))
+            {
+                throw new InvalidOperationException($"Không thể lưu làn ở trạng thái {lane.Direction} do cấu hình đầu đọc không nhất quán (tất cả đầu đọc của làn này đều là chiều ngược lại).");
+            }
+
             bool isNew = lane.Id == 0;
             LaneConfig? previous = null;
             if (!isNew)
@@ -1316,11 +1326,28 @@ namespace QuanLyGiuXe.Services
                         }
                     }
                     await OfflineCacheService.Instance.SaveCacheAsync("LIST_LANES", lanes);
+                    try
+                    {
+                        LaneRuntimeManager.Instance.SetLaneDirection(lane.Id, lane.Direction);
+                    }
+                    catch { }
                 }
             );
 
             if (success)
             {
+                try
+                {
+                    EventBus.Instance.InvalidateTopologyCache();
+                }
+                catch { }
+
+                try
+                {
+                    LaneRuntimeManager.Instance.SetLaneDirection(lane.Id, lane.Direction);
+                }
+                catch { }
+
                 try
                 {
                     LoggingService.Instance.LogCrud(

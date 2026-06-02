@@ -28,6 +28,23 @@ namespace QuanLyGiuXe
             // Khởi động Backup Scheduler
             QuanLyGiuXe.Services.Backup.BackupScheduler.Instance.Start();
 
+            // Run tests if --test argument is passed
+            if (e.Args.Contains("--test"))
+            {
+                try
+                {
+                    QuanLyGiuXe.Tests.LaneDirectionConsistencyTests.Run();
+                    this.Shutdown(0);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("TEST FAILURE: " + ex.Message);
+                    LoggingService.Instance.LogError("TestRun", "App", "Tests failed", ex);
+                    this.Shutdown(1);
+                }
+                return;
+            }
+
             StartLoginFlow();
         }
 

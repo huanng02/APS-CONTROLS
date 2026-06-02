@@ -309,16 +309,99 @@ namespace QuanLyGiuXe.ViewModels
 
         private async Task SyncLaneUIStateAsync(int uiLaneIndex)
         {
-            int? dbLaneId = GetDbLaneIdForUiIndex(uiLaneIndex);
-
-            if (dbLaneId == null)
+            try
             {
-                if (uiLaneIndex == 2)
+                int? dbLaneId = GetDbLaneIdForUiIndex(uiLaneIndex);
+
+                if (dbLaneId == null)
                 {
-                    Lane2Title = "LÀN 2 [CHƯA CẤU HÌNH]";
-                    Lane2TopologyText = "Chưa gán đầu đọc hoạt động";
-                    Lane2InfoLabel = "THÔNG TIN XE RA";
-                    Lane2Color = (System.Windows.Media.Brush)Application.Current.Resources["APSRedBrush"];
+                    if (uiLaneIndex == 2)
+                    {
+                        Lane2Title = "LÀN 2 [CHƯA CẤU HÌNH]";
+                        Lane2TopologyText = "Chưa gán đầu đọc hoạt động";
+                        Lane2InfoLabel = "THÔNG TIN XE RA";
+                        
+                        var redBrush = Application.Current?.Resources["APSRedBrush"] as System.Windows.Media.Brush;
+                        if (redBrush != null) Lane2Color = redBrush;
+                        
+                        OnPropertyChanged(nameof(Lane2FeeVisibility));
+                        OnPropertyChanged(nameof(Lane2TimeVisibility));
+                        OnPropertyChanged(nameof(Lane2ReaderMappingIn));
+                        OnPropertyChanged(nameof(Lane2ReaderMappingOut));
+                        OnPropertyChanged(nameof(Lane2ReaderMappingEmpty));
+                    }
+                    return;
+                }
+
+                bool isInbound = true;
+                string laneName = $"LÀN {uiLaneIndex}";
+                string vehicleTypeSuffix = "Hỗn hợp";
+
+                var activeMappingsForLane = ReaderLaneMappingService.Instance.GetAll()
+                    .Where(m => m.IsEnabled && m.LaneId == dbLaneId.Value)
+                    .ToList();
+
+                var state = LaneRuntimeManager.Instance.GetLaneState(dbLaneId.Value);
+                if (state != null)
+                {
+                    isInbound = state.CurrentDirection == "IN";
+                }
+                else if (activeMappingsForLane.Any())
+                {
+                    isInbound = activeMappingsForLane.First().Direction == "IN";
+                }
+
+                var lanes = await ParkingTopologyService.Instance.GetLanesAsync();
+                var laneDb = lanes.FirstOrDefault(l => l.Id == dbLaneId.Value);
+                if (laneDb != null)
+                {
+                    laneName = laneDb.LaneName;
+                    vehicleTypeSuffix = (laneDb.LoaiXeId.HasValue && !string.IsNullOrEmpty(laneDb.LoaiXeName)) 
+                        ? laneDb.LoaiXeName 
+                        : "Hỗn hợp";
+                }
+                
+                var (_, zoneId, _, siteName, zoneName, maxCapacity, _, gateName) = await ResolveTopologyForLaneAsync(dbLaneId.Value);
+                string displayLocation = !string.IsNullOrEmpty(gateName) ? $"Cổng: {gateName}" : (!string.IsNullOrEmpty(zoneName) ? $"Zone: {zoneName}" : "Chưa cấu hình");
+                string topoText = string.IsNullOrEmpty(siteName) ? "Chưa cấu hình Cổng" : $"Site: {siteName} - {displayLocation}";
+                int count = 0;
+                if (zoneId.HasValue) count = await db.GetXeTrongBaiCountByZoneAsync(zoneId.Value);
+
+                if (uiLaneIndex == 1)
+                {
+                    Lane1TopologyText = topoText;
+                }
+                else
+                {
+                    Lane2TopologyText = topoText;
+                }
+                
+                string title = $"{laneName.ToUpper()} [{(isInbound ? "VÀO" : "RA")}] - {vehicleTypeSuffix.ToUpper()}";
+
+                var brushKey = isInbound ? "APSBlueBrush" : "APSRedBrush";
+                var dynamicBrush = Application.Current?.Resources[brushKey] as System.Windows.Media.Brush;
+
+                if (uiLaneIndex == 1)
+                {
+                    IsLane1Inbound = isInbound;
+                    Lane1Title = title;
+                    Lane1InfoLabel = isInbound ? "THÔNG TIN XE VÀO" : "THÔNG TIN XE RA";
+                    Lane1ButtonText = "MỞ CỔNG 1";
+                    if (dynamicBrush != null) Lane1Color = dynamicBrush;
+                    
+                    OnPropertyChanged(nameof(Lane1FeeVisibility));
+                    OnPropertyChanged(nameof(Lane1TimeVisibility));
+                    OnPropertyChanged(nameof(Lane1ReaderMappingIn));
+                    OnPropertyChanged(nameof(Lane1ReaderMappingOut));
+                    OnPropertyChanged(nameof(Lane1ReaderMappingEmpty));
+                }
+                else if (uiLaneIndex == 2)
+                {
+                    IsLane2Inbound = isInbound;
+                    Lane2Title = title;
+                    Lane2InfoLabel = isInbound ? "THÔNG TIN XE VÀO" : "THÔNG TIN XE RA";
+                    Lane2ButtonText = "MỞ CỔNG 2";
+                    if (dynamicBrush != null) Lane2Color = dynamicBrush;
                     
                     OnPropertyChanged(nameof(Lane2FeeVisibility));
                     OnPropertyChanged(nameof(Lane2TimeVisibility));
@@ -326,81 +409,10 @@ namespace QuanLyGiuXe.ViewModels
                     OnPropertyChanged(nameof(Lane2ReaderMappingOut));
                     OnPropertyChanged(nameof(Lane2ReaderMappingEmpty));
                 }
-                return;
             }
-
-            bool isInbound = true;
-            string laneName = $"LÀN {uiLaneIndex}";
-            string vehicleTypeSuffix = "Hỗn hợp";
-
-            var activeMappingsForLane = ReaderLaneMappingService.Instance.GetAll()
-                .Where(m => m.IsEnabled && m.LaneId == dbLaneId.Value)
-                .ToList();
-
-            var state = LaneRuntimeManager.Instance.GetLaneState(dbLaneId.Value);
-            if (state != null)
+            catch (Exception ex)
             {
-                isInbound = state.CurrentDirection == "IN";
-            }
-            else if (activeMappingsForLane.Any())
-            {
-                isInbound = activeMappingsForLane.First().Direction == "IN";
-            }
-
-            var lanes = await ParkingTopologyService.Instance.GetLanesAsync();
-            var laneDb = lanes.FirstOrDefault(l => l.Id == dbLaneId.Value);
-            if (laneDb != null)
-            {
-                laneName = laneDb.LaneName;
-                vehicleTypeSuffix = (laneDb.LoaiXeId.HasValue && !string.IsNullOrEmpty(laneDb.LoaiXeName)) 
-                    ? laneDb.LoaiXeName 
-                    : "Hỗn hợp";
-            }
-            
-            var (_, zoneId, _, siteName, zoneName, maxCapacity, _, gateName) = await ResolveTopologyForLaneAsync(dbLaneId.Value);
-            string displayLocation = !string.IsNullOrEmpty(gateName) ? $"Cổng: {gateName}" : (!string.IsNullOrEmpty(zoneName) ? $"Zone: {zoneName}" : "Chưa cấu hình");
-            string topoText = string.IsNullOrEmpty(siteName) ? "Chưa cấu hình Cổng" : $"Site: {siteName} - {displayLocation}";
-            int count = 0;
-            if (zoneId.HasValue) count = await db.GetXeTrongBaiCountByZoneAsync(zoneId.Value);
-
-            if (uiLaneIndex == 1)
-            {
-                Lane1TopologyText = topoText;
-            }
-            else
-            {
-                Lane2TopologyText = topoText;
-            }
-            
-            string title = $"{laneName.ToUpper()} [{(isInbound ? "VÀO" : "RA")}] - {vehicleTypeSuffix.ToUpper()}";
-
-            if (uiLaneIndex == 1)
-            {
-                IsLane1Inbound = isInbound;
-                Lane1Title = title;
-                Lane1InfoLabel = isInbound ? "THÔNG TIN XE VÀO" : "THÔNG TIN XE RA";
-                Lane1ButtonText = "MỞ CỔNG 1";
-                Lane1Color = (System.Windows.Media.Brush)Application.Current.Resources[isInbound ? "APSBlueBrush" : "APSRedBrush"];
-                
-                OnPropertyChanged(nameof(Lane1FeeVisibility));
-                OnPropertyChanged(nameof(Lane1TimeVisibility));
-                OnPropertyChanged(nameof(Lane1ReaderMappingIn));
-                OnPropertyChanged(nameof(Lane1ReaderMappingOut));
-                OnPropertyChanged(nameof(Lane1ReaderMappingEmpty));
-            }
-            else if (uiLaneIndex == 2)
-            {
-                IsLane2Inbound = isInbound;
-                Lane2Title = title;
-                Lane2InfoLabel = isInbound ? "THÔNG TIN XE VÀO" : "THÔNG TIN XE RA";
-                Lane2ButtonText = "MỞ CỔNG 2";
-                Lane2Color = (System.Windows.Media.Brush)Application.Current.Resources[isInbound ? "APSBlueBrush" : "APSRedBrush"];
-                
-                OnPropertyChanged(nameof(Lane2FeeVisibility));
-                OnPropertyChanged(nameof(Lane2TimeVisibility));
-                OnPropertyChanged(nameof(Lane2ReaderMappingIn));
-                OnPropertyChanged(nameof(Lane2ReaderMappingOut));
-                OnPropertyChanged(nameof(Lane2ReaderMappingEmpty));
+                try { LoggingService.Instance.LogError("SyncLaneUIState", "MainViewModel", $"Lỗi đồng bộ giao diện làn {uiLaneIndex}", ex); } catch { }
             }
         }
 
@@ -718,14 +730,31 @@ namespace QuanLyGiuXe.ViewModels
             C3200Service.Instance.OnConnectionChanged += OnC3200ConnectionChanged;
             
             LaneRuntimeManager.Instance.OnLaneDirectionChanged += (laneId) => {
-                // Find UI lane index corresponding to this db lane
-                int uiLaneIndex = -1;
-                if (GetDbLaneIdForUiIndex(1) == laneId) uiLaneIndex = 1;
-                else if (GetDbLaneIdForUiIndex(2) == laneId) uiLaneIndex = 2;
-                
-                if (uiLaneIndex != -1)
+                try
                 {
-                    Application.Current?.Dispatcher?.BeginInvoke(new Action(async () => await SyncLaneUIStateAsync(uiLaneIndex)));
+                    // Find UI lane index corresponding to this db lane
+                    int uiLaneIndex = -1;
+                    if (GetDbLaneIdForUiIndex(1) == laneId) uiLaneIndex = 1;
+                    else if (GetDbLaneIdForUiIndex(2) == laneId) uiLaneIndex = 2;
+                    
+                    if (uiLaneIndex != -1)
+                    {
+                        Application.Current?.Dispatcher?.BeginInvoke(new Action(async () =>
+                        {
+                            try
+                            {
+                                await SyncLaneUIStateAsync(uiLaneIndex);
+                            }
+                            catch (Exception ex)
+                            {
+                                try { LoggingService.Instance.LogError("OnLaneDirectionChanged_Dispatch", "MainViewModel", "Failed to sync UI lane state", ex); } catch { }
+                            }
+                        }));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    try { LoggingService.Instance.LogError("OnLaneDirectionChanged", "MainViewModel", "Failed in OnLaneDirectionChanged event handler", ex); } catch { }
                 }
             };
             _ = SyncLaneUIStateAsync(1);
@@ -832,21 +861,30 @@ namespace QuanLyGiuXe.ViewModels
         {
             try
             {
+                // Refresh reader mappings FIRST so that GetDbLaneIdForUiIndex reads the new configuration
+                ReaderLaneMappingService.Instance.Load();
+
+                // Invalidate EventBus topology cache so it reloads fresh data from DB/SQLite
+                try
+                {
+                    EventBus.Instance.InvalidateTopologyCache();
+                }
+                catch { }
+
                 var cfg = AppConfig.Load();
                 var blue = (System.Windows.Media.Brush)Application.Current.Resources["APSBlueBrush"];
                 var red = (System.Windows.Media.Brush)Application.Current.Resources["APSRedBrush"];
 
                 // Lane UI state is now managed dynamically via LaneRuntimeManager and SyncLaneUIState
-                _ = SyncLaneUIStateAsync(1);
-                _ = SyncLaneUIStateAsync(2);
+                await SyncLaneUIStateAsync(1);
+                await SyncLaneUIStateAsync(2);
 
                 // Notify visibility changes
                 OnPropertyChanged(nameof(Lane1FeeVisibility));
                 OnPropertyChanged(nameof(Lane2FeeVisibility));
                 OnPropertyChanged(nameof(Lane1TimeVisibility));
                 OnPropertyChanged(nameof(Lane2TimeVisibility));
-                // Refresh reader mappings
-                ReaderLaneMappingService.Instance.Load();
+                
                 OnPropertyChanged(nameof(Lane1ReaderMappingIn));
                 OnPropertyChanged(nameof(Lane1ReaderMappingOut));
                 OnPropertyChanged(nameof(Lane1ReaderMappingEmpty));
@@ -1067,6 +1105,10 @@ namespace QuanLyGiuXe.ViewModels
             }
             CurrentView = view;
             OnPropertyChanged(nameof(CurrentView));
+            if (view is ParkingTopologyViewModel topoVm)
+            {
+                topoVm.RefreshCommand.Execute(null);
+            }
         }
 
         // LoadXeTrongBai removed - use UpdateVehicleCount for dashboard instead

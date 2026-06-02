@@ -1,5 +1,6 @@
 using QuanLyGiuXe.Models;
 using QuanLyGiuXe.Services;
+using QuanLyGiuXe.ViewModels;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -590,6 +591,29 @@ namespace QuanLyGiuXe
 
                 ReaderLaneMappingService.Instance.UpdateMappings(newMappings);
 
+                // Auto-sync lane direction based on consistency analysis
+                try
+                {
+                    var lanes = await ParkingTopologyService.Instance.GetLanesAsync();
+                    foreach (var lane in lanes)
+                    {
+                        var analysis = LaneDirectionConsistencyService.Instance.AnalyzeLaneDirection(lane.Id);
+                        if (analysis.IsConsistent && analysis.AutoDirection.HasValue)
+                        {
+                            string autoDirStr = analysis.AutoDirection.Value.ToDbString();
+                            if (lane.Direction != autoDirStr)
+                            {
+                                lane.Direction = autoDirStr;
+                                await ParkingTopologyService.Instance.SaveLaneAsync(lane);
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    try { LoggingService.Instance.LogError("Save_Click_AutoSync", "C3200Settings", "Failed to auto-sync lane directions", ex); } catch { }
+                }
+
                 // Save vehicle type to lanes
                 try
                 {
@@ -652,6 +676,23 @@ namespace QuanLyGiuXe
                 }
 
                 await RefreshSiteSelectionAsync();
+
+                // Invalidate EventBus topology cache so it reloads fresh data from DB/SQLite
+                try
+                {
+                    EventBus.Instance.InvalidateTopologyCache();
+                }
+                catch { }
+
+                // Refresh main view model settings immediately so UI is updated in real-time
+                try
+                {
+                    if (Application.Current.MainWindow?.DataContext is MainViewModel vm)
+                    {
+                        vm.RefreshSettings();
+                    }
+                }
+                catch { }
 
                 MessageBox.Show("Saved", "Settings", MessageBoxButton.OK, MessageBoxImage.Information);
             }

@@ -549,46 +549,69 @@
                                                 </TextBlock>
                                             </StackPanel>
 
-                                            <!-- Direction Badge -->
-                                            <Border Grid.Column="1" CornerRadius="6" Padding="14,6" VerticalAlignment="Top">
-                                                <Border.Style>
-                                                    <Style TargetType="Border">
-                                                        <Setter Property="Background" Value="#E8F5E9"/>
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding DetailLaneDirection}" Value="OUT">
-                                                                <Setter Property="Background" Value="#FFF3E0"/>
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </Border.Style>
-                                                <StackPanel Orientation="Horizontal">
-                                                    <TextBlock FontSize="14" VerticalAlignment="Center" Margin="0,0,6,0">
-                                                        <TextBlock.Style>
-                                                            <Style TargetType="TextBlock">
-                                                                <Setter Property="Text" Value="↓"/>
-                                                                <Style.Triggers>
-                                                                    <DataTrigger Binding="{Binding DetailLaneDirection}" Value="OUT">
-                                                                        <Setter Property="Text" Value="↑"/>
-                                                                    </DataTrigger>
-                                                                </Style.Triggers>
-                                                            </Style>
-                                                        </TextBlock.Style>
-                                                    </TextBlock>
-                                                    <TextBlock Text="{Binding DetailLaneDirection}" FontSize="13" FontWeight="Bold"
-                                                               FontFamily="Segoe UI, Inter, Arial">
-                                                        <TextBlock.Style>
-                                                            <Style TargetType="TextBlock">
-                                                                <Setter Property="Foreground" Value="{StaticResource TopoSuccessBrush}"/>
-                                                                <Style.Triggers>
-                                                                    <DataTrigger Binding="{Binding DetailLaneDirection}" Value="OUT">
-                                                                        <Setter Property="Foreground" Value="{StaticResource TopoOutBadgeBrush}"/>
-                                                                    </DataTrigger>
-                                                                </Style.Triggers>
-                                                            </Style>
-                                                        </TextBlock.Style>
-                                                    </TextBlock>
-                                                </StackPanel>
-                                            </Border>
+                                            <!-- Direction & Sync Badges -->
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
+                                                <!-- Direction Badge -->
+                                                <Border CornerRadius="6" Padding="14,6" Margin="0,0,8,0">
+                                                    <Border.Style>
+                                                        <Style TargetType="Border">
+                                                            <Setter Property="Background" Value="#E8F5E9"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding DetailLaneDirection}" Value="OUT">
+                                                                    <Setter Property="Background" Value="#FFF3E0"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding DetailLaneDirection}" Value="MAINTENANCE">
+                                                                    <Setter Property="Background" Value="#E0E0E0"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Border.Style>
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock FontSize="14" VerticalAlignment="Center" Margin="0,0,6,0">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock">
+                                                                    <Setter Property="Text" Value="↓"/>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding DetailLaneDirection}" Value="OUT">
+                                                                            <Setter Property="Text" Value="↑"/>
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding DetailLaneDirection}" Value="MAINTENANCE">
+                                                                            <Setter Property="Text" Value="🔧"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+                                                        <TextBlock Text="{Binding DetailLaneDirection}" FontSize="13" FontWeight="Bold"
+                                                                   FontFamily="Segoe UI, Inter, Arial">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock">
+                                                                    <Setter Property="Foreground" Value="{StaticResource TopoSuccessBrush}"/>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding DetailLaneDirection}" Value="OUT">
+                                                                            <Setter Property="Foreground" Value="{StaticResource TopoOutBadgeBrush}"/>
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding DetailLaneDirection}" Value="MAINTENANCE">
+                                                                            <Setter Property="Foreground" Value="#616161"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+                                                    </StackPanel>
+                                                </Border>
+
+                                                <!-- Synchronization Status Badge -->
+                                                <Border CornerRadius="6" Padding="14,6" 
+                                                        Background="{Binding LaneSyncBadgeBackground}"
+                                                        Visibility="{Binding IsLaneSyncBadgeVisible, Converter={StaticResource BoolToVisibilityConverter}}"
+                                                        ToolTip="{Binding LaneSyncBadgeTooltip}">
+                                                    <TextBlock Text="{Binding LaneSyncBadgeText}" 
+                                                               Foreground="{Binding LaneSyncBadgeBrush}"
+                                                               FontSize="13" FontWeight="Bold"
+                                                               FontFamily="Segoe UI, Inter, Arial"/>
+                                                </Border>
+                                            </StackPanel>
                                         </Grid>
 
                                         <!-- Lane Info Grid -->

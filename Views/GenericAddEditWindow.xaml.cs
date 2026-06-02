@@ -391,7 +391,42 @@ namespace QuanLyGiuXe.Views
 
                         input = cb;
                     }
-else if (p.Name == "TrangThai")
+                    else if (p.Name == "Direction" && _model is LaneConfig lane)
+                    {
+                        var cb = new ComboBox { 
+                            HorizontalAlignment = HorizontalAlignment.Left,
+                            Width = 200, 
+                            Style = (Style)Application.Current.FindResource("ModernComboBox") 
+                        };
+
+                        // Analyze lane direction consistency
+                        var analysis = LaneDirectionConsistencyService.Instance.AnalyzeLaneDirection(lane.Id);
+
+                        // Populate options with ComboBoxItem
+                        var options = new List<ComboBoxItem>
+                        {
+                            new ComboBoxItem { Content = "IN", Tag = "IN", IsEnabled = analysis.AllowedDirections.Contains(LaneDirection.In) },
+                            new ComboBoxItem { Content = "OUT", Tag = "OUT", IsEnabled = analysis.AllowedDirections.Contains(LaneDirection.Out) },
+                            new ComboBoxItem { Content = "MAINTENANCE", Tag = "MAINTENANCE", IsEnabled = analysis.AllowedDirections.Contains(LaneDirection.Maintenance) }
+                        };
+
+                        cb.ItemsSource = options;
+
+                        // Set selected item based on current value
+                        string currentDir = (string)(p.GetValue(lane) ?? "IN");
+                        var selectedItem = options.FirstOrDefault(item => (string)item.Tag == currentDir.ToUpperInvariant());
+                        if (selectedItem != null)
+                        {
+                            cb.SelectedItem = selectedItem;
+                        }
+                        else
+                        {
+                            cb.SelectedIndex = 0;
+                        }
+
+                        input = cb;
+                    }
+                    else if (p.Name == "TrangThai")
                     {
                         var cb = new ComboBox { 
                             HorizontalAlignment = HorizontalAlignment.Left,
@@ -584,6 +619,13 @@ private void Save_Click(object sender, RoutedEventArgs e)
                         else
                         {
                             prop.SetValue(_model, 0);
+                        }
+                    }
+                    else if (prop.Name == "Direction" && _model is LaneConfig)
+                    {
+                        if (cb.SelectedItem is ComboBoxItem selectedItem)
+                        {
+                            prop.SetValue(_model, selectedItem.Tag?.ToString() ?? "IN");
                         }
                     }
                     else if (prop.Name == "TrangThai")

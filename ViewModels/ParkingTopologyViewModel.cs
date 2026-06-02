@@ -216,6 +216,22 @@ namespace QuanLyGiuXe.ViewModels
         private ObservableCollection<ReaderLaneMapping> _detailLaneReaders = new();
         public ObservableCollection<ReaderLaneMapping> DetailLaneReaders { get => _detailLaneReaders; set { _detailLaneReaders = value; OnPropertyChanged(); } }
 
+        // Lane Synchronization badge properties
+        private string _laneSyncBadgeText = string.Empty;
+        public string LaneSyncBadgeText { get => _laneSyncBadgeText; set { _laneSyncBadgeText = value; OnPropertyChanged(); } }
+
+        private System.Windows.Media.Brush _laneSyncBadgeBrush = System.Windows.Media.Brushes.Transparent;
+        public System.Windows.Media.Brush LaneSyncBadgeBrush { get => _laneSyncBadgeBrush; set { _laneSyncBadgeBrush = value; OnPropertyChanged(); } }
+
+        private System.Windows.Media.Brush _laneSyncBadgeBackground = System.Windows.Media.Brushes.Transparent;
+        public System.Windows.Media.Brush LaneSyncBadgeBackground { get => _laneSyncBadgeBackground; set { _laneSyncBadgeBackground = value; OnPropertyChanged(); } }
+
+        private string _laneSyncBadgeTooltip = string.Empty;
+        public string LaneSyncBadgeTooltip { get => _laneSyncBadgeTooltip; set { _laneSyncBadgeTooltip = value; OnPropertyChanged(); } }
+
+        private bool _isLaneSyncBadgeVisible;
+        public bool IsLaneSyncBadgeVisible { get => _isLaneSyncBadgeVisible; set { _isLaneSyncBadgeVisible = value; OnPropertyChanged(); } }
+
         // Controller detail
         private string _detailControllerName = string.Empty;
         public string DetailControllerName { get => _detailControllerName; set { _detailControllerName = value; OnPropertyChanged(); } }
@@ -765,6 +781,35 @@ namespace QuanLyGiuXe.ViewModels
 
             var readers = ReaderLaneMappingService.Instance.GetMappingsByLane(lane.Id);
             DetailLaneReaders = new ObservableCollection<ReaderLaneMapping>(readers);
+
+            // Compute analysis for dynamic badge properties
+            var analysis = LaneDirectionConsistencyService.Instance.AnalyzeLaneDirection(lane.Id);
+            LaneSyncBadgeText = analysis.BadgeText;
+            LaneSyncBadgeTooltip = analysis.BadgeTooltip;
+            IsLaneSyncBadgeVisible = analysis.Badge != LaneDirectionBadge.None;
+
+            var converter = new System.Windows.Media.BrushConverter();
+            System.Windows.Media.Brush GetBrush(string hex) => (System.Windows.Media.Brush)converter.ConvertFromString(hex);
+
+            switch (analysis.Badge)
+            {
+                case LaneDirectionBadge.AutoIn:
+                    LaneSyncBadgeBrush = GetBrush("#2E7D32");
+                    LaneSyncBadgeBackground = GetBrush("#E8F5E9");
+                    break;
+                case LaneDirectionBadge.AutoOut:
+                    LaneSyncBadgeBrush = GetBrush("#D84315");
+                    LaneSyncBadgeBackground = GetBrush("#FFF3E0");
+                    break;
+                case LaneDirectionBadge.Mixed:
+                    LaneSyncBadgeBrush = GetBrush("#C62828");
+                    LaneSyncBadgeBackground = GetBrush("#FFEBEE");
+                    break;
+                default:
+                    LaneSyncBadgeBrush = System.Windows.Media.Brushes.Transparent;
+                    LaneSyncBadgeBackground = System.Windows.Media.Brushes.Transparent;
+                    break;
+            }
         }
 
         private void UpdateControllerDetail(C3ControllerConfig controller)

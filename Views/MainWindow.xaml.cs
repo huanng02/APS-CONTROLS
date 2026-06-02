@@ -241,6 +241,10 @@ namespace QuanLyGiuXe
             if (DataContext is MainViewModel vm)
             {
                 vm.RefreshSettings();
+                if (vm.CurrentView is ParkingTopologyViewModel topoVm)
+                {
+                    topoVm.RefreshCommand.Execute(null);
+                }
                 // Determine site based on saved config and set it
                 var cfg = AppConfig.Load();
                 var sites = await ParkingTopologyService.Instance.GetSitesAsync();

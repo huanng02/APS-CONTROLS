@@ -6,6 +6,7 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
 using QuanLyGiuXe.Services;
+using QuanLyGiuXe.Models;
 
 namespace QuanLyGiuXe.ViewModels
 {
@@ -179,6 +180,18 @@ namespace QuanLyGiuXe.ViewModels
 
         private async void SetLaneDirection(int dbLaneId, string direction)
         {
+            var targetDir = direction.ToLaneDirection();
+            var analysis = LaneDirectionConsistencyService.Instance.AnalyzeLaneDirection(dbLaneId);
+
+            // Block inconsistent changes to IN/OUT directions
+            if ((direction == "IN" || direction == "OUT") && !analysis.AllowedDirections.Contains(targetDir))
+            {
+                string allowedStr = string.Join(" hoặc ", analysis.AllowedDirections.Select(d => d.ToDbString()));
+                MessageBox.Show($"Không thể chuyển làn sang {direction} vì cấu hình đầu đọc không phù hợp.\nLàn này chỉ được chọn: {allowedStr}", 
+                    "Cảnh báo cấu hình", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
             LaneRuntimeManager.Instance.SetLaneDirection(dbLaneId, direction);
             LoggingService.Instance.LogAudit("SYSTEM", $"Changed Lane {dbLaneId} direction to {direction}");
             UpdateLaneStates();

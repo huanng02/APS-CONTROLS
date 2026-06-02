@@ -91,6 +91,19 @@ namespace QuanLyGiuXe.Services
             C3200Service.Instance.OnConnectionChanged += OnC3200ConnectionChanged;
         }
 
+        public void InvalidateTopologyCache()
+        {
+            lock (_cacheLock)
+            {
+                _cachedLanes = null;
+                _cachedGates = null;
+                _cachedZones = null;
+                _cachedSites = null;
+                _lastCacheLoad = DateTime.MinValue;
+            }
+            EnsureTopologyCache();
+        }
+
         private void EnsureTopologyCache()
         {
             lock (_cacheLock)
