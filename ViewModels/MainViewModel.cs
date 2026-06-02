@@ -184,14 +184,14 @@ namespace QuanLyGiuXe.ViewModels
             set { _lane2Title = value; OnPropertyChanged(nameof(Lane2Title)); }
         }
 
-        private System.Windows.Media.Brush _lane1Color = (System.Windows.Media.Brush)Application.Current.Resources["APSBlueBrush"];
+        private System.Windows.Media.Brush _lane1Color = (Application.Current?.Resources["APSBlueBrush"] as System.Windows.Media.Brush) ?? System.Windows.Media.Brushes.Blue;
         public System.Windows.Media.Brush Lane1Color
         {
             get => _lane1Color;
             set { _lane1Color = value; OnPropertyChanged(nameof(Lane1Color)); }
         }
 
-        private System.Windows.Media.Brush _lane2Color = (System.Windows.Media.Brush)Application.Current.Resources["APSRedBrush"];
+        private System.Windows.Media.Brush _lane2Color = (Application.Current?.Resources["APSRedBrush"] as System.Windows.Media.Brush) ?? System.Windows.Media.Brushes.Red;
         public System.Windows.Media.Brush Lane2Color
         {
             get => _lane2Color;
@@ -281,6 +281,53 @@ namespace QuanLyGiuXe.ViewModels
             get => _lane2CapacityText;
             set { _lane2CapacityText = value; OnPropertyChanged(nameof(Lane2CapacityText)); }
         }
+
+        private bool _isLane1Visible = true;
+        public bool IsLane1Visible
+        {
+            get => _isLane1Visible;
+            set { _isLane1Visible = value; OnPropertyChanged(nameof(IsLane1Visible)); }
+        }
+
+        private bool _isLane2Visible = true;
+        public bool IsLane2Visible
+        {
+            get => _isLane2Visible;
+            set { _isLane2Visible = value; OnPropertyChanged(nameof(IsLane2Visible)); }
+        }
+
+        private bool _isDualLaneMode = true;
+        public bool IsDualLaneMode
+        {
+            get => _isDualLaneMode;
+            set { _isDualLaneMode = value; OnPropertyChanged(nameof(IsDualLaneMode)); }
+        }
+
+        private bool HasActiveReaders(int laneId)
+        {
+            return ReaderLaneMappingService.Instance.GetAll()
+                .Any(m => m.IsEnabled && m.LaneId == laneId);
+        }
+
+        public void CalculateLaneVisibilities()
+        {
+            int? lane1Id = GetDbLaneIdForUiIndex(1);
+            int? lane2Id = GetDbLaneIdForUiIndex(2);
+
+            bool lane1Visible = lane1Id.HasValue && HasActiveReaders(lane1Id.Value);
+            bool lane2Visible = lane2Id.HasValue && HasActiveReaders(lane2Id.Value);
+
+            // Fallback: if no active readers are configured anywhere, show both lanes by default
+            if (!lane1Visible && !lane2Visible)
+            {
+                lane1Visible = true;
+                lane2Visible = true;
+            }
+
+            IsLane1Visible = lane1Visible;
+            IsLane2Visible = lane2Visible;
+            IsDualLaneMode = lane1Visible && lane2Visible;
+        }
         // ─────────────────────────────────────────────────────────────────────────
 
         public int? GetDbLaneIdForUiIndex(int uiLaneIndex)
@@ -315,21 +362,6 @@ namespace QuanLyGiuXe.ViewModels
 
                 if (dbLaneId == null)
                 {
-                    if (uiLaneIndex == 2)
-                    {
-                        Lane2Title = "LÀN 2 [CHƯA CẤU HÌNH]";
-                        Lane2TopologyText = "Chưa gán đầu đọc hoạt động";
-                        Lane2InfoLabel = "THÔNG TIN XE RA";
-                        
-                        var redBrush = Application.Current?.Resources["APSRedBrush"] as System.Windows.Media.Brush;
-                        if (redBrush != null) Lane2Color = redBrush;
-                        
-                        OnPropertyChanged(nameof(Lane2FeeVisibility));
-                        OnPropertyChanged(nameof(Lane2TimeVisibility));
-                        OnPropertyChanged(nameof(Lane2ReaderMappingIn));
-                        OnPropertyChanged(nameof(Lane2ReaderMappingOut));
-                        OnPropertyChanged(nameof(Lane2ReaderMappingEmpty));
-                    }
                     return;
                 }
 
@@ -872,8 +904,10 @@ namespace QuanLyGiuXe.ViewModels
                 catch { }
 
                 var cfg = AppConfig.Load();
-                var blue = (System.Windows.Media.Brush)Application.Current.Resources["APSBlueBrush"];
-                var red = (System.Windows.Media.Brush)Application.Current.Resources["APSRedBrush"];
+                var blue = (Application.Current?.Resources["APSBlueBrush"] as System.Windows.Media.Brush) ?? System.Windows.Media.Brushes.Blue;
+                var red = (Application.Current?.Resources["APSRedBrush"] as System.Windows.Media.Brush) ?? System.Windows.Media.Brushes.Red;
+
+                CalculateLaneVisibilities();
 
                 // Lane UI state is now managed dynamically via LaneRuntimeManager and SyncLaneUIState
                 await SyncLaneUIStateAsync(1);

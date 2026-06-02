@@ -598,14 +598,12 @@ namespace QuanLyGiuXe
                     foreach (var lane in lanes)
                     {
                         var analysis = LaneDirectionConsistencyService.Instance.AnalyzeLaneDirection(lane.Id);
-                        if (analysis.IsConsistent && analysis.AutoDirection.HasValue)
+                        var currentDir = lane.Direction.ToLaneDirection();
+                        if (!analysis.AllowedDirections.Contains(currentDir) && analysis.IsConsistent && analysis.AutoDirection.HasValue)
                         {
                             string autoDirStr = analysis.AutoDirection.Value.ToDbString();
-                            if (lane.Direction != autoDirStr)
-                            {
-                                lane.Direction = autoDirStr;
-                                await ParkingTopologyService.Instance.SaveLaneAsync(lane);
-                            }
+                            lane.Direction = autoDirStr;
+                            await ParkingTopologyService.Instance.SaveLaneAsync(lane);
                         }
                     }
                 }

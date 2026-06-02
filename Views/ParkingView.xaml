@@ -8,15 +8,19 @@
              d:DesignHeight="800" d:DesignWidth="1000"
              Background="Transparent">
     
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+    </UserControl.Resources>
+
     <Grid Margin="0">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="Auto"/>
-            <ColumnDefinition Width="*"/>
+            <ColumnDefinition x:Name="Lane1Column" Width="*"/>
+            <ColumnDefinition x:Name="LaneSplitterColumn" Width="Auto"/>
+            <ColumnDefinition x:Name="Lane2Column" Width="*"/>
         </Grid.ColumnDefinitions>
 
         <!-- LANE 1 (LEFT) -->
-        <Border Grid.Column="0" Style="{StaticResource EnterpriseCardBorder}" Padding="0">
+        <Border Grid.Column="0" Style="{StaticResource EnterpriseCardBorder}" Padding="0" MaxWidth="700" Visibility="{Binding DataContext.IsLane1Visible, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVisibilityConverter}}">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -150,10 +154,10 @@
         </Border>
 
         <!-- SPLITTER -->
-        <GridSplitter Grid.Column="1" Width="8" Background="Transparent" HorizontalAlignment="Stretch" />
+        <GridSplitter Grid.Column="1" Width="8" Background="Transparent" HorizontalAlignment="Stretch" Visibility="{Binding DataContext.IsDualLaneMode, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVisibilityConverter}}" />
 
         <!-- LANE 2 (RIGHT) -->
-        <Border Grid.Column="2" Style="{StaticResource EnterpriseCardBorder}" Padding="0">
+        <Border Grid.Column="2" Style="{StaticResource EnterpriseCardBorder}" Padding="0" MaxWidth="700" Visibility="{Binding DataContext.IsLane2Visible, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVisibilityConverter}}">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>

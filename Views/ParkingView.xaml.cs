@@ -6,9 +6,80 @@ namespace QuanLyGiuXe.Views
 {
     public partial class ParkingView : UserControl
     {
+        private MainViewModel _mainVm;
+
         public ParkingView()
         {
             InitializeComponent();
+            this.Loaded += ParkingView_Loaded;
+            this.Unloaded += ParkingView_Unloaded;
+        }
+
+        private void ParkingView_Loaded(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (Window.GetWindow(this) is Window window && window.DataContext is MainViewModel vm)
+                {
+                    _mainVm = vm;
+                    _mainVm.PropertyChanged += Vm_PropertyChanged;
+                    UpdateLaneLayout();
+                }
+            }
+            catch { }
+        }
+
+        private void ParkingView_Unloaded(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (_mainVm != null)
+                {
+                    _mainVm.PropertyChanged -= Vm_PropertyChanged;
+                    _mainVm = null;
+                }
+            }
+            catch { }
+        }
+
+        private void Vm_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(MainViewModel.IsLane1Visible) ||
+                e.PropertyName == nameof(MainViewModel.IsLane2Visible) ||
+                e.PropertyName == nameof(MainViewModel.IsDualLaneMode))
+            {
+                UpdateLaneLayout();
+            }
+        }
+
+        private void UpdateLaneLayout()
+        {
+            try
+            {
+                var vm = _mainVm ?? (Application.Current.MainWindow?.DataContext as MainViewModel);
+                if (vm != null)
+                {
+                    if (vm.IsLane1Visible && vm.IsLane2Visible)
+                    {
+                        Lane1Column.Width = new GridLength(1, GridUnitType.Star);
+                        Lane2Column.Width = new GridLength(1, GridUnitType.Star);
+                        LaneSplitterColumn.Width = new GridLength(5);
+                    }
+                    else if (vm.IsLane1Visible)
+                    {
+                        Lane1Column.Width = new GridLength(1, GridUnitType.Star);
+                        Lane2Column.Width = new GridLength(0);
+                        LaneSplitterColumn.Width = new GridLength(0);
+                    }
+                    else if (vm.IsLane2Visible)
+                    {
+                        Lane1Column.Width = new GridLength(0);
+                        Lane2Column.Width = new GridLength(1, GridUnitType.Star);
+                        LaneSplitterColumn.Width = new GridLength(0);
+                    }
+                }
+            }
+            catch { }
         }
 
         private void OpenGateIn_Click(object sender, RoutedEventArgs e)

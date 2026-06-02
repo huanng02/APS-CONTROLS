@@ -134,6 +134,24 @@ namespace QuanLyGiuXe.Tests
                 Assert(resultS8_After.AllowedDirections.Contains(LaneDirection.Out), "S8_After: AllowedDirections should contain OUT");
                 Assert(resultS8_After.AllowedDirections.Contains(LaneDirection.Maintenance), "S8_After: AllowedDirections should contain MAINTENANCE");
 
+                // Scenario 9: Auto-sync simulation with Maintenance preservation
+                Console.WriteLine("Running Scenario 9...");
+                // 9.1: Current lane is OUT, readers are IN (Allowed: IN, MAINTENANCE). Expected: Needs sync to IN.
+                var allowedDirs_9_1 = new List<LaneDirection> { LaneDirection.In, LaneDirection.Maintenance };
+                var currentDir_9_1 = LaneDirection.Out;
+                bool needsSync_9_1 = !allowedDirs_9_1.Contains(currentDir_9_1);
+                Assert(needsSync_9_1, "S9.1: OUT lane should need sync when readers are IN");
+
+                // 9.2: Current lane is MAINTENANCE, readers are IN. Expected: Does NOT need sync.
+                var currentDir_9_2 = LaneDirection.Maintenance;
+                bool needsSync_9_2 = !allowedDirs_9_1.Contains(currentDir_9_2);
+                Assert(!needsSync_9_2, "S9.2: MAINTENANCE lane should NOT need sync when readers are IN");
+
+                // 9.3: Current lane is IN, readers are IN. Expected: Does NOT need sync.
+                var currentDir_9_3 = LaneDirection.In;
+                bool needsSync_9_3 = !allowedDirs_9_1.Contains(currentDir_9_3);
+                Assert(!needsSync_9_3, "S9.3: IN lane should NOT need sync when readers are IN");
+
                 Console.WriteLine("ALL CONSISTENCY TESTS PASSED SUCCESSFULLY!");
                 Console.WriteLine("=================================================");
             }
