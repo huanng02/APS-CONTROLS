@@ -150,6 +150,100 @@ namespace QuanLyGiuXe.ViewModels
             set { _lane2ThoiGianTrongBai = value; OnPropertyChanged(nameof(Lane2ThoiGianTrongBai)); }
         }
 
+        // ── Lane 1 Notification Overlay ──────────────────────────────────────
+        private bool _isLane1NotificationVisible;
+        public bool IsLane1NotificationVisible
+        {
+            get => _isLane1NotificationVisible;
+            set { _isLane1NotificationVisible = value; OnPropertyChanged(nameof(IsLane1NotificationVisible)); }
+        }
+
+        private string _lane1NotificationMessage = "";
+        public string Lane1NotificationMessage
+        {
+            get => _lane1NotificationMessage;
+            set { _lane1NotificationMessage = value; OnPropertyChanged(nameof(Lane1NotificationMessage)); }
+        }
+
+        private System.Windows.Media.Brush _lane1NotificationColor;
+        public System.Windows.Media.Brush Lane1NotificationColor
+        {
+            get => _lane1NotificationColor;
+            set { _lane1NotificationColor = value; OnPropertyChanged(nameof(Lane1NotificationColor)); }
+        }
+
+        private string _lane1NotificationIcon = "ℹ";
+        public string Lane1NotificationIcon
+        {
+            get => _lane1NotificationIcon;
+            set { _lane1NotificationIcon = value; OnPropertyChanged(nameof(Lane1NotificationIcon)); }
+        }
+
+        // ── Lane 2 Notification Overlay ──────────────────────────────────────
+        private bool _isLane2NotificationVisible;
+        public bool IsLane2NotificationVisible
+        {
+            get => _isLane2NotificationVisible;
+            set { _isLane2NotificationVisible = value; OnPropertyChanged(nameof(IsLane2NotificationVisible)); }
+        }
+
+        private string _lane2NotificationMessage = "";
+        public string Lane2NotificationMessage
+        {
+            get => _lane2NotificationMessage;
+            set { _lane2NotificationMessage = value; OnPropertyChanged(nameof(Lane2NotificationMessage)); }
+        }
+
+        private System.Windows.Media.Brush _lane2NotificationColor;
+        public System.Windows.Media.Brush Lane2NotificationColor
+        {
+            get => _lane2NotificationColor;
+            set { _lane2NotificationColor = value; OnPropertyChanged(nameof(Lane2NotificationColor)); }
+        }
+
+        private string _lane2NotificationIcon = "ℹ";
+        public string Lane2NotificationIcon
+        {
+            get => _lane2NotificationIcon;
+            set { _lane2NotificationIcon = value; OnPropertyChanged(nameof(Lane2NotificationIcon)); }
+        }
+
+        // ── Lane 1 Info Panel Highlight ──────────────────────────────────────
+        private System.Windows.Media.Brush _lane1InfoBackground;
+        public System.Windows.Media.Brush Lane1InfoBackground
+        {
+            get => _lane1InfoBackground ??= GetDefaultInfoBackground();
+            set { _lane1InfoBackground = value; OnPropertyChanged(nameof(Lane1InfoBackground)); }
+        }
+
+        private System.Windows.Media.Brush _lane1InfoBorderBrush = System.Windows.Media.Brushes.Transparent;
+        public System.Windows.Media.Brush Lane1InfoBorderBrush
+        {
+            get => _lane1InfoBorderBrush;
+            set { _lane1InfoBorderBrush = value; OnPropertyChanged(nameof(Lane1InfoBorderBrush)); }
+        }
+
+        // ── Lane 2 Info Panel Highlight ──────────────────────────────────────
+        private System.Windows.Media.Brush _lane2InfoBackground;
+        public System.Windows.Media.Brush Lane2InfoBackground
+        {
+            get => _lane2InfoBackground ??= GetDefaultInfoBackground();
+            set { _lane2InfoBackground = value; OnPropertyChanged(nameof(Lane2InfoBackground)); }
+        }
+
+        private System.Windows.Media.Brush _lane2InfoBorderBrush = System.Windows.Media.Brushes.Transparent;
+        public System.Windows.Media.Brush Lane2InfoBorderBrush
+        {
+            get => _lane2InfoBorderBrush;
+            set { _lane2InfoBorderBrush = value; OnPropertyChanged(nameof(Lane2InfoBorderBrush)); }
+        }
+
+        private System.Windows.Media.Brush GetDefaultInfoBackground()
+        {
+            return (Application.Current?.TryFindResource("BgLightBrush") as System.Windows.Media.Brush)
+                ?? new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(30, 41, 59));
+        }
+
         private ObservableCollection<ParkingSite> _sitesList = new();
         public ObservableCollection<ParkingSite> SitesList
         {
@@ -1491,6 +1585,132 @@ namespace QuanLyGiuXe.ViewModels
         {
             if (lane == 1) Lane1TrangThai = msg;
             else Lane2TrangThai = msg;
+
+            if (!string.IsNullOrEmpty(msg) && (msg.Contains("✅") || msg.Contains("❌") || msg.Contains("⚠") || msg.Contains("Từ chối")))
+            {
+                ToastType toastType = ToastType.Success;
+                string icon = "ℹ";
+                System.Windows.Media.Brush overlayColor = null;
+
+                if (msg.Contains("❌"))
+                {
+                    toastType = ToastType.Error;
+                    icon = "❌";
+                    overlayColor = Application.Current?.Resources["DangerBrush"] as System.Windows.Media.Brush;
+                    if (overlayColor == null) overlayColor = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(239, 68, 68));
+                }
+                else if (msg.Contains("⚠") || msg.Contains("Từ chối"))
+                {
+                    toastType = ToastType.Warning;
+                    icon = "⚠";
+                    overlayColor = Application.Current?.Resources["WarningBrush"] as System.Windows.Media.Brush;
+                    if (overlayColor == null) overlayColor = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(245, 158, 11));
+                }
+                else
+                {
+                    toastType = ToastType.Success;
+                    icon = "✅";
+                    overlayColor = Application.Current?.Resources["SuccessBrush"] as System.Windows.Media.Brush;
+                    if (overlayColor == null) overlayColor = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(16, 185, 129));
+                }
+
+                System.Windows.Media.Brush highlightBg = null;
+                System.Windows.Media.Brush highlightBorder = overlayColor;
+
+                // Create a soft tint for the background (10% opacity)
+                if (msg.Contains("❌"))
+                {
+                    highlightBg = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(26, 239, 68, 68)); // 10% Alpha Red
+                }
+                else if (msg.Contains("⚠") || msg.Contains("Từ chối"))
+                {
+                    highlightBg = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(26, 245, 158, 11)); // 10% Alpha Orange
+                }
+                else
+                {
+                    highlightBg = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromArgb(26, 16, 185, 129)); // 10% Alpha Green
+                }
+
+                // Clean emoji from message text for overlay presentation
+                string displayMsg = msg.Replace("✅", "").Replace("❌", "").Replace("⚠", "").Trim();
+
+                if (lane == 1)
+                {
+                    Lane1NotificationMessage = displayMsg;
+                    Lane1NotificationIcon = icon;
+                    Lane1NotificationColor = overlayColor;
+                    IsLane1NotificationVisible = true;
+                    Lane1InfoBackground = highlightBg;
+                    Lane1InfoBorderBrush = highlightBorder;
+                }
+                else
+                {
+                    Lane2NotificationMessage = displayMsg;
+                    Lane2NotificationIcon = icon;
+                    Lane2NotificationColor = overlayColor;
+                    IsLane2NotificationVisible = true;
+                    Lane2InfoBackground = highlightBg;
+                    Lane2InfoBorderBrush = highlightBorder;
+                }
+
+                // Auto reset status back to default (Chờ xe...) after 4 seconds
+                ResetLaneStatusAfterDelay(lane, 4000);
+            }
+        }
+
+        private void ResetLaneStatusAfterDelay(int uiLaneIndex, int delayMs)
+        {
+            Task.Run(async () =>
+            {
+                await Task.Delay(delayMs);
+                Application.Current?.Dispatcher?.Invoke(() =>
+                {
+                    // Hide overlay and reset highlights
+                    if (uiLaneIndex == 1)
+                    {
+                        IsLane1NotificationVisible = false;
+                        Lane1InfoBackground = GetDefaultInfoBackground();
+                        Lane1InfoBorderBrush = System.Windows.Media.Brushes.Transparent;
+                    }
+                    else
+                    {
+                        IsLane2NotificationVisible = false;
+                        Lane2InfoBackground = GetDefaultInfoBackground();
+                        Lane2InfoBorderBrush = System.Windows.Media.Brushes.Transparent;
+                    }
+
+                    int? dbLaneId = GetDbLaneIdForUiIndex(uiLaneIndex);
+                    if (!dbLaneId.HasValue) return;
+
+                    var laneState = LaneRuntimeManager.Instance.GetLaneState(dbLaneId.Value);
+                    if (laneState == null) return;
+
+                    string defaultStatus = "Chờ xe...";
+                    if (laneState.CurrentDirection == "DISABLED")
+                    {
+                        defaultStatus = "Làn đã vô hiệu hóa";
+                    }
+                    else if (laneState.CurrentDirection == "MAINTENANCE")
+                    {
+                        defaultStatus = "Làn đang bảo trì";
+                    }
+
+                    if (uiLaneIndex == 1)
+                    {
+                        if (Lane1TrangThai != null && (Lane1TrangThai.Contains("✅") || Lane1TrangThai.Contains("❌") || Lane1TrangThai.Contains("⚠") || Lane1TrangThai.Contains("Từ chối")))
+                        {
+                            Lane1TrangThai = defaultStatus;
+                        }
+                    }
+                    else
+                    {
+                        if (Lane2TrangThai != null && (Lane2TrangThai.Contains("✅") || Lane2TrangThai.Contains("❌") || Lane2TrangThai.Contains("⚠") || Lane2TrangThai.Contains("Từ chối")))
+                        {
+                            Lane2TrangThai = defaultStatus;
+                        }
+                    }
+                });
+            });
         }
 
         private void UpdateLaneStatusColor(int lane, string status)

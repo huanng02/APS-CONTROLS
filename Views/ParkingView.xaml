@@ -108,7 +108,11 @@
 
                     <!-- Compact Horizontal Bottom Information Panel -->
                     <StackPanel Grid.Row="2">
-                        <Border Background="{StaticResource BgLightBrush}" Padding="15,12" CornerRadius="4">
+                        <Border Background="{Binding DataContext.Lane1InfoBackground, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                BorderBrush="{Binding DataContext.Lane1InfoBorderBrush, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                BorderThickness="1.5" 
+                                Padding="15,12" 
+                                CornerRadius="4">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -139,17 +143,68 @@
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right">
                                     <!-- Status / Fee Row -->
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,8">
-                                        <TextBlock Text="{Binding DataContext.Lane1TrangThai, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{Binding DataContext.Lane1StatusColor, RelativeSource={RelativeSource AncestorType=Window}}" FontWeight="Bold" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                        <TextBlock Visibility="{Binding DataContext.Lane1FeeVisibility, RelativeSource={RelativeSource AncestorType=Window}}" Text="{Binding DataContext.Lane1Tien, RelativeSource={RelativeSource AncestorType=Window}, StringFormat='{}PHÍ: {0}'}" FontSize="13" FontWeight="Bold" Foreground="{StaticResource SuccessBrush}" VerticalAlignment="Center"/>
+                                        <TextBlock Visibility="{Binding DataContext.Lane1FeeVisibility, RelativeSource={RelativeSource AncestorType=Window}}" Text="{Binding DataContext.Lane1Tien, RelativeSource={RelativeSource AncestorType=Window}, StringFormat='{}PHÍ: {0}'}" FontSize="16" FontWeight="Bold" Foreground="{StaticResource SuccessBrush}" VerticalAlignment="Center"/>
                                     </StackPanel>
                                     
                                     <!-- Action Button -->
-                                    <Button Content="{Binding DataContext.Lane1ButtonText, RelativeSource={RelativeSource AncestorType=Window}}" Style="{StaticResource ModernButton}" Background="{Binding DataContext.Lane1Color, RelativeSource={RelativeSource AncestorType=Window}}" Click="OpenGateIn_Click" IsEnabled="{Binding DataContext.CanOpenBarrier, RelativeSource={RelativeSource AncestorType=Window}}" Width="110" Height="30" HorizontalAlignment="Right"/>
+                                    <Button Style="{StaticResource ModernButton}" 
+                                            Background="{Binding DataContext.Lane1Color, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                            Click="OpenGateIn_Click" 
+                                            IsEnabled="{Binding DataContext.CanOpenBarrier, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                            Width="36" 
+                                            Height="30" 
+                                            ToolTip="Mở barrier làn vào"
+                                            HorizontalAlignment="Right">
+                                        <Viewbox Width="16" Height="16">
+                                            <Path Data="M5,20 H19 V22 H5 Z M12,2 L19,9 H14 V17 H10 V9 H5 Z" Fill="White" Stretch="Uniform"/>
+                                        </Viewbox>
+                                    </Button>
                                 </StackPanel>
                             </Grid>
                         </Border>
                     </StackPanel>
                 </Grid>
+
+                <!-- LANE 1 SCAN OVERLAY NOTIFICATION -->
+                <Border Grid.Row="0" Grid.RowSpan="3"
+                        Background="Transparent"
+                        Panel.ZIndex="99"
+                        IsHitTestVisible="False"
+                        Visibility="{Binding DataContext.IsLane1NotificationVisible, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <Border Background="#2D3748"
+                            BorderBrush="{Binding DataContext.Lane1NotificationColor, RelativeSource={RelativeSource AncestorType=Window}}"
+                            BorderThickness="1.5"
+                            CornerRadius="20"
+                            Padding="12,8"
+                            VerticalAlignment="Center"
+                            HorizontalAlignment="Center"
+                            MaxWidth="320">
+                        <Border.Effect>
+                            <DropShadowEffect Color="#000000" BlurRadius="12" ShadowDepth="3" Opacity="0.5"/>
+                        </Border.Effect>
+                        <StackPanel Orientation="Horizontal">
+                            <!-- Circular status color indicator -->
+                            <Border Width="28" Height="28"
+                                    Background="{Binding DataContext.Lane1NotificationColor, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    CornerRadius="14"
+                                    Margin="0,0,10,0">
+                                <TextBlock Text="{Binding DataContext.Lane1NotificationIcon, RelativeSource={RelativeSource AncestorType=Window}}"
+                                           FontSize="14"
+                                           Foreground="White"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"/>
+                            </Border>
+                            <!-- Notification message text -->
+                            <TextBlock Text="{Binding DataContext.Lane1NotificationMessage, RelativeSource={RelativeSource AncestorType=Window}}"
+                                       FontSize="13"
+                                       FontWeight="SemiBold"
+                                       Foreground="White"
+                                       VerticalAlignment="Center"
+                                       TextWrapping="Wrap"
+                                       MaxWidth="240"/>
+                        </StackPanel>
+                    </Border>
+                </Border>
             </Grid>
         </Border>
 
@@ -245,7 +300,11 @@
 
                     <!-- Compact Horizontal Bottom Information Panel -->
                     <StackPanel Grid.Row="2">
-                        <Border Background="{StaticResource BgLightBrush}" Padding="15,12" CornerRadius="4">
+                        <Border Background="{Binding DataContext.Lane2InfoBackground, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                BorderBrush="{Binding DataContext.Lane2InfoBorderBrush, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                BorderThickness="1.5" 
+                                Padding="15,12" 
+                                CornerRadius="4">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -276,17 +335,68 @@
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right">
                                     <!-- Status / Fee Row -->
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,8">
-                                        <TextBlock Text="{Binding DataContext.Lane2TrangThai, RelativeSource={RelativeSource AncestorType=Window}}" Foreground="{Binding DataContext.Lane2StatusColor, RelativeSource={RelativeSource AncestorType=Window}}" FontWeight="Bold" FontSize="11" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                        <TextBlock Visibility="{Binding DataContext.Lane2FeeVisibility, RelativeSource={RelativeSource AncestorType=Window}}" Text="{Binding DataContext.Lane2Tien, RelativeSource={RelativeSource AncestorType=Window}, StringFormat='{}PHÍ: {0}'}" FontSize="13" FontWeight="Bold" Foreground="{StaticResource SuccessBrush}" VerticalAlignment="Center"/>
+                                        <TextBlock Visibility="{Binding DataContext.Lane2FeeVisibility, RelativeSource={RelativeSource AncestorType=Window}}" Text="{Binding DataContext.Lane2Tien, RelativeSource={RelativeSource AncestorType=Window}, StringFormat='{}PHÍ: {0}'}" FontSize="16" FontWeight="Bold" Foreground="{StaticResource SuccessBrush}" VerticalAlignment="Center"/>
                                     </StackPanel>
                                     
                                     <!-- Action Button -->
-                                    <Button Content="{Binding DataContext.Lane2ButtonText, RelativeSource={RelativeSource AncestorType=Window}}" Style="{StaticResource ModernButton}" Background="{Binding DataContext.Lane2Color, RelativeSource={RelativeSource AncestorType=Window}}" Click="OpenGateOut_Click" IsEnabled="{Binding DataContext.CanOpenBarrier, RelativeSource={RelativeSource AncestorType=Window}}" Width="110" Height="30" HorizontalAlignment="Right"/>
+                                    <Button Style="{StaticResource ModernButton}" 
+                                            Background="{Binding DataContext.Lane2Color, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                            Click="OpenGateOut_Click" 
+                                            IsEnabled="{Binding DataContext.CanOpenBarrier, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                            Width="36" 
+                                            Height="30" 
+                                            ToolTip="Mở barrier làn ra"
+                                            HorizontalAlignment="Right">
+                                        <Viewbox Width="16" Height="16">
+                                            <Path Data="M5,20 H19 V22 H5 Z M12,2 L19,9 H14 V17 H10 V9 H5 Z" Fill="White" Stretch="Uniform"/>
+                                        </Viewbox>
+                                    </Button>
                                 </StackPanel>
                             </Grid>
                         </Border>
                     </StackPanel>
                 </Grid>
+
+                <!-- LANE 2 SCAN OVERLAY NOTIFICATION -->
+                <Border Grid.Row="0" Grid.RowSpan="3"
+                        Background="Transparent"
+                        Panel.ZIndex="99"
+                        IsHitTestVisible="False"
+                        Visibility="{Binding DataContext.IsLane2NotificationVisible, RelativeSource={RelativeSource AncestorType=Window}, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <Border Background="#2D3748"
+                            BorderBrush="{Binding DataContext.Lane2NotificationColor, RelativeSource={RelativeSource AncestorType=Window}}"
+                            BorderThickness="1.5"
+                            CornerRadius="20"
+                            Padding="12,8"
+                            VerticalAlignment="Center"
+                            HorizontalAlignment="Center"
+                            MaxWidth="320">
+                        <Border.Effect>
+                            <DropShadowEffect Color="#000000" BlurRadius="12" ShadowDepth="3" Opacity="0.5"/>
+                        </Border.Effect>
+                        <StackPanel Orientation="Horizontal">
+                            <!-- Circular status color indicator -->
+                            <Border Width="28" Height="28"
+                                    Background="{Binding DataContext.Lane2NotificationColor, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    CornerRadius="14"
+                                    Margin="0,0,10,0">
+                                <TextBlock Text="{Binding DataContext.Lane2NotificationIcon, RelativeSource={RelativeSource AncestorType=Window}}"
+                                           FontSize="14"
+                                           Foreground="White"
+                                           HorizontalAlignment="Center"
+                                           VerticalAlignment="Center"/>
+                            </Border>
+                            <!-- Notification message text -->
+                            <TextBlock Text="{Binding DataContext.Lane2NotificationMessage, RelativeSource={RelativeSource AncestorType=Window}}"
+                                       FontSize="13"
+                                       FontWeight="SemiBold"
+                                       Foreground="White"
+                                       VerticalAlignment="Center"
+                                       TextWrapping="Wrap"
+                                       MaxWidth="240"/>
+                        </StackPanel>
+                    </Border>
+                </Border>
             </Grid>
         </Border>
     </Grid>
