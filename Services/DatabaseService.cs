@@ -1806,7 +1806,7 @@ namespace QuanLyGiuXe.Services
                         cmd.Parameters.AddWithValue("@to", (object?)toUtc ?? DBNull.Value);
 
                         using (var reader = cmd.ExecuteReader())
-                        {
+                            {
                             int count = 0;
                             while (reader.Read())
                             {

@@ -1200,6 +1200,7 @@ namespace QuanLyGiuXe.ViewModels
                     "DashboardViewModel" => "Dashboard Thống kê",
                     "MonitoringDashboardViewModel" => "Parking Monitoring Dashboard",
                     "ParkingTopologyViewModel" => "Cấu hình sơ đồ",
+                    "TopologyValidationViewModel" => "Topology Validation",
                     _ => CurrentView.GetType().Name
                 };
                 LoggingService.Instance.LogInfo("TAB_CLOSE", "UI", $"Đóng tab: {oldTabName}");
@@ -1217,6 +1218,7 @@ namespace QuanLyGiuXe.ViewModels
                     "DashboardViewModel" => "Dashboard Thống kê",
                     "MonitoringDashboardViewModel" => "Parking Monitoring Dashboard",
                     "ParkingTopologyViewModel" => "Cấu hình sơ đồ",
+                    "TopologyValidationViewModel" => "Topology Validation",
                     _ => view.GetType().Name
                 };
                 LoggingService.Instance.LogInfo("TAB_OPEN", "UI", $"Chuyển sang tab: {tabName}");

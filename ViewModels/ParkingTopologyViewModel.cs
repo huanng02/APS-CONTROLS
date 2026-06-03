@@ -882,6 +882,7 @@ namespace QuanLyGiuXe.ViewModels
                     else
                         MessageBox.Show("Đã lưu Site vào bộ nhớ tạm (Offline). Dữ liệu sẽ được đồng bộ lên Server sau.", "Thông báo Offline", MessageBoxButton.OK, MessageBoxImage.Warning);
                     await LoadDataAsync();
+                    RunPostSaveValidation();
                 }
                 catch (Exception ex)
                 {
@@ -903,6 +904,7 @@ namespace QuanLyGiuXe.ViewModels
                     else
                         MessageBox.Show("Đã lưu thay đổi vào bộ nhớ tạm (Offline). Dữ liệu sẽ được đồng bộ lên Server sau.", "Thông báo Offline", MessageBoxButton.OK, MessageBoxImage.Warning);
                     await LoadDataAsync();
+                    RunPostSaveValidation();
                 }
                 catch (Exception ex)
                 {
@@ -950,6 +952,7 @@ namespace QuanLyGiuXe.ViewModels
                     else
                         MessageBox.Show("Đã lưu Zone vào bộ nhớ tạm (Offline). Dữ liệu sẽ được đồng bộ lên Server sau.", "Thông báo Offline", MessageBoxButton.OK, MessageBoxImage.Warning);
                     await LoadDataAsync();
+                    RunPostSaveValidation();
                 }
                 catch (Exception ex)
                 {
@@ -971,6 +974,7 @@ namespace QuanLyGiuXe.ViewModels
                     else
                         MessageBox.Show("Đã lưu thay đổi vào bộ nhớ tạm (Offline). Dữ liệu sẽ được đồng bộ lên Server sau.", "Thông báo Offline", MessageBoxButton.OK, MessageBoxImage.Warning);
                     await LoadDataAsync();
+                    RunPostSaveValidation();
                 }
                 catch (Exception ex)
                 {
@@ -1018,6 +1022,7 @@ namespace QuanLyGiuXe.ViewModels
                     else
                         MessageBox.Show("Đã lưu Cổng vào bộ nhớ tạm (Offline). Dữ liệu sẽ được đồng bộ lên Server sau.", "Thông báo Offline", MessageBoxButton.OK, MessageBoxImage.Warning);
                     await LoadDataAsync();
+                    RunPostSaveValidation();
                 }
                 catch (Exception ex)
                 {
@@ -1039,6 +1044,7 @@ namespace QuanLyGiuXe.ViewModels
                     else
                         MessageBox.Show("Đã lưu thay đổi vào bộ nhớ tạm (Offline). Dữ liệu sẽ được đồng bộ lên Server sau.", "Thông báo Offline", MessageBoxButton.OK, MessageBoxImage.Warning);
                     await LoadDataAsync();
+                    RunPostSaveValidation();
                 }
                 catch (Exception ex)
                 {
@@ -1086,6 +1092,7 @@ namespace QuanLyGiuXe.ViewModels
                     else
                         MessageBox.Show("Đã lưu Làn vào bộ nhớ tạm (Offline). Dữ liệu sẽ được đồng bộ lên Server sau.", "Thông báo Offline", MessageBoxButton.OK, MessageBoxImage.Warning);
                     await LoadDataAsync();
+                    RunPostSaveValidation();
                 }
                 catch (Exception ex)
                 {
@@ -1107,6 +1114,7 @@ namespace QuanLyGiuXe.ViewModels
                     else
                         MessageBox.Show("Đã lưu thay đổi vào bộ nhớ tạm (Offline). Dữ liệu sẽ được đồng bộ lên Server sau.", "Thông báo Offline", MessageBoxButton.OK, MessageBoxImage.Warning);
                     await LoadDataAsync();
+                    RunPostSaveValidation();
                 }
                 catch (Exception ex)
                 {
@@ -1154,6 +1162,7 @@ namespace QuanLyGiuXe.ViewModels
                     else
                         MessageBox.Show("Đã lưu Controller vào bộ nhớ tạm (Offline). Dữ liệu sẽ được đồng bộ lên Server sau.", "Thông báo Offline", MessageBoxButton.OK, MessageBoxImage.Warning);
                     await LoadDataAsync();
+                    RunPostSaveValidation();
                 }
                 catch (Exception ex)
                 {
@@ -1175,6 +1184,7 @@ namespace QuanLyGiuXe.ViewModels
                     else
                         MessageBox.Show("Đã lưu thay đổi vào bộ nhớ tạm (Offline). Dữ liệu sẽ được đồng bộ lên Server sau.", "Thông báo Offline", MessageBoxButton.OK, MessageBoxImage.Warning);
                     await LoadDataAsync();
+                    RunPostSaveValidation();
                 }
                 catch (Exception ex)
                 {
@@ -1200,6 +1210,24 @@ namespace QuanLyGiuXe.ViewModels
                 {
                     MessageBox.Show(ex.Message, "Lỗi xóa", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
+            }
+        }
+
+        private void RunPostSaveValidation()
+        {
+            try
+            {
+                var validationResult = TopologyValidationService.Instance.ValidateTopology();
+                if (validationResult.Errors.Count > 0)
+                {
+                    var dialog = new TopologyValidationDialog(validationResult);
+                    dialog.Owner = Application.Current?.MainWindow;
+                    dialog.ShowDialog();
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("POST_SAVE_VALIDATE", "UI", $"Validation error: {ex.Message}");
             }
         }
     }
