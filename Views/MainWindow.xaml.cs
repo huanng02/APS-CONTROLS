@@ -905,6 +905,14 @@ namespace QuanLyGiuXe
             }
         }
 
+        private void MoDeploymentCenter_Click(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is MainViewModel vm)
+            {
+                vm.SetView(new DeploymentCenterViewModel());
+            }
+        }
+
         private void MoRealtimeLog_Click(object sender, RoutedEventArgs e) =>
             ShowModuleModal("📋 Nhật ký hệ thống", () => new RealtimeLogWindow());
 

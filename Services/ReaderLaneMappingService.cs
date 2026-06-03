@@ -154,6 +154,26 @@ namespace QuanLyGiuXe.Services
             var existing = _mappings
                 .FirstOrDefault(x => x.ReaderNo == readerNo);
 
+            string GetLaneName(int lId)
+            {
+                try
+                {
+                    var l = ParkingTopologyService.Instance.GetLanes()?.FirstOrDefault(x => x.Id == lId);
+                    return l != null ? l.LaneName : $"Làn ID {lId}";
+                }
+                catch { return $"Làn ID {lId}"; }
+            }
+
+            string oldValStr = existing != null 
+                ? $"{GetLaneName(existing.LaneId)} ({existing.Direction}, {(existing.IsEnabled ? "Bật" : "Tắt")})" 
+                : "Chưa gán";
+            string newValStr = $"{GetLaneName(laneId)} ({direction}, {(enabled ? "Bật" : "Tắt")})";
+
+            bool isChanged = existing == null || 
+                             existing.LaneId != laneId || 
+                             existing.Direction != direction || 
+                             existing.IsEnabled != enabled;
+
             if (existing == null)
             {
                 _mappings.Add(new ReaderLaneMapping
@@ -173,13 +193,68 @@ namespace QuanLyGiuXe.Services
 
             Save();
             LoggingService.Instance.LogInfo("CONFIG_CHANGE", "ReaderMapping", $"Cập nhật đầu đọc: Reader {readerNo} -> Làn {laneId} ({direction}, enabled={enabled})");
+
+            if (isChanged)
+            {
+                _ = Task.Run(async () => {
+                    await ConfigurationAuditService.Instance.RecordChangeAsync(
+                        "Reader Mapping",
+                        $"Đầu đọc {readerNo}",
+                        "Lane Mapping",
+                        oldValStr,
+                        newValStr
+                    );
+                });
+            }
         }
 
         public void UpdateMappings(List<ReaderLaneMapping> mappings)
         {
+            var oldMappings = new List<ReaderLaneMapping>(_mappings);
             _mappings = mappings ?? new List<ReaderLaneMapping>();
 
             Save();
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    string GetLaneName(int lId)
+                    {
+                        var l = ParkingTopologyService.Instance.GetLanes()?.FirstOrDefault(x => x.Id == lId);
+                        return l != null ? l.LaneName : $"Làn ID {lId}";
+                    }
+
+                    for (int r = 1; r <= 4; r++)
+                    {
+                        var oldM = oldMappings.FirstOrDefault(x => x.ReaderNo == r);
+                        var newM = _mappings.FirstOrDefault(x => x.ReaderNo == r);
+                        if (newM != null)
+                        {
+                            bool isChanged = oldM == null ||
+                                             oldM.LaneId != newM.LaneId ||
+                                             oldM.Direction != newM.Direction ||
+                                             oldM.IsEnabled != newM.IsEnabled;
+                            if (isChanged)
+                            {
+                                string oldValStr = oldM != null 
+                                    ? $"{GetLaneName(oldM.LaneId)} ({oldM.Direction}, {(oldM.IsEnabled ? "Bật" : "Tắt")})" 
+                                    : "Chưa gán";
+                                string newValStr = $"{GetLaneName(newM.LaneId)} ({newM.Direction}, {(newM.IsEnabled ? "Bật" : "Tắt")})";
+
+                                await ConfigurationAuditService.Instance.RecordChangeAsync(
+                                    "Reader Mapping",
+                                    $"Đầu đọc {r}",
+                                    "Lane Mapping",
+                                    oldValStr,
+                                    newValStr
+                                );
+                            }
+                        }
+                    }
+                }
+                catch { }
+            });
         }
 
         public void RemoveReader(int readerNo)
@@ -189,9 +264,20 @@ namespace QuanLyGiuXe.Services
 
             if (existing != null)
             {
+                string oldValStr = $"{existing.LaneId} ({existing.Direction})";
                 _mappings.Remove(existing);
                 Save();
                 LoggingService.Instance.LogInfo("CONFIG_CHANGE", "ReaderMapping", $"Xóa đầu đọc: Reader {readerNo}");
+
+                _ = Task.Run(async () => {
+                    await ConfigurationAuditService.Instance.RecordChangeAsync(
+                        "Reader Mapping",
+                        $"Đầu đọc {readerNo}",
+                        "Lane Mapping",
+                        oldValStr,
+                        "Chưa gán"
+                    );
+                });
             }
         }
 
@@ -200,6 +286,16 @@ namespace QuanLyGiuXe.Services
             _mappings.Clear();
             Save();
             LoggingService.Instance.LogInfo("CONFIG_CHANGE", "ReaderMapping", "Xóa toàn bộ cấu hình ánh xạ đầu đọc");
+
+            _ = Task.Run(async () => {
+                await ConfigurationAuditService.Instance.RecordChangeAsync(
+                    "Reader Mapping",
+                    "Tất cả đầu đọc",
+                    "Clear Mappings",
+                    "Có cấu hình",
+                    "Chưa gán"
+                );
+            });
         }
     }
 }

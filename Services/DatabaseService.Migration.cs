@@ -114,6 +114,20 @@ namespace QuanLyGiuXe.Services
                         LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Enterprise Function Separation migration applied successfully.");
                     }
 
+                    // Execute Deployment & Audit migration (20260603_deployment_and_audit.sql)
+                    string scriptPathDeployAudit = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260603_deployment_and_audit.sql");
+                    if (File.Exists(scriptPathDeployAudit))
+                    {
+                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Executing Deployment Center & Audit Trail migration...");
+                        string sqlDeployAudit = await File.ReadAllTextAsync(scriptPathDeployAudit);
+                        using (var cmd = new SqlCommand(sqlDeployAudit, conn))
+                        {
+                            cmd.CommandTimeout = 60;
+                            await cmd.ExecuteNonQueryAsync();
+                        }
+                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Deployment Center & Audit Trail migration applied successfully.");
+                    }
+
                     _migrationsApplied = true;
                     LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "SQL Server topology migrations applied successfully.");
                 }
@@ -576,6 +590,20 @@ namespace QuanLyGiuXe.Services
                             await cmd.ExecuteNonQueryAsync();
                         }
                         LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Enterprise Function Separation migration applied successfully.");
+                    }
+
+                    // 8. Now run the Deployment & Audit migration script (20260603_deployment_and_audit.sql)
+                    string scriptPathDeployAudit = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260603_deployment_and_audit.sql");
+                    if (File.Exists(scriptPathDeployAudit))
+                    {
+                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Executing Deployment Center & Audit Trail migration...");
+                        string sqlDeployAudit = await File.ReadAllTextAsync(scriptPathDeployAudit);
+                        using (var cmd = new SqlCommand(sqlDeployAudit, conn))
+                        {
+                            cmd.CommandTimeout = 60;
+                            await cmd.ExecuteNonQueryAsync();
+                        }
+                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Deployment Center & Audit Trail migration applied successfully.");
                     }
 
                     _baseSchemaChecked = true;

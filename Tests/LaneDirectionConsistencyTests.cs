@@ -154,6 +154,52 @@ namespace QuanLyGiuXe.Tests
 
                 Console.WriteLine("ALL CONSISTENCY TESTS PASSED SUCCESSFULLY!");
                 Console.WriteLine("=================================================");
+
+                // Diagnostic database print
+                try
+                {
+                    var db = new DatabaseService();
+                    string connStr = db.GetConnectionString();
+                    Console.WriteLine("DIAGNOSTIC: Connection String: " + connStr);
+                    using (var conn = new System.Data.SqlClient.SqlConnection(connStr))
+                    {
+                        conn.Open();
+                        Console.WriteLine("DIAGNOSTIC: Connected to DB!");
+                        
+                        using (var cmd = conn.CreateCommand())
+                        {
+                            cmd.CommandText = "SELECT COUNT(*) FROM dbo.DeploymentHistory";
+                            Console.WriteLine("DIAGNOSTIC: DeploymentHistory count: " + cmd.ExecuteScalar());
+                            
+                            cmd.CommandText = "SELECT COUNT(*) FROM dbo.ConfigurationAudit";
+                            Console.WriteLine("DIAGNOSTIC: ConfigurationAudit count: " + cmd.ExecuteScalar());
+
+                            cmd.CommandText = "SELECT TOP 10 Id, Version, DeployTime, Status, Notes FROM dbo.DeploymentHistory ORDER BY DeployTime DESC";
+                            using (var r = cmd.ExecuteReader())
+                            {
+                                Console.WriteLine("DIAGNOSTIC: Deployment History list:");
+                                while (r.Read())
+                                {
+                                    Console.WriteLine(" - ID " + r[0] + ", V" + r[1] + ", Time " + r.GetDateTime(2).ToString("yyyy-MM-dd HH:mm:ss.fff") + ", Status " + r[3] + ", Notes " + r[4]);
+                                }
+                            }
+
+                            cmd.CommandText = "SELECT TOP 10 Id, Timestamp, UserName, EntityType, EntityName, PropertyName, OldValue, NewValue FROM dbo.ConfigurationAudit ORDER BY Timestamp DESC";
+                            using (var r = cmd.ExecuteReader())
+                            {
+                                Console.WriteLine("DIAGNOSTIC: Configuration Audit list:");
+                                while (r.Read())
+                                {
+                                    Console.WriteLine(" - ID " + r[0] + ", Time " + r.GetDateTime(1).ToString("yyyy-MM-dd HH:mm:ss.fff") + ", User " + r[2] + ", " + r[3] + " / " + r[4] + " / " + r[5] + ": '" + r[6] + "' -> '" + r[7] + "'");
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("DIAGNOSTIC ERROR: " + ex.Message);
+                }
             }
             finally
             {

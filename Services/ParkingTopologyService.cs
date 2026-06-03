@@ -394,6 +394,7 @@ namespace QuanLyGiuXe.Services
 
             if (success)
             {
+                try { await ConfigurationAuditService.Instance.AuditChangesAsync("Site", previous, site); } catch { }
                 try
                 {
                     LoggingService.Instance.LogCrud(
@@ -520,6 +521,7 @@ namespace QuanLyGiuXe.Services
 
             if (success)
             {
+                try { await ConfigurationAuditService.Instance.AuditChangesAsync("Site", previous, null); } catch { }
                 try
                 {
                     LoggingService.Instance.LogCrud(
@@ -643,6 +645,7 @@ namespace QuanLyGiuXe.Services
 
             if (success)
             {
+                try { await ConfigurationAuditService.Instance.AuditChangesAsync("Zone", previous, zone); } catch { }
                 try
                 {
                     LoggingService.Instance.LogCrud(
@@ -776,6 +779,7 @@ namespace QuanLyGiuXe.Services
 
             if (success)
             {
+                try { await ConfigurationAuditService.Instance.AuditChangesAsync("Zone", previous, null); } catch { }
                 try
                 {
                     LoggingService.Instance.LogCrud(
@@ -894,6 +898,7 @@ namespace QuanLyGiuXe.Services
 
             if (success)
             {
+                try { await ConfigurationAuditService.Instance.AuditChangesAsync("Gate", previous, gate); } catch { }
                 try
                 {
                     LoggingService.Instance.LogCrud(
@@ -971,6 +976,7 @@ namespace QuanLyGiuXe.Services
 
             if (success)
             {
+                try { await ConfigurationAuditService.Instance.AuditChangesAsync("Gate", previous, null); } catch { }
                 try
                 {
                     LoggingService.Instance.LogCrud(
@@ -1101,6 +1107,7 @@ namespace QuanLyGiuXe.Services
 
             if (success)
             {
+                try { await ConfigurationAuditService.Instance.AuditChangesAsync("Controller", previous, controller); } catch { }
                 try
                 {
                     LoggingService.Instance.LogCrud(
@@ -1169,6 +1176,7 @@ namespace QuanLyGiuXe.Services
 
             if (success)
             {
+                try { await ConfigurationAuditService.Instance.AuditChangesAsync("Controller", previous, null); } catch { }
                 try
                 {
                     LoggingService.Instance.LogCrud(
@@ -1348,6 +1356,7 @@ namespace QuanLyGiuXe.Services
                 }
                 catch { }
 
+                try { await ConfigurationAuditService.Instance.AuditChangesAsync("Lane", previous, lane); } catch { }
                 try
                 {
                     LoggingService.Instance.LogCrud(
@@ -1452,6 +1461,7 @@ namespace QuanLyGiuXe.Services
 
             if (success)
             {
+                try { await ConfigurationAuditService.Instance.AuditChangesAsync("Lane", previous, null); } catch { }
                 try
                 {
                     LoggingService.Instance.LogCrud(
@@ -1472,6 +1482,11 @@ namespace QuanLyGiuXe.Services
 
         public async Task<bool> AssignLaneToZoneAsync(int laneId, int? zoneId)
         {
+            var lanes = await GetLanesAsync();
+            var prevLane = lanes.FirstOrDefault(l => l.Id == laneId);
+            string laneName = prevLane?.LaneName ?? $"Làn ID {laneId}";
+            string oldZoneName = prevLane?.ZoneName ?? "Chưa gán";
+
             var success = await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
                 "ASSIGN_LANE_ZONE",
                 new { LaneId = laneId, ZoneId = zoneId },
@@ -1487,8 +1502,8 @@ namespace QuanLyGiuXe.Services
                 },
                 async () =>
                 {
-                    var lanes = await GetLanesAsync();
-                    var lane = lanes.FirstOrDefault(l => l.Id == laneId);
+                    var lanesList = await GetLanesAsync();
+                    var lane = lanesList.FirstOrDefault(l => l.Id == laneId);
                     if (lane != null)
                     {
                         lane.ZoneId = zoneId;
@@ -1501,13 +1516,19 @@ namespace QuanLyGiuXe.Services
                         {
                             lane.ZoneName = string.Empty;
                         }
-                        await OfflineCacheService.Instance.SaveCacheAsync("LIST_LANES", lanes);
+                        await OfflineCacheService.Instance.SaveCacheAsync("LIST_LANES", lanesList);
                     }
                 }
             );
 
             if (success)
             {
+                try
+                {
+                    string newZoneName = zoneId.HasValue ? (await GetZoneAsync(zoneId.Value))?.ZoneName ?? "Không xác định" : "Chưa gán";
+                    await ConfigurationAuditService.Instance.RecordChangeAsync("Lane", laneName, "Zone", oldZoneName, newZoneName);
+                }
+                catch { }
                 try
                 {
                     LoggingService.Instance.LogCrud(
@@ -1528,6 +1549,11 @@ namespace QuanLyGiuXe.Services
 
         public async Task<bool> AssignLaneToGateAsync(int laneId, int? gateId)
         {
+            var lanes = await GetLanesAsync();
+            var prevLane = lanes.FirstOrDefault(l => l.Id == laneId);
+            string laneName = prevLane?.LaneName ?? $"Làn ID {laneId}";
+            string oldGateName = prevLane?.GateName ?? "Chưa gán";
+
             var success = await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
                 "ASSIGN_LANE_GATE",
                 new { LaneId = laneId, GateId = gateId },
@@ -1543,8 +1569,8 @@ namespace QuanLyGiuXe.Services
                 },
                 async () =>
                 {
-                    var lanes = await GetLanesAsync();
-                    var lane = lanes.FirstOrDefault(l => l.Id == laneId);
+                    var lanesList = await GetLanesAsync();
+                    var lane = lanesList.FirstOrDefault(l => l.Id == laneId);
                     if (lane != null)
                     {
                         lane.GateId = gateId;
@@ -1557,13 +1583,19 @@ namespace QuanLyGiuXe.Services
                         {
                             lane.GateName = string.Empty;
                         }
-                        await OfflineCacheService.Instance.SaveCacheAsync("LIST_LANES", lanes);
+                        await OfflineCacheService.Instance.SaveCacheAsync("LIST_LANES", lanesList);
                     }
                 }
             );
 
             if (success)
             {
+                try
+                {
+                    string newGateName = gateId.HasValue ? (await GetGateAsync(gateId.Value))?.GateName ?? "Không xác định" : "Chưa gán";
+                    await ConfigurationAuditService.Instance.RecordChangeAsync("Lane", laneName, "Gate", oldGateName, newGateName);
+                }
+                catch { }
                 try
                 {
                     LoggingService.Instance.LogCrud(

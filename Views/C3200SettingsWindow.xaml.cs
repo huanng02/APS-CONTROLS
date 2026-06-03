@@ -783,6 +783,7 @@ namespace QuanLyGiuXe
                 }
 
                 var changes = new System.Text.StringBuilder();
+                var auditTasks = new List<Task>();
                 void AddChange(string name, object oldV, object newV)
                 {
                     string oldStr = oldV?.ToString() ?? string.Empty;
@@ -791,6 +792,13 @@ namespace QuanLyGiuXe
                     {
                         if (changes.Length > 0) changes.Append("; ");
                         changes.Append($"{name}: '{oldStr}' -> '{newStr}'");
+                        auditTasks.Add(ConfigurationAuditService.Instance.RecordChangeAsync(
+                            "Controller Config",
+                            "ZKTeco Settings",
+                            name,
+                            oldStr,
+                            newStr
+                        ));
                     }
                 }
 
@@ -805,6 +813,11 @@ namespace QuanLyGiuXe
                 AddChange("ForceAllOut", prevForceOut, _cfg.ZKTeco.ForceAllOut);
                 AddChange("Button1Action", prevBtn1, _cfg.ZKTeco.Button1Action);
                 AddChange("Button2Action", prevBtn2, _cfg.ZKTeco.Button2Action);
+
+                if (auditTasks.Count > 0)
+                {
+                    await Task.WhenAll(auditTasks);
+                }
 
                 // Check for reader mapping changes
                 for (int r = 1; r <= 4; r++)

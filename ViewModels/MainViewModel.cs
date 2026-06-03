@@ -810,8 +810,9 @@ namespace QuanLyGiuXe.ViewModels
         public ICommand EditProfileCommand { get; }
         public ICommand ChangePasswordCommand { get; }
         public ICommand ToggleSidebarCommand { get; }
-        public ICommand BackupRestoreCommand { get; }
         public ICommand RealtimeEventFeedCommand { get; }
+        public ICommand DeploymentCenterCommand { get; }
+        public ICommand BackupRestoreCommand { get; }
 
         // ── Constructor ───────────────────────────────────────────────────────────
 
@@ -883,6 +884,7 @@ namespace QuanLyGiuXe.ViewModels
             RealtimeEventFeedCommand = new RelayCommand(_ => SetView(new RealtimeEventFeedViewModel()));
             LichSuCommand = new RelayCommand(_ => SetView(new LichSuViewModel()));
             DatabaseExplorerCommand = new SecureCommand("DATABASE_EXPLORER", _ => SetView(new DatabaseExplorerViewModel()));
+            DeploymentCenterCommand = new RelayCommand(_ => SetView(new DeploymentCenterViewModel()));
             ToggleUserPopupCommand = new RelayCommand(_ => IsUserPopupOpen = !IsUserPopupOpen);
             EditProfileCommand = new RelayCommand(_ =>
             {
@@ -1201,6 +1203,7 @@ namespace QuanLyGiuXe.ViewModels
                     "MonitoringDashboardViewModel" => "Parking Monitoring Dashboard",
                     "ParkingTopologyViewModel" => "Cấu hình sơ đồ",
                     "TopologyValidationViewModel" => "Topology Validation",
+                    "DeploymentCenterViewModel" => "Deployment Center",
                     _ => CurrentView.GetType().Name
                 };
                 LoggingService.Instance.LogInfo("TAB_CLOSE", "UI", $"Đóng tab: {oldTabName}");
@@ -1219,6 +1222,7 @@ namespace QuanLyGiuXe.ViewModels
                     "MonitoringDashboardViewModel" => "Parking Monitoring Dashboard",
                     "ParkingTopologyViewModel" => "Cấu hình sơ đồ",
                     "TopologyValidationViewModel" => "Topology Validation",
+                    "DeploymentCenterViewModel" => "Deployment Center",
                     _ => view.GetType().Name
                 };
                 LoggingService.Instance.LogInfo("TAB_OPEN", "UI", $"Chuyển sang tab: {tabName}");
@@ -1689,11 +1693,22 @@ namespace QuanLyGiuXe.ViewModels
                 }
             }
         }
+        public bool IsDeploymentCenterVisible
+        {
+            get
+            {
+                var role = QuanLyGiuXe.Models.CurrentUser.Role;
+                return string.Equals(role, "SuperAdmin", System.StringComparison.OrdinalIgnoreCase) ||
+                       string.Equals(role, "Admin", System.StringComparison.OrdinalIgnoreCase);
+            }
+        }
+
         public void RefreshCurrentUserInfo()
         {
             OnPropertyChanged(nameof(CurrentUserTen));
             OnPropertyChanged(nameof(CurrentUserUsername));
             OnPropertyChanged(nameof(CurrentUserRole));
+            OnPropertyChanged(nameof(IsDeploymentCenterVisible));
         }
 
         public void Dispose()
