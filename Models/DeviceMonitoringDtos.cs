@@ -1,24 +1,36 @@
 using System;
+using System.Collections.Generic;
 
 namespace QuanLyGiuXe.Models
 {
-    public class DeviceKpiDto
+    // ── Infrastructure Summary ──────────────────────────────────────────
+    public class InfrastructureSummaryDto
     {
-        public int XeTrongBai { get; set; }
-        public int LuotXeVaoHomNay { get; set; }
-        public int LuotXeRaHomNay { get; set; }
-        public double DoanhThuHomNay { get; set; }
-        public int TongCho { get; set; }
-        public double TyLeLapDay => TongCho > 0 ? (double)XeTrongBai / TongCho * 100 : 0;
-        public int ChoTrong => TongCho - XeTrongBai;
+        public int TotalControllers { get; set; }
+        public int OnlineControllers { get; set; }
+        public double ControllerHealth => TotalControllers > 0 ? (double)OnlineControllers / TotalControllers * 100 : 0;
+
+        public int TotalReaders { get; set; }
+        public int OnlineReaders { get; set; }
+        public double ReaderHealth => TotalReaders > 0 ? (double)OnlineReaders / TotalReaders * 100 : 0;
+
+
+        public int TotalCameras { get; set; }
+        public int OnlineCameras { get; set; }
+        public double CameraHealth => TotalCameras > 0 ? (double)OnlineCameras / TotalCameras * 100 : 0;
+
+        public int TotalLanes { get; set; }
+        public int OnlineLanes { get; set; }
+        public double LaneHealth => TotalLanes > 0 ? (double)OnlineLanes / TotalLanes * 100 : 0;
     }
 
+    // ── Lane Status (Enhanced) ──────────────────────────────────────────
     public class LaneStatusDto
     {
         public int Id { get; set; }
         public string LaneCode { get; set; } = string.Empty;
         public string LaneName { get; set; } = string.Empty;
-        public string Direction { get; set; } = "IN"; // IN, OUT
+        public string Direction { get; set; } = "IN";
         public string ZoneName { get; set; } = string.Empty;
         public string GateName { get; set; } = string.Empty;
         public bool IsActive { get; set; } = true;
@@ -26,8 +38,15 @@ namespace QuanLyGiuXe.Models
         public string AssociatedCamera { get; set; } = string.Empty;
         public bool CameraOnline { get; set; } = false;
         public string StatusDetails { get; set; } = string.Empty;
+
+        // Enhanced sub-device health
+        public string ControllerStatus { get; set; } = "N/A";
+        public string ReaderStatus { get; set; } = "N/A";
+        public string CameraStatus { get; set; } = "N/A";
+        public string OverallHealth { get; set; } = "Unknown";
     }
 
+    // ── C3 Controller Status ────────────────────────────────────────────
     public class C3ControllerStatusDto
     {
         public int Id { get; set; }
@@ -40,14 +59,56 @@ namespace QuanLyGiuXe.Models
         public string StatusDetails { get; set; } = string.Empty;
     }
 
+    // ── RFID Reader Status ──────────────────────────────────────────────
     public class RfidReaderStatusDto
     {
-        public int ReaderNo { get; set; } // 1, 2, 3, 4
+        public int ReaderNo { get; set; }
         public string ReaderName { get; set; } = string.Empty;
-        public string ConnectionType { get; set; } = "C3 Controller"; // C3 Controller or USB COM
-        public string PortOrAddress { get; set; } = string.Empty; // COM3 or C3 IP reader number
+        public string ConnectionType { get; set; } = "C3 Controller";
+        public string PortOrAddress { get; set; } = string.Empty;
         public string AssociatedLaneName { get; set; } = string.Empty;
         public bool IsOnline { get; set; } = false;
         public string StatusDetails { get; set; } = string.Empty;
+    }
+
+
+    // ── Camera Status ───────────────────────────────────────────────────
+    public class CameraStatusDto
+    {
+        public int Id { get; set; }
+        public string CameraName { get; set; } = string.Empty;
+        public string LaneName { get; set; } = string.Empty;
+        public string IpAddress { get; set; } = string.Empty;
+        public string Status { get; set; } = "Offline";
+        public bool IsOnline { get; set; } = false;
+        public DateTime? LastFrameTime { get; set; }
+        public string RtspUrl { get; set; } = string.Empty;
+        public string StatusDetails { get; set; } = string.Empty;
+    }
+
+    // ── Device Event ────────────────────────────────────────────────────
+    public class DeviceEventDto
+    {
+        public long Id { get; set; }
+        public DateTime Timestamp { get; set; } = DateTime.Now;
+        public string DeviceType { get; set; } = string.Empty;
+        public string DeviceName { get; set; } = string.Empty;
+        public string EventType { get; set; } = string.Empty;
+        public string Severity { get; set; } = "Info";
+        public string Description { get; set; } = string.Empty;
+    }
+
+    // ── Device Detail ───────────────────────────────────────────────────
+    public class DeviceDetailDto
+    {
+        public string DeviceName { get; set; } = string.Empty;
+        public string DeviceType { get; set; } = string.Empty;
+        public string IpAddress { get; set; } = string.Empty;
+        public string FirmwareVersion { get; set; } = "N/A";
+        public string CurrentStatus { get; set; } = "Unknown";
+        public bool IsOnline { get; set; } = false;
+        public DateTime? LastCommunication { get; set; }
+        public string StatusDetails { get; set; } = string.Empty;
+        public List<DeviceEventDto> RecentEvents { get; set; } = new();
     }
 }

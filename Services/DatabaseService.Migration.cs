@@ -153,6 +153,20 @@ namespace QuanLyGiuXe.Services
                         }
                         LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Audit Logs migration applied successfully.");
                     }
+
+                    // Execute Device Monitoring tables migration (20260604_device_monitoring_tables.sql)
+                    string scriptPathDeviceMonitoring = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260604_device_monitoring_tables.sql");
+                    if (File.Exists(scriptPathDeviceMonitoring))
+                    {
+                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Executing Device Monitoring tables migration...");
+                        string sqlDeviceMonitoring = await File.ReadAllTextAsync(scriptPathDeviceMonitoring);
+                        using (var cmd = new SqlCommand(sqlDeviceMonitoring, conn))
+                        {
+                            cmd.CommandTimeout = 60;
+                            await cmd.ExecuteNonQueryAsync();
+                        }
+                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Device Monitoring tables migration applied successfully.");
+                    }
                     _migrationsApplied = true;
                     LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "SQL Server topology migrations applied successfully.");
                 }
@@ -657,6 +671,20 @@ namespace QuanLyGiuXe.Services
                             await cmd.ExecuteNonQueryAsync();
                         }
                         LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Audit Logs migration applied successfully.");
+                    }
+
+                    // 11. Now run the Device Monitoring tables migration script (20260604_device_monitoring_tables.sql)
+                    string scriptPathDeviceMonitoring = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260604_device_monitoring_tables.sql");
+                    if (File.Exists(scriptPathDeviceMonitoring))
+                    {
+                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Executing Device Monitoring tables migration...");
+                        string sqlDeviceMonitoring = await File.ReadAllTextAsync(scriptPathDeviceMonitoring);
+                        using (var cmd = new SqlCommand(sqlDeviceMonitoring, conn))
+                        {
+                            cmd.CommandTimeout = 60;
+                            await cmd.ExecuteNonQueryAsync();
+                        }
+                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Device Monitoring tables migration applied successfully.");
                     }
 
                     _baseSchemaChecked = true;

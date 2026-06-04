@@ -34,6 +34,7 @@ namespace QuanLyGiuXe
 
         public MainWindow()
         {
+            CameraService.Instance = _cameraService;
             InitializeComponent();
             DataContext = new MainViewModel();
 

@@ -1751,5 +1751,366 @@ namespace QuanLyGiuXe.Services
                 }
             );
         }
+
+        // ──────────────────────────────────────────────
+        // CAMERAS CRUD
+        // ──────────────────────────────────────────────
+
+        public List<QuanLyGiuXe.Models.CameraConfig> GetCameras() => Task.Run(() => GetCamerasAsync()).GetAwaiter().GetResult();
+
+        public async Task<List<QuanLyGiuXe.Models.CameraConfig>> GetCamerasAsync()
+        {
+            return await ConnectivityAwareRepository.Instance.ExecuteReadAsync<List<QuanLyGiuXe.Models.CameraConfig>>(
+                "LIST_CAMERAS",
+                async conn =>
+                {
+                    var list = new List<QuanLyGiuXe.Models.CameraConfig>();
+                    try
+                    {
+                        string sql = @"
+                            SELECT c.Id, c.CameraName, c.CameraKey, c.IpAddress, c.RtspUrl, c.LaneId, c.Direction, c.IsActive, c.CreatedUtc,
+                                   l.LaneName
+                            FROM dbo.Cameras c
+                            LEFT JOIN dbo.Lanes l ON c.LaneId = l.Id
+                            ORDER BY c.CameraName";
+                        using (var cmd = new SqlCommand(sql, conn))
+                        using (var r = await cmd.ExecuteReaderAsync())
+                        {
+                            while (await r.ReadAsync())
+                            {
+                                list.Add(new QuanLyGiuXe.Models.CameraConfig
+                                {
+                                    Id = r.GetInt32(0),
+                                    CameraName = r.GetString(1),
+                                    CameraKey = r.GetString(2),
+                                    IpAddress = r.IsDBNull(3) ? string.Empty : r.GetString(3),
+                                    RtspUrl = r.IsDBNull(4) ? string.Empty : r.GetString(4),
+                                    LaneId = r.IsDBNull(5) ? null : r.GetInt32(5),
+                                    Direction = r.IsDBNull(6) ? "IN" : r.GetString(6),
+                                    IsActive = r.GetBoolean(7),
+                                    CreatedUtc = r.GetDateTime(8),
+                                    LaneName = r.IsDBNull(9) ? string.Empty : r.GetString(9)
+                                });
+                            }
+                        }
+                    }
+                    catch (SqlException ex) when (ex.Message.Contains("Invalid object name 'Cameras'") || ex.Message.Contains("Invalid object name 'dbo.Cameras'"))
+                    {
+                        LoggingService.Instance.LogInfo("TOPOLOGY", "GetCameras", "Cameras table does not exist yet.");
+                    }
+                    catch (Exception ex)
+                    {
+                        LoggingService.Instance.LogError("TOPOLOGY_ERROR", "GetCameras", "Failed to query Cameras table", ex);
+                    }
+                    return list;
+                }
+            ) ?? new List<QuanLyGiuXe.Models.CameraConfig>();
+        }
+
+        public async Task<bool> SaveCameraAsync(QuanLyGiuXe.Models.CameraConfig camera)
+        {
+            bool isNew = camera.Id == 0;
+            QuanLyGiuXe.Models.CameraConfig? previous = null;
+            if (!isNew)
+            {
+                var list = await GetCamerasAsync();
+                previous = list.FirstOrDefault(x => x.Id == camera.Id);
+            }
+
+            var success = await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+                isNew ? "CREATE_CAMERA" : "UPDATE_CAMERA",
+                camera,
+                async conn =>
+                {
+                    string sql = isNew
+                        ? @"INSERT INTO dbo.Cameras (CameraName, CameraKey, IpAddress, RtspUrl, LaneId, Direction, IsActive, CreatedUtc)
+                            OUTPUT INSERTED.Id
+                            VALUES (@name, @key, @ip, @rtsp, @laneId, @dir, @active, @created)"
+                        : @"UPDATE dbo.Cameras 
+                            SET CameraName = @name, CameraKey = @key, IpAddress = @ip, RtspUrl = @rtsp, 
+                                LaneId = @laneId, Direction = @dir, IsActive = @active 
+                            WHERE Id = @id";
+
+                    using (var cmd = new SqlCommand(sql, conn))
+                    {
+                        if (!isNew) cmd.Parameters.AddWithValue("@id", camera.Id);
+                        cmd.Parameters.AddWithValue("@name", camera.CameraName);
+                        cmd.Parameters.AddWithValue("@key", camera.CameraKey);
+                        cmd.Parameters.AddWithValue("@ip", camera.IpAddress ?? (object)DBNull.Value);
+                        cmd.Parameters.AddWithValue("@rtsp", camera.RtspUrl ?? (object)DBNull.Value);
+                        cmd.Parameters.AddWithValue("@laneId", camera.LaneId ?? (object)DBNull.Value);
+                        cmd.Parameters.AddWithValue("@dir", camera.Direction ?? "IN");
+                        cmd.Parameters.AddWithValue("@active", camera.IsActive);
+                        cmd.Parameters.AddWithValue("@created", camera.CreatedUtc);
+
+                        if (isNew)
+                        {
+                            var newId = await cmd.ExecuteScalarAsync();
+                            if (newId != null) camera.Id = Convert.ToInt32(newId);
+                        }
+                        else
+                        {
+                            await cmd.ExecuteNonQueryAsync();
+                        }
+                    }
+                },
+                async () =>
+                {
+                    var list = await GetCamerasAsync();
+                    if (isNew)
+                    {
+                        camera.Id = list.Any() ? list.Max(x => x.Id) + 1 : 1;
+                        var lanes = await GetLanesAsync();
+                        var lane = lanes.FirstOrDefault(l => l.Id == camera.LaneId);
+                        if (lane != null) camera.LaneName = lane.LaneName;
+                        list.Add(camera);
+                    }
+                    else
+                    {
+                        var existing = list.FirstOrDefault(x => x.Id == camera.Id);
+                        if (existing != null)
+                        {
+                            existing.CameraName = camera.CameraName;
+                            existing.CameraKey = camera.CameraKey;
+                            existing.IpAddress = camera.IpAddress;
+                            existing.RtspUrl = camera.RtspUrl;
+                            existing.LaneId = camera.LaneId;
+                            existing.Direction = camera.Direction;
+                            existing.IsActive = camera.IsActive;
+                            var lanes = await GetLanesAsync();
+                            var lane = lanes.FirstOrDefault(l => l.Id == camera.LaneId);
+                            existing.LaneName = lane?.LaneName ?? string.Empty;
+                        }
+                    }
+                    await OfflineCacheService.Instance.SaveCacheAsync("LIST_CAMERAS", list);
+                }
+            );
+
+            if (success)
+            {
+                try { await ConfigurationAuditService.Instance.AuditChangesAsync("Camera", previous, camera); } catch { }
+            }
+            return success;
+        }
+
+        public async Task<bool> DeleteCameraAsync(int id)
+        {
+            var list = await GetCamerasAsync();
+            var previous = list.FirstOrDefault(x => x.Id == id);
+            if (previous == null) return false;
+
+            var success = await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+                "DELETE_CAMERA",
+                new { Id = id },
+                async conn =>
+                {
+                    string sql = "DELETE FROM dbo.Cameras WHERE Id = @id";
+                    using (var cmd = new SqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@id", id);
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+                },
+                async () =>
+                {
+                    var list = await GetCamerasAsync();
+                    var existing = list.FirstOrDefault(x => x.Id == id);
+                    if (existing != null)
+                    {
+                        list.Remove(existing);
+                        await OfflineCacheService.Instance.SaveCacheAsync("LIST_CAMERAS", list);
+                    }
+                }
+            );
+
+            if (success)
+            {
+                try { await ConfigurationAuditService.Instance.AuditChangesAsync("Camera", previous, null); } catch { }
+            }
+            return success;
+        }
+
+        // ──────────────────────────────────────────────
+        // BARRIERS CRUD
+        // ──────────────────────────────────────────────
+
+        public List<QuanLyGiuXe.Models.BarrierConfig> GetBarriers() => Task.Run(() => GetBarriersAsync()).GetAwaiter().GetResult();
+
+        public async Task<List<QuanLyGiuXe.Models.BarrierConfig>> GetBarriersAsync()
+        {
+            return await ConnectivityAwareRepository.Instance.ExecuteReadAsync<List<QuanLyGiuXe.Models.BarrierConfig>>(
+                "LIST_BARRIERS",
+                async conn =>
+                {
+                    var list = new List<QuanLyGiuXe.Models.BarrierConfig>();
+                    try
+                    {
+                        string sql = @"
+                            SELECT b.Id, b.BarrierName, b.ControllerId, b.RelayNumber, b.LaneId, b.Direction, b.IsActive, b.CreatedUtc,
+                                   c.ControllerName, l.LaneName
+                            FROM dbo.Barriers b
+                            LEFT JOIN dbo.C3Controllers c ON b.ControllerId = c.Id
+                            LEFT JOIN dbo.Lanes l ON b.LaneId = l.Id
+                            ORDER BY b.BarrierName";
+                        using (var cmd = new SqlCommand(sql, conn))
+                        using (var r = await cmd.ExecuteReaderAsync())
+                        {
+                            while (await r.ReadAsync())
+                            {
+                                list.Add(new QuanLyGiuXe.Models.BarrierConfig
+                                {
+                                    Id = r.GetInt32(0),
+                                    BarrierName = r.GetString(1),
+                                    ControllerId = r.IsDBNull(2) ? null : r.GetInt32(2),
+                                    RelayNumber = r.GetInt32(3),
+                                    LaneId = r.IsDBNull(4) ? null : r.GetInt32(4),
+                                    Direction = r.IsDBNull(5) ? "IN" : r.GetString(5),
+                                    IsActive = r.GetBoolean(6),
+                                    CreatedUtc = r.GetDateTime(7),
+                                    ControllerName = r.IsDBNull(8) ? string.Empty : r.GetString(8),
+                                    LaneName = r.IsDBNull(9) ? string.Empty : r.GetString(9)
+                                });
+                            }
+                        }
+                    }
+                    catch (SqlException ex) when (ex.Message.Contains("Invalid object name 'Barriers'") || ex.Message.Contains("Invalid object name 'dbo.Barriers'"))
+                    {
+                        LoggingService.Instance.LogInfo("TOPOLOGY", "GetBarriers", "Barriers table does not exist yet.");
+                    }
+                    catch (Exception ex)
+                    {
+                        LoggingService.Instance.LogError("TOPOLOGY_ERROR", "GetBarriers", "Failed to query Barriers table", ex);
+                    }
+                    return list;
+                }
+            ) ?? new List<QuanLyGiuXe.Models.BarrierConfig>();
+        }
+
+        public async Task<bool> SaveBarrierAsync(QuanLyGiuXe.Models.BarrierConfig barrier)
+        {
+            bool isNew = barrier.Id == 0;
+            QuanLyGiuXe.Models.BarrierConfig? previous = null;
+            if (!isNew)
+            {
+                var list = await GetBarriersAsync();
+                previous = list.FirstOrDefault(x => x.Id == barrier.Id);
+            }
+
+            var success = await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+                isNew ? "CREATE_BARRIER" : "UPDATE_BARRIER",
+                barrier,
+                async conn =>
+                {
+                    string sql = isNew
+                        ? @"INSERT INTO dbo.Barriers (BarrierName, ControllerId, RelayNumber, LaneId, Direction, IsActive, CreatedUtc)
+                            OUTPUT INSERTED.Id
+                            VALUES (@name, @controllerId, @relayNo, @laneId, @dir, @active, @created)"
+                        : @"UPDATE dbo.Barriers 
+                            SET BarrierName = @name, ControllerId = @controllerId, RelayNumber = @relayNo, 
+                                LaneId = @laneId, Direction = @dir, IsActive = @active 
+                            WHERE Id = @id";
+
+                    using (var cmd = new SqlCommand(sql, conn))
+                    {
+                        if (!isNew) cmd.Parameters.AddWithValue("@id", barrier.Id);
+                        cmd.Parameters.AddWithValue("@name", barrier.BarrierName);
+                        cmd.Parameters.AddWithValue("@controllerId", barrier.ControllerId ?? (object)DBNull.Value);
+                        cmd.Parameters.AddWithValue("@relayNo", barrier.RelayNumber);
+                        cmd.Parameters.AddWithValue("@laneId", barrier.LaneId ?? (object)DBNull.Value);
+                        cmd.Parameters.AddWithValue("@dir", barrier.Direction ?? "IN");
+                        cmd.Parameters.AddWithValue("@active", barrier.IsActive);
+                        cmd.Parameters.AddWithValue("@created", barrier.CreatedUtc);
+
+                        if (isNew)
+                        {
+                            var newId = await cmd.ExecuteScalarAsync();
+                            if (newId != null) barrier.Id = Convert.ToInt32(newId);
+                        }
+                        else
+                        {
+                            await cmd.ExecuteNonQueryAsync();
+                        }
+                    }
+                },
+                async () =>
+                {
+                    var list = await GetBarriersAsync();
+                    if (isNew)
+                    {
+                        barrier.Id = list.Any() ? list.Max(x => x.Id) + 1 : 1;
+                        var controllers = await GetControllersAsync();
+                        var controller = controllers.FirstOrDefault(c => c.Id == barrier.ControllerId);
+                        if (controller != null) barrier.ControllerName = controller.ControllerName;
+                        var lanes = await GetLanesAsync();
+                        var lane = lanes.FirstOrDefault(l => l.Id == barrier.LaneId);
+                        if (lane != null) barrier.LaneName = lane.LaneName;
+                        list.Add(barrier);
+                    }
+                    else
+                    {
+                        var existing = list.FirstOrDefault(x => x.Id == barrier.Id);
+                        if (existing != null)
+                        {
+                            existing.BarrierName = barrier.BarrierName;
+                            existing.ControllerId = barrier.ControllerId;
+                            existing.RelayNumber = barrier.RelayNumber;
+                            existing.LaneId = barrier.LaneId;
+                            existing.Direction = barrier.Direction;
+                            existing.IsActive = barrier.IsActive;
+                            var controllers = await GetControllersAsync();
+                            var controller = controllers.FirstOrDefault(c => c.Id == barrier.ControllerId);
+                            existing.ControllerName = controller?.ControllerName ?? string.Empty;
+                            var lanes = await GetLanesAsync();
+                            var lane = lanes.FirstOrDefault(l => l.Id == barrier.LaneId);
+                            existing.LaneName = lane?.LaneName ?? string.Empty;
+                        }
+                    }
+                    await OfflineCacheService.Instance.SaveCacheAsync("LIST_BARRIERS", list);
+                }
+            );
+
+            if (success)
+            {
+                try { await ConfigurationAuditService.Instance.AuditChangesAsync("Barrier", previous, barrier); } catch { }
+            }
+            return success;
+        }
+
+        public async Task<bool> DeleteBarrierAsync(int id)
+        {
+            var list = await GetBarriersAsync();
+            var previous = list.FirstOrDefault(x => x.Id == id);
+            if (previous == null) return false;
+
+            var success = await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+                "DELETE_BARRIER",
+                new { Id = id },
+                async conn =>
+                {
+                    string sql = "DELETE FROM dbo.Barriers WHERE Id = @id";
+                    using (var cmd = new SqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@id", id);
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+                },
+                async () =>
+                {
+                    var list = await GetBarriersAsync();
+                    var existing = list.FirstOrDefault(x => x.Id == id);
+                    if (existing != null)
+                    {
+                        list.Remove(existing);
+                        await OfflineCacheService.Instance.SaveCacheAsync("LIST_BARRIERS", list);
+                    }
+                }
+            );
+
+            if (success)
+            {
+                try { await ConfigurationAuditService.Instance.AuditChangesAsync("Barrier", previous, null); } catch { }
+            }
+            return success;
+        }
     }
 }

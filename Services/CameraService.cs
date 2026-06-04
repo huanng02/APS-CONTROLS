@@ -76,9 +76,40 @@ namespace QuanLyGiuXe.Services
             }, cts.Token);
         }
 
+        private static CameraService? _instance;
+        public static CameraService Instance
+        {
+            get
+            {
+                if (_instance == null) _instance = new CameraService();
+                return _instance;
+            }
+            set => _instance = value;
+        }
+
         public bool IsConnected(string camKey)
         {
-            return _isCameraConnected.TryGetValue(camKey, out var connected) && connected;
+            if (_isCameraConnected.TryGetValue(camKey, out var connected) && connected)
+                return true;
+
+            // Fallback mappings to match different key conventions
+            string? fallbackKey = camKey switch
+            {
+                "VaoToanCanh" => "Vao1",
+                "VaoBienSo" => "Vao2",
+                "RaToanCanh" => "Ra1",
+                "RaBienSo" => "Ra2",
+                "Vao1" => "VaoToanCanh",
+                "Vao2" => "VaoBienSo",
+                "Ra1" => "RaToanCanh",
+                "Ra2" => "RaBienSo",
+                _ => null
+            };
+
+            if (fallbackKey != null && _isCameraConnected.TryGetValue(fallbackKey, out connected) && connected)
+                return true;
+
+            return false;
         }
 
         public string GetUrl(string camKey)

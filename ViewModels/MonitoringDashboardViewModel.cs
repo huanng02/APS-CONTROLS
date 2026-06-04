@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using System.Windows.Threading;
@@ -14,41 +16,26 @@ namespace QuanLyGiuXe.ViewModels
         private readonly DispatcherTimer _refreshTimer;
         private bool _disposed = false;
 
-        // KPI Properties
-        private DeviceKpiDto _kpi = new DeviceKpiDto { TongCho = 200 };
-        public DeviceKpiDto Kpi
-        {
-            get => _kpi;
-            private set
-            {
-                _kpi = value;
-                OnPropertyChanged(nameof(Kpi));
-                OnPropertyChanged(nameof(XeTrongBai));
-                OnPropertyChanged(nameof(LuotXeVaoHomNay));
-                OnPropertyChanged(nameof(LuotXeRaHomNay));
-                OnPropertyChanged(nameof(DoanhThuHomNay));
-                OnPropertyChanged(nameof(TongCho));
-                OnPropertyChanged(nameof(ChoTrong));
-                OnPropertyChanged(nameof(TyLeLapDay));
-                OnPropertyChanged(nameof(IsNearFull));
-            }
-        }
-
-        public int XeTrongBai => Kpi.XeTrongBai;
-        public int LuotXeVaoHomNay => Kpi.LuotXeVaoHomNay;
-        public int LuotXeRaHomNay => Kpi.LuotXeRaHomNay;
-        public double DoanhThuHomNay => Kpi.DoanhThuHomNay;
-        public int TongCho => Kpi.TongCho;
-        public int ChoTrong => Kpi.ChoTrong;
-        public double TyLeLapDay => Kpi.TyLeLapDay;
-        public bool IsNearFull => Kpi.TyLeLapDay > 90;
-
-        // Device Status Lists
+        // ── Device Status Collections ──────────────────────────────────────
         public ObservableCollection<LaneStatusDto> LanesStatus { get; } = new ObservableCollection<LaneStatusDto>();
         public ObservableCollection<C3ControllerStatusDto> C3ControllersStatus { get; } = new ObservableCollection<C3ControllerStatusDto>();
         public ObservableCollection<RfidReaderStatusDto> RfidReadersStatus { get; } = new ObservableCollection<RfidReaderStatusDto>();
+        public ObservableCollection<CameraStatusDto> CamerasStatus { get; } = new ObservableCollection<CameraStatusDto>();
+        public ObservableCollection<DeviceEventDto> DeviceEvents { get; } = new ObservableCollection<DeviceEventDto>();
 
-        // Operational Monitoring State
+        // ── Infrastructure Summary ─────────────────────────────────────────
+        private InfrastructureSummaryDto _summary = new();
+        public InfrastructureSummaryDto Summary
+        {
+            get => _summary;
+            private set
+            {
+                _summary = value;
+                OnPropertyChanged(nameof(Summary));
+            }
+        }
+
+        // ── Operational Monitoring State ───────────────────────────────────
         private bool _isLoading;
         public bool IsLoading
         {
@@ -97,7 +84,7 @@ namespace QuanLyGiuXe.ViewModels
             }
         }
 
-        // Summary Counts
+        // ── Summary Counts (Lanes) ─────────────────────────────────────────
         private int _onlineLanesCount;
         public int OnlineLanesCount
         {
@@ -112,6 +99,7 @@ namespace QuanLyGiuXe.ViewModels
             private set { _totalLanesCount = value; OnPropertyChanged(nameof(TotalLanesCount)); }
         }
 
+        // ── Summary Counts (Controllers) ───────────────────────────────────
         private int _onlineControllersCount;
         public int OnlineControllersCount
         {
@@ -126,6 +114,7 @@ namespace QuanLyGiuXe.ViewModels
             private set { _totalControllersCount = value; OnPropertyChanged(nameof(TotalControllersCount)); }
         }
 
+        // ── Summary Counts (Readers) ───────────────────────────────────────
         private int _onlineReadersCount;
         public int OnlineReadersCount
         {
@@ -140,14 +129,50 @@ namespace QuanLyGiuXe.ViewModels
             private set { _totalReadersCount = value; OnPropertyChanged(nameof(TotalReadersCount)); }
         }
 
-        // Commands
+
+
+        // ── Summary Counts (Cameras) ───────────────────────────────────────
+        private int _onlineCamerasCount;
+        public int OnlineCamerasCount
+        {
+            get => _onlineCamerasCount;
+            private set { _onlineCamerasCount = value; OnPropertyChanged(nameof(OnlineCamerasCount)); }
+        }
+
+        private int _totalCamerasCount;
+        public int TotalCamerasCount
+        {
+            get => _totalCamerasCount;
+            private set { _totalCamerasCount = value; OnPropertyChanged(nameof(TotalCamerasCount)); }
+        }
+
+        // ── Device Detail Popup ────────────────────────────────────────────
+        private DeviceDetailDto? _selectedDeviceDetail;
+        public DeviceDetailDto? SelectedDeviceDetail
+        {
+            get => _selectedDeviceDetail;
+            set { _selectedDeviceDetail = value; OnPropertyChanged(nameof(SelectedDeviceDetail)); }
+        }
+
+        private bool _isDeviceDetailVisible;
+        public bool IsDeviceDetailVisible
+        {
+            get => _isDeviceDetailVisible;
+            set { _isDeviceDetailVisible = value; OnPropertyChanged(nameof(IsDeviceDetailVisible)); }
+        }
+
+        // ── Commands ───────────────────────────────────────────────────────
         public ICommand RefreshCommand { get; }
         public ICommand ToggleAutoRefreshCommand { get; }
+        public ICommand ShowDeviceDetailCommand { get; }
+        public ICommand CloseDeviceDetailCommand { get; }
 
         public MonitoringDashboardViewModel()
         {
             RefreshCommand = new RelayCommand(_ => _ = LoadMonitoringDataAsync());
             ToggleAutoRefreshCommand = new RelayCommand(_ => IsAutoRefreshEnabled = !IsAutoRefreshEnabled);
+            ShowDeviceDetailCommand = new RelayCommand(async param => await ShowDeviceDetailAsync(param));
+            CloseDeviceDetailCommand = new RelayCommand(_ => { IsDeviceDetailVisible = false; SelectedDeviceDetail = null; });
 
             // Initialize Timer
             _refreshTimer = new DispatcherTimer
@@ -173,24 +198,25 @@ namespace QuanLyGiuXe.ViewModels
 
             try
             {
-                // 1. Fetch KPIs
-                var kpiTask = _monitoringService.GetDeviceKpiAsync();
-                
-                // 2. Fetch C3 Controller statuses
-                var controllersTask = _monitoringService.GetC3ControllersStatusAsync();
-                
-                await Task.WhenAll(kpiTask, controllersTask);
+                // 1. Fetch C3 Controller statuses (with parallel pings)
+                var controllerStatuses = await _monitoringService.GetC3ControllersStatusAsync();
 
-                var kpiResult = await kpiTask;
-                var controllerStatuses = await controllersTask;
+                // 2. Fetch Cameras (independent of controllers)
+                var cameraStatuses = await _monitoringService.GetCamerasStatusAsync();
 
-                // 3. Fetch Lane and Reader statuses based on controller status
-                var lanesResult = await _monitoringService.GetLanesStatusAsync(controllerStatuses);
+                // 3. Fetch Lane and Reader statuses based on controller + camera status
+                var lanesResult = await _monitoringService.GetLanesStatusAsync(controllerStatuses, cameraStatuses);
                 var readersResult = await _monitoringService.GetRfidReadersStatusAsync(controllerStatuses);
 
-                // Update UI on Dispatcher thread
-                Kpi = kpiResult;
+                // 4. Detect state changes and log events
+                await _monitoringService.DetectAndLogStateChanges(controllerStatuses, readersResult, cameraStatuses);
 
+                // 5. Fetch latest device events
+                var events = await _monitoringService.GetDeviceEventsAsync(100);
+
+                // ── Update UI on Dispatcher thread ─────────────────────────
+
+                // Lanes
                 LanesStatus.Clear();
                 int onlineLanes = 0;
                 foreach (var lane in lanesResult)
@@ -201,6 +227,7 @@ namespace QuanLyGiuXe.ViewModels
                 OnlineLanesCount = onlineLanes;
                 TotalLanesCount = lanesResult.Count;
 
+                // Controllers
                 C3ControllersStatus.Clear();
                 int onlineCtrls = 0;
                 foreach (var ctrl in controllerStatuses)
@@ -211,6 +238,7 @@ namespace QuanLyGiuXe.ViewModels
                 OnlineControllersCount = onlineCtrls;
                 TotalControllersCount = controllerStatuses.Count;
 
+                // Readers
                 RfidReadersStatus.Clear();
                 int onlineReaders = 0;
                 foreach (var reader in readersResult)
@@ -221,6 +249,39 @@ namespace QuanLyGiuXe.ViewModels
                 OnlineReadersCount = onlineReaders;
                 TotalReadersCount = readersResult.Count;
 
+
+
+                // Cameras
+                CamerasStatus.Clear();
+                int onlineCameras = 0;
+                foreach (var cam in cameraStatuses)
+                {
+                    CamerasStatus.Add(cam);
+                    if (cam.IsOnline) onlineCameras++;
+                }
+                OnlineCamerasCount = onlineCameras;
+                TotalCamerasCount = cameraStatuses.Count;
+
+                // Events
+                DeviceEvents.Clear();
+                foreach (var evt in events)
+                {
+                    DeviceEvents.Add(evt);
+                }
+
+                // Infrastructure Summary
+                Summary = new InfrastructureSummaryDto
+                {
+                    TotalControllers = controllerStatuses.Count,
+                    OnlineControllers = onlineCtrls,
+                    TotalReaders = readersResult.Count,
+                    OnlineReaders = onlineReaders,
+                    TotalCameras = cameraStatuses.Count,
+                    OnlineCameras = onlineCameras,
+                    TotalLanes = lanesResult.Count,
+                    OnlineLanes = onlineLanes
+                };
+
                 LastUpdatedTime = DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss");
             }
             catch (Exception ex)
@@ -230,6 +291,28 @@ namespace QuanLyGiuXe.ViewModels
             finally
             {
                 IsLoading = false;
+            }
+        }
+
+        private async Task ShowDeviceDetailAsync(object? param)
+        {
+            if (param is not string[] args || args.Length < 2) return;
+
+            string deviceType = args[0];
+            string deviceName = args[1];
+
+            try
+            {
+                var detail = await _monitoringService.GetDeviceDetailAsync(deviceType, deviceName);
+                if (detail != null)
+                {
+                    SelectedDeviceDetail = detail;
+                    IsDeviceDetailVisible = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("MonitoringDashboardViewModel", "ShowDeviceDetailAsync", $"Error loading device detail for {deviceType}/{deviceName}", ex);
             }
         }
 
