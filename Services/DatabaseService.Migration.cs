@@ -98,9 +98,7 @@ namespace QuanLyGiuXe.Services
                             await cmd.ExecuteNonQueryAsync();
                         }
                         LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Enterprise RBAC migration applied successfully.");
-                    }
-
-                    // Execute RBAC Function Separation migration (20260529_rbac_function_separation.sql)
+                    }                    // Execute RBAC Function Separation migration (20260529_rbac_function_separation.sql)
                     string scriptPathFuncSep = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260529_rbac_function_separation.sql");
                     if (File.Exists(scriptPathFuncSep))
                     {
@@ -128,6 +126,19 @@ namespace QuanLyGiuXe.Services
                         LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Deployment Center & Audit Trail migration applied successfully.");
                     }
 
+                    // Execute Role Level migration (20260604_add_role_level.sql)
+                    string scriptPathRoleLevel = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260604_add_role_level.sql");
+                    if (File.Exists(scriptPathRoleLevel))
+                    {
+                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Executing Role Level migration...");
+                        string sqlRoleLevel = await File.ReadAllTextAsync(scriptPathRoleLevel);
+                        using (var cmd = new SqlCommand(sqlRoleLevel, conn))
+                        {
+                            cmd.CommandTimeout = 60;
+                            await cmd.ExecuteNonQueryAsync();
+                        }
+                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Role Level migration applied successfully.");
+                    }
                     _migrationsApplied = true;
                     LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "SQL Server topology migrations applied successfully.");
                 }
@@ -604,6 +615,20 @@ namespace QuanLyGiuXe.Services
                             await cmd.ExecuteNonQueryAsync();
                         }
                         LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Deployment Center & Audit Trail migration applied successfully.");
+                    }
+
+                    // 9. Now run the Role Level migration script (20260604_add_role_level.sql)
+                    string scriptPathRoleLevel = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260604_add_role_level.sql");
+                    if (File.Exists(scriptPathRoleLevel))
+                    {
+                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Executing Role Level migration...");
+                        string sqlRoleLevel = await File.ReadAllTextAsync(scriptPathRoleLevel);
+                        using (var cmd = new SqlCommand(sqlRoleLevel, conn))
+                        {
+                            cmd.CommandTimeout = 60;
+                            await cmd.ExecuteNonQueryAsync();
+                        }
+                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Role Level migration applied successfully.");
                     }
 
                     _baseSchemaChecked = true;

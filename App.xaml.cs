@@ -15,37 +15,59 @@ namespace QuanLyGiuXe
     {
         protected override void OnStartup(StartupEventArgs e)
         {
-            base.OnStartup(e);
-            this.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            try
+            {
+                base.OnStartup(e);
+                this.ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
-            // initialize Serilog via LoggingService
-            var _ = LoggingService.Instance; 
-            LoggingService.Instance.LogInfo("AppStart", "App", "Application starting");
+                // initialize Serilog via LoggingService
+                var _ = LoggingService.Instance; 
+                LoggingService.Instance.LogInfo("AppStart", "App", "Application starting");
 
-            // Kích hoạt hệ thống xử lý lỗi toàn cục (Global Exception Handling)
-            QuanLyGiuXe.Services.ErrorHandling.GlobalExceptionHandler.Initialize();
+                // Kích hoạt hệ thống xử lý lỗi toàn cục (Global Exception Handling)
+                QuanLyGiuXe.Services.ErrorHandling.GlobalExceptionHandler.Initialize();
 
-            // Khởi động Backup Scheduler
-            QuanLyGiuXe.Services.Backup.BackupScheduler.Instance.Start();
+                // Khởi động Backup Scheduler
+                QuanLyGiuXe.Services.Backup.BackupScheduler.Instance.Start();
 
-            // Run tests if --test argument is passed
-            if (e.Args.Contains("--test"))
+                // Run tests if --test argument is passed
+                if (e.Args.Contains("--test"))
+                {
+                    try
+                    {
+                        QuanLyGiuXe.Tests.LaneDirectionConsistencyTests.Run();
+                        QuanLyGiuXe.Tests.SecurityPermissionMatrixTests.Run();
+                        this.Shutdown(0);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("TEST FAILURE: " + ex.Message);
+                        LoggingService.Instance.LogError("TestRun", "App", "Tests failed", ex);
+                        LoggingService.Instance.Shutdown();
+                        this.Shutdown(1);
+                    }
+                    return;
+                }
+
+                StartLoginFlow();
+            }
+            catch (Exception ex)
             {
                 try
                 {
-                    QuanLyGiuXe.Tests.LaneDirectionConsistencyTests.Run();
-                    this.Shutdown(0);
+                    LoggingService.Instance.LogError("StartupCrash", "App", "Fatal exception during startup", ex);
+                    LoggingService.Instance.Shutdown();
                 }
-                catch (Exception ex)
-                {
-                    Console.WriteLine("TEST FAILURE: " + ex.Message);
-                    LoggingService.Instance.LogError("TestRun", "App", "Tests failed", ex);
-                    this.Shutdown(1);
-                }
-                return;
-            }
+                catch { }
 
-            StartLoginFlow();
+                System.Windows.MessageBox.Show(
+                    $"Ứng dụng gặp lỗi nghiêm trọng khi khởi động:\n\n{ex.Message}\n\nChi tiết:\n{ex.ToString()}",
+                    "Lỗi Khởi Động Hệ Thống",
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Error);
+
+                this.Shutdown(1);
+            }
         }
 
         private bool _isLoggingOut = false;

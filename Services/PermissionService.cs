@@ -100,6 +100,15 @@ namespace QuanLyGiuXe.Services
             return (laneIds, siteIds);
         }
 
+        public async Task RefreshCurrentUserPermissionsAsync()
+        {
+            if (!CurrentUserContext.Instance.IsAuthenticated) return;
+
+            int userId = CurrentUserContext.Instance.Id;
+            var permissions = await GetPermissionsForUserAsync(userId);
+            CurrentUserContext.Instance.UpdatePermissions(permissions);
+        }
+
         public bool CheckPermission(string permissionCode)
         {
             if (!CurrentUserContext.Instance.IsAuthenticated) return false;

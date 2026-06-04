@@ -62,6 +62,7 @@ namespace QuanLyGiuXe.Views
         private readonly WFButton _btnDisable = new();
         private readonly WFButton _btnResetPassword = new();
         private readonly WFButton _btnRefresh = new();
+        private readonly WFButton _btnPermissionMatrix = new();
 
         // ── palette constants ─────────────────────────────────────────────
         private static readonly Color ClrBg        = Color.FromArgb(248, 249, 252); // BgLightColor
@@ -94,7 +95,7 @@ namespace QuanLyGiuXe.Views
         {
             Text = "Quản lý người dùng";
             StartPosition = WFFormStartPosition.CenterScreen;
-            Size = new Size(1280, 780);
+            Size = new Size(1366, 780);
             MinimumSize = new Size(1024, 620);
             Font = new Font("Segoe UI", 10);
             BackColor = ClrBg;
@@ -187,7 +188,7 @@ namespace QuanLyGiuXe.Views
                 Dock = DockStyle.Top,
                 Height = 110,
                 BackColor = ClrSurface,
-                Padding = new WFPadding(20, 14, 20, 14)
+                Padding = new WFPadding(0)
             };
 
             toolbar.Paint += (s, e) =>
@@ -197,54 +198,18 @@ namespace QuanLyGiuXe.Views
             };
 
             // =========================
-            // BUTTON PANEL
-            // =========================
-            var pnlButtons = new WFFlowLayoutPanel
-            {
-                Dock = DockStyle.Right,
-                Width = 650,
-                FlowDirection = FlowDirection.LeftToRight,
-                WrapContents = false,
-                AutoScroll = false,
-                BackColor = ClrSurface,
-                Padding = new WFPadding(0, 20, 0, 0)
-            };
-
-            StyleButton(_btnAdd, "＋ Thêm", ClrPrimary,
-                async (_, _) => await AddUserAsync());
-
-            StyleButton(_btnEdit, "✏ Sửa", ClrSuccess,
-                async (_, _) => await EditSelectedUserAsync());
-
-            StyleButton(_btnDisable, "⊘ Disable", ClrDanger,
-                async (_, _) => await DisableSelectedUserAsync());
-
-            StyleButton(_btnResetPassword, "🔑 Reset",
-                ClrWarning,
-                async (_, _) => await ResetPasswordAsync());
-
-            StyleButton(_btnRefresh, "↺ Refresh",
-                ClrMuted,
-                async (_, _) => await LoadUsersAsync());
-
-            pnlButtons.Controls.Add(_btnAdd);
-            pnlButtons.Controls.Add(_btnEdit);
-            pnlButtons.Controls.Add(_btnDisable);
-            pnlButtons.Controls.Add(_btnResetPassword);
-            pnlButtons.Controls.Add(_btnRefresh);
-
-            // =========================
-            // LEFT PANEL
+            // ROW 1: FILTERS (Top)
             // =========================
             var pnlLeft = new WFPanel
             {
-                Dock = DockStyle.Fill,
+                Dock = DockStyle.Top,
+                Height = 55,
                 BackColor = ClrSurface
             };
 
             // SEARCH
             var searchContainer = MakeRoundedInputContainer(300);
-            searchContainer.Location = new Point(0, 28);
+            searchContainer.Location = new Point(20, 10);
 
             var searchIcon = new WFLabel
             {
@@ -269,10 +234,10 @@ namespace QuanLyGiuXe.Views
 
             // ROLE LABEL
             var lblRole = MakeFilterLabel("Vai trò");
-            lblRole.Location = new Point(330, 6);
+            lblRole.Location = new Point(340, 20);
 
             // ROLE COMBO
-            _cboRoleFilter.Location = new Point(330, 28);
+            _cboRoleFilter.Location = new Point(395, 10);
             _cboRoleFilter.Size = new Size(170, 40);
             _cboRoleFilter.DropDownStyle = WFComboBoxStyle.DropDownList;
             _cboRoleFilter.FlatStyle = FlatStyle.Flat;
@@ -283,10 +248,10 @@ namespace QuanLyGiuXe.Views
 
             // STATUS LABEL
             var lblStatus = MakeFilterLabel("Trạng thái");
-            lblStatus.Location = new Point(520, 6);
+            lblStatus.Location = new Point(585, 20);
 
             // STATUS COMBO
-            _cboStatusFilter.Location = new Point(520, 28);
+            _cboStatusFilter.Location = new Point(660, 10);
             _cboStatusFilter.Size = new Size(170, 40);
             _cboStatusFilter.DropDownStyle = WFComboBoxStyle.DropDownList;
             _cboStatusFilter.FlatStyle = FlatStyle.Flat;
@@ -295,9 +260,9 @@ namespace QuanLyGiuXe.Views
             _cboStatusFilter.Items.Clear();
             _cboStatusFilter.Items.AddRange(new object[]
             {
-        "All",
-        "Active",
-        "Disabled"
+                "All",
+                "Active",
+                "Disabled"
             });
 
             _cboStatusFilter.SelectedIndex = 0;
@@ -310,6 +275,48 @@ namespace QuanLyGiuXe.Views
             pnlLeft.Controls.Add(_cboRoleFilter);
             pnlLeft.Controls.Add(lblStatus);
             pnlLeft.Controls.Add(_cboStatusFilter);
+
+            // =========================
+            // ROW 2: ACTIONS (Bottom)
+            // =========================
+            var pnlButtons = new WFFlowLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                AutoScroll = false,
+                BackColor = ClrSurface,
+                Padding = new WFPadding(20, 8, 20, 0)
+            };
+
+            StyleButton(_btnAdd, "＋ Thêm", ClrPrimary,
+                async (_, _) => await AddUserAsync());
+
+            StyleButton(_btnEdit, "✏ Sửa", ClrSuccess,
+                async (_, _) => await EditSelectedUserAsync());
+
+            StyleButton(_btnDisable, "⊘ Disable", ClrDanger,
+                async (_, _) => await DisableSelectedUserAsync());
+
+            StyleButton(_btnResetPassword, "🔑 Reset",
+                ClrWarning,
+                async (_, _) => await ResetPasswordAsync());
+
+            StyleButton(_btnPermissionMatrix, "🛡 Ma trận quyền",
+                Color.FromArgb(79, 70, 229),
+                (_, _) => OpenPermissionMatrix(),
+                width: 140);
+
+            StyleButton(_btnRefresh, "↺ Refresh",
+                ClrMuted,
+                async (_, _) => await LoadUsersAsync());
+
+            pnlButtons.Controls.Add(_btnAdd);
+            pnlButtons.Controls.Add(_btnEdit);
+            pnlButtons.Controls.Add(_btnDisable);
+            pnlButtons.Controls.Add(_btnResetPassword);
+            pnlButtons.Controls.Add(_btnPermissionMatrix);
+            pnlButtons.Controls.Add(_btnRefresh);
 
             toolbar.Controls.Add(pnlButtons);
             toolbar.Controls.Add(pnlLeft);
@@ -442,7 +449,13 @@ namespace QuanLyGiuXe.Views
         {
             try
             {
-                _roles = await _service.GetRolesAsync();
+                var allRoles = await _service.GetRolesAsync();
+                string currentRoleName = CurrentUserContext.Instance.Role;
+                int currentLevel = PermissionMatrixService.GetRoleLevel(currentRoleName);
+
+                // Filter roles strictly lower than current user's level
+                _roles = allRoles.Where(r => PermissionMatrixService.GetRoleLevel(r.Name) < currentLevel).ToList();
+
                 _cboRoleFilter.Items.Clear();
                 _cboRoleFilter.Items.Add("All");
                 foreach (var role in _roles)
@@ -479,8 +492,15 @@ namespace QuanLyGiuXe.Views
                 string status = _cboStatusFilter.SelectedItem?.ToString() ?? "All";
                 string search = _txtSearch.Text.Trim();
                 var users = await _service.SearchUsersAsync(CurrentUser.Id, search, roleId, status);
-                _binding.DataSource     = users;
-                _lblTotalCount.Text     = users.Count.ToString();
+
+                string currentRoleName = CurrentUserContext.Instance.Role;
+                int currentLevel = PermissionMatrixService.GetRoleLevel(currentRoleName);
+
+                // Filter users strictly lower than current user's level
+                var filteredUsers = users.Where(u => PermissionMatrixService.GetRoleLevel(u.RoleName) < currentLevel).ToList();
+
+                _binding.DataSource     = filteredUsers;
+                _lblTotalCount.Text     = filteredUsers.Count.ToString();
             }
             catch (Exception ex)
             {
@@ -532,6 +552,14 @@ namespace QuanLyGiuXe.Views
             var result = await _service.ResetPasswordAsync(user.Id, CurrentUser.Id);
             WFMessageBox.Show(result.Message, result.Success ? "Success" : "Error", WFMessageBoxButtons.OK,
                 result.Success ? WFMessageBoxIcon.Information : WFMessageBoxIcon.Error);
+        }
+
+        private void OpenPermissionMatrix()
+        {
+            using (var frm = new RolePermissionMatrixForm())
+            {
+                frm.ShowDialog(this);
+            }
         }
 
         // ══════════════════════════════════════════════════════════════════
@@ -605,10 +633,10 @@ namespace QuanLyGiuXe.Views
             AutoSize  = true
         };
 
-        private static void StyleButton(WFButton btn, string text, Color bg, EventHandler handler)
+        private static void StyleButton(WFButton btn, string text, Color bg, EventHandler handler, int width = 118)
         {
             btn.Text      = text;
-            btn.Size      = new Size(118, 40);
+            btn.Size      = new Size(width, 40);
             btn.BackColor = bg;
             btn.ForeColor = Color.White;
             btn.FlatStyle = FlatStyle.Flat;

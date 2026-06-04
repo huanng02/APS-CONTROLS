@@ -23,6 +23,15 @@ namespace QuanLyGiuXe.Services
             UserUpsertModel model, int actorUserId)
         {
             AuthorizationGuard.Protect("USER_CREATE", "Create User");
+            try
+            {
+                await ValidateActorPermissionAsync(actorUserId, null, model.RoleId).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                return (false, ex.Message);
+            }
+
             if (string.IsNullOrWhiteSpace(model.Ten) ||
                 string.IsNullOrWhiteSpace(model.Username) ||
                 string.IsNullOrWhiteSpace(model.Password))
@@ -61,6 +70,16 @@ namespace QuanLyGiuXe.Services
             AuthorizationGuard.Protect("USER_UPDATE", "Update User");
             if (id <= 0)
                 return (false, "User không hợp lệ.");
+
+            try
+            {
+                await ValidateActorPermissionAsync(actorUserId, id, roleId).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                return (false, ex.Message);
+            }
+
             if (string.IsNullOrWhiteSpace(ten))
                 return (false, "Tên không được để trống.");
 
@@ -110,6 +129,16 @@ namespace QuanLyGiuXe.Services
             AuthorizationGuard.Protect("USER_UPDATE", "Disable User");
             if (id <= 0)
                 return (false, "User không hợp lệ.");
+
+            try
+            {
+                await ValidateActorPermissionAsync(actorUserId, id, null).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                return (false, ex.Message);
+            }
+
             var previous = await _repo.GetUserByIdAsync(id).ConfigureAwait(false);
             var oldValues = previous == null ? null : new { Ten = previous.Ten, Username = previous.Username, TrangThai = previous.TrangThai };
 
@@ -136,6 +165,16 @@ namespace QuanLyGiuXe.Services
         {
             AuthorizationGuard.Protect("USER_UPDATE", "Enable User");
             if (id <= 0) return (false, "User không hợp lệ.");
+
+            try
+            {
+                await ValidateActorPermissionAsync(actorUserId, id, null).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                return (false, ex.Message);
+            }
+
             var previous = await _repo.GetUserByIdAsync(id).ConfigureAwait(false);
             var oldValues = previous == null ? null : new { Ten = previous.Ten, Username = previous.Username, TrangThai = previous.TrangThai };
 
@@ -162,6 +201,15 @@ namespace QuanLyGiuXe.Services
         {
             AuthorizationGuard.Protect("USER_DELETE", "Delete User");
             if (id <= 0) return (false, "User không hợp lệ.");
+
+            try
+            {
+                await ValidateActorPermissionAsync(actorUserId, id, null).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                return (false, ex.Message);
+            }
 
             var previous = await _repo.GetUserByIdAsync(id).ConfigureAwait(false);
             var oldValues = previous == null ? null : new { Ten = previous.Ten, Username = previous.Username, TrangThai = previous.TrangThai };
@@ -190,6 +238,16 @@ namespace QuanLyGiuXe.Services
             AuthorizationGuard.Protect("USER_UPDATE", "Reset User Password");
             if (id <= 0)
                 return (false, "User không hợp lệ.");
+
+            try
+            {
+                await ValidateActorPermissionAsync(actorUserId, id, null).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                return (false, ex.Message);
+            }
+
             const string defaultPassword = "123456";
 
             // Hash default password before saving
@@ -375,6 +433,50 @@ namespace QuanLyGiuXe.Services
                     $"Lỗi đổi mật khẩu user Id={id}", ex, id.ToString());
 
                 return (false, ex.Message);
+            }
+        }
+
+        private async Task ValidateActorPermissionAsync(int actorUserId, int? targetUserId, int? targetRoleId)
+        {
+            var roles = await _repo.GetRolesAsync().ConfigureAwait(false);
+            var actor = await _repo.GetUserByIdAsync(actorUserId).ConfigureAwait(false);
+            if (actor == null)
+            {
+                throw new UnauthorizedAccessException("Không tìm thấy thông tin tài khoản thực hiện.");
+            }
+
+            var actorRoleOpt = roles.FirstOrDefault(r => r.Id == actor.RoleId);
+            string actorRoleName = actorRoleOpt?.Name ?? string.Empty;
+            int actorLevel = PermissionMatrixService.GetRoleLevel(actorRoleName);
+
+            // 1. Kiểm tra quyền trên người dùng mục tiêu
+            if (targetUserId.HasValue && targetUserId.Value > 0)
+            {
+                var targetUser = await _repo.GetUserByIdAsync(targetUserId.Value).ConfigureAwait(false);
+                if (targetUser != null)
+                {
+                    var targetRoleOpt = roles.FirstOrDefault(r => r.Id == targetUser.RoleId);
+                    string targetRoleName = targetRoleOpt?.Name ?? string.Empty;
+                    int targetLevel = PermissionMatrixService.GetRoleLevel(targetRoleName);
+
+                    if (targetLevel >= actorLevel)
+                    {
+                        throw new UnauthorizedAccessException($"Không có quyền thao tác trên người dùng thuộc vai trò '{targetRoleName}' có cấp độ tương đương hoặc cao hơn vai trò '{actorRoleName}' của bạn.");
+                    }
+                }
+            }
+
+            // 2. Kiểm tra vai trò mới định chỉ định
+            if (targetRoleId.HasValue && targetRoleId.Value > 0)
+            {
+                var newRoleOpt = roles.FirstOrDefault(r => r.Id == targetRoleId.Value);
+                string newRoleName = newRoleOpt?.Name ?? string.Empty;
+                int newLevel = PermissionMatrixService.GetRoleLevel(newRoleName);
+
+                if (newLevel >= actorLevel)
+                {
+                    throw new UnauthorizedAccessException($"Không có quyền gán vai trò '{newRoleName}' có cấp độ tương đương hoặc cao hơn vai trò '{actorRoleName}' của bạn.");
+                }
             }
         }
     }

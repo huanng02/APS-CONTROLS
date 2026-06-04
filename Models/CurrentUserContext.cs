@@ -14,6 +14,7 @@ namespace QuanLyGiuXe.Models
         HashSet<int> AssignedLaneIds { get; }
         HashSet<int> AssignedSiteIds { get; }
         void SetCurrentUser(int id, string username, string role, string ten, IEnumerable<string> permissions, IEnumerable<int> laneIds, IEnumerable<int> siteIds);
+        void UpdatePermissions(IEnumerable<string> permissions);
         void Clear();
     }
 
@@ -74,6 +75,18 @@ namespace QuanLyGiuXe.Models
                 CurrentUser.Username = username;
                 CurrentUser.Role = role;
                 CurrentUser.Ten = ten;
+            }
+        }
+
+        public void UpdatePermissions(IEnumerable<string> permissions)
+        {
+            lock (_lock)
+            {
+                _permissions.Clear();
+                if (permissions != null)
+                {
+                    foreach (var p in permissions) _permissions.Add(p);
+                }
             }
         }
 

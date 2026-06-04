@@ -14,12 +14,12 @@ namespace QuanLyGiuXe.Services
 
         public async Task<List<RoleOption>> GetRolesAsync()
         {
-            return await ConnectivityAwareRepository.Instance.ExecuteReadAsync<List<RoleOption>>(
+            var roles = await ConnectivityAwareRepository.Instance.ExecuteReadAsync<List<RoleOption>>(
                 "LOOKUP_ROLES",
                 async conn =>
                 {
                     var list = new List<RoleOption>();
-                    using (var cmd = new SqlCommand( @"SELECT Id, Name, TrangThai FROM Roles ORDER BY Name;", conn))
+                    using (var cmd = new SqlCommand( @"SELECT Id, Name, TrangThai, Level FROM Roles ORDER BY Name;", conn))
                     using (var reader = await cmd.ExecuteReaderAsync())
                     {
                         while (await reader.ReadAsync())
@@ -28,13 +28,17 @@ namespace QuanLyGiuXe.Services
                             {
                                 Id = reader["Id"] != DBNull.Value ? Convert.ToInt32(reader["Id"]) : 0,
                                 Name = reader["Name"]?.ToString() ?? string.Empty,
-                                TrangThai = reader["TrangThai"]?.ToString() ?? string.Empty
+                                TrangThai = reader["TrangThai"]?.ToString() ?? string.Empty,
+                                Level = reader["Level"] != DBNull.Value ? Convert.ToInt32(reader["Level"]) : 0
                             });
                         }
                     }
                     return list;
                 }
             ) ?? new List<RoleOption>();
+
+            PermissionMatrixService.InitializeRoleLevels(roles);
+            return roles;
         }
 
         public async Task<List<UserListItem>> SearchUsersAsync(int currentUserId, string search, int? roleId, string? status)

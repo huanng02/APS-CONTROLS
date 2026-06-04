@@ -100,7 +100,7 @@ namespace QuanLyGiuXe
             });
         }
 
-        private void ApplyPermissions()
+        public void ApplyPermissions()
         {
             // --- 1. CATEGORIES LEVEL VISIBILITY ---
 
@@ -762,11 +762,10 @@ namespace QuanLyGiuXe
         private void MoMaTranPhanQuyen_Click(object sender, RoutedEventArgs e)
         {
             LoggingService.Instance.LogInfo("TAB_OPEN", "UI", "Mở tab: Ma trận phân quyền");
-            var win = new Views.PermissionSummaryWindow
+            using (var frm = new Views.RolePermissionMatrixForm())
             {
-                Owner = this
-            };
-            win.ShowDialog();
+                frm.ShowDialog();
+            }
             LoggingService.Instance.LogInfo("TAB_CLOSE", "UI", "Đóng tab: Ma trận phân quyền");
         }
 

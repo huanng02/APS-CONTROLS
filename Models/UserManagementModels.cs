@@ -19,6 +19,7 @@ namespace QuanLyGiuXe.Models
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public string TrangThai { get; set; } = string.Empty;
+        public int Level { get; set; }
         public override string ToString() => Name;
     }
 

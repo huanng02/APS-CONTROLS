@@ -266,6 +266,24 @@ namespace QuanLyGiuXe.Services.OfflineCache
             }
         }
 
+        public async Task InvalidateCacheAsync(string key)
+        {
+            try
+            {
+                using var conn = new SqliteConnection(_connectionString);
+                await conn.OpenAsync();
+
+                string sql = "DELETE FROM OfflineCache WHERE Key = @key";
+                using var cmd = new SqliteCommand(sql, conn);
+                cmd.Parameters.AddWithValue("@key", key);
+                await cmd.ExecuteNonQueryAsync();
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("OFFLINE_CACHE", "Invalidate", $"Failed to delete cache for key: {key}", ex);
+            }
+        }
+
         public async Task<T?> GetCacheAsync<T>(string key)
         {
             try
