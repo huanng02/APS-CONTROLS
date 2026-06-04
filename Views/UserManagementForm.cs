@@ -23,36 +23,21 @@ using WFFormStartPosition = System.Windows.Forms.FormStartPosition;
 using WFPadding = System.Windows.Forms.Padding;
 using WFControl = System.Windows.Forms.Control;
 using WFCursors = System.Windows.Forms.Cursors;
+using WFPanelPaintEventArgs = System.Windows.Forms.PaintEventArgs;
 
 namespace QuanLyGiuXe.Views
 {
-    // ─── Color Palette ───────────────────────────────────────────────────────
-    // Background  : #F5F7FA  (light canvas)
-    // Surface     : #FFFFFF  (cards / panels)
-    // Primary     : #4F46E5  (indigo-600)
-    // Success     : #10B981  (emerald-500)
-    // Danger      : #EF4444  (red-500)
-    // Warning     : #F59E0B  (amber-500)
-    // Muted       : #6B7280  (gray-500)
-    // Header BG   : #1E1B4B  (indigo-950)
-    // Header FG   : #FFFFFF
-    // Alt row     : #F8F9FF
-    // Hover row   : #EDE9FE  (violet-100)
-    // Selected    : #C7D2FE  (indigo-200)
-    // ─────────────────────────────────────────────────────────────────────────
-
     public sealed class UserManagementForm : Form
     {
-        // ── services & state ──────────────────────────────────────────────
+        // ── Services & State ──────────────────────────────────────────────
         private readonly UserManagementService _service = new();
         private readonly BindingSource _binding = new();
         private List<RoleOption> _roles = new();
         private CancellationTokenSource? _searchDebounceCts;
         private int _hoverRowIndex = -1;
 
-        // ── controls ─────────────────────────────────────────────────────
+        // ── UI Controls ───────────────────────────────────────────────────
         private readonly DataGridView _grid = new();
-        private readonly WFLabel _lblTotal = new();
         private readonly WFLabel _lblTotalCount = new();
         private readonly WFTextBox _txtSearch = new();
         private readonly WFComboBox _cboRoleFilter = new();
@@ -63,22 +48,27 @@ namespace QuanLyGiuXe.Views
         private readonly WFButton _btnResetPassword = new();
         private readonly WFButton _btnRefresh = new();
         private readonly WFButton _btnPermissionMatrix = new();
+        private readonly WFButton _btnAuditHistory = new();
 
-        // ── palette constants ─────────────────────────────────────────────
-        private static readonly Color ClrBg        = Color.FromArgb(248, 249, 252); // BgLightColor
-        private static readonly Color ClrSurface   = Color.White;
-        private static readonly Color ClrPrimary   = Color.FromArgb(30, 79, 163);   // APSBlueColor
-        private static readonly Color ClrSuccess   = Color.FromArgb(25, 135, 84);   // SuccessColor
-        private static readonly Color ClrDanger    = Color.FromArgb(220, 53, 69);   // DangerColor
-        private static readonly Color ClrWarning   = Color.FromArgb(255, 193, 7);   // WarningColor
-        private static readonly Color ClrMuted     = Color.FromArgb(173, 181, 189); // TextMutedColor
-        private static readonly Color ClrHeaderBg  = Color.FromArgb(30, 79, 163);   // APSBlueColor
-        private static readonly Color ClrAltRow    = Color.FromArgb(248, 249, 252);
-        private static readonly Color ClrHoverRow  = Color.FromArgb(241, 245, 251);
-        private static readonly Color ClrSelected  = Color.FromArgb(227, 236, 247);
+        // ── Color Palette ─────────────────────────────────────────────────
+        private static readonly Color ClrBg        = Color.FromArgb(9, 11, 20); // Cyber space dark background
+        private static readonly Color ClrSurface   = Color.FromArgb(17, 24, 39); // Slate 900 card surface
+        private static readonly Color ClrInputBg   = Color.FromArgb(30, 41, 59); // Slate 800 inputs
+        private static readonly Color ClrPrimary   = Color.FromArgb(99, 102, 241); // Indigo 500
+        private static readonly Color ClrSuccess   = Color.FromArgb(16, 185, 129); // Emerald 500
+        private static readonly Color ClrDanger    = Color.FromArgb(239, 68, 68); // Rose 500
+        private static readonly Color ClrWarning   = Color.FromArgb(245, 158, 11); // Amber 500
+        private static readonly Color ClrText      = Color.FromArgb(243, 244, 246); // Cool gray/white
+        private static readonly Color ClrTextMuted = Color.FromArgb(156, 163, 175); // Muted slate gray
+        private static readonly Color ClrBorder    = Color.FromArgb(31, 41, 55); // Slate 800 borders
+        private static readonly Color ClrHeaderBg  = Color.FromArgb(15, 23, 42); // Slate 950 deep header bg
+        private static readonly Color ClrAltRow    = Color.FromArgb(24, 33, 52); // Alternating row color
+        private static readonly Color ClrHoverRow  = Color.FromArgb(30, 41, 59); // Hover row color
+        private static readonly Color ClrSelected  = Color.FromArgb(79, 70, 229); // Indigo 500 selection
 
         public UserManagementForm()
         {
+            DoubleBuffered = true;
             InitializeComponent();
         }
 
@@ -93,20 +83,22 @@ namespace QuanLyGiuXe.Views
         // ══════════════════════════════════════════════════════════════════
         private void InitializeComponent()
         {
-            Text = "Quản lý người dùng";
+            Text = "Quản lý người dùng (User Management)";
             StartPosition = WFFormStartPosition.CenterScreen;
             Size = new Size(1366, 780);
             MinimumSize = new Size(1024, 620);
-            Font = new Font("Segoe UI", 10);
+            Font = new Font("Segoe UI", 9.5f);
             BackColor = ClrBg;
 
             var header     = BuildTopHeader();
             var toolbar    = BuildToolbar();
             var gridCard   = BuildGridCard();
 
+            // CRITICAL: WinForms dock order — add Fill FIRST, then Top panels
+            // (last added Top panel appears highest)
             Controls.Add(gridCard);    // Fill
-            Controls.Add(toolbar);    // Top (added before header so docking stacks)
-            Controls.Add(header);     // Top
+            Controls.Add(toolbar);     // Top
+            Controls.Add(header);      // Top (topmost)
         }
 
         // ── top header strip ──────────────────────────────────────────────
@@ -115,66 +107,99 @@ namespace QuanLyGiuXe.Views
             var pnl = new WFPanel
             {
                 Dock = DockStyle.Top,
-                Height = 85, // Tăng nhẹ height để các label "thở" tốt hơn
+                Height = 85,
                 BackColor = ClrHeaderBg,
                 Padding = new Padding(25, 0, 25, 0)
             };
 
-            // --- Bên trái: Tiêu đề & Subtitle ---
-            var lblTitle = new WFLabel
+            pnl.Paint += (s, e) =>
             {
-                Text = "Quản lý Người dùng",
-                Font = new Font("Segoe UI", 17, FontStyle.Bold), // Tăng nhẹ size cho sang
-                ForeColor = Color.White,
-                AutoSize = true,
-                Location = new Point(25, 18)
+                var rect = new Rectangle(0, 0, pnl.Width, pnl.Height);
+                using (var brush = new LinearGradientBrush(rect, Color.FromArgb(99, 102, 241), ClrBg, 0F))
+                {
+                    e.Graphics.FillRectangle(brush, rect);
+                }
+                using (var pen = new Pen(ClrBorder, 1))
+                {
+                    e.Graphics.DrawLine(pen, 0, pnl.Height - 1, pnl.Width, pnl.Height - 1);
+                }
             };
 
-
-            // --- BÊN PHẢI: BADGE (FlowLayout tối ưu) ---
-            var pnlBadge = new WFFlowLayoutPanel
+            var lblTitle = new WFLabel
             {
+                Text = "👤 QUẢN LÝ NGƯỜI DÙNG",
+                Font = new Font("Segoe UI Semibold", 17, FontStyle.Bold),
+                ForeColor = Color.White,
                 AutoSize = true,
-                FlowDirection = FlowDirection.LeftToRight,
-                BackColor = Color.Transparent,
-                WrapContents = false,
-                // Không dùng Anchor ở đây vì chúng ta sẽ tính toán Left trong sự kiện Resize
+                Location = new Point(25, 18),
+                BackColor = Color.Transparent
+            };
+
+            var lblSubtitle = new WFLabel
+            {
+                Text = "Xem danh sách, chỉnh sửa thông tin, đặt lại mật khẩu và cấu hình phân quyền người dùng",
+                Font = new Font("Segoe UI", 9f, FontStyle.Italic),
+                ForeColor = Color.FromArgb(200, 220, 255),
+                AutoSize = true,
+                Location = new Point(27, 50),
+                BackColor = Color.Transparent
+            };
+
+            // Modern Pill Count Badge
+            var pnlBadge = new WFPanel
+            {
+                Size = new Size(180, 50),
+                BackColor = Color.Transparent
+            };
+            pnlBadge.Paint += (s, e) =>
+            {
+                var g = e.Graphics;
+                g.SmoothingMode = SmoothingMode.AntiAlias;
+                using (var path = RoundedRect(new Rectangle(0, 0, pnlBadge.Width - 1, pnlBadge.Height - 1), 24))
+                {
+                    using (var brush = new SolidBrush(Color.FromArgb(30, 41, 59)))
+                    {
+                        g.FillPath(brush, path);
+                    }
+                    using (var pen = new Pen(ClrBorder, 1.5f))
+                    {
+                        g.DrawPath(pen, path);
+                    }
+                }
             };
 
             var lblText = new WFLabel
             {
-                Text = "Tổng người dùng",
-                ForeColor = Color.FromArgb(167, 139, 250),
-                Font = new Font("Segoe UI", 10, FontStyle.Bold), // Để Bold nhẹ cho chuyên nghiệp
+                Text = "TỔNG SỐ USER:",
+                ForeColor = ClrTextMuted,
+                Font = new Font("Segoe UI Semibold", 8f, FontStyle.Bold),
                 AutoSize = true,
-                // Chỉnh Margin Top (18) để đẩy chữ xuống ngang hàng baseline với số 6 to
-                Margin = new Padding(0, 22, 8, 0)
+                Location = new Point(15, 18),
+                BackColor = Color.Transparent
             };
 
-            _lblTotalCount.Text = "6";
+            _lblTotalCount.Text = "0";
             _lblTotalCount.ForeColor = Color.White;
-            _lblTotalCount.Font = new Font("Segoe UI", 26, FontStyle.Bold); // Số to rõ ràng
+            _lblTotalCount.Font = new Font("Segoe UI", 16f, FontStyle.Bold);
             _lblTotalCount.AutoSize = true;
-            _lblTotalCount.Margin = new Padding(0, 10, 0, 0); // Căn lề trên cho số
+            _lblTotalCount.Location = new Point(115, 11);
+            _lblTotalCount.BackColor = Color.Transparent;
 
             pnlBadge.Controls.Add(lblText);
             pnlBadge.Controls.Add(_lblTotalCount);
 
-            // Thêm vào panel chính
             pnl.Controls.Add(lblTitle);
+            pnl.Controls.Add(lblSubtitle);
             pnl.Controls.Add(pnlBadge);
 
-            // Hàm căn chỉnh vị trí tự động
+            // Align Badge horizontally on Resize
             void AlignBadge()
             {
-                pnlBadge.Top = (pnl.Height - pnlBadge.Height) / 2; // Căn giữa chiều dọc header
-                pnlBadge.Left = pnl.Width - pnlBadge.Width - 30;   // Cách lề phải 30px
+                pnlBadge.Top = (pnl.Height - pnlBadge.Height) / 2;
+                pnlBadge.Left = pnl.Width - pnlBadge.Width - 30;
             }
 
-            // Cập nhật vị trí khi resize và ngay khi vừa tạo xong
             pnl.Resize += (s, e) => AlignBadge();
-
-            // Gọi một lần sau khi gán mọi thứ để Badge nằm đúng chỗ ngay lập tức
             AlignBadge();
 
             return pnl;
@@ -193,23 +218,35 @@ namespace QuanLyGiuXe.Views
 
             toolbar.Paint += (s, e) =>
             {
-                using var pen = new Pen(Color.FromArgb(229, 231, 235));
+                using var pen = new Pen(ClrBorder);
                 e.Graphics.DrawLine(pen, 0, toolbar.Height - 1, toolbar.Width, toolbar.Height - 1);
             };
 
-            // =========================
-            // ROW 1: FILTERS (Top)
-            // =========================
-            var pnlLeft = new WFPanel
+            // ROW 1: FILTERS (Top) — use TableLayoutPanel for reflow
+            var pnlLeft = new TableLayoutPanel
             {
                 Dock = DockStyle.Top,
                 Height = 55,
-                BackColor = ClrSurface
+                BackColor = ClrSurface,
+                ColumnCount = 5,
+                RowCount = 1,
+                Padding = new WFPadding(10, 8, 10, 0),
+                Margin = new WFPadding(0)
             };
+
+            // Column proportions: Search, RoleLbl+Combo, StatusLbl+Combo
+            pnlLeft.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 35f));  // Search
+            pnlLeft.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 55f)); // Role label
+            pnlLeft.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25f));  // Role combo
+            pnlLeft.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 65f)); // Status label
+            pnlLeft.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25f));  // Status combo
+
+            pnlLeft.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
 
             // SEARCH
             var searchContainer = MakeRoundedInputContainer(300);
-            searchContainer.Location = new Point(20, 10);
+            searchContainer.Dock = DockStyle.Fill;
+            searchContainer.Margin = new WFPadding(2);
 
             var searchIcon = new WFLabel
             {
@@ -217,7 +254,9 @@ namespace QuanLyGiuXe.Views
                 Font = new Font("Segoe UI", 10),
                 Size = new Size(26, 36),
                 Location = new Point(6, 4),
-                TextAlign = ContentAlignment.MiddleCenter
+                TextAlign = ContentAlignment.MiddleCenter,
+                ForeColor = ClrTextMuted,
+                BackColor = Color.Transparent
             };
 
             _txtSearch.PlaceholderText = "Tìm tên hoặc username...";
@@ -225,6 +264,9 @@ namespace QuanLyGiuXe.Views
             _txtSearch.Font = new Font("Segoe UI", 10);
             _txtSearch.Location = new Point(36, 10);
             _txtSearch.Size = new Size(240, 25);
+            _txtSearch.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+            _txtSearch.BackColor = ClrInputBg;
+            _txtSearch.ForeColor = ClrText;
 
             _txtSearch.TextChanged += async (_, _) =>
                 await DebouncedSearchAsync();
@@ -234,28 +276,36 @@ namespace QuanLyGiuXe.Views
 
             // ROLE LABEL
             var lblRole = MakeFilterLabel("Vai trò");
-            lblRole.Location = new Point(340, 20);
+            lblRole.Dock = DockStyle.Fill;
+            lblRole.TextAlign = ContentAlignment.MiddleRight;
+            lblRole.Margin = new WFPadding(2);
 
             // ROLE COMBO
-            _cboRoleFilter.Location = new Point(395, 10);
-            _cboRoleFilter.Size = new Size(170, 40);
+            _cboRoleFilter.Dock = DockStyle.Fill;
+            _cboRoleFilter.Margin = new WFPadding(2);
             _cboRoleFilter.DropDownStyle = WFComboBoxStyle.DropDownList;
             _cboRoleFilter.FlatStyle = FlatStyle.Flat;
             _cboRoleFilter.Font = new Font("Segoe UI", 10);
+            _cboRoleFilter.BackColor = ClrInputBg;
+            _cboRoleFilter.ForeColor = ClrText;
 
             _cboRoleFilter.SelectedIndexChanged += async (_, _) =>
                 await LoadUsersAsync();
 
             // STATUS LABEL
             var lblStatus = MakeFilterLabel("Trạng thái");
-            lblStatus.Location = new Point(585, 20);
+            lblStatus.Dock = DockStyle.Fill;
+            lblStatus.TextAlign = ContentAlignment.MiddleRight;
+            lblStatus.Margin = new WFPadding(2);
 
             // STATUS COMBO
-            _cboStatusFilter.Location = new Point(660, 10);
-            _cboStatusFilter.Size = new Size(170, 40);
+            _cboStatusFilter.Dock = DockStyle.Fill;
+            _cboStatusFilter.Margin = new WFPadding(2);
             _cboStatusFilter.DropDownStyle = WFComboBoxStyle.DropDownList;
             _cboStatusFilter.FlatStyle = FlatStyle.Flat;
             _cboStatusFilter.Font = new Font("Segoe UI", 10);
+            _cboStatusFilter.BackColor = ClrInputBg;
+            _cboStatusFilter.ForeColor = ClrText;
 
             _cboStatusFilter.Items.Clear();
             _cboStatusFilter.Items.AddRange(new object[]
@@ -264,21 +314,18 @@ namespace QuanLyGiuXe.Views
                 "Active",
                 "Disabled"
             });
-
             _cboStatusFilter.SelectedIndex = 0;
 
             _cboStatusFilter.SelectedIndexChanged += async (_, _) =>
                 await LoadUsersAsync();
 
-            pnlLeft.Controls.Add(searchContainer);
-            pnlLeft.Controls.Add(lblRole);
-            pnlLeft.Controls.Add(_cboRoleFilter);
-            pnlLeft.Controls.Add(lblStatus);
-            pnlLeft.Controls.Add(_cboStatusFilter);
+            pnlLeft.Controls.Add(searchContainer, 0, 0);
+            pnlLeft.Controls.Add(lblRole, 1, 0);
+            pnlLeft.Controls.Add(_cboRoleFilter, 2, 0);
+            pnlLeft.Controls.Add(lblStatus, 3, 0);
+            pnlLeft.Controls.Add(_cboStatusFilter, 4, 0);
 
-            // =========================
             // ROW 2: ACTIONS (Bottom)
-            // =========================
             var pnlButtons = new WFFlowLayoutPanel
             {
                 Dock = DockStyle.Fill,
@@ -298,8 +345,7 @@ namespace QuanLyGiuXe.Views
             StyleButton(_btnDisable, "⊘ Disable", ClrDanger,
                 async (_, _) => await DisableSelectedUserAsync());
 
-            StyleButton(_btnResetPassword, "🔑 Reset",
-                ClrWarning,
+            StyleButton(_btnResetPassword, "🔑 Reset", ClrWarning,
                 async (_, _) => await ResetPasswordAsync());
 
             StyleButton(_btnPermissionMatrix, "🛡 Ma trận quyền",
@@ -307,8 +353,13 @@ namespace QuanLyGiuXe.Views
                 (_, _) => OpenPermissionMatrix(),
                 width: 140);
 
+            StyleButton(_btnAuditHistory, "📜 Nhật ký Audit",
+                Color.FromArgb(59, 130, 246),
+                (_, _) => OpenAuditHistory(),
+                width: 135);
+
             StyleButton(_btnRefresh, "↺ Refresh",
-                ClrMuted,
+                ClrTextMuted,
                 async (_, _) => await LoadUsersAsync());
 
             pnlButtons.Controls.Add(_btnAdd);
@@ -316,6 +367,12 @@ namespace QuanLyGiuXe.Views
             pnlButtons.Controls.Add(_btnDisable);
             pnlButtons.Controls.Add(_btnResetPassword);
             pnlButtons.Controls.Add(_btnPermissionMatrix);
+            
+            if (PermissionService.Instance.CheckPermission("VIEW_AUDIT_LOG"))
+            {
+                pnlButtons.Controls.Add(_btnAuditHistory);
+            }
+            
             pnlButtons.Controls.Add(_btnRefresh);
 
             toolbar.Controls.Add(pnlButtons);
@@ -338,9 +395,9 @@ namespace QuanLyGiuXe.Views
             {
                 Dock = DockStyle.Fill,
                 BackColor = ClrSurface,
-                Padding = new WFPadding(0)
+                Padding = new WFPadding(15)
             };
-            card.Paint += PaintCardShadow;
+            card.Paint += (s, e) => PaintRoundedCard(card, e, ClrSurface, ClrBorder, 8);
 
             // ── configure grid ─────────────────────────────────────────
             _grid.Dock = DockStyle.Fill;
@@ -356,14 +413,12 @@ namespace QuanLyGiuXe.Views
             _grid.ReadOnly = true;
             _grid.EnableHeadersVisualStyles = false;
             _grid.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
-            _grid.GridColor = Color.FromArgb(243, 244, 246);
-
-            // ĐÂY LÀ DÒNG QUAN TRỌNG ĐỂ FULL WIDTH
+            _grid.GridColor = ClrBorder;
             _grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
 
             // header style
-            _grid.ColumnHeadersDefaultCellStyle.BackColor = ClrHeaderBg;
-            _grid.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(196, 181, 253);
+            _grid.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(15, 23, 42); // Deep slate 950 header
+            _grid.ColumnHeadersDefaultCellStyle.ForeColor = ClrTextMuted;
             _grid.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI Semibold", 9.5f, FontStyle.Bold);
             _grid.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleLeft;
             _grid.ColumnHeadersDefaultCellStyle.Padding = new WFPadding(8, 0, 0, 0);
@@ -371,13 +426,13 @@ namespace QuanLyGiuXe.Views
             _grid.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
 
             // row style
-            _grid.DefaultCellStyle.Font = new Font("Segoe UI", 10);
+            _grid.DefaultCellStyle.Font = new Font("Segoe UI", 9.5f);
             _grid.DefaultCellStyle.Padding = new WFPadding(8, 0, 0, 0);
             _grid.DefaultCellStyle.SelectionBackColor = ClrSelected;
-            _grid.DefaultCellStyle.SelectionForeColor = Color.FromArgb(30, 27, 75);
-            _grid.RowTemplate.Height = 46;
+            _grid.DefaultCellStyle.SelectionForeColor = Color.White;
+            _grid.RowTemplate.Height = 40;
 
-            // ── columns (Sử dụng FillWeight thay vì Width để chia tỷ lệ % linh hoạt) ──
+            // ── columns ──
             _grid.Columns.Clear();
 
             _grid.Columns.Add(new DataGridViewTextBoxColumn
@@ -443,7 +498,7 @@ namespace QuanLyGiuXe.Views
         }
 
         // ══════════════════════════════════════════════════════════════════
-        //  DATA LOGIC  (unchanged)
+        //  DATA LOGIC
         // ══════════════════════════════════════════════════════════════════
         private async Task InitializeDataAsync()
         {
@@ -562,6 +617,14 @@ namespace QuanLyGiuXe.Views
             }
         }
 
+        private void OpenAuditHistory()
+        {
+            using (var frm = new AuditHistoryForm())
+            {
+                frm.ShowDialog(this);
+            }
+        }
+
         // ══════════════════════════════════════════════════════════════════
         //  GRID EVENTS
         // ══════════════════════════════════════════════════════════════════
@@ -574,17 +637,19 @@ namespace QuanLyGiuXe.Views
             if (e.RowIndex == _hoverRowIndex)
             {
                 row.DefaultCellStyle.BackColor  = ClrHoverRow;
-                row.DefaultCellStyle.ForeColor  = Color.FromArgb(30, 27, 75);
+                row.DefaultCellStyle.ForeColor  = Color.White;
                 return;
             }
 
             bool isActive   = string.Equals(item.TrangThai, "Active",   StringComparison.OrdinalIgnoreCase);
             bool isDisabled = string.Equals(item.TrangThai, "Disabled", StringComparison.OrdinalIgnoreCase);
 
-            row.DefaultCellStyle.BackColor = isActive   ? Color.FromArgb(236, 253, 245)
-                                           : isDisabled ? Color.FromArgb(255, 241, 242)
+            row.DefaultCellStyle.BackColor = isActive   ? Color.FromArgb(12, 38, 28) // Subtle Dark Green
+                                           : isDisabled ? Color.FromArgb(38, 12, 12) // Subtle Dark Red
                                            : (e.RowIndex % 2 == 1 ? ClrAltRow : ClrSurface);
-            row.DefaultCellStyle.ForeColor = isDisabled ? Color.FromArgb(156, 163, 175) : Color.FromArgb(17, 24, 39);
+            row.DefaultCellStyle.ForeColor = isActive   ? Color.FromArgb(52, 211, 153) // Emerald text
+                                           : isDisabled ? Color.FromArgb(248, 113, 113) // Rose text
+                                           : ClrText;
         }
 
         private void Grid_CellMouseEnter(object? sender, DataGridViewCellEventArgs e)
@@ -611,15 +676,15 @@ namespace QuanLyGiuXe.Views
             var p = new WFPanel
             {
                 Size      = new Size(width, 44),
-                BackColor = Color.FromArgb(249, 250, 251),
+                BackColor = ClrInputBg,
                 Cursor    = WFCursors.IBeam
             };
             p.Paint += (s, e) =>
             {
                 var g  = e.Graphics;
                 g.SmoothingMode = SmoothingMode.AntiAlias;
-                using var pen = new Pen(Color.FromArgb(209, 213, 219));
-                using var path = RoundedRect(new Rectangle(0, 0, p.Width - 1, p.Height - 1), 8);
+                using var pen = new Pen(ClrBorder);
+                using var path = RoundedRect(new Rectangle(0, 0, p.Width - 1, p.Height - 1), 6);
                 g.DrawPath(pen, path);
             };
             return p;
@@ -629,8 +694,9 @@ namespace QuanLyGiuXe.Views
         {
             Text      = text,
             Font      = new Font("Segoe UI", 9f),
-            ForeColor = Color.FromArgb(107, 114, 128),
-            AutoSize  = true
+            ForeColor = ClrTextMuted,
+            AutoSize  = true,
+            BackColor = Color.Transparent
         };
 
         private static void StyleButton(WFButton btn, string text, Color bg, EventHandler handler, int width = 118)
@@ -641,17 +707,55 @@ namespace QuanLyGiuXe.Views
             btn.ForeColor = Color.White;
             btn.FlatStyle = FlatStyle.Flat;
             btn.FlatAppearance.BorderSize  = 0;
-            btn.FlatAppearance.MouseOverBackColor = ControlPaint.Light(bg, 0.2f);
+            btn.FlatAppearance.MouseOverBackColor = LightenColor(bg, 15);
+            btn.FlatAppearance.MouseDownBackColor = DarkenColor(bg, 10);
             btn.Cursor    = WFCursors.Hand;
             btn.Font      = new Font("Segoe UI Semibold", 9.5f, FontStyle.Bold);
             btn.Click    += handler;
         }
 
-        private static void PaintCardShadow(object? sender, PaintEventArgs e)
+        private static Color LightenColor(Color color, int percent)
         {
-            if (sender is not WFPanel p) return;
-            using var pen = new Pen(Color.FromArgb(229, 231, 235));
-            e.Graphics.DrawRectangle(pen, new Rectangle(0, 0, p.Width - 1, p.Height - 1));
+            int r = color.R + (255 - color.R) * percent / 100;
+            int g = color.G + (255 - color.G) * percent / 100;
+            int b = color.B + (255 - color.B) * percent / 100;
+            return Color.FromArgb(
+                color.A,
+                r > 255 ? 255 : r,
+                g > 255 ? 255 : g,
+                b > 255 ? 255 : b
+            );
+        }
+
+        private static Color DarkenColor(Color color, int percent)
+        {
+            int r = color.R - color.R * percent / 100;
+            int g = color.G - color.G * percent / 100;
+            int b = color.B - color.B * percent / 100;
+            return Color.FromArgb(
+                color.A,
+                r < 0 ? 0 : r,
+                g < 0 ? 0 : g,
+                b < 0 ? 0 : b
+            );
+        }
+
+        private void PaintRoundedCard(object? sender, PaintEventArgs e, Color bg, Color border, int radius)
+        {
+            var g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            var control = (WFControl)sender!;
+            using (var path = RoundedRect(new Rectangle(0, 0, control.Width - 1, control.Height - 1), radius))
+            {
+                using (var brush = new SolidBrush(bg))
+                {
+                    g.FillPath(brush, path);
+                }
+                using (var pen = new Pen(border, 1.5f))
+                {
+                    g.DrawPath(pen, path);
+                }
+            }
         }
 
         private static GraphicsPath RoundedRect(Rectangle bounds, int radius)

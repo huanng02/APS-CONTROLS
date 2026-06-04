@@ -217,6 +217,10 @@ namespace QuanLyGiuXe.Services
                 {
                     try
                     {
+                        int? actorId = CurrentUserContext.Instance.Id > 0 ? CurrentUserContext.Instance.Id : (int?)null;
+                        string actorUsername = !string.IsNullOrEmpty(CurrentUserContext.Instance.Username) ? CurrentUserContext.Instance.Username : "system";
+                        string actorRole = !string.IsNullOrEmpty(CurrentUserContext.Instance.Role) ? CurrentUserContext.Instance.Role : "System";
+
                         foreach (var change in changes)
                         {
                             if (change.NewValue && !change.OriginalValue)
@@ -232,6 +236,21 @@ namespace QuanLyGiuXe.Services
                                     cmd.Parameters.AddWithValue("@PermissionId", change.PermissionId);
                                     await cmd.ExecuteNonQueryAsync();
                                 }
+
+                                // Write Audit Log
+                                var auditLog = new AuditLog
+                                {
+                                    UserId = actorId,
+                                    Username = actorUsername,
+                                    ActionType = "GRANT_PERMISSION",
+                                    EntityType = "RolePermission",
+                                    EntityId = $"Role:{change.RoleId},Permission:{change.PermissionId}",
+                                    OldValue = System.Text.Json.JsonSerializer.Serialize(new { PermissionCode = change.PermissionCode, Granted = false }),
+                                    NewValue = System.Text.Json.JsonSerializer.Serialize(new { PermissionCode = change.PermissionCode, Granted = true }),
+                                    Description = $"{actorRole} {actorUsername} granted {change.PermissionCode} permission to {change.RoleName} role.",
+                                    CreatedAt = DateTime.UtcNow
+                                };
+                                await AuditLogService.Instance.LogAuditAsync(auditLog, conn, transaction);
                             }
                             else if (!change.NewValue && change.OriginalValue)
                             {
@@ -243,6 +262,21 @@ namespace QuanLyGiuXe.Services
                                     cmd.Parameters.AddWithValue("@PermissionId", change.PermissionId);
                                     await cmd.ExecuteNonQueryAsync();
                                 }
+
+                                // Write Audit Log
+                                var auditLog = new AuditLog
+                                {
+                                    UserId = actorId,
+                                    Username = actorUsername,
+                                    ActionType = "REVOKE_PERMISSION",
+                                    EntityType = "RolePermission",
+                                    EntityId = $"Role:{change.RoleId},Permission:{change.PermissionId}",
+                                    OldValue = System.Text.Json.JsonSerializer.Serialize(new { PermissionCode = change.PermissionCode, Granted = true }),
+                                    NewValue = System.Text.Json.JsonSerializer.Serialize(new { PermissionCode = change.PermissionCode, Granted = false }),
+                                    Description = $"{actorRole} {actorUsername} revoked {change.PermissionCode} permission from {change.RoleName} role.",
+                                    CreatedAt = DateTime.UtcNow
+                                };
+                                await AuditLogService.Instance.LogAuditAsync(auditLog, conn, transaction);
                             }
                         }
 

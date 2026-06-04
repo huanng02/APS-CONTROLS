@@ -139,6 +139,20 @@ namespace QuanLyGiuXe.Services
                         }
                         LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Role Level migration applied successfully.");
                     }
+
+                    // Execute Audit Logs migration (20260604_add_audit_logs.sql)
+                    string scriptPathAuditLogs = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260604_add_audit_logs.sql");
+                    if (File.Exists(scriptPathAuditLogs))
+                    {
+                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Executing Audit Logs migration...");
+                        string sqlAuditLogs = await File.ReadAllTextAsync(scriptPathAuditLogs);
+                        using (var cmd = new SqlCommand(sqlAuditLogs, conn))
+                        {
+                            cmd.CommandTimeout = 60;
+                            await cmd.ExecuteNonQueryAsync();
+                        }
+                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Audit Logs migration applied successfully.");
+                    }
                     _migrationsApplied = true;
                     LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "SQL Server topology migrations applied successfully.");
                 }
@@ -629,6 +643,20 @@ namespace QuanLyGiuXe.Services
                             await cmd.ExecuteNonQueryAsync();
                         }
                         LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Role Level migration applied successfully.");
+                    }
+
+                    // 10. Now run the Audit Logs migration script (20260604_add_audit_logs.sql)
+                    string scriptPathAuditLogs = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260604_add_audit_logs.sql");
+                    if (File.Exists(scriptPathAuditLogs))
+                    {
+                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Executing Audit Logs migration...");
+                        string sqlAuditLogs = await File.ReadAllTextAsync(scriptPathAuditLogs);
+                        using (var cmd = new SqlCommand(sqlAuditLogs, conn))
+                        {
+                            cmd.CommandTimeout = 60;
+                            await cmd.ExecuteNonQueryAsync();
+                        }
+                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Audit Logs migration applied successfully.");
                     }
 
                     _baseSchemaChecked = true;
