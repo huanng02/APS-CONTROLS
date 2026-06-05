@@ -680,95 +680,79 @@ namespace QuanLyGiuXe
         private async void AddCameraInline(ComboBox cb, int laneId, string cameraRole)
         {
             var lane = _lanes?.FirstOrDefault(l => l.Id == laneId);
-            string laneName = lane?.LaneName ?? $"Làn {laneId}";
-            string laneDirection = lane?.Direction ?? "IN";
-
-            var win = new Views.AddCameraWindow(laneId, cameraRole, laneName, laneDirection);
+            var win = new Views.CameraSettingsWindow(laneId, cameraRole);
             win.Owner = this;
-            if (win.ShowDialog() == true && win.NewCamera != null)
+            win.ShowDialog();
+
+            // Refresh the camera list and dropdowns
+            int selectedGateId = ZoneCombo.SelectedValue != null ? Convert.ToInt32(ZoneCombo.SelectedValue) : 0;
+            var lanesForGate = _lanes?.Where(l => l.GateId == selectedGateId).ToList() ?? new List<LaneConfig>();
+            await PopulateLaneCamerasUIAsync(lanesForGate);
+
+            // Auto-select the newly added camera for this lane/role
+            try
             {
-                var newCam = win.NewCamera;
-                
-                // Refresh the camera mappings dictionary and database cameras
-                List<Models.CameraConfig> dbCameras = new();
-                try
+                var dbCameras = await ParkingTopologyService.Instance.GetCamerasAsync();
+                string targetDirection = cameraRole == "ToanCanh" ? "Overview" : (lane?.Direction?.ToUpper() == "OUT" ? "Exit" : "Entry");
+                var latestCam = dbCameras.Where(c => c.LaneId == laneId && c.Direction == targetDirection)
+                                         .OrderByDescending(c => c.Id)
+                                         .FirstOrDefault();
+                if (latestCam != null)
                 {
-                    dbCameras = await ParkingTopologyService.Instance.GetCamerasAsync();
+                    cb.Text = latestCam.CameraName;
                 }
-                catch { }
-
-                _cameraNameToUrlMap.Clear();
-                for (int i = 0; i < _cameras.Count; i++)
-                {
-                    _cameraNameToUrlMap[_cameras[i].Name] = _cameras[i].Name;
-                }
-                foreach (var dbCam in dbCameras)
-                {
-                    if (!string.IsNullOrEmpty(dbCam.CameraName))
-                    {
-                        _cameraNameToUrlMap[dbCam.CameraName] = dbCam.RtspUrl;
-                    }
-                }
-
-                // Refresh all Combos in all lanes to include the new camera name
-                foreach (var item in _laneCameraCombos)
-                {
-                    var selectedText1 = item.cbToanCanh.Text;
-                    var selectedText2 = item.cbBienSo.Text;
-
-                    item.cbToanCanh.Items.Clear();
-                    item.cbBienSo.Items.Clear();
-
-                    item.cbToanCanh.Items.Add(AutoOption);
-                    item.cbBienSo.Items.Add(AutoOption);
-
-                    for (int i = 0; i < _cameras.Count; i++)
-                    {
-                        item.cbToanCanh.Items.Add(_cameras[i].Name);
-                        item.cbBienSo.Items.Add(_cameras[i].Name);
-                    }
-                    foreach (var dbCam in dbCameras)
-                    {
-                        if (!string.IsNullOrEmpty(dbCam.CameraName))
-                        {
-                            if (!item.cbToanCanh.Items.Contains(dbCam.CameraName)) item.cbToanCanh.Items.Add(dbCam.CameraName);
-                            if (!item.cbBienSo.Items.Contains(dbCam.CameraName)) item.cbBienSo.Items.Add(dbCam.CameraName);
-                        }
-                    }
-
-                    item.cbToanCanh.Text = selectedText1;
-                    item.cbBienSo.Text = selectedText2;
-                }
-
-                // Select the newly added camera name
-                cb.SelectedItem = newCam.CameraName;
-
-                MessageBox.Show($"✅ Thêm camera '{newCam.CameraName}' thành công!", "Thành công");
             }
+            catch { }
         }
 
         private async void AddCamera_Click(object sender, RoutedEventArgs e)
         {
-            var win = new Views.AddCameraWindow();
+            var win = new Views.CameraSettingsWindow();
             win.Owner = this;
-            if (win.ShowDialog() == true)
+            win.ShowDialog();
+
+            int selectedGateId = ZoneCombo.SelectedValue != null ? Convert.ToInt32(ZoneCombo.SelectedValue) : 0;
+            var lanesForGate = _lanes?.Where(l => l.GateId == selectedGateId).ToList() ?? new List<LaneConfig>();
+            await PopulateLaneCamerasUIAsync(lanesForGate);
+        }
+
+        private string NormalizeRtspUrl(string url)
+        {
+            if (string.IsNullOrEmpty(url)) return "";
+            try
             {
-                int selectedGateId = ZoneCombo.SelectedValue != null ? Convert.ToInt32(ZoneCombo.SelectedValue) : 0;
-                var lanesForGate = _lanes.Where(l => l.GateId == selectedGateId).ToList();
-                await PopulateLaneCamerasUIAsync(lanesForGate);
-                
-                MessageBox.Show($"\u2705 Th\u00eam camera '{win.NewCamera?.CameraName}' th\u00e0nh c\u00f4ng!", "Th\u00e0nh c\u00f4ng");
+                string normalized = url.ToLower().Trim();
+                normalized = normalized.Replace("_password=", "password=")
+                                       .Replace("&password=", "password=")
+                                       .Replace("_channel=", "channel=")
+                                       .Replace("&channel=", "channel=")
+                                       .Replace("_stream=", "stream=")
+                                       .Replace("&stream=", "stream=")
+                                       .Replace("&onvif=", "onvif=")
+                                       .Replace("_onvif=", "onvif=");
+                return normalized;
             }
+            catch { return url; }
         }
 
         private string? FindCameraMatch(string cfgValue)
         {
             if (string.IsNullOrEmpty(cfgValue)) return null;
             
-            // Try to find the camera name that maps to this config value (RTSP URL or USB camera name)
+            // Try exact match
             foreach (var kvp in _cameraNameToUrlMap)
             {
                 if (kvp.Value.Equals(cfgValue, StringComparison.OrdinalIgnoreCase))
+                {
+                    return kvp.Key;
+                }
+            }
+
+            // Try normalized match
+            string normCfg = NormalizeRtspUrl(cfgValue);
+            foreach (var kvp in _cameraNameToUrlMap)
+            {
+                if (NormalizeRtspUrl(kvp.Value).Equals(normCfg, StringComparison.OrdinalIgnoreCase))
                 {
                     return kvp.Key;
                 }

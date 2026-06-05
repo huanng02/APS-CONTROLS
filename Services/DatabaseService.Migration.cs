@@ -167,6 +167,21 @@ namespace QuanLyGiuXe.Services
                         }
                         LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Device Monitoring tables migration applied successfully.");
                     }
+
+                    // Execute Camera Management Columns migration (20260605_add_camera_management_columns.sql)
+                    string scriptPathCameraMgmt = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260605_add_camera_management_columns.sql");
+                    if (File.Exists(scriptPathCameraMgmt))
+                    {
+                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Executing Camera Management Columns migration...");
+                        string sqlCameraMgmt = await File.ReadAllTextAsync(scriptPathCameraMgmt);
+                        using (var cmd = new SqlCommand(sqlCameraMgmt, conn))
+                        {
+                            cmd.CommandTimeout = 60;
+                            await cmd.ExecuteNonQueryAsync();
+                        }
+                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Camera Management Columns migration applied successfully.");
+                    }
+
                     _migrationsApplied = true;
                     LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "SQL Server topology migrations applied successfully.");
                 }
@@ -685,6 +700,20 @@ namespace QuanLyGiuXe.Services
                             await cmd.ExecuteNonQueryAsync();
                         }
                         LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Device Monitoring tables migration applied successfully.");
+                    }
+
+                    // 12. Now run the Camera Management Columns migration script (20260605_add_camera_management_columns.sql)
+                    string scriptPathCameraMgmt = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260605_add_camera_management_columns.sql");
+                    if (File.Exists(scriptPathCameraMgmt))
+                    {
+                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Executing Camera Management Columns migration...");
+                        string sqlCameraMgmt = await File.ReadAllTextAsync(scriptPathCameraMgmt);
+                        using (var cmd = new SqlCommand(sqlCameraMgmt, conn))
+                        {
+                            cmd.CommandTimeout = 60;
+                            await cmd.ExecuteNonQueryAsync();
+                        }
+                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Camera Management Columns migration applied successfully.");
                     }
 
                     _baseSchemaChecked = true;

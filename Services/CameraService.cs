@@ -2,12 +2,13 @@ using System;
 using System.Linq;
 using System.Drawing;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
 using OpenCvSharp;
 using OpenCvSharp.Extensions;
 using AForge.Video.DirectShow;
-
+using QuanLyGiuXe.Models;
 
 namespace QuanLyGiuXe.Services
 {
@@ -18,6 +19,7 @@ namespace QuanLyGiuXe.Services
         private readonly Dictionary<string, Task> _ipCameraTasks = new();
         private readonly Dictionary<string, string> _cameraUrls = new();
         private readonly Dictionary<string, bool> _isCameraConnected = new();
+        private readonly ConcurrentDictionary<string, CameraRuntimeState> _runtimeStates = new();
 
         // Sự kiện gửi ảnh về UI
         public event EventHandler<(string CamKey, Bitmap Frame)>? NewFrameReceived;
@@ -25,6 +27,16 @@ namespace QuanLyGiuXe.Services
         public void Initialize()
         {
             // Không cần khởi tạo AForge nữa
+        }
+
+        public CameraRuntimeState GetRuntimeState(string key)
+        {
+            return _runtimeStates.GetOrAdd(key, k => new CameraRuntimeState { CameraKey = k });
+        }
+
+        public List<CameraRuntimeState> GetAllRuntimeStates()
+        {
+            return _runtimeStates.Values.ToList();
         }
 
         public void StartIpCamera(string camKey, string url)
@@ -58,6 +70,9 @@ namespace QuanLyGiuXe.Services
             _cameraUrls[actualKey] = url;
             _isCameraConnected[actualKey] = false;
             
+            var state = GetRuntimeState(actualKey);
+            state.IsConnected = false;
+            
             _ipCameraTokens.TryGetValue(actualKey, out var oldCts);
             _ipCameraTasks.TryGetValue(actualKey, out var oldTask);
 
@@ -72,7 +87,7 @@ namespace QuanLyGiuXe.Services
             }
 
             var cts = new CancellationTokenSource();
-            _ipCameraTokens[camKey] = cts;
+            _ipCameraTokens[actualKey] = cts;
 
             var newTask = Task.Run(async () =>
             {
@@ -84,7 +99,7 @@ namespace QuanLyGiuXe.Services
                         var completedTask = await Task.WhenAny(oldTask, delayTask);
                         if (completedTask == delayTask)
                         {
-                            System.Diagnostics.Debug.WriteLine($"Cảnh báo: Hết thời gian chờ camera {camKey} giải phóng.");
+                            System.Diagnostics.Debug.WriteLine($"Cảnh báo: Hết thời gian chờ camera {actualKey} giải phóng.");
                         }
                     }
                     catch { }
@@ -94,90 +109,137 @@ namespace QuanLyGiuXe.Services
                 {
                     if (string.IsNullOrEmpty(url)) return;
 
-                    VideoCapture capture;
-
-                    if (url.StartsWith("rtsp://", StringComparison.OrdinalIgnoreCase) ||
-                        url.StartsWith("rtmp://", StringComparison.OrdinalIgnoreCase) ||
-                        url.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
-                        url.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+                    while (!cts.Token.IsCancellationRequested)
                     {
-                        capture = new VideoCapture(url, VideoCaptureAPIs.FFMPEG);
-                    }
-                    else if (int.TryParse(url, out int index))
-                    {
-                        capture = new VideoCapture(index, VideoCaptureAPIs.DSHOW);
-                    }
-                    else
-                    {
-                        // Check if it matches a USB camera name
-                        int foundIndex = -1;
+                        VideoCapture? capture = null;
                         try
                         {
-                            var devices = new FilterInfoCollection(FilterCategory.VideoInputDevice);
-                            for (int i = 0; i < devices.Count; i++)
+                            if (url.StartsWith("rtsp://", StringComparison.OrdinalIgnoreCase) ||
+                                url.StartsWith("rtmp://", StringComparison.OrdinalIgnoreCase) ||
+                                url.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                                url.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
                             {
-                                if (devices[i].Name.Equals(url, StringComparison.OrdinalIgnoreCase) ||
-                                    devices[i].Name.Contains(url, StringComparison.OrdinalIgnoreCase))
-                                {
-                                    foundIndex = i;
-                                    break;
-                                }
+                                capture = new VideoCapture(url, VideoCaptureAPIs.FFMPEG);
                             }
-                        }
-                        catch
-                        {
-                        }
-
-                        if (foundIndex >= 0)
-                        {
-                            capture = new VideoCapture(foundIndex, VideoCaptureAPIs.DSHOW);
-                        }
-                        else
-                        {
-                            capture = new VideoCapture(url);
-                        }
-                    }
-
-                    using (capture)
-                    {
-                        if (!capture.IsOpened())
-                        {
-                            _isCameraConnected[camKey] = false;
-                            System.Diagnostics.Debug.WriteLine($"Lỗi: Không kết nối được camera {camKey} (url: {url})");
-                            return;
-                        }
-
-                        _isCameraConnected[camKey] = true;
-                        using var mat = new Mat();
-                        int failCount = 0;
-
-                        while (!cts.Token.IsCancellationRequested)
-                        {
-                            if (capture.Read(mat) && !mat.Empty())
+                            else if (int.TryParse(url, out int index))
                             {
-                                failCount = 0;
-                                _isCameraConnected[camKey] = true;
-                                Bitmap bitmap = BitmapConverter.ToBitmap(mat);
-                                NewFrameReceived?.Invoke(this, (camKey, bitmap));
+                                capture = new VideoCapture(index, VideoCaptureAPIs.DSHOW);
                             }
                             else
                             {
-                                failCount++;
-                                if (failCount > 10) // Mất kết nối quá 10 frame liên tiếp
+                                // Check if it matches a USB camera name
+                                int foundIndex = -1;
+                                try
                                 {
-                                    _isCameraConnected[camKey] = false;
+                                    var devices = new FilterInfoCollection(FilterCategory.VideoInputDevice);
+                                    for (int i = 0; i < devices.Count; i++)
+                                    {
+                                        if (devices[i].Name.Equals(url, StringComparison.OrdinalIgnoreCase) ||
+                                            devices[i].Name.Contains(url, StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            foundIndex = i;
+                                            break;
+                                        }
+                                    }
+                                }
+                                catch { }
+
+                                if (foundIndex >= 0)
+                                {
+                                    capture = new VideoCapture(foundIndex, VideoCaptureAPIs.DSHOW);
+                                }
+                                else
+                                {
+                                    capture = new VideoCapture(url);
                                 }
                             }
+
+                            if (capture == null || !capture.IsOpened())
+                            {
+                                capture?.Dispose();
+                                state.IsConnected = false;
+                                _isCameraConnected[actualKey] = false;
+                                
+                                await Task.Delay(5000, cts.Token);
+                                state.ReconnectCount++;
+                                continue;
+                            }
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            capture?.Dispose();
+                            break;
+                        }
+                        catch (Exception)
+                        {
+                            capture?.Dispose();
+                            state.IsConnected = false;
+                            _isCameraConnected[actualKey] = false;
                             
-                            await Task.Delay(30, cts.Token);
+                            await Task.Delay(5000, cts.Token);
+                            state.ReconnectCount++;
+                            continue;
+                        }
+
+                        state.IsConnected = true;
+                        _isCameraConnected[actualKey] = true;
+                        state.LastHeartbeat = DateTime.UtcNow;
+
+                        using (capture)
+                        {
+                            using var mat = new Mat();
+                            int failCount = 0;
+
+                            while (!cts.Token.IsCancellationRequested)
+                            {
+                                bool readSuccess = false;
+                                try
+                                {
+                                    readSuccess = capture.Read(mat);
+                                }
+                                catch
+                                {
+                                    readSuccess = false;
+                                }
+
+                                if (readSuccess && !mat.Empty())
+                                {
+                                    failCount = 0;
+                                    state.IsConnected = true;
+                                    _isCameraConnected[actualKey] = true;
+                                    state.LastHeartbeat = DateTime.UtcNow;
+                                    state.LastFrameReceived = DateTime.UtcNow;
+                                    
+                                    Bitmap bitmap = BitmapConverter.ToBitmap(mat);
+                                    NewFrameReceived?.Invoke(this, (actualKey, bitmap));
+                                }
+                                else
+                                {
+                                    failCount++;
+                                    if (failCount >= 10) // Mất kết nối quá 10 frame liên tiếp
+                                    {
+                                        state.IsConnected = false;
+                                        _isCameraConnected[actualKey] = false;
+                                        break; // break read loop to reconnect
+                                    }
+                                }
+                                
+                                await Task.Delay(30, cts.Token);
+                            }
+                        }
+
+                        if (!cts.Token.IsCancellationRequested)
+                        {
+                            await Task.Delay(5000, cts.Token);
+                            state.ReconnectCount++;
                         }
                     }
                 }, 
-                source: $"CameraService.{camKey}",
+                source: $"CameraService.{actualKey}",
                 friendlyMessage: null);
             }, cts.Token);
 
-            _ipCameraTasks[camKey] = newTask;
+            _ipCameraTasks[actualKey] = newTask;
         }
 
         private static CameraService? _instance;
@@ -352,14 +414,40 @@ namespace QuanLyGiuXe.Services
 
         public void StopIpCamera(string camKey)
         {
-            if (_ipCameraTokens.TryGetValue(camKey, out var cts))
+            string actualKey = camKey;
+            if (camKey == "VaoToanCanh" || camKey == "Vao1")
+            {
+                int? laneId = GetLaneIdFromUiIndex(1);
+                if (laneId.HasValue && HasDynamicConfigForLane(laneId.Value))
+                    actualKey = $"Lane_{laneId.Value}_ToanCanh";
+            }
+            else if (camKey == "VaoBienSo" || camKey == "Vao2")
+            {
+                int? laneId = GetLaneIdFromUiIndex(1);
+                if (laneId.HasValue && HasDynamicConfigForLane(laneId.Value))
+                    actualKey = $"Lane_{laneId.Value}_BienSo";
+            }
+            else if (camKey == "RaToanCanh" || camKey == "Ra1")
+            {
+                int? laneId = GetLaneIdFromUiIndex(2);
+                if (laneId.HasValue && HasDynamicConfigForLane(laneId.Value))
+                    actualKey = $"Lane_{laneId.Value}_ToanCanh";
+            }
+            else if (camKey == "RaBienSo" || camKey == "Ra2")
+            {
+                int? laneId = GetLaneIdFromUiIndex(2);
+                if (laneId.HasValue && HasDynamicConfigForLane(laneId.Value))
+                    actualKey = $"Lane_{laneId.Value}_BienSo";
+            }
+
+            if (_ipCameraTokens.TryGetValue(actualKey, out var cts))
             {
                 cts.Cancel();
-                _ipCameraTokens.Remove(camKey);
+                _ipCameraTokens.Remove(actualKey);
             }
-            if (_ipCameraTasks.TryGetValue(camKey, out var task))
+            if (_ipCameraTasks.TryGetValue(actualKey, out var task))
             {
-                _ipCameraTasks.Remove(camKey);
+                _ipCameraTasks.Remove(actualKey);
             }
         }
 
