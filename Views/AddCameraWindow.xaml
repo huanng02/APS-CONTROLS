@@ -1,0 +1,158 @@
+<Window x:Class="QuanLyGiuXe.Views.AddCameraWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Thêm &amp; Chạy Thử Camera"
+        Height="550"
+        Width="850"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="#F4F6F8"
+        Loaded="Window_Loaded">
+    
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="320"/>
+                <ColumnDefinition Width="20"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            
+            <!-- Left Panel: Configuration -->
+            <Border Grid.Column="0" Background="White" CornerRadius="12" BorderBrush="#E5E7EB" BorderThickness="1" Padding="15">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="12" ShadowDepth="2" Opacity="0.03"/>
+                </Border.Effect>
+                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                    <StackPanel>
+                        <TextBlock Text="📹 CẤU HÌNH CAMERA" FontSize="14" FontWeight="Bold" Foreground="#1E3A8A" Margin="0,0,0,10"/>
+                        
+                        <!-- Camera Name -->
+                        <StackPanel Margin="0,0,0,8">
+                            <TextBlock Text="Tên Camera" Foreground="#4B5563" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,3"/>
+                            <TextBox x:Name="CameraNameBox" Style="{StaticResource ModernTextBox}" Height="30"/>
+                        </StackPanel>
+                        
+                        <!-- Connection Type -->
+                        <StackPanel Margin="0,0,0,8">
+                            <TextBlock Text="Loại Kết Nối" Foreground="#4B5563" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,3"/>
+                            <ComboBox x:Name="CameraTypeCombo" Height="30" Style="{StaticResource ModernComboBox}" SelectionChanged="CameraTypeCombo_SelectionChanged">
+                                <ComboBoxItem Content="IP Camera (RTSP URL)" Tag="IP"/>
+                                <ComboBoxItem Content="USB Camera" Tag="USB"/>
+                            </ComboBox>
+                        </StackPanel>
+                        
+                        <!-- IP Camera Details Grid -->
+                        <StackPanel x:Name="IpConfigPanel" Margin="0,0,0,8">
+                            <Grid Margin="0,0,0,6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="2*"/>
+                                    <ColumnDefinition Width="5"/>
+                                    <ColumnDefinition Width="1*"/>
+                                </Grid.ColumnDefinitions>
+                                <!-- IP Address -->
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="Địa Chỉ IP" Foreground="#4B5563" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,3"/>
+                                    <TextBox x:Name="IpAddrBox" Style="{StaticResource ModernTextBox}" Height="30" Text="192.168.1.121" TextChanged="IpConfigField_TextChanged"/>
+                                </StackPanel>
+                                <!-- RTSP Port -->
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="Cổng RTSP" Foreground="#4B5563" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,3"/>
+                                    <TextBox x:Name="RtspPortBox" Style="{StaticResource ModernTextBox}" Height="30" Text="554" TextChanged="IpConfigField_TextChanged"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <Grid Margin="0,0,0,6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="1*"/>
+                                    <ColumnDefinition Width="5"/>
+                                    <ColumnDefinition Width="1*"/>
+                                </Grid.ColumnDefinitions>
+                                <!-- ONVIF Port -->
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="Cổng HTTP/ONVIF" Foreground="#4B5563" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,3"/>
+                                    <TextBox x:Name="OnvifPortBox" Style="{StaticResource ModernTextBox}" Height="30" Text="80" TextChanged="IpConfigField_TextChanged"/>
+                                </StackPanel>
+                                <!-- Camera Brand -->
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="Hãng Camera" Foreground="#4B5563" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,3"/>
+                                    <ComboBox x:Name="CameraBrandCombo" Height="30" Style="{StaticResource ModernComboBox}" SelectionChanged="CameraBrandCombo_SelectionChanged">
+                                        <ComboBoxItem Content="Xiongmai/Generic" Tag="XM"/>
+                                        <ComboBoxItem Content="Hikvision" Tag="HIK"/>
+                                        <ComboBoxItem Content="Dahua" Tag="DAHUA"/>
+                                        <ComboBoxItem Content="Custom URL" Tag="CUSTOM"/>
+                                    </ComboBox>
+                                </StackPanel>
+                            </Grid>
+
+                            <Grid Margin="0,0,0,6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="1*"/>
+                                    <ColumnDefinition Width="5"/>
+                                    <ColumnDefinition Width="1*"/>
+                                </Grid.ColumnDefinitions>
+                                <!-- Username -->
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="Tên Đăng Nhập" Foreground="#4B5563" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,3"/>
+                                    <TextBox x:Name="UserBox" Style="{StaticResource ModernTextBox}" Height="30" Text="admin" TextChanged="IpConfigField_TextChanged"/>
+                                </StackPanel>
+                                <!-- Password -->
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="Mật Khẩu" Foreground="#4B5563" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,3"/>
+                                    <TextBox x:Name="PasswordBox" Style="{StaticResource ModernTextBox}" Height="30" Text="" TextChanged="IpConfigField_TextChanged"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- Generated RTSP URL -->
+                            <StackPanel Margin="0,4,0,0">
+                                <TextBlock Text="Đường Dẫn RTSP URL" Foreground="#4B5563" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,3"/>
+                                <TextBox x:Name="RtspUrlBox" Style="{StaticResource ModernTextBox}" Height="30" Text="rtsp://"/>
+                                <TextBlock Text="Được sinh tự động. Bạn có thể tự chỉnh sửa nếu chọn 'Custom URL'." Foreground="#9CA3AF" FontSize="9" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </StackPanel>
+                        
+                        <!-- USB Device Selection (Visible for USB Camera) -->
+                        <StackPanel x:Name="UsbConfigPanel" Margin="0,0,0,15" Visibility="Collapsed">
+                            <TextBlock Text="Chọn Thiết Bị USB" Foreground="#4B5563" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,3"/>
+                            <ComboBox x:Name="UsbDeviceCombo" Height="30" Style="{StaticResource ModernComboBox}"/>
+                        </StackPanel>
+                        
+                        <!-- Test Connection Button -->
+                        <UniformGrid Columns="2" Margin="0,10,0,0">
+                            <Button x:Name="BtnTestConnect" Content="🔌 Chạy Thử" Style="{StaticResource ModernButton}" Height="34" Margin="0,0,5,0" Click="BtnTestConnect_Click"/>
+                            <Button x:Name="BtnStopConnect" Content="⏹️ Dừng Lại" Style="{StaticResource ModernOutlineButton}" Height="34" Margin="5,0,0,0" IsEnabled="False" Click="BtnStopConnect_Click"/>
+                        </UniformGrid>
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+            
+            <!-- Right Panel: Preview Area -->
+            <Border Grid.Column="2" Background="Black" CornerRadius="12" BorderBrush="#E5E7EB" BorderThickness="1" ClipToBounds="True">
+                <Grid>
+                    <Image x:Name="PreviewImage" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    
+                    <!-- Overlay text when no camera is streaming -->
+                    <StackPanel x:Name="NoStreamOverlay" HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <TextBlock Text="📷 CHƯA CÓ TÍN HIỆU PREVIEW" Foreground="#94A3B8" FontSize="14" FontWeight="Bold" HorizontalAlignment="Center"/>
+                        <TextBlock Text="Nhập cấu hình bên trái và nhấn 'Chạy Thử' để xem hình ảnh." Foreground="#64748B" FontSize="11" Margin="0,5,0,0" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+        
+        <!-- Bottom Actions -->
+        <Border Grid.Row="1" Background="#F8FAFC" BorderBrush="#E5E7EB" BorderThickness="0,1,0,0" Padding="0,15,0,0" Margin="0,15,0,0">
+            <Grid>
+                <TextBlock x:Name="StatusText" Text="" Foreground="#4B5563" FontSize="12" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Style="{StaticResource ModernOutlineButton}" Width="120" Height="38" Click="Cancel_Click" Content="Hủy" Margin="0,0,10,0"/>
+                    <Button x:Name="BtnAddCamera" Style="{StaticResource ModernButton}" Width="180" Background="#10B981" Foreground="White" FontWeight="Bold" Height="38" Click="AddCamera_Click" Content="💾 THÊM CAMERA" IsEnabled="False"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

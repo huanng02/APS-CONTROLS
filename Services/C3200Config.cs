@@ -154,6 +154,14 @@ namespace QuanLyGiuXe.Services
         public string VaoBienSo { get; set; } = "";
         public string RaToanCanh { get; set; } = "";
         public string RaBienSo { get; set; } = "";
+        public System.Collections.Generic.List<LaneCameraSetting> LaneCameras { get; set; } = new();
+    }
+
+    public sealed class LaneCameraSetting
+    {
+        public int LaneId { get; set; }
+        public string ToanCanh { get; set; } = "";
+        public string BienSo { get; set; } = "";
     }
 
     public sealed class BackupConfig

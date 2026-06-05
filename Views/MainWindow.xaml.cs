@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Drawing;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -31,12 +32,14 @@ namespace QuanLyGiuXe
         private DateTime _lastAutoScanTime = DateTime.MinValue;
         private readonly GateControlService _gateControlService = new GateControlService();
         private readonly Dictionary<string, Window> _activeModuleWindows = new();
+        private readonly MainViewModel _mainViewModel;
 
         public MainWindow()
         {
             CameraService.Instance = _cameraService;
             InitializeComponent();
-            DataContext = new MainViewModel();
+            _mainViewModel = new MainViewModel();
+            DataContext = _mainViewModel;
 
             this.Loaded += MainWindow_Loaded;
             
@@ -154,7 +157,6 @@ namespace QuanLyGiuXe
 
             btnSQLTool.Visibility = PermissionService.Instance.CheckPermission("DATABASE_EXPLORER") ? Visibility.Visible : Visibility.Collapsed;
             btnBackupRestore.Visibility = PermissionService.Instance.CheckPermission("BACKUP_RESTORE") ? Visibility.Visible : Visibility.Collapsed;
-            btnCameraSettings.Visibility = PermissionService.Instance.CheckPermission("CONFIG_SYSTEM") ? Visibility.Visible : Visibility.Collapsed;
             btnC3200Settings.Visibility = PermissionService.Instance.CheckPermission("CONFIG_CONTROLLER") ? Visibility.Visible : Visibility.Collapsed;
             btnQAPanel.Visibility = PermissionService.Instance.CheckPermission("SIMULATE_RECOVERY") ? Visibility.Visible : Visibility.Collapsed;
 
@@ -358,7 +360,7 @@ namespace QuanLyGiuXe
                             if (lane == null)
                                 return;
 
-                            var (cam1, cam2) = GetCameraKeys(lane.Direction);
+                            var (cam1, cam2) = GetCameraKeysForLane(lane.Id, lane.Direction);
 
                             lock (_currentFrames)
                             {
@@ -398,12 +400,7 @@ namespace QuanLyGiuXe
             }));
         }
 
-        private (string cam1, string cam2) GetCameraKeys(string direction)
-        {
-            return direction?.ToUpper() == "IN"
-                ? ("Vao1", "Vao2")
-                : ("Ra1", "Ra2");
-        }
+
 
 
         // ── Quản lý thẻ ──────────────────────────────────────────────────────────
@@ -522,6 +519,110 @@ namespace QuanLyGiuXe
             }
         }
 
+        private string MapCameraKeyToUi(string camKey)
+        {
+            if (camKey.StartsWith("Lane_"))
+            {
+                var parts = camKey.Split('_');
+                if (parts.Length == 3 && int.TryParse(parts[1], out int laneId))
+                {
+                    string type = parts[2]; // "ToanCanh" or "BienSo"
+                    var vm = _mainViewModel;
+                    if (vm != null)
+                    {
+                        if (vm.GetDbLaneIdForUiIndex(1) == laneId)
+                        {
+                            return type == "ToanCanh" ? "Vao1" : "Vao2";
+                        }
+                        else if (vm.GetDbLaneIdForUiIndex(2) == laneId)
+                        {
+                            return type == "ToanCanh" ? "Ra1" : "Ra2";
+                        }
+                    }
+                }
+            }
+            return camKey;
+        }
+
+        private bool HasDynamicConfigForLane(int laneId)
+        {
+            var cfg = AppConfig.Load().Cameras;
+            return cfg.LaneCameras != null && cfg.LaneCameras.Any(lc => lc.LaneId == laneId && (!string.IsNullOrEmpty(lc.ToanCanh) || !string.IsNullOrEmpty(lc.BienSo)));
+        }
+
+        private string GetActiveInboundPlateCameraKey()
+        {
+            var vm = _mainViewModel;
+            if (vm != null)
+            {
+                int? dbLaneId1 = vm.GetDbLaneIdForUiIndex(1);
+                if (dbLaneId1.HasValue)
+                {
+                    var lane = ParkingTopologyService.Instance.GetLanes().FirstOrDefault(l => l.Id == dbLaneId1.Value);
+                    if (lane != null && lane.Direction?.ToUpper() == "IN")
+                    {
+                        return HasDynamicConfigForLane(dbLaneId1.Value) 
+                            ? $"Lane_{dbLaneId1.Value}_BienSo" 
+                            : "Vao2";
+                    }
+                }
+                
+                int? dbLaneId2 = vm.GetDbLaneIdForUiIndex(2);
+                if (dbLaneId2.HasValue)
+                {
+                    var lane = ParkingTopologyService.Instance.GetLanes().FirstOrDefault(l => l.Id == dbLaneId2.Value);
+                    if (lane != null && lane.Direction?.ToUpper() == "IN")
+                    {
+                        return HasDynamicConfigForLane(dbLaneId2.Value) 
+                            ? $"Lane_{dbLaneId2.Value}_BienSo" 
+                            : "Ra2";
+                    }
+                }
+            }
+            return "Vao2"; // ultimate fallback
+        }
+
+        private int GetUiLaneIndexForPlateDetection(string camKey)
+        {
+            var vm = _mainViewModel;
+            if (vm != null)
+            {
+                int? dbLaneId1 = vm.GetDbLaneIdForUiIndex(1);
+                if (dbLaneId1.HasValue)
+                {
+                    var lane = ParkingTopologyService.Instance.GetLanes().FirstOrDefault(l => l.Id == dbLaneId1.Value);
+                    if (lane != null && lane.Direction?.ToUpper() == "IN")
+                    {
+                        if (camKey == $"Lane_{dbLaneId1.Value}_BienSo") return 1;
+                        if (camKey == "Vao2" && !HasDynamicConfigForLane(dbLaneId1.Value)) return 1;
+                    }
+                }
+                
+                int? dbLaneId2 = vm.GetDbLaneIdForUiIndex(2);
+                if (dbLaneId2.HasValue)
+                {
+                    var lane = ParkingTopologyService.Instance.GetLanes().FirstOrDefault(l => l.Id == dbLaneId2.Value);
+                    if (lane != null && lane.Direction?.ToUpper() == "IN")
+                    {
+                        if (camKey == $"Lane_{dbLaneId2.Value}_BienSo") return 2;
+                        if (camKey == "Ra2" && !HasDynamicConfigForLane(dbLaneId2.Value)) return 2;
+                    }
+                }
+            }
+            return 0;
+        }
+
+        private (string cam1, string cam2) GetCameraKeysForLane(int laneId, string direction)
+        {
+            if (HasDynamicConfigForLane(laneId))
+            {
+                return ($"Lane_{laneId}_ToanCanh", $"Lane_{laneId}_BienSo");
+            }
+            return direction?.ToUpper() == "IN"
+                ? ("Vao1", "Vao2")
+                : ("Ra1", "Ra2");
+        }
+
         // ── Camera (4 cam: 2 per gate) ───────────────────────────────────────
 
         private void MoCameras()
@@ -539,10 +640,18 @@ namespace QuanLyGiuXe
                                      System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
                 }
 
+                string uiCamKey = MapCameraKeyToUi(data.CamKey);
+
                 lock (_currentFrames)
                 {
                     if (_currentFrames.TryGetValue(data.CamKey, out var old)) old.Dispose();
                     _currentFrames[data.CamKey] = (Bitmap)bmpForUI.Clone();
+                    
+                    if (uiCamKey != null && uiCamKey != data.CamKey)
+                    {
+                        if (_currentFrames.TryGetValue(uiCamKey, out var oldUi)) oldUi.Dispose();
+                        _currentFrames[uiCamKey] = (Bitmap)bmpForUI.Clone();
+                    }
                 }
 
                 // 3. Chuyển đổi ảnh (vẫn ở luồng phụ của Camera)
@@ -550,38 +659,118 @@ namespace QuanLyGiuXe
                 bmpForUI.Dispose(); // Dùng xong bản cho UI thì hủy ngay
 
                 // 4. Chỉ đẩy kết quả cuối cùng lên màn hình
-                if (uiImage != null)
+                if (uiImage != null && uiCamKey != null)
                 {
                     Dispatcher.BeginInvoke(new Action(() =>
                     {
                         var parkingView = FindVisualChild<ParkingView>(MainContentHost);
                         if (parkingView != null)
                         {
-                            parkingView.UpdateCamera(data.CamKey, uiImage);
+                            parkingView.UpdateCamera(uiCamKey, uiImage);
                         }
                     }));
                 }
                 
-                // Plate recognition on Vao1 (Entrance)
-                if (data.CamKey == "Vao1")
+                // Plate recognition on the active inbound lane's plate camera
+                int uiLaneForAuto = GetUiLaneIndexForPlateDetection(data.CamKey);
+                if (uiLaneForAuto > 0)
                 {
-                    RunAutoDetection(data.Frame);
+                    RunAutoDetection(data.Frame, uiLaneForAuto);
                 }
             };
 
-            // Start all configured cameras
-            if (!string.IsNullOrEmpty(cfg.VaoToanCanh)) _cameraService.StartIpCamera("Vao1", cfg.VaoToanCanh);
-            if (!string.IsNullOrEmpty(cfg.VaoBienSo)) _cameraService.StartIpCamera("Vao2", cfg.VaoBienSo);
-            if (!string.IsNullOrEmpty(cfg.RaToanCanh)) _cameraService.StartIpCamera("Ra1", cfg.RaToanCanh);
-            if (!string.IsNullOrEmpty(cfg.RaBienSo)) _cameraService.StartIpCamera("Ra2", cfg.RaBienSo);
-            
-            // Fallback for debug if no config
-            if (string.IsNullOrEmpty(cfg.VaoToanCanh)) {
-                string debugUrl = "rtsp://192.168.1.121:554/user=admin&password=tlJwpbo6&channel=0&stream=0.sdp";
-                _cameraService.StartIpCamera("Vao1", debugUrl);
+            // Start dynamic lane cameras if any are configured
+            bool startedAnyDynamic = false;
+            if (cfg.LaneCameras != null && cfg.LaneCameras.Count > 0)
+            {
+                foreach (var lc in cfg.LaneCameras)
+                {
+                    if (!string.IsNullOrEmpty(lc.ToanCanh))
+                    {
+                        _cameraService.StartIpCamera($"Lane_{lc.LaneId}_ToanCanh", lc.ToanCanh);
+                        startedAnyDynamic = true;
+                    }
+                    if (!string.IsNullOrEmpty(lc.BienSo))
+                    {
+                        _cameraService.StartIpCamera($"Lane_{lc.LaneId}_BienSo", lc.BienSo);
+                        startedAnyDynamic = true;
+                    }
+                }
+            }
+
+            // Fallback to legacy cameras if no dynamic camera was started
+            if (!startedAnyDynamic)
+            {
+                if (!string.IsNullOrEmpty(cfg.VaoToanCanh)) _cameraService.StartIpCamera("Vao1", cfg.VaoToanCanh);
+                if (!string.IsNullOrEmpty(cfg.VaoBienSo)) _cameraService.StartIpCamera("Vao2", cfg.VaoBienSo);
+                if (!string.IsNullOrEmpty(cfg.RaToanCanh)) _cameraService.StartIpCamera("Ra1", cfg.RaToanCanh);
+                if (!string.IsNullOrEmpty(cfg.RaBienSo)) _cameraService.StartIpCamera("Ra2", cfg.RaBienSo);
+                
+                // Fallback for debug if no config
+                if (string.IsNullOrEmpty(cfg.VaoToanCanh)) {
+                    string debugUrl = "rtsp://192.168.1.121:554/user=admin&password=tlJwpbo6&channel=0&stream=0.sdp";
+                    _cameraService.StartIpCamera("Vao1", debugUrl);
+                }
             }
         }
-        private async void RunAutoDetection(Bitmap originalBitmap)
+
+        public void ReloadCameras()
+        {
+            try
+            {
+                var cfg = AppConfig.Load().Cameras;
+                
+                // Stop all cameras first
+                _cameraService.StopAll();
+
+                // Clear UI camera streams so old static frames are not kept
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    var parkingView = FindVisualChild<ParkingView>(MainContentHost);
+                    if (parkingView != null)
+                    {
+                        parkingView.UpdateCamera("Vao1", null);
+                        parkingView.UpdateCamera("Vao2", null);
+                        parkingView.UpdateCamera("Ra1", null);
+                        parkingView.UpdateCamera("Ra2", null);
+                    }
+                }));
+
+                // Start dynamic lane cameras if any are configured
+                bool startedAnyDynamic = false;
+                if (cfg.LaneCameras != null && cfg.LaneCameras.Count > 0)
+                {
+                    foreach (var lc in cfg.LaneCameras)
+                    {
+                        if (!string.IsNullOrEmpty(lc.ToanCanh))
+                        {
+                            _cameraService.StartIpCamera($"Lane_{lc.LaneId}_ToanCanh", lc.ToanCanh);
+                            startedAnyDynamic = true;
+                        }
+                        if (!string.IsNullOrEmpty(lc.BienSo))
+                        {
+                            _cameraService.StartIpCamera($"Lane_{lc.LaneId}_BienSo", lc.BienSo);
+                            startedAnyDynamic = true;
+                        }
+                    }
+                }
+
+                // Fallback to legacy cameras if no dynamic camera was started
+                if (!startedAnyDynamic)
+                {
+                    if (!string.IsNullOrEmpty(cfg.VaoToanCanh)) _cameraService.StartIpCamera("Vao1", cfg.VaoToanCanh);
+                    if (!string.IsNullOrEmpty(cfg.VaoBienSo)) _cameraService.StartIpCamera("Vao2", cfg.VaoBienSo);
+                    if (!string.IsNullOrEmpty(cfg.RaToanCanh)) _cameraService.StartIpCamera("Ra1", cfg.RaToanCanh);
+                    if (!string.IsNullOrEmpty(cfg.RaBienSo)) _cameraService.StartIpCamera("Ra2", cfg.RaBienSo);
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("ReloadCameras", "MainWindow", "Lỗi nạp lại cấu hình camera", ex);
+            }
+        }
+
+        private async void RunAutoDetection(Bitmap originalBitmap, int uiLaneIndex)
         {
             if (_isProcessingAuto) return;
 
@@ -615,12 +804,19 @@ namespace QuanLyGiuXe
                     {
                         if (this.DataContext is MainViewModel vm)
                         {
-                            // Gán vào ô "Biển số nhập" và khung hiển thị làn 1
-                            vm.BienSoNhap = plate.Trim().ToUpper();
-                            vm.Lane1BienSo = vm.BienSoNhap;
+                            string formattedPlate = plate.Trim().ToUpper();
+                            vm.BienSoNhap = formattedPlate;
 
-                            // (Tùy chọn) Thông báo trạng thái để người dùng biết đã nhận diện xong
-                            vm.Lane1TrangThai = "Đã nhận diện: " + vm.BienSoNhap;
+                            if (uiLaneIndex == 1)
+                            {
+                                vm.Lane1BienSo = formattedPlate;
+                                vm.Lane1TrangThai = "Đã nhận diện: " + formattedPlate;
+                            }
+                            else if (uiLaneIndex == 2)
+                            {
+                                vm.Lane2BienSo = formattedPlate;
+                                vm.Lane2TrangThai = "Đã nhận diện: " + formattedPlate;
+                            }
                         }
                     }));
                 }
@@ -692,7 +888,8 @@ namespace QuanLyGiuXe
         {
             try
             {
-                if (_currentFrames.TryGetValue("Vao1", out var bitmapToProcess) && bitmapToProcess != null)
+                string targetCamKey = GetActiveInboundPlateCameraKey();
+                if (_currentFrames.TryGetValue(targetCamKey, out var bitmapToProcess) && bitmapToProcess != null)
                 {
                     // BƯỚC 1: TẠO DEEP COPY (Quan trọng nhất cho x64)
                     // Việc tạo mới Bitmap(width, height) này đảm bảo tách rời hoàn toàn khỏi Camera
@@ -712,7 +909,26 @@ namespace QuanLyGiuXe
                         // Dùng Dispatcher để đảm bảo UI nhận được giá trị mới ngay lập tức
                         this.Dispatcher.BeginInvoke(new Action(() =>
                         {
-                            vm.BienSoNhap = plate?.Trim() ?? "";
+                            string formattedPlate = plate?.Trim()?.ToUpper() ?? "";
+                            vm.BienSoNhap = formattedPlate;
+
+                            // Determine which UI lane is inbound to trigger command and update snapshots
+                            int? dbLaneId1 = vm.GetDbLaneIdForUiIndex(1);
+                            var lane1 = dbLaneId1.HasValue ? ParkingTopologyService.Instance.GetLanes().FirstOrDefault(l => l.Id == dbLaneId1.Value) : null;
+                            if (lane1 != null && lane1.Direction?.ToUpper() == "IN")
+                            {
+                                vm.Lane1BienSo = formattedPlate;
+                            }
+                            else
+                            {
+                                int? dbLaneId2 = vm.GetDbLaneIdForUiIndex(2);
+                                var lane2 = dbLaneId2.HasValue ? ParkingTopologyService.Instance.GetLanes().FirstOrDefault(l => l.Id == dbLaneId2.Value) : null;
+                                if (lane2 != null && lane2.Direction?.ToUpper() == "IN")
+                                {
+                                    vm.Lane2BienSo = formattedPlate;
+                                }
+                            }
+
                             if (vm.XeVaoCommand.CanExecute(null))
                             {
                                 vm.XeVaoCommand.Execute(null);
@@ -725,7 +941,7 @@ namespace QuanLyGiuXe
                 }
                 else
                 {
-                    MessageBox.Show("Không tìm thấy dữ liệu hình ảnh từ Camera Vao1!");
+                    MessageBox.Show($"Không tìm thấy dữ liệu hình ảnh từ Camera {targetCamKey}!");
                 }
             }
             catch (Exception ex)

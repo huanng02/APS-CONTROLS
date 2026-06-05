@@ -100,7 +100,7 @@ namespace QuanLyGiuXe.Services.OfflineCache
                             }
                         }
                     }
-                    if (!isNetworkError) throw; // Logic error, throw to UI
+                    if (!isNetworkError && transactionType != "INSERT_LOG") throw; // Logic error, throw to UI
                 }
                 else if (ex is not OperationCanceledException && ex.Message != "Simulated offline")
                 {
@@ -111,7 +111,7 @@ namespace QuanLyGiuXe.Services.OfflineCache
                     }
                     else
                     {
-                        throw; // E.g., NullReferenceException, InvalidOperationException
+                        if (transactionType != "INSERT_LOG") throw; // E.g., NullReferenceException, InvalidOperationException
                     }
                 }
 

@@ -32,7 +32,7 @@
                     </Grid.ColumnDefinitions>
                     <TextBlock Text="INBOUND – PANORAMA" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold"
                                Foreground="{StaticResource SuccessBrush}" VerticalAlignment="Center"/>
-                    <ComboBox x:Name="cbVaoToanCanh" Grid.Column="1" Style="{StaticResource ModernComboBox}"/>
+                    <ComboBox x:Name="cbVaoToanCanh" Grid.Column="1" Style="{StaticResource ModernComboBox}" IsEditable="True"/>
                 </Grid>
 
                 <!-- Vào Biển số -->
@@ -43,7 +43,7 @@
                     </Grid.ColumnDefinitions>
                     <TextBlock Text="INBOUND – PLATE" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold"
                                Foreground="{StaticResource SuccessBrush}" VerticalAlignment="Center"/>
-                    <ComboBox x:Name="cbVaoBienSo" Grid.Column="1" Style="{StaticResource ModernComboBox}"/>
+                    <ComboBox x:Name="cbVaoBienSo" Grid.Column="1" Style="{StaticResource ModernComboBox}" IsEditable="True"/>
                 </Grid>
 
                 <Separator Margin="0,10" Background="{StaticResource BorderLightBrush}"/>
@@ -56,7 +56,7 @@
                     </Grid.ColumnDefinitions>
                     <TextBlock Text="OUTBOUND – PANORAMA" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold"
                                Foreground="{StaticResource APSRedBrush}" VerticalAlignment="Center"/>
-                    <ComboBox x:Name="cbRaToanCanh" Grid.Column="1" Style="{StaticResource ModernComboBox}"/>
+                    <ComboBox x:Name="cbRaToanCanh" Grid.Column="1" Style="{StaticResource ModernComboBox}" IsEditable="True"/>
                 </Grid>
 
                 <!-- Ra Biển số -->
@@ -67,7 +67,7 @@
                     </Grid.ColumnDefinitions>
                     <TextBlock Text="OUTBOUND – PLATE" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold"
                                Foreground="{StaticResource APSRedBrush}" VerticalAlignment="Center"/>
-                    <ComboBox x:Name="cbRaBienSo" Grid.Column="1" Style="{StaticResource ModernComboBox}"/>
+                    <ComboBox x:Name="cbRaBienSo" Grid.Column="1" Style="{StaticResource ModernComboBox}" IsEditable="True"/>
                 </Grid>
 
                 <TextBlock x:Name="txtCameraCount" Style="{StaticResource SubTitleStyle}" Margin="0,10,0,0"/>

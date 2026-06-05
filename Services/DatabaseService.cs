@@ -34,9 +34,19 @@ namespace QuanLyGiuXe.Services
             long? durationMs = null, int? retryCount = null, long? fileSize = null, string testName = null,
             bool? isRecovered = null, string additionalData = null)
         {
-            _ = InsertAppLogAsync(timestampUtc, level, eventType, source, userId, plate, details, exception,
-                username, action, entityName, entityId, oldValues, newValues, ipAddress, machineName, deviceName, sessionId, correlationId,
-                durationMs, retryCount, fileSize, testName, isRecovered, additionalData);
+            Task.Run(async () =>
+            {
+                try
+                {
+                    await InsertAppLogAsync(timestampUtc, level, eventType, source, userId, plate, details, exception,
+                        username, action, entityName, entityId, oldValues, newValues, ipAddress, machineName, deviceName, sessionId, correlationId,
+                        durationMs, retryCount, fileSize, testName, isRecovered, additionalData);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"⚠️ [DatabaseService] InsertAppLog Task failed: {ex.Message}");
+                }
+            });
         }
 
         public async Task<bool> InsertAppLogAsync(DateTime timestampUtc, string level, string eventType, string source, string userId, string plate, string details, string exception,
@@ -46,55 +56,63 @@ namespace QuanLyGiuXe.Services
             long? durationMs = null, int? retryCount = null, long? fileSize = null, string testName = null,
             bool? isRecovered = null, string additionalData = null)
         {
-            return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
-                "INSERT_LOG",
-                new { TimestampUtc = timestampUtc, EventType = eventType, Details = details },
-                async conn =>
-                {
-                    if (!_appLogsTableChecked)
+            try
+            {
+                return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+                    "INSERT_LOG",
+                    new { TimestampUtc = timestampUtc, EventType = eventType, Details = details },
+                    async conn =>
                     {
-                        // table check logic (sync is fine inside this block)
-                        _appLogsTableChecked = true;
-                    }
+                        if (!_appLogsTableChecked)
+                        {
+                            // table check logic (sync is fine inside this block)
+                            _appLogsTableChecked = true;
+                        }
 
-                    using (SqlCommand cmd = new SqlCommand( @"INSERT INTO dbo.AppLogs 
-                        (TimestampUtc, [Level], EventType, Source, UserId, Plate, Details, Exception, 
-                         Username, [Action], EntityName, EntityId, OldValues, NewValues, IpAddress, MachineName, DeviceName, SessionId, CorrelationId,
-                         DurationMs, RetryCount, FileSize, TestName, IsRecovered, AdditionalData)
-                        VALUES 
-                        (@ts, @lvl, @evt, @src, @uid, @plate, @details, @ex, 
-                         @user, @action, @entity, @entityId, @old, @new, @ip, @mach, @dev, @sess, @corr,
-                         @dur, @retry, @fsize, @tname, @recov, @data)", conn))
-                    {
-                        cmd.Parameters.AddWithValue("@ts", timestampUtc);
-                        cmd.Parameters.AddWithValue("@lvl", level ?? string.Empty);
-                        cmd.Parameters.AddWithValue("@evt", eventType ?? string.Empty);
-                        cmd.Parameters.AddWithValue("@src", source ?? string.Empty);
-                        cmd.Parameters.AddWithValue("@uid", userId ?? string.Empty);
-                        cmd.Parameters.AddWithValue("@plate", plate ?? string.Empty);
-                        cmd.Parameters.AddWithValue("@details", details ?? string.Empty);
-                        cmd.Parameters.AddWithValue("@ex", exception ?? string.Empty);
-                        cmd.Parameters.AddWithValue("@user", (object?)username ?? DBNull.Value);
-                        cmd.Parameters.AddWithValue("@action", (object?)action ?? DBNull.Value);
-                        cmd.Parameters.AddWithValue("@entity", (object?)entityName ?? DBNull.Value);
-                        cmd.Parameters.AddWithValue("@entityId", (object?)entityId ?? DBNull.Value);
-                        cmd.Parameters.AddWithValue("@old", (object?)oldValues ?? DBNull.Value);
-                        cmd.Parameters.AddWithValue("@new", (object?)newValues ?? DBNull.Value);
-                        cmd.Parameters.AddWithValue("@ip", (object?)ipAddress ?? DBNull.Value);
-                        cmd.Parameters.AddWithValue("@mach", (object?)machineName ?? DBNull.Value);
-                        cmd.Parameters.AddWithValue("@dev", (object?)deviceName ?? DBNull.Value);
-                        cmd.Parameters.AddWithValue("@sess", (object?)sessionId ?? DBNull.Value);
-                        cmd.Parameters.AddWithValue("@corr", (object?)correlationId ?? DBNull.Value);
-                        cmd.Parameters.AddWithValue("@dur", (object?)durationMs ?? DBNull.Value);
-                        cmd.Parameters.AddWithValue("@retry", (object?)retryCount ?? DBNull.Value);
-                        cmd.Parameters.AddWithValue("@fsize", (object?)fileSize ?? DBNull.Value);
-                        cmd.Parameters.AddWithValue("@tname", (object?)testName ?? DBNull.Value);
-                        cmd.Parameters.AddWithValue("@recov", (object?)isRecovered ?? DBNull.Value);
-                        cmd.Parameters.AddWithValue("@data", (object?)additionalData ?? DBNull.Value);
-                        await cmd.ExecuteNonQueryAsync();
+                        using (SqlCommand cmd = new SqlCommand( @"INSERT INTO dbo.AppLogs 
+                            (TimestampUtc, [Level], EventType, Source, UserId, Plate, Details, Exception, 
+                             Username, [Action], EntityName, EntityId, OldValues, NewValues, IpAddress, MachineName, DeviceName, SessionId, CorrelationId,
+                             DurationMs, RetryCount, FileSize, TestName, IsRecovered, AdditionalData)
+                            VALUES 
+                            (@ts, @lvl, @evt, @src, @uid, @plate, @details, @ex, 
+                             @user, @action, @entity, @entityId, @old, @new, @ip, @mach, @dev, @sess, @corr,
+                             @dur, @retry, @fsize, @tname, @recov, @data)", conn))
+                        {
+                            cmd.Parameters.AddWithValue("@ts", timestampUtc);
+                            cmd.Parameters.AddWithValue("@lvl", level ?? string.Empty);
+                            cmd.Parameters.AddWithValue("@evt", eventType ?? string.Empty);
+                            cmd.Parameters.AddWithValue("@src", source ?? string.Empty);
+                            cmd.Parameters.AddWithValue("@uid", userId ?? string.Empty);
+                            cmd.Parameters.AddWithValue("@plate", plate ?? string.Empty);
+                            cmd.Parameters.AddWithValue("@details", details ?? string.Empty);
+                            cmd.Parameters.AddWithValue("@ex", exception ?? string.Empty);
+                            cmd.Parameters.AddWithValue("@user", (object?)username ?? DBNull.Value);
+                            cmd.Parameters.AddWithValue("@action", (object?)action ?? DBNull.Value);
+                            cmd.Parameters.AddWithValue("@entity", (object?)entityName ?? DBNull.Value);
+                            cmd.Parameters.AddWithValue("@entityId", (object?)entityId ?? DBNull.Value);
+                            cmd.Parameters.AddWithValue("@old", (object?)oldValues ?? DBNull.Value);
+                            cmd.Parameters.AddWithValue("@new", (object?)newValues ?? DBNull.Value);
+                            cmd.Parameters.AddWithValue("@ip", (object?)ipAddress ?? DBNull.Value);
+                            cmd.Parameters.AddWithValue("@mach", (object?)machineName ?? DBNull.Value);
+                            cmd.Parameters.AddWithValue("@dev", (object?)deviceName ?? DBNull.Value);
+                            cmd.Parameters.AddWithValue("@sess", (object?)sessionId ?? DBNull.Value);
+                            cmd.Parameters.AddWithValue("@corr", (object?)correlationId ?? DBNull.Value);
+                            cmd.Parameters.AddWithValue("@dur", (object?)durationMs ?? DBNull.Value);
+                            cmd.Parameters.AddWithValue("@retry", (object?)retryCount ?? DBNull.Value);
+                            cmd.Parameters.AddWithValue("@fsize", (object?)fileSize ?? DBNull.Value);
+                            cmd.Parameters.AddWithValue("@tname", (object?)testName ?? DBNull.Value);
+                            cmd.Parameters.AddWithValue("@recov", (object?)isRecovered ?? DBNull.Value);
+                            cmd.Parameters.AddWithValue("@data", (object?)additionalData ?? DBNull.Value);
+                            await cmd.ExecuteNonQueryAsync();
+                        }
                     }
-                }
-            );
+                );
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"⚠️ [DatabaseService] InsertAppLogAsync failed: {ex.Message}");
+                return false;
+            }
         }
 
         private string backupConnection = "Server=BACKUP_SERVER;Database=Baixe;Trusted_Connection=True;";

@@ -35,7 +35,21 @@ namespace QuanLyGiuXe.Views
             txtCameraCount.Text = $"📷 Phát hiện {_cameras.Count} camera trên máy";
 
             for (int i = 0; i < _combos.Length; i++)
-                _combos[i].SelectedItem = FindMatch(saved[i]) ?? AutoOption;
+            {
+                var match = FindMatch(saved[i]);
+                if (match != null)
+                {
+                    _combos[i].SelectedItem = match;
+                }
+                else if (!string.IsNullOrEmpty(saved[i]))
+                {
+                    _combos[i].Text = saved[i];
+                }
+                else
+                {
+                    _combos[i].SelectedItem = AutoOption;
+                }
+            }
         }
 
         private string? FindMatch(string cfgName)
@@ -47,8 +61,11 @@ namespace QuanLyGiuXe.Views
             return null;
         }
 
-        private static string Pick(ComboBox cb) =>
-            cb.SelectedItem?.ToString() is string s && s != AutoOption ? s : "";
+        private static string Pick(ComboBox cb)
+        {
+            var text = cb.Text?.Trim() ?? "";
+            return text == AutoOption ? "" : text;
+        }
 
         private void Save_Click(object sender, RoutedEventArgs e)
         {
@@ -65,7 +82,15 @@ namespace QuanLyGiuXe.Views
             }
             catch { }
 
-            MessageBox.Show("✅ Đã lưu. Khởi động lại app để áp dụng.", "Thành công");
+            if (Owner is QuanLyGiuXe.MainWindow mainWin)
+            {
+                mainWin.ReloadCameras();
+                MessageBox.Show("✅ Đã lưu cấu hình camera và áp dụng thay đổi thành công!", "Thành công");
+            }
+            else
+            {
+                MessageBox.Show("✅ Đã lưu. Khởi động lại app để áp dụng.", "Thành công");
+            }
         }
 
         private void Close_Click(object sender, RoutedEventArgs e) => Close();

@@ -6,6 +6,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Threading.Tasks;
+using AForge.Video.DirectShow;
 
 namespace QuanLyGiuXe
 {
@@ -16,11 +18,18 @@ namespace QuanLyGiuXe
         private List<LaneConfig> _lanes;
         private List<ParkingSite> _sites;
         private List<LoaiXe> _vehicleTypes;
+        
+        private FilterInfoCollection _cameras;
+        private readonly List<(int LaneId, ComboBox cbToanCanh, ComboBox cbBienSo)> _laneCameraCombos = new();
+        private readonly Dictionary<string, string> _cameraNameToUrlMap = new();
+        private const string AutoOption = "(Tự động)";
 
         public C3200SettingsWindow()
         {
             InitializeComponent();
             _cfg = AppConfig.Load();
+
+            _cameras = new FilterInfoCollection(FilterCategory.VideoInputDevice);
 
             IpBox.Text = _cfg.ZKTeco.IpAddress;
             PortBox.Text = _cfg.ZKTeco.TcpPort.ToString();
@@ -189,6 +198,7 @@ namespace QuanLyGiuXe
 
                 // Load reader mappings (saved selections)
                 LoadReaderSelection();
+                await PopulateLaneCamerasUIAsync(lanesForGate);
  
                 // Make sure IP box shows current saved IP
                 IpBox.Text = _cfg.ZKTeco.IpAddress;
@@ -288,6 +298,7 @@ namespace QuanLyGiuXe
                 R4LaneCombo.SelectedValuePath = "Id";
 
                 LoadReaderSelection();
+                await PopulateLaneCamerasUIAsync(lanes);
             }
             catch (Exception ex)
             {
@@ -403,6 +414,381 @@ namespace QuanLyGiuXe
                 ControllerTypeCombo.SelectedIndex = 0;
             }
             UpdateCapabilitySummary();
+        }
+
+        private async Task PopulateLaneCamerasUIAsync(List<LaneConfig> lanes)
+        {
+            if (LaneCamerasContainer == null) return;
+
+            LaneCamerasContainer.Children.Clear();
+            _laneCameraCombos.Clear();
+
+            if (lanes == null || lanes.Count == 0) return;
+
+            List<Models.CameraConfig> dbCameras = new();
+            try
+            {
+                dbCameras = await ParkingTopologyService.Instance.GetCamerasAsync();
+            }
+            catch { }
+
+            // Populate the camera name to URL/Path map
+            _cameraNameToUrlMap.Clear();
+            for (int i = 0; i < _cameras.Count; i++)
+            {
+                _cameraNameToUrlMap[_cameras[i].Name] = _cameras[i].Name;
+            }
+            foreach (var dbCam in dbCameras)
+            {
+                if (!string.IsNullOrEmpty(dbCam.CameraName))
+                {
+                    _cameraNameToUrlMap[dbCam.CameraName] = dbCam.RtspUrl;
+                }
+            }
+
+            foreach (var lane in lanes)
+            {
+                Border border = new Border
+                {
+                    BorderBrush = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#E5E7EB")),
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(10),
+                    Padding = new Thickness(15),
+                    Margin = new Thickness(5),
+                    Background = System.Windows.Media.Brushes.White
+                };
+
+                System.Windows.Media.Effects.DropShadowEffect shadow = new System.Windows.Media.Effects.DropShadowEffect
+                {
+                    BlurRadius = 8,
+                    ShadowDepth = 1,
+                    Opacity = 0.03
+                };
+                border.Effect = shadow;
+
+                StackPanel sp = new StackPanel();
+
+                TextBlock header = new TextBlock
+                {
+                    Text = $"🛣️ LÀN: {lane.LaneName} (Chiều {lane.Direction})",
+                    FontWeight = FontWeights.Bold,
+                    FontSize = 12,
+                    Foreground = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#1E3A8A")),
+                    Margin = new Thickness(0, 0, 0, 12)
+                };
+                sp.Children.Add(header);
+
+                // Row 1: Cam Toàn Cảnh
+                Grid grid1 = new Grid { Margin = new Thickness(0, 0, 0, 8) };
+                grid1.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(110) });
+                grid1.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                grid1.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(85) }); // Test button column
+                grid1.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(65) }); // Add button column
+
+                TextBlock lbl1 = new TextBlock
+                {
+                    Text = "Cam Toàn Cảnh:",
+                    VerticalAlignment = VerticalAlignment.Center,
+                    FontWeight = FontWeights.SemiBold,
+                    Foreground = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#4B5563")),
+                    FontSize = 12
+                };
+                grid1.Children.Add(lbl1);
+                Grid.SetColumn(lbl1, 0);
+
+                ComboBox cb1 = new ComboBox
+                {
+                    Height = 32,
+                    IsEditable = true
+                };
+                
+                var modernComboStyle = TryFindResource("ModernComboBox") as Style;
+                if (modernComboStyle != null)
+                {
+                    cb1.Style = modernComboStyle;
+                }
+
+                grid1.Children.Add(cb1);
+                Grid.SetColumn(cb1, 1);
+
+                Button btnTest1 = new Button
+                {
+                    Content = "🔌 Xem thử",
+                    Style = TryFindResource("ModernOutlineButton") as Style,
+                    Height = 30,
+                    Margin = new Thickness(5, 0, 0, 0),
+                    FontSize = 10,
+                    Padding = new Thickness(2)
+                };
+                btnTest1.Click += (s, e) => TestCameraInline(cb1);
+                grid1.Children.Add(btnTest1);
+                Grid.SetColumn(btnTest1, 2);
+
+                Button btnAdd1 = new Button
+                {
+                    Content = "➕ Thêm",
+                    Style = TryFindResource("ModernButton") as Style,
+                    Height = 30,
+                    Margin = new Thickness(5, 0, 0, 0),
+                    FontSize = 10,
+                    Padding = new Thickness(2),
+                    Background = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#10B981")),
+                    Foreground = System.Windows.Media.Brushes.White
+                };
+                btnAdd1.Click += (s, e) => AddCameraInline(cb1, lane.Id, "ToanCanh");
+                grid1.Children.Add(btnAdd1);
+                Grid.SetColumn(btnAdd1, 3);
+
+                sp.Children.Add(grid1);
+
+                // Row 2: Cam Biển Số
+                Grid grid2 = new Grid();
+                grid2.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(110) });
+                grid2.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                grid2.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(85) }); // Test button column
+                grid2.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(65) }); // Add button column
+
+                TextBlock lbl2 = new TextBlock
+                {
+                    Text = "Cam Biển Số:",
+                    VerticalAlignment = VerticalAlignment.Center,
+                    FontWeight = FontWeights.SemiBold,
+                    Foreground = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#4B5563")),
+                    FontSize = 12
+                };
+                grid2.Children.Add(lbl2);
+                Grid.SetColumn(lbl2, 0);
+
+                ComboBox cb2 = new ComboBox
+                {
+                    Height = 32,
+                    IsEditable = true
+                };
+
+                if (modernComboStyle != null)
+                {
+                    cb2.Style = modernComboStyle;
+                }
+
+                grid2.Children.Add(cb2);
+                Grid.SetColumn(cb2, 1);
+
+                Button btnTest2 = new Button
+                {
+                    Content = "🔌 Xem thử",
+                    Style = TryFindResource("ModernOutlineButton") as Style,
+                    Height = 30,
+                    Margin = new Thickness(5, 0, 0, 0),
+                    FontSize = 10,
+                    Padding = new Thickness(2)
+                };
+                btnTest2.Click += (s, e) => TestCameraInline(cb2);
+                grid2.Children.Add(btnTest2);
+                Grid.SetColumn(btnTest2, 2);
+
+                Button btnAdd2 = new Button
+                {
+                    Content = "➕ Thêm",
+                    Style = TryFindResource("ModernButton") as Style,
+                    Height = 30,
+                    Margin = new Thickness(5, 0, 0, 0),
+                    FontSize = 10,
+                    Padding = new Thickness(2),
+                    Background = new System.Windows.Media.SolidColorBrush((System.Windows.Media.Color)System.Windows.Media.ColorConverter.ConvertFromString("#10B981")),
+                    Foreground = System.Windows.Media.Brushes.White
+                };
+                btnAdd2.Click += (s, e) => AddCameraInline(cb2, lane.Id, "BienSo");
+                grid2.Children.Add(btnAdd2);
+                Grid.SetColumn(btnAdd2, 3);
+
+                sp.Children.Add(grid2);
+
+                border.Child = sp;
+
+                // Populate combos
+                cb1.Items.Add(AutoOption);
+                cb2.Items.Add(AutoOption);
+                for (int i = 0; i < _cameras.Count; i++)
+                {
+                    cb1.Items.Add(_cameras[i].Name);
+                    cb2.Items.Add(_cameras[i].Name);
+                }
+                foreach (var dbCam in dbCameras)
+                {
+                    if (!string.IsNullOrEmpty(dbCam.CameraName))
+                    {
+                        if (!cb1.Items.Contains(dbCam.CameraName)) cb1.Items.Add(dbCam.CameraName);
+                        if (!cb2.Items.Contains(dbCam.CameraName)) cb2.Items.Add(dbCam.CameraName);
+                    }
+                }
+
+                // Load saved values
+                var savedSetting = _cfg.Cameras.LaneCameras?.FirstOrDefault(lc => lc.LaneId == lane.Id);
+                string savedToanCanh = savedSetting?.ToanCanh ?? "";
+                string savedBienSo = savedSetting?.BienSo ?? "";
+
+                // Fallback to legacy settings by direction if no dynamic settings exist
+                if (savedSetting == null)
+                {
+                    if (lane.Direction?.ToUpper() == "IN")
+                    {
+                        savedToanCanh = _cfg.Cameras.VaoToanCanh;
+                        savedBienSo = _cfg.Cameras.VaoBienSo;
+                    }
+                    else
+                    {
+                        savedToanCanh = _cfg.Cameras.RaToanCanh;
+                        savedBienSo = _cfg.Cameras.RaBienSo;
+                    }
+                }
+
+                var match1 = FindCameraMatch(savedToanCanh);
+                if (match1 != null) cb1.SelectedItem = match1;
+                else if (!string.IsNullOrEmpty(savedToanCanh)) cb1.Text = savedToanCanh;
+                else cb1.SelectedItem = AutoOption;
+
+                var match2 = FindCameraMatch(savedBienSo);
+                if (match2 != null) cb2.SelectedItem = match2;
+                else if (!string.IsNullOrEmpty(savedBienSo)) cb2.Text = savedBienSo;
+                else cb2.SelectedItem = AutoOption;
+
+                _laneCameraCombos.Add((lane.Id, cb1, cb2));
+                LaneCamerasContainer.Children.Add(border);
+            }
+        }
+
+        private void TestCameraInline(ComboBox cb)
+        {
+            var selectedText = cb.Text?.Trim() ?? "";
+            if (string.IsNullOrEmpty(selectedText) || selectedText == "(Tự động)")
+            {
+                MessageBox.Show("Vui lòng chọn hoặc nhập một camera để xem thử!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            string urlOrName = selectedText;
+            if (_cameraNameToUrlMap.TryGetValue(selectedText, out var mappedUrl))
+            {
+                urlOrName = mappedUrl;
+            }
+
+            var win = new Views.AddCameraWindow(selectedText, urlOrName);
+            win.Owner = this;
+            win.ShowDialog();
+        }
+
+        private async void AddCameraInline(ComboBox cb, int laneId, string cameraRole)
+        {
+            var lane = _lanes?.FirstOrDefault(l => l.Id == laneId);
+            string laneName = lane?.LaneName ?? $"Làn {laneId}";
+            string laneDirection = lane?.Direction ?? "IN";
+
+            var win = new Views.AddCameraWindow(laneId, cameraRole, laneName, laneDirection);
+            win.Owner = this;
+            if (win.ShowDialog() == true && win.NewCamera != null)
+            {
+                var newCam = win.NewCamera;
+                
+                // Refresh the camera mappings dictionary and database cameras
+                List<Models.CameraConfig> dbCameras = new();
+                try
+                {
+                    dbCameras = await ParkingTopologyService.Instance.GetCamerasAsync();
+                }
+                catch { }
+
+                _cameraNameToUrlMap.Clear();
+                for (int i = 0; i < _cameras.Count; i++)
+                {
+                    _cameraNameToUrlMap[_cameras[i].Name] = _cameras[i].Name;
+                }
+                foreach (var dbCam in dbCameras)
+                {
+                    if (!string.IsNullOrEmpty(dbCam.CameraName))
+                    {
+                        _cameraNameToUrlMap[dbCam.CameraName] = dbCam.RtspUrl;
+                    }
+                }
+
+                // Refresh all Combos in all lanes to include the new camera name
+                foreach (var item in _laneCameraCombos)
+                {
+                    var selectedText1 = item.cbToanCanh.Text;
+                    var selectedText2 = item.cbBienSo.Text;
+
+                    item.cbToanCanh.Items.Clear();
+                    item.cbBienSo.Items.Clear();
+
+                    item.cbToanCanh.Items.Add(AutoOption);
+                    item.cbBienSo.Items.Add(AutoOption);
+
+                    for (int i = 0; i < _cameras.Count; i++)
+                    {
+                        item.cbToanCanh.Items.Add(_cameras[i].Name);
+                        item.cbBienSo.Items.Add(_cameras[i].Name);
+                    }
+                    foreach (var dbCam in dbCameras)
+                    {
+                        if (!string.IsNullOrEmpty(dbCam.CameraName))
+                        {
+                            if (!item.cbToanCanh.Items.Contains(dbCam.CameraName)) item.cbToanCanh.Items.Add(dbCam.CameraName);
+                            if (!item.cbBienSo.Items.Contains(dbCam.CameraName)) item.cbBienSo.Items.Add(dbCam.CameraName);
+                        }
+                    }
+
+                    item.cbToanCanh.Text = selectedText1;
+                    item.cbBienSo.Text = selectedText2;
+                }
+
+                // Select the newly added camera name
+                cb.SelectedItem = newCam.CameraName;
+
+                MessageBox.Show($"✅ Thêm camera '{newCam.CameraName}' thành công!", "Thành công");
+            }
+        }
+
+        private async void AddCamera_Click(object sender, RoutedEventArgs e)
+        {
+            var win = new Views.AddCameraWindow();
+            win.Owner = this;
+            if (win.ShowDialog() == true)
+            {
+                int selectedGateId = ZoneCombo.SelectedValue != null ? Convert.ToInt32(ZoneCombo.SelectedValue) : 0;
+                var lanesForGate = _lanes.Where(l => l.GateId == selectedGateId).ToList();
+                await PopulateLaneCamerasUIAsync(lanesForGate);
+                
+                MessageBox.Show($"\u2705 Th\u00eam camera '{win.NewCamera?.CameraName}' th\u00e0nh c\u00f4ng!", "Th\u00e0nh c\u00f4ng");
+            }
+        }
+
+        private string? FindCameraMatch(string cfgValue)
+        {
+            if (string.IsNullOrEmpty(cfgValue)) return null;
+            
+            // Try to find the camera name that maps to this config value (RTSP URL or USB camera name)
+            foreach (var kvp in _cameraNameToUrlMap)
+            {
+                if (kvp.Value.Equals(cfgValue, StringComparison.OrdinalIgnoreCase))
+                {
+                    return kvp.Key;
+                }
+            }
+
+            for (int i = 0; i < _cameras.Count; i++)
+                if (_cameras[i].Name.Contains(cfgValue, StringComparison.OrdinalIgnoreCase))
+                    return _cameras[i].Name;
+            return null;
+        }
+
+        private string PickCamera(ComboBox cb)
+        {
+            var text = cb.Text?.Trim() ?? "";
+            if (text == "(Tự động)" || string.IsNullOrEmpty(text)) return "";
+            if (_cameraNameToUrlMap.TryGetValue(text, out var url))
+            {
+                return url;
+            }
+            return text;
         }
 
 
@@ -876,6 +1262,39 @@ namespace QuanLyGiuXe
                 CheckVehicleTypeChange(3, R3LaneCombo, R3VehicleTypeCombo);
                 CheckVehicleTypeChange(4, R4LaneCombo, R4VehicleTypeCombo);
 
+                // Save lane camera assignments
+                _cfg.Cameras.LaneCameras.Clear();
+                foreach (var item in _laneCameraCombos)
+                {
+                    _cfg.Cameras.LaneCameras.Add(new LaneCameraSetting
+                    {
+                        LaneId = item.LaneId,
+                        ToanCanh = PickCamera(item.cbToanCanh),
+                        BienSo = PickCamera(item.cbBienSo)
+                    });
+                }
+
+                // Keep legacy fallback settings updated for backward compatibility
+                var firstInLane = _laneCameraCombos.FirstOrDefault(x => {
+                    var l = _lanes?.FirstOrDefault(lane => lane.Id == x.LaneId);
+                    return l?.Direction?.ToUpper() == "IN";
+                });
+                var firstOutLane = _laneCameraCombos.FirstOrDefault(x => {
+                    var l = _lanes?.FirstOrDefault(lane => lane.Id == x.LaneId);
+                    return l?.Direction?.ToUpper() == "OUT";
+                });
+
+                if (firstInLane != default)
+                {
+                    _cfg.Cameras.VaoToanCanh = PickCamera(firstInLane.cbToanCanh);
+                    _cfg.Cameras.VaoBienSo = PickCamera(firstInLane.cbBienSo);
+                }
+                if (firstOutLane != default)
+                {
+                    _cfg.Cameras.RaToanCanh = PickCamera(firstOutLane.cbToanCanh);
+                    _cfg.Cameras.RaBienSo = PickCamera(firstOutLane.cbBienSo);
+                }
+
                 _cfg.Save();
 
                 C3200Service.Instance.Configure(_cfg.ZKTeco.IpAddress, _cfg.ZKTeco.TcpPort,
@@ -934,6 +1353,16 @@ namespace QuanLyGiuXe
                     if (Application.Current.MainWindow?.DataContext is MainViewModel vm)
                     {
                         vm.RefreshSettings();
+                    }
+                }
+                catch { }
+
+                // Reload camera streams dynamically if settings were saved from the main view
+                try
+                {
+                    if (Owner is MainWindow mainWin)
+                    {
+                        mainWin.ReloadCameras();
                     }
                 }
                 catch { }

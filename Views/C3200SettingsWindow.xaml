@@ -547,6 +547,19 @@
                                     </StackPanel>
                                 </Border>
                             </UniformGrid>
+
+                            <!-- Dynamic Camera Assignment Panel -->
+                            <StackPanel Margin="0,20,0,0">
+                                <Grid Margin="5,0,5,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="📷 CẤU HÌNH CAMERA THEO LÀN (LANE CAMERA CONFIGURATION)" FontSize="13" FontWeight="Bold" Foreground="#1E3A8A" VerticalAlignment="Center"/>
+                                    <Button Grid.Column="1" Content="➕ Thêm Camera IP / USB" Style="{StaticResource ModernOutlineButton}" Height="30" Padding="15,0" Click="AddCamera_Click"/>
+                                </Grid>
+                                <UniformGrid x:Name="LaneCamerasContainer" Columns="2"/>
+                            </StackPanel>
                         </StackPanel>
                     </Grid>
                 </TabItem>

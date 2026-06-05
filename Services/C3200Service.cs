@@ -41,7 +41,7 @@ namespace QuanLyGiuXe.Services
 
         [DllImport("plcommpro.dll", EntryPoint = "GetRTLog",
             CharSet = CharSet.Ansi, CallingConvention = CallingConvention.StdCall)]
-        private static extern int PLGetRTLog(IntPtr handle, StringBuilder buffer, int bufferSize);
+        private static extern int PLGetRTLog(IntPtr handle, byte[] buffer, int bufferSize);
 
         // ControlDevice(handle, operationID, param1, param2, param3, param4, options)
         [DllImport("plcommpro.dll", EntryPoint = "ControlDevice",
@@ -55,13 +55,14 @@ namespace QuanLyGiuXe.Services
 
         [DllImport("plcommpro.dll", EntryPoint = "GetDeviceParam",
             CharSet = CharSet.Ansi, CallingConvention = CallingConvention.StdCall)]
-        private static extern int PLGetDeviceParam(IntPtr handle, StringBuilder buffer, int bufferSize, string itemValues);
+        private static extern int PLGetDeviceParam(IntPtr handle, byte[] buffer, int bufferSize, string itemValues);
 
         // ──────────────────────────────────────────────────────────────────────────
 
         private IntPtr _handle = IntPtr.Zero;
         private CancellationTokenSource? _cts;
         private static readonly object _globalSdkLock = new();
+        private static readonly SemaphoreSlim _connectionSemaphore = new(1, 1);
 
         private string _ip = "192.168.1.201";
         private int _port = 4370;
@@ -101,34 +102,42 @@ namespace QuanLyGiuXe.Services
         {
             return await ErrorHandling.SafeExecutionService.SafeExecuteAsync(async () => 
             {
-                Disconnect();
-                IntPtr handle = await Task.Run(() => {
-                    IntPtr h = IntPtr.Zero;
-                    foreach (var parameters in BuildConnectCandidates())
-                    {
-                        lock (_globalSdkLock)
-                        {
-                            h = PLConnect(parameters);
-                        }
-                        if (h != IntPtr.Zero) break;
-                    }
-                    return h;
-                });
-
-                if (handle == IntPtr.Zero)
+                await _connectionSemaphore.WaitAsync();
+                try
                 {
-                    LastError = $"Kết nối thất bại (sdkError={GetSdkError()})";
-                    _handle = IntPtr.Zero;
-                    DetectedLockCount = -1;
-                    OnConnectionChanged?.Invoke(false);
-                    return false;
-                }
+                    DisconnectInternal();
+                    IntPtr handle = await Task.Run(() => {
+                        IntPtr h = IntPtr.Zero;
+                        foreach (var parameters in BuildConnectCandidates())
+                        {
+                            lock (_globalSdkLock)
+                            {
+                                h = PLConnect(parameters);
+                            }
+                            if (h != IntPtr.Zero) break;
+                        }
+                        return h;
+                    });
 
-                _handle = handle;
-                DetectedLockCount = GetLockCount(handle); // Query model capabilities immediately upon connect (before polling start)
-                OnConnectionChanged?.Invoke(true);
-                StartPolling();
-                return true;
+                    if (handle == IntPtr.Zero)
+                    {
+                        LastError = $"Kết nối thất bại (sdkError={GetSdkError()})";
+                        _handle = IntPtr.Zero;
+                        DetectedLockCount = -1;
+                        OnConnectionChanged?.Invoke(false);
+                        return false;
+                    }
+
+                    _handle = handle;
+                    DetectedLockCount = GetLockCount(handle); // Query model capabilities immediately upon connect (before polling start)
+                    OnConnectionChanged?.Invoke(true);
+                    StartPolling();
+                    return true;
+                }
+                finally
+                {
+                    _connectionSemaphore.Release();
+                }
             }, 
             source: "C3200Service.Connect", 
             defaultValue: false,
@@ -151,11 +160,12 @@ namespace QuanLyGiuXe.Services
 
             lock (_globalSdkLock)
             {
-                var buffer = new StringBuilder(256);
-                int ret = PLGetDeviceParam(specificHandle, buffer, buffer.Capacity, "LockCount");
+                if (specificHandle == IntPtr.Zero) return -1;
+                var buffer = new byte[256];
+                int ret = PLGetDeviceParam(specificHandle, buffer, buffer.Length, "LockCount");
                 if (ret >= 0)
                 {
-                    string resultStr = buffer.ToString();
+                    string resultStr = Encoding.ASCII.GetString(buffer).Split('\0')[0];
                     if (!string.IsNullOrEmpty(resultStr) && resultStr.Contains("LockCount="))
                     {
                         var parts = resultStr.Split('=');
@@ -170,6 +180,19 @@ namespace QuanLyGiuXe.Services
         }
 
         public void Disconnect()
+        {
+            _connectionSemaphore.Wait();
+            try
+            {
+                DisconnectInternal();
+            }
+            finally
+            {
+                _connectionSemaphore.Release();
+            }
+        }
+
+        private void DisconnectInternal()
         {
             StopPolling();
             lock (_globalSdkLock)
@@ -210,10 +233,13 @@ namespace QuanLyGiuXe.Services
                 StopPolling();
 
                 // Gửi lệnh ngay trên kết nối hiện tại
-                int r;
+                int r = -1;
                 lock (_globalSdkLock)
                 {
-                    r = PLControlDevice(_handle, 1, doorNumber, 1, _barrierDuration, 0, "");
+                    if (_handle != IntPtr.Zero)
+                    {
+                        r = PLControlDevice(_handle, 1, doorNumber, 1, _barrierDuration, 0, "");
+                    }
                 }
 
                 // Nếu thất bại → reconnect rồi thử lại 1 lần
@@ -230,7 +256,10 @@ namespace QuanLyGiuXe.Services
                     StopPolling();
                     lock (_globalSdkLock)
                     {
-                        r = PLControlDevice(_handle, 1, doorNumber, 1, _barrierDuration, 0, "");
+                        if (_handle != IntPtr.Zero)
+                        {
+                            r = PLControlDevice(_handle, 1, doorNumber, 1, _barrierDuration, 0, "");
+                        }
                     }
                 }
 
@@ -284,10 +313,13 @@ namespace QuanLyGiuXe.Services
             try
             {
                 // operationID=2 (CancelAlarm / close)
-                int r;
+                int r = -1;
                 lock (_globalSdkLock)
                 {
-                    r = PLControlDevice(_handle, 2, doorNumber, 0, 0, 0, "");
+                    if (_handle != IntPtr.Zero)
+                    {
+                        r = PLControlDevice(_handle, 2, doorNumber, 0, 0, 0, "");
+                    }
                 }
                 if (r >= 0)
                 {
@@ -337,33 +369,47 @@ namespace QuanLyGiuXe.Services
 
         private async Task PollRTLogAsync(CancellationToken token)
         {
-            var buffer = new StringBuilder(4096);
+            var buffer = new byte[4096];
 
             while (!token.IsCancellationRequested && IsConnected)
             {
                 try
                 {
-                    buffer.Clear();
-                    int result;
+                    int result = -1;
                     lock (_globalSdkLock)
                     {
-                        result = PLGetRTLog(_handle, buffer, buffer.Capacity);
+                        if (_handle != IntPtr.Zero)
+                        {
+                            result = PLGetRTLog(_handle, buffer, buffer.Length);
+                        }
                     }
 
                     if (result < 0)
                     {
-                        _handle = IntPtr.Zero;
+                        lock (_globalSdkLock)
+                        {
+                            _handle = IntPtr.Zero;
+                        }
                         OnConnectionChanged?.Invoke(false);
                         break;
                     }
 
                     if (result > 0)
-                        ParseEvent(buffer.ToString());
+                    {
+                        int nullIndex = Array.IndexOf(buffer, (byte)0);
+                        string rawData = nullIndex >= 0 
+                            ? Encoding.UTF8.GetString(buffer, 0, nullIndex) 
+                            : Encoding.UTF8.GetString(buffer);
+                        ParseEvent(rawData);
+                    }
                 }
                 catch (OperationCanceledException) { break; }
                 catch
                 {
-                    _handle = IntPtr.Zero;
+                    lock (_globalSdkLock)
+                    {
+                        _handle = IntPtr.Zero;
+                    }
                     OnConnectionChanged?.Invoke(false);
                     break;
                 }
