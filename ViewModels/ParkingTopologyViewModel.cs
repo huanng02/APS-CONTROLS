@@ -216,6 +216,9 @@ namespace QuanLyGiuXe.ViewModels
         private ObservableCollection<ReaderLaneMapping> _detailLaneReaders = new();
         public ObservableCollection<ReaderLaneMapping> DetailLaneReaders { get => _detailLaneReaders; set { _detailLaneReaders = value; OnPropertyChanged(); } }
 
+        private ObservableCollection<CameraEntity> _detailLaneCameras = new();
+        public ObservableCollection<CameraEntity> DetailLaneCameras { get => _detailLaneCameras; set { _detailLaneCameras = value; OnPropertyChanged(); } }
+
         // Lane Synchronization badge properties
         private string _laneSyncBadgeText = string.Empty;
         public string LaneSyncBadgeText { get => _laneSyncBadgeText; set { _laneSyncBadgeText = value; OnPropertyChanged(); } }
@@ -673,6 +676,7 @@ namespace QuanLyGiuXe.ViewModels
             SelectedZone = null;
             SelectedLane = null;
             SelectedController = null;
+            DetailLaneCameras.Clear();
 
             if (SelectedNode == null) return;
 
@@ -769,7 +773,7 @@ namespace QuanLyGiuXe.ViewModels
             DetailZoneControllers = Controllers.Count(c => c.ZoneId == zone.Id);
         }
 
-        private void UpdateLaneDetail(LaneConfig lane)
+        private async void UpdateLaneDetail(LaneConfig lane)
         {
             if (lane == null) return;
             DetailLaneName = lane.LaneName;
@@ -781,6 +785,17 @@ namespace QuanLyGiuXe.ViewModels
 
             var readers = ReaderLaneMappingService.Instance.GetMappingsByLane(lane.Id);
             DetailLaneReaders = new ObservableCollection<ReaderLaneMapping>(readers);
+
+            try
+            {
+                var allCams = await CameraRepository.Instance.GetAllAsync();
+                var laneCams = allCams.Where(c => c.LaneId == lane.Id).ToList();
+                DetailLaneCameras = new ObservableCollection<CameraEntity>(laneCams);
+            }
+            catch
+            {
+                DetailLaneCameras = new ObservableCollection<CameraEntity>();
+            }
 
             // Compute analysis for dynamic badge properties
             var analysis = LaneDirectionConsistencyService.Instance.AnalyzeLaneDirection(lane.Id);

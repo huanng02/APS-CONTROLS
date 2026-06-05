@@ -769,6 +769,124 @@
                                         </TextBlock>
                                     </StackPanel>
                                 </Border>
+
+                                <!-- Camera Mappings -->
+                                <Border Style="{StaticResource DetailCardStyle}">
+                                    <StackPanel>
+                                        <TextBlock Text="📹 Camera Mappings" FontSize="16" FontWeight="SemiBold"
+                                                   FontFamily="Segoe UI, Inter, Arial"
+                                                   Foreground="{StaticResource TopoTextPrimaryBrush}" Margin="0,0,0,16"/>
+
+                                        <ItemsControl ItemsSource="{Binding DetailLaneCameras}">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border Background="{StaticResource TopoSidebarBgBrush}"
+                                                            CornerRadius="8" Padding="14,10" Margin="0,0,0,8">
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            
+                                                            <!-- Icon -->
+                                                            <TextBlock Grid.Column="0" Text="📹" FontSize="16"
+                                                                       VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                                            
+                                                            <!-- Camera Details -->
+                                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                                <TextBlock Text="{Binding CameraName}" FontSize="13" FontWeight="SemiBold"
+                                                                           FontFamily="Segoe UI, Inter, Arial"
+                                                                           Foreground="{StaticResource TopoTextPrimaryBrush}"/>
+                                                                <TextBlock FontSize="11" FontFamily="Consolas, Segoe UI"
+                                                                           Foreground="{StaticResource TopoTextSecondaryBrush}" Margin="0,2,0,0">
+                                                                    <Run Text="{Binding IpAddress}"/>
+                                                                    <Run Text=":"/>
+                                                                    <Run Text="{Binding Port}"/>
+                                                                    <Run Text=" ("/>
+                                                                    <Run Text="{Binding Protocol}"/>
+                                                                    <Run Text=")"/>
+                                                                </TextBlock>
+                                                            </StackPanel>
+
+                                                            <!-- Direction / Type Badge -->
+                                                            <Border Grid.Column="2" CornerRadius="4" Padding="8,3"
+                                                                    VerticalAlignment="Center" Margin="8,0">
+                                                                <Border.Style>
+                                                                    <Style TargetType="Border">
+                                                                        <Setter Property="Background" Value="#F3F4F6"/>
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding Direction}" Value="Overview">
+                                                                                <Setter Property="Background" Value="#E0F2FE"/>
+                                                                            </DataTrigger>
+                                                                            <DataTrigger Binding="{Binding Direction}" Value="Entry">
+                                                                                <Setter Property="Background" Value="#E0F2FE"/>
+                                                                            </DataTrigger>
+                                                                            <DataTrigger Binding="{Binding Direction}" Value="Exit">
+                                                                                <Setter Property="Background" Value="#E0F2FE"/>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </Border.Style>
+                                                                <TextBlock Text="{Binding Direction}" FontSize="11" FontWeight="Bold"
+                                                                           FontFamily="Segoe UI, Inter, Arial">
+                                                                    <TextBlock.Style>
+                                                                        <Style TargetType="TextBlock">
+                                                                            <Setter Property="Foreground" Value="#374151"/>
+                                                                            <Style.Triggers>
+                                                                                <DataTrigger Binding="{Binding Direction}" Value="Overview">
+                                                                                    <Setter Property="Foreground" Value="#0369A1"/>
+                                                                                </DataTrigger>
+                                                                                <DataTrigger Binding="{Binding Direction}" Value="Entry">
+                                                                                    <Setter Property="Foreground" Value="#0369A1"/>
+                                                                                </DataTrigger>
+                                                                                <DataTrigger Binding="{Binding Direction}" Value="Exit">
+                                                                                    <Setter Property="Foreground" Value="#0369A1"/>
+                                                                                </DataTrigger>
+                                                                            </Style.Triggers>
+                                                                        </Style>
+                                                                    </TextBlock.Style>
+                                                                </TextBlock>
+                                                            </Border>
+
+                                                            <!-- Active Status Dot -->
+                                                            <Ellipse Grid.Column="3" Width="8" Height="8" VerticalAlignment="Center">
+                                                                <Ellipse.Style>
+                                                                    <Style TargetType="Ellipse">
+                                                                        <Setter Property="Fill" Value="{StaticResource TopoSuccessBrush}"/>
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding IsActive}" Value="False">
+                                                                                <Setter Property="Fill" Value="{StaticResource TopoDangerBrush}"/>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </Ellipse.Style>
+                                                            </Ellipse>
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+
+                                        <!-- Empty cameras message -->
+                                        <TextBlock Text="Chưa có camera nào được gán cho làn này"
+                                                   FontSize="13" FontFamily="Segoe UI, Inter, Arial"
+                                                   Foreground="{StaticResource TopoTextMutedBrush}"
+                                                   HorizontalAlignment="Center" Margin="0,8,0,0">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding DetailLaneCameras.Count}" Value="0">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Border>
                             </StackPanel>
 
                             <!-- ─── CONTROLLER DETAIL ───────────────────── -->

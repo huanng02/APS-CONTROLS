@@ -387,6 +387,7 @@ namespace QuanLyGiuXe.Views
                                 StopConnectionTest();
                                 _viewModel.TestConnectionResult = "❌ Kết nối thất bại!";
                                 _viewModel.TestConnectionColor = "Red";
+                                _viewModel.IsConnectionSuccessful = false;
                             });
                             return;
                         }
@@ -395,6 +396,7 @@ namespace QuanLyGiuXe.Views
                         {
                             _viewModel.TestConnectionResult = "✅ Kết nối thành công!";
                             _viewModel.TestConnectionColor = "Green";
+                            _viewModel.IsConnectionSuccessful = true;
                         });
 
                         using (capture)
@@ -435,6 +437,7 @@ namespace QuanLyGiuXe.Views
                             StopConnectionTest();
                             _viewModel.TestConnectionResult = "❌ Lỗi: " + ex.Message;
                             _viewModel.TestConnectionColor = "Red";
+                            _viewModel.IsConnectionSuccessful = false;
                         });
                     }
                 }, token);
@@ -444,6 +447,7 @@ namespace QuanLyGiuXe.Views
                 StopConnectionTest();
                 _viewModel.TestConnectionResult = "❌ Lỗi: " + ex.Message;
                 _viewModel.TestConnectionColor = "Red";
+                _viewModel.IsConnectionSuccessful = false;
             }
         }
 

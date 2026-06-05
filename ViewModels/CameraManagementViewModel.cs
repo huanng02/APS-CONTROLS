@@ -36,7 +36,7 @@ namespace QuanLyGiuXe.ViewModels
             AddNewCommand = new RelayCommand(_ => EnterCreateMode());
             EditCommand = new RelayCommand(_ => EnterEditMode(), _ => SelectedCamera != null);
             DeleteCommand = new RelayCommand(async _ => await ExecuteDeleteAsync(), _ => SelectedCamera != null);
-            SaveCommand = new RelayCommand(async _ => await ExecuteSaveAsync());
+            SaveCommand = new RelayCommand(async _ => await ExecuteSaveAsync(), _ => !HasIpError && IsConnectionSuccessful);
             CancelCommand = new RelayCommand(_ => CancelEditOrCreate());
             TestConnectionCommand = new RelayCommand(async _ => await ExecuteTestConnectionAsync());
             RefreshStatusesCommand = new RelayCommand(_ => UpdateConnectionStatuses());
@@ -117,18 +117,93 @@ namespace QuanLyGiuXe.ViewModels
             set { _cameraKey = value; OnPropertyChanged(); }
         }
 
+        private string _ipValidationMessage = string.Empty;
+        public string IpValidationMessage
+        {
+            get => _ipValidationMessage;
+            set 
+            { 
+                _ipValidationMessage = value; 
+                OnPropertyChanged(); 
+                OnPropertyChanged(nameof(HasIpError)); 
+            }
+        }
+
+        public bool HasIpError => !string.IsNullOrEmpty(IpValidationMessage);
+
+        private bool _isConnectionSuccessful = false;
+        public bool IsConnectionSuccessful
+        {
+            get => _isConnectionSuccessful;
+            set 
+            { 
+                _isConnectionSuccessful = value; 
+                OnPropertyChanged(); 
+                CommandManager.InvalidateRequerySuggested(); 
+            }
+        }
+
+        private bool _isLoadingFields = false;
+
         private string _ipAddress = string.Empty;
         public string IpAddress
         {
             get => _ipAddress;
-            set { _ipAddress = value; OnPropertyChanged(); AutoRebuildRtspUrl(); }
+            set 
+            { 
+                _ipAddress = value; 
+                OnPropertyChanged(); 
+                AutoRebuildRtspUrl(); 
+                TriggerIpValidation();
+                if (!_isLoadingFields) IsConnectionSuccessful = false;
+            }
+        }
+
+        private void TriggerIpValidation()
+        {
+            if (!IsCreateMode && !IsEditMode)
+            {
+                IpValidationMessage = string.Empty;
+                CommandManager.InvalidateRequerySuggested();
+                return;
+            }
+
+            var ip = IpAddress?.Trim() ?? string.Empty;
+            if (string.IsNullOrEmpty(ip))
+            {
+                IpValidationMessage = string.Empty;
+                CommandManager.InvalidateRequerySuggested();
+                return;
+            }
+
+            int? currentId = IsEditMode && SelectedCamera != null ? SelectedCamera.Id : (int?)null;
+            
+            bool isDuplicate = _allCameras.Any(c => c.Id != currentId && 
+                                                    !string.IsNullOrEmpty(c.IpAddress) && 
+                                                    c.IpAddress.Trim().Equals(ip, StringComparison.OrdinalIgnoreCase));
+
+            if (isDuplicate)
+            {
+                IpValidationMessage = "A camera with this IP address already exists.";
+            }
+            else
+            {
+                IpValidationMessage = string.Empty;
+            }
+            CommandManager.InvalidateRequerySuggested();
         }
 
         private int? _port = 554;
         public int? Port
         {
             get => _port;
-            set { _port = value; OnPropertyChanged(); AutoRebuildRtspUrl(); }
+            set 
+            { 
+                _port = value; 
+                OnPropertyChanged(); 
+                AutoRebuildRtspUrl(); 
+                if (!_isLoadingFields) IsConnectionSuccessful = false;
+            }
         }
 
         private string _protocol = "RTSP";
@@ -142,21 +217,38 @@ namespace QuanLyGiuXe.ViewModels
         public string Username
         {
             get => _username;
-            set { _username = value; OnPropertyChanged(); AutoRebuildRtspUrl(); }
+            set 
+            { 
+                _username = value; 
+                OnPropertyChanged(); 
+                AutoRebuildRtspUrl(); 
+                if (!_isLoadingFields) IsConnectionSuccessful = false;
+            }
         }
 
         private string _password = string.Empty;
         public string Password
         {
             get => _password;
-            set { _password = value; OnPropertyChanged(); AutoRebuildRtspUrl(); }
+            set 
+            { 
+                _password = value; 
+                OnPropertyChanged(); 
+                AutoRebuildRtspUrl(); 
+                if (!_isLoadingFields) IsConnectionSuccessful = false;
+            }
         }
 
         private string _rtspUrl = string.Empty;
         public string RtspUrl
         {
             get => _rtspUrl;
-            set { _rtspUrl = value; OnPropertyChanged(); }
+            set 
+            { 
+                _rtspUrl = value; 
+                OnPropertyChanged(); 
+                if (!_isLoadingFields) IsConnectionSuccessful = false;
+            }
         }
 
         private LaneConfig? _selectedLane;
@@ -350,41 +442,57 @@ namespace QuanLyGiuXe.ViewModels
 
         private void LoadEditorFieldsFromSelected()
         {
-            TestConnectionResult = string.Empty;
-            if (SelectedCamera != null)
+            _isLoadingFields = true;
+            try
             {
-                CameraName = SelectedCamera.CameraName;
-                CameraKey = SelectedCamera.CameraKey;
-                IpAddress = SelectedCamera.IpAddress;
-                Port = SelectedCamera.Port;
-                Protocol = SelectedCamera.Protocol;
-                Username = SelectedCamera.Username;
-                Password = SelectedCamera.Password;
-                RtspUrl = SelectedCamera.RtspUrl;
-                SelectedLane = Lanes.FirstOrDefault(l => l.Id == SelectedCamera.LaneId);
-                Direction = SelectedCamera.Direction;
-                IsActive = SelectedCamera.IsActive;
+                TestConnectionResult = string.Empty;
+                if (SelectedCamera != null)
+                {
+                    CameraName = SelectedCamera.CameraName;
+                    CameraKey = SelectedCamera.CameraKey;
+                    IpAddress = SelectedCamera.IpAddress;
+                    Port = SelectedCamera.Port;
+                    Protocol = SelectedCamera.Protocol;
+                    Username = SelectedCamera.Username;
+                    Password = SelectedCamera.Password;
+                    RtspUrl = SelectedCamera.RtspUrl;
+                    SelectedLane = Lanes.FirstOrDefault(l => l.Id == SelectedCamera.LaneId);
+                    Direction = SelectedCamera.Direction;
+                    IsActive = SelectedCamera.IsActive;
+                }
+                else
+                {
+                    ClearEditorFields();
+                }
             }
-            else
+            finally
             {
-                ClearEditorFields();
+                _isLoadingFields = false;
             }
         }
 
         private void ClearEditorFields()
         {
-            CameraName = string.Empty;
-            CameraKey = string.Empty;
-            IpAddress = string.Empty;
-            Port = 554;
-            Protocol = "RTSP";
-            Username = "admin";
-            Password = string.Empty;
-            RtspUrl = string.Empty;
-            SelectedLane = null;
-            Direction = "Overview";
-            IsActive = true;
-            TestConnectionResult = string.Empty;
+            _isLoadingFields = true;
+            try
+            {
+                CameraName = string.Empty;
+                CameraKey = string.Empty;
+                IpAddress = string.Empty;
+                Port = 554;
+                Protocol = "RTSP";
+                Username = "admin";
+                Password = string.Empty;
+                RtspUrl = string.Empty;
+                SelectedLane = null;
+                Direction = "Overview";
+                IsActive = true;
+                TestConnectionResult = string.Empty;
+            }
+            finally
+            {
+                _isLoadingFields = false;
+            }
         }
 
         private void EnterCreateMode()
@@ -393,6 +501,8 @@ namespace QuanLyGiuXe.ViewModels
             IsCreateMode = true;
             IsEditMode = false;
             ClearEditorFields();
+            IpValidationMessage = string.Empty;
+            IsConnectionSuccessful = false;
             CameraKey = "Cam_" + Guid.NewGuid().ToString().Substring(0, 8);
             IsLaneSelectionLocked = _defaultLaneId.HasValue;
             if (_defaultLaneId.HasValue)
@@ -408,6 +518,8 @@ namespace QuanLyGiuXe.ViewModels
             IsEditMode = true;
             IsLaneSelectionLocked = _defaultLaneId.HasValue;
             LoadEditorFieldsFromSelected();
+            IpValidationMessage = string.Empty;
+            IsConnectionSuccessful = true;
         }
 
         private void CancelEditOrCreate()
@@ -416,6 +528,8 @@ namespace QuanLyGiuXe.ViewModels
             IsEditMode = false;
             IsLaneSelectionLocked = _defaultLaneId.HasValue;
             LoadEditorFieldsFromSelected();
+            IpValidationMessage = string.Empty;
+            IsConnectionSuccessful = false;
         }
 
         private void AutoRebuildRtspUrl()
@@ -495,17 +609,29 @@ namespace QuanLyGiuXe.ViewModels
             {
                 TestConnectionResult = "✅ Kết nối thành công!";
                 TestConnectionColor = "Green";
+                IsConnectionSuccessful = true;
             }
             else
             {
                 TestConnectionResult = "❌ Kết nối thất bại!";
                 TestConnectionColor = "Red";
+                IsConnectionSuccessful = false;
             }
         }
 
         private bool ValidateForm(out string error)
         {
             error = "";
+            if (HasIpError)
+            {
+                error = IpValidationMessage;
+                return false;
+            }
+            if (!IsConnectionSuccessful)
+            {
+                error = "Vui lòng kiểm tra kết nối camera thành công trước khi lưu.";
+                return false;
+            }
             if (string.IsNullOrWhiteSpace(CameraName))
             {
                 error = "Vui lòng nhập Tên Camera.";
@@ -597,14 +723,23 @@ namespace QuanLyGiuXe.ViewModels
             bool isCreate = IsCreateMode; // Capture mode before resetting
 
             bool success;
-            if (isCreate)
+            string errorMessage = "Lỗi khi lưu cấu hình camera vào cơ sở dữ liệu.";
+            try
             {
-                success = await CameraRepository.Instance.InsertAsync(entity);
+                if (isCreate)
+                {
+                    success = await CameraRepository.Instance.InsertAsync(entity);
+                }
+                else
+                {
+                    entity.Id = SelectedCamera!.Id;
+                    success = await CameraRepository.Instance.UpdateAsync(entity);
+                }
             }
-            else
+            catch (Exception ex)
             {
-                entity.Id = SelectedCamera!.Id;
-                success = await CameraRepository.Instance.UpdateAsync(entity);
+                success = false;
+                errorMessage = ex.Message;
             }
 
             if (success)
@@ -684,7 +819,7 @@ namespace QuanLyGiuXe.ViewModels
             }
             else
             {
-                MessageBox.Show("Lỗi khi lưu cấu hình camera vào cơ sở dữ liệu.", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(errorMessage, "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

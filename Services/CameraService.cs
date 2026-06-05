@@ -253,6 +253,23 @@ namespace QuanLyGiuXe.Services
             set => _instance = value;
         }
 
+        public async Task<bool> IsIpAddressUniqueAsync(string ipAddress, int? currentCameraId = null)
+        {
+            if (string.IsNullOrWhiteSpace(ipAddress)) return true; // USB/empty IP does not require validation
+            
+            try
+            {
+                var allCameras = await CameraRepository.Instance.GetAllAsync();
+                return !allCameras.Any(c => c.Id != currentCameraId && 
+                                            !string.IsNullOrEmpty(c.IpAddress) && 
+                                            c.IpAddress.Trim().Equals(ipAddress.Trim(), StringComparison.OrdinalIgnoreCase));
+            }
+            catch
+            {
+                return true; // fallback on error (db will still catch it)
+            }
+        }
+
         private int? GetLaneIdFromUiIndex(int uiIndex)
         {
             try

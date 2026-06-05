@@ -67,73 +67,97 @@ namespace QuanLyGiuXe.Services
 
         public async Task<bool> InsertAsync(CameraEntity camera)
         {
-            var success = await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
-                "CREATE_CAMERA_MGMT",
-                camera,
-                async conn =>
-                {
-                    string sql = @"
-                        INSERT INTO dbo.Cameras (CameraName, CameraKey, IpAddress, Port, Protocol, Username, Password, RtspUrl, LaneId, Direction, IsActive, CreatedUtc)
-                        OUTPUT INSERTED.Id
-                        VALUES (@name, @key, @ip, @port, @protocol, @username, @password, @rtsp, @laneId, @dir, @active, @created)";
+            if (!await CameraService.Instance.IsIpAddressUniqueAsync(camera.IpAddress, null))
+            {
+                throw new InvalidOperationException("A camera with this IP address already exists.");
+            }
 
-                    using (var cmd = new SqlCommand(sql, conn))
+            try
+            {
+                var success = await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+                    "CREATE_CAMERA_MGMT",
+                    camera,
+                    async conn =>
                     {
-                        cmd.Parameters.AddWithValue("@name", camera.CameraName);
-                        cmd.Parameters.AddWithValue("@key", camera.CameraKey);
-                        cmd.Parameters.AddWithValue("@ip", camera.IpAddress ?? (object)DBNull.Value);
-                        cmd.Parameters.AddWithValue("@port", camera.Port ?? (object)DBNull.Value);
-                        cmd.Parameters.AddWithValue("@protocol", camera.Protocol ?? "RTSP");
-                        cmd.Parameters.AddWithValue("@username", camera.Username ?? (object)DBNull.Value);
-                        cmd.Parameters.AddWithValue("@password", camera.Password ?? (object)DBNull.Value);
-                        cmd.Parameters.AddWithValue("@rtsp", camera.RtspUrl ?? (object)DBNull.Value);
-                        cmd.Parameters.AddWithValue("@laneId", camera.LaneId ?? (object)DBNull.Value);
-                        cmd.Parameters.AddWithValue("@dir", camera.Direction ?? "Overview");
-                        cmd.Parameters.AddWithValue("@active", camera.IsActive);
-                        cmd.Parameters.AddWithValue("@created", camera.CreatedUtc);
+                        string sql = @"
+                            INSERT INTO dbo.Cameras (CameraName, CameraKey, IpAddress, Port, Protocol, Username, Password, RtspUrl, LaneId, Direction, IsActive, CreatedUtc)
+                            OUTPUT INSERTED.Id
+                            VALUES (@name, @key, @ip, @port, @protocol, @username, @password, @rtsp, @laneId, @dir, @active, @created)";
 
-                        var newId = await cmd.ExecuteScalarAsync();
-                        if (newId != null) camera.Id = Convert.ToInt32(newId);
+                        using (var cmd = new SqlCommand(sql, conn))
+                        {
+                            cmd.Parameters.AddWithValue("@name", camera.CameraName);
+                            cmd.Parameters.AddWithValue("@key", camera.CameraKey);
+                            cmd.Parameters.AddWithValue("@ip", camera.IpAddress ?? (object)DBNull.Value);
+                            cmd.Parameters.AddWithValue("@port", camera.Port ?? (object)DBNull.Value);
+                            cmd.Parameters.AddWithValue("@protocol", camera.Protocol ?? "RTSP");
+                            cmd.Parameters.AddWithValue("@username", camera.Username ?? (object)DBNull.Value);
+                            cmd.Parameters.AddWithValue("@password", camera.Password ?? (object)DBNull.Value);
+                            cmd.Parameters.AddWithValue("@rtsp", camera.RtspUrl ?? (object)DBNull.Value);
+                            cmd.Parameters.AddWithValue("@laneId", camera.LaneId ?? (object)DBNull.Value);
+                            cmd.Parameters.AddWithValue("@dir", camera.Direction ?? "Overview");
+                            cmd.Parameters.AddWithValue("@active", camera.IsActive);
+                            cmd.Parameters.AddWithValue("@created", camera.CreatedUtc);
+
+                            var newId = await cmd.ExecuteScalarAsync();
+                            if (newId != null) camera.Id = Convert.ToInt32(newId);
+                        }
                     }
-                }
-            );
-            return success;
+                );
+                return success;
+            }
+            catch (SqlException ex) when (ex.Number == 2601 || ex.Number == 2627)
+            {
+                throw new InvalidOperationException("A camera with this IP address already exists.", ex);
+            }
         }
 
         public async Task<bool> UpdateAsync(CameraEntity camera)
         {
-            var success = await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
-                "UPDATE_CAMERA_MGMT",
-                camera,
-                async conn =>
-                {
-                    string sql = @"
-                        UPDATE dbo.Cameras 
-                        SET CameraName = @name, CameraKey = @key, IpAddress = @ip, Port = @port, 
-                            Protocol = @protocol, Username = @username, Password = @password, 
-                            RtspUrl = @rtsp, LaneId = @laneId, Direction = @dir, IsActive = @active 
-                        WHERE Id = @id";
+            if (!await CameraService.Instance.IsIpAddressUniqueAsync(camera.IpAddress, camera.Id))
+            {
+                throw new InvalidOperationException("A camera with this IP address already exists.");
+            }
 
-                    using (var cmd = new SqlCommand(sql, conn))
+            try
+            {
+                var success = await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+                    "UPDATE_CAMERA_MGMT",
+                    camera,
+                    async conn =>
                     {
-                        cmd.Parameters.AddWithValue("@id", camera.Id);
-                        cmd.Parameters.AddWithValue("@name", camera.CameraName);
-                        cmd.Parameters.AddWithValue("@key", camera.CameraKey);
-                        cmd.Parameters.AddWithValue("@ip", camera.IpAddress ?? (object)DBNull.Value);
-                        cmd.Parameters.AddWithValue("@port", camera.Port ?? (object)DBNull.Value);
-                        cmd.Parameters.AddWithValue("@protocol", camera.Protocol ?? "RTSP");
-                        cmd.Parameters.AddWithValue("@username", camera.Username ?? (object)DBNull.Value);
-                        cmd.Parameters.AddWithValue("@password", camera.Password ?? (object)DBNull.Value);
-                        cmd.Parameters.AddWithValue("@rtsp", camera.RtspUrl ?? (object)DBNull.Value);
-                        cmd.Parameters.AddWithValue("@laneId", camera.LaneId ?? (object)DBNull.Value);
-                        cmd.Parameters.AddWithValue("@dir", camera.Direction ?? "Overview");
-                        cmd.Parameters.AddWithValue("@active", camera.IsActive);
+                        string sql = @"
+                            UPDATE dbo.Cameras 
+                            SET CameraName = @name, CameraKey = @key, IpAddress = @ip, Port = @port, 
+                                Protocol = @protocol, Username = @username, Password = @password, 
+                                RtspUrl = @rtsp, LaneId = @laneId, Direction = @dir, IsActive = @active 
+                            WHERE Id = @id";
 
-                        await cmd.ExecuteNonQueryAsync();
+                        using (var cmd = new SqlCommand(sql, conn))
+                        {
+                            cmd.Parameters.AddWithValue("@id", camera.Id);
+                            cmd.Parameters.AddWithValue("@name", camera.CameraName);
+                            cmd.Parameters.AddWithValue("@key", camera.CameraKey);
+                            cmd.Parameters.AddWithValue("@ip", camera.IpAddress ?? (object)DBNull.Value);
+                            cmd.Parameters.AddWithValue("@port", camera.Port ?? (object)DBNull.Value);
+                            cmd.Parameters.AddWithValue("@protocol", camera.Protocol ?? "RTSP");
+                            cmd.Parameters.AddWithValue("@username", camera.Username ?? (object)DBNull.Value);
+                            cmd.Parameters.AddWithValue("@password", camera.Password ?? (object)DBNull.Value);
+                            cmd.Parameters.AddWithValue("@rtsp", camera.RtspUrl ?? (object)DBNull.Value);
+                            cmd.Parameters.AddWithValue("@laneId", camera.LaneId ?? (object)DBNull.Value);
+                            cmd.Parameters.AddWithValue("@dir", camera.Direction ?? "Overview");
+                            cmd.Parameters.AddWithValue("@active", camera.IsActive);
+
+                            await cmd.ExecuteNonQueryAsync();
+                        }
                     }
-                }
-            );
-            return success;
+                );
+                return success;
+            }
+            catch (SqlException ex) when (ex.Number == 2601 || ex.Number == 2627)
+            {
+                throw new InvalidOperationException("A camera with this IP address already exists.", ex);
+            }
         }
 
         public async Task<bool> DeleteAsync(int id)

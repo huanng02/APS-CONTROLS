@@ -182,6 +182,20 @@ namespace QuanLyGiuXe.Services
                         LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Camera Management Columns migration applied successfully.");
                     }
 
+                    // Execute Camera IP Unique Index migration (20260605_add_camera_ip_unique_constraint.sql)
+                    string scriptPathCameraIpUnique = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260605_add_camera_ip_unique_constraint.sql");
+                    if (File.Exists(scriptPathCameraIpUnique))
+                    {
+                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Executing Camera IP Unique Index migration...");
+                        string sqlCameraIpUnique = await File.ReadAllTextAsync(scriptPathCameraIpUnique);
+                        using (var cmd = new SqlCommand(sqlCameraIpUnique, conn))
+                        {
+                            cmd.CommandTimeout = 60;
+                            await cmd.ExecuteNonQueryAsync();
+                        }
+                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Camera IP Unique Index migration applied successfully.");
+                    }
+
                     _migrationsApplied = true;
                     LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "SQL Server topology migrations applied successfully.");
                 }
@@ -714,6 +728,20 @@ namespace QuanLyGiuXe.Services
                             await cmd.ExecuteNonQueryAsync();
                         }
                         LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Camera Management Columns migration applied successfully.");
+                    }
+
+                    // 13. Now run the Camera IP Unique Index migration script (20260605_add_camera_ip_unique_constraint.sql)
+                    string scriptPathCameraIpUnique = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260605_add_camera_ip_unique_constraint.sql");
+                    if (File.Exists(scriptPathCameraIpUnique))
+                    {
+                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Executing Camera IP Unique Index migration...");
+                        string sqlCameraIpUnique = await File.ReadAllTextAsync(scriptPathCameraIpUnique);
+                        using (var cmd = new SqlCommand(sqlCameraIpUnique, conn))
+                        {
+                            cmd.CommandTimeout = 60;
+                            await cmd.ExecuteNonQueryAsync();
+                        }
+                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Camera IP Unique Index migration applied successfully.");
                     }
 
                     _baseSchemaChecked = true;

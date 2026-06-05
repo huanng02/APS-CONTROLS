@@ -617,8 +617,11 @@ namespace QuanLyGiuXe
                 {
                     if (!string.IsNullOrEmpty(dbCam.CameraName))
                     {
-                        if (!cb1.Items.Contains(dbCam.CameraName)) cb1.Items.Add(dbCam.CameraName);
-                        if (!cb2.Items.Contains(dbCam.CameraName)) cb2.Items.Add(dbCam.CameraName);
+                        if (dbCam.LaneId == null || dbCam.LaneId == lane.Id)
+                        {
+                            if (!cb1.Items.Contains(dbCam.CameraName)) cb1.Items.Add(dbCam.CameraName);
+                            if (!cb2.Items.Contains(dbCam.CameraName)) cb2.Items.Add(dbCam.CameraName);
+                        }
                     }
                 }
 
@@ -1246,6 +1249,72 @@ namespace QuanLyGiuXe
                 CheckVehicleTypeChange(3, R3LaneCombo, R3VehicleTypeCombo);
                 CheckVehicleTypeChange(4, R4LaneCombo, R4VehicleTypeCombo);
 
+                // Validate no camera is assigned to multiple lanes (including database assignments of other gates)
+                try
+                {
+                    var dbCamerasForValidation = await ParkingTopologyService.Instance.GetCamerasAsync();
+                    var currentLaneIdsForValidation = _laneCameraCombos.Select(item => item.LaneId).ToHashSet();
+                    var assignedCameras = new Dictionary<string, int>();
+
+                    // Populate assigned cameras with database assignments of lanes NOT in current configuration
+                    foreach (var dbCam in dbCamerasForValidation)
+                    {
+                        if (dbCam.LaneId.HasValue && !currentLaneIdsForValidation.Contains(dbCam.LaneId.Value))
+                        {
+                            if (!string.IsNullOrEmpty(dbCam.RtspUrl))
+                            {
+                                assignedCameras[dbCam.RtspUrl] = dbCam.LaneId.Value;
+                            }
+                            if (!string.IsNullOrEmpty(dbCam.CameraName))
+                            {
+                                assignedCameras[dbCam.CameraName] = dbCam.LaneId.Value;
+                            }
+                        }
+                    }
+
+                    foreach (var item in _laneCameraCombos)
+                    {
+                        var toanCanh = PickCamera(item.cbToanCanh);
+                        var bienSo = PickCamera(item.cbBienSo);
+
+                        if (!string.IsNullOrEmpty(toanCanh))
+                        {
+                            if (assignedCameras.TryGetValue(toanCanh, out var otherLaneId) && otherLaneId != item.LaneId)
+                            {
+                                var otherLane = _lanes?.FirstOrDefault(l => l.Id == otherLaneId);
+                                var currentLane = _lanes?.FirstOrDefault(l => l.Id == item.LaneId);
+                                MessageBox.Show($"Camera '{item.cbToanCanh.Text}' đã được gán cho làn '{otherLane?.LaneName ?? otherLaneId.ToString()}'. Không thể gán cho làn '{currentLane?.LaneName ?? item.LaneId.ToString()}'.", "Lỗi cấu hình camera", MessageBoxButton.OK, MessageBoxImage.Warning);
+                                return;
+                            }
+                            assignedCameras[toanCanh] = item.LaneId;
+                            if (!string.IsNullOrEmpty(item.cbToanCanh.Text))
+                            {
+                                assignedCameras[item.cbToanCanh.Text] = item.LaneId;
+                            }
+                        }
+
+                        if (!string.IsNullOrEmpty(bienSo))
+                        {
+                            if (assignedCameras.TryGetValue(bienSo, out var otherLaneId) && otherLaneId != item.LaneId)
+                            {
+                                var otherLane = _lanes?.FirstOrDefault(l => l.Id == otherLaneId);
+                                var currentLane = _lanes?.FirstOrDefault(l => l.Id == item.LaneId);
+                                MessageBox.Show($"Camera '{item.cbBienSo.Text}' đã được gán cho làn '{otherLane?.LaneName ?? otherLaneId.ToString()}'. Không thể gán cho làn '{currentLane?.LaneName ?? item.LaneId.ToString()}'.", "Lỗi cấu hình camera", MessageBoxButton.OK, MessageBoxImage.Warning);
+                                return;
+                            }
+                            assignedCameras[bienSo] = item.LaneId;
+                            if (!string.IsNullOrEmpty(item.cbBienSo.Text))
+                            {
+                                assignedCameras[item.cbBienSo.Text] = item.LaneId;
+                            }
+                        }
+                    }
+                }
+                catch (Exception valEx)
+                {
+                    try { LoggingService.Instance.LogError("Save_Click_CameraValidation", "C3200Settings", "Failed to validate camera assignments", valEx); } catch { }
+                }
+
                 // Save lane camera assignments
                 _cfg.Cameras.LaneCameras.Clear();
                 foreach (var item in _laneCameraCombos)
@@ -1280,6 +1349,63 @@ namespace QuanLyGiuXe
                 }
 
                 _cfg.Save();
+
+                // Sync camera assignments to SQLite database
+                try
+                {
+                    var dbCameras = await ParkingTopologyService.Instance.GetCamerasAsync();
+                    var currentLaneIds = _laneCameraCombos.Select(item => item.LaneId).ToHashSet();
+
+                    foreach (var dbCam in dbCameras)
+                    {
+                        // Check if this database camera is assigned in the current gate configuration UI
+                        var assignedLaneCombo = _laneCameraCombos.FirstOrDefault(item => 
+                            (!string.IsNullOrEmpty(dbCam.RtspUrl) && PickCamera(item.cbToanCanh) == dbCam.RtspUrl) ||
+                            (!string.IsNullOrEmpty(dbCam.CameraName) && item.cbToanCanh.Text == dbCam.CameraName) ||
+                            (!string.IsNullOrEmpty(dbCam.RtspUrl) && PickCamera(item.cbBienSo) == dbCam.RtspUrl) ||
+                            (!string.IsNullOrEmpty(dbCam.CameraName) && item.cbBienSo.Text == dbCam.CameraName)
+                        );
+
+                        if (assignedLaneCombo.cbToanCanh != null)
+                        {
+                            // Assigned to a lane in the UI
+                            int targetLaneId = assignedLaneCombo.LaneId;
+                            string targetDirection;
+                            
+                            if ((!string.IsNullOrEmpty(dbCam.RtspUrl) && PickCamera(assignedLaneCombo.cbToanCanh) == dbCam.RtspUrl) ||
+                                (!string.IsNullOrEmpty(dbCam.CameraName) && assignedLaneCombo.cbToanCanh.Text == dbCam.CameraName))
+                            {
+                                targetDirection = "Overview";
+                            }
+                            else
+                            {
+                                var lane = _lanes?.FirstOrDefault(l => l.Id == targetLaneId);
+                                targetDirection = lane?.Direction?.ToUpper() == "OUT" ? "Exit" : "Entry";
+                            }
+
+                            if (dbCam.LaneId != targetLaneId || dbCam.Direction != targetDirection)
+                            {
+                                dbCam.LaneId = targetLaneId;
+                                dbCam.Direction = targetDirection;
+                                await ParkingTopologyService.Instance.SaveCameraAsync(dbCam);
+                            }
+                        }
+                        else
+                        {
+                            // Not assigned in the current gate configuration UI
+                            // If it was previously assigned to one of the lanes currently configured, we unassign it
+                            if (dbCam.LaneId.HasValue && currentLaneIds.Contains(dbCam.LaneId.Value))
+                            {
+                                dbCam.LaneId = null;
+                                await ParkingTopologyService.Instance.SaveCameraAsync(dbCam);
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    try { LoggingService.Instance.LogError("Save_Click_CameraSync", "C3200Settings", "Failed to sync camera assignments to DB", ex); } catch { }
+                }
 
                 C3200Service.Instance.Configure(_cfg.ZKTeco.IpAddress, _cfg.ZKTeco.TcpPort,
                     _cfg.ZKTeco.Password, _cfg.ZKTeco.Timeout, _cfg.ZKTeco.BarrierDuration);
