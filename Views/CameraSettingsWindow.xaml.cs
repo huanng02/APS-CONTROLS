@@ -91,6 +91,7 @@ namespace QuanLyGiuXe.Views
                 Bitmap bmpClone;
                 lock (data.Frame)
                 {
+                    if (data.Frame.IsDisposed || data.Frame.Empty()) return;
                     bmpClone = OpenCvSharp.Extensions.BitmapConverter.ToBitmap(data.Frame);
                 }
 

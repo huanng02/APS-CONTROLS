@@ -14,7 +14,7 @@ namespace QuanLyGiuXe.Services.Connection
         public string Url { get; }
         public VideoCapture? Capture { get; set; }
         public Mat LatestFrame { get; } = new Mat();
-        public readonly object FrameLock = new();
+        
         public CancellationTokenSource? Cts { get; set; }
         public Task? CaptureTask { get; set; }
         
@@ -37,9 +37,12 @@ namespace QuanLyGiuXe.Services.Connection
 
         public void Dispose()
         {
-            lock (FrameLock)
+            if (LatestFrame != null)
             {
-                LatestFrame?.Dispose();
+                lock (LatestFrame)
+                {
+                    LatestFrame.Dispose();
+                }
             }
         }
     }
@@ -179,11 +182,14 @@ namespace QuanLyGiuXe.Services.Connection
             {
                 if (conn.Consumers.Contains(consumerKey))
                 {
-                    lock (conn.FrameLock)
+                    if (conn.LatestFrame != null)
                     {
-                        if (conn.LatestFrame != null && !conn.LatestFrame.Empty())
+                        lock (conn.LatestFrame)
                         {
-                            return conn.LatestFrame.Clone();
+                            if (!conn.LatestFrame.Empty())
+                            {
+                                return conn.LatestFrame.Clone();
+                            }
                         }
                     }
                 }
@@ -303,16 +309,19 @@ namespace QuanLyGiuXe.Services.Connection
                                   {
                                       lastFrameTime = now;
                                       
-                                      lock (conn.FrameLock)
+                                      if (conn.LatestFrame != null)
                                       {
-                                          if (targetWidth > 0 && targetHeight > 0 && 
-                                              (tempMat.Width != targetWidth || tempMat.Height != targetHeight))
+                                          lock (conn.LatestFrame)
                                           {
-                                              Cv2.Resize(tempMat, conn.LatestFrame, new OpenCvSharp.Size(targetWidth, targetHeight));
-                                          }
-                                          else
-                                          {
-                                              tempMat.CopyTo(conn.LatestFrame);
+                                              if (targetWidth > 0 && targetHeight > 0 && 
+                                                  (tempMat.Width != targetWidth || tempMat.Height != targetHeight))
+                                              {
+                                                  Cv2.Resize(tempMat, conn.LatestFrame, new OpenCvSharp.Size(targetWidth, targetHeight));
+                                              }
+                                              else
+                                              {
+                                                  tempMat.CopyTo(conn.LatestFrame);
+                                              }
                                           }
                                       }
 

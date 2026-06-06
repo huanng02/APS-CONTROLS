@@ -450,25 +450,32 @@ namespace QuanLyGiuXe.Services
         public void StopIpCamera(string camKey)
         {
             string actualKey = camKey;
-            if (camKey == "VaoToanCanh" || camKey == "Vao1")
+            
+            // If the key is a raw DB key (Cam_xxxxxx), resolve it first to find the active stream key
+            if (!string.IsNullOrEmpty(camKey) && camKey.StartsWith("Cam_", StringComparison.OrdinalIgnoreCase))
+            {
+                actualKey = ResolveActiveKey(camKey);
+            }
+
+            if (actualKey == "VaoToanCanh" || actualKey == "Vao1")
             {
                 int? laneId = GetLaneIdFromUiIndex(1);
                 if (laneId.HasValue && HasDynamicConfigForLane(laneId.Value))
                     actualKey = $"Lane_{laneId.Value}_ToanCanh";
             }
-            else if (camKey == "VaoBienSo" || camKey == "Vao2")
+            else if (actualKey == "VaoBienSo" || actualKey == "Vao2")
             {
                 int? laneId = GetLaneIdFromUiIndex(1);
                 if (laneId.HasValue && HasDynamicConfigForLane(laneId.Value))
                     actualKey = $"Lane_{laneId.Value}_BienSo";
             }
-            else if (camKey == "RaToanCanh" || camKey == "Ra1")
+            else if (actualKey == "RaToanCanh" || actualKey == "Ra1")
             {
                 int? laneId = GetLaneIdFromUiIndex(2);
                 if (laneId.HasValue && HasDynamicConfigForLane(laneId.Value))
                     actualKey = $"Lane_{laneId.Value}_ToanCanh";
             }
-            else if (camKey == "RaBienSo" || camKey == "Ra2")
+            else if (actualKey == "RaBienSo" || actualKey == "Ra2")
             {
                 int? laneId = GetLaneIdFromUiIndex(2);
                 if (laneId.HasValue && HasDynamicConfigForLane(laneId.Value))
@@ -476,6 +483,7 @@ namespace QuanLyGiuXe.Services
             }
 
             CameraConnectionManager.Instance.StopStream(actualKey);
+            _cameraUrls.TryRemove(actualKey, out _);
         }
 
         public void StopAll()

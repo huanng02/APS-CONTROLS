@@ -29,6 +29,7 @@ namespace QuanLyGiuXe
 
         private CameraService _cameraService = new CameraService();
         private readonly Dictionary<string, WriteableBitmap> _writeableBitmaps = new();
+        private readonly Dictionary<string, byte[]> _pixelBuffers = new();
         private ParkingView? _parkingViewCache = null;
         private bool _isProcessingAuto = false;
         private DateTime _lastAutoScanTime = DateTime.MinValue;
@@ -720,13 +721,6 @@ namespace QuanLyGiuXe
                 if (!string.IsNullOrEmpty(cfg.VaoBienSo)) { _cameraService.StartIpCamera("Vao2", cfg.VaoBienSo); activeKeys.Add("Vao2"); }
                 if (!string.IsNullOrEmpty(cfg.RaToanCanh)) { _cameraService.StartIpCamera("Ra1", cfg.RaToanCanh); activeKeys.Add("Ra1"); }
                 if (!string.IsNullOrEmpty(cfg.RaBienSo)) { _cameraService.StartIpCamera("Ra2", cfg.RaBienSo); activeKeys.Add("Ra2"); }
-                
-                // Fallback for debug if no config
-                if (string.IsNullOrEmpty(cfg.VaoToanCanh)) {
-                    string debugUrl = "rtsp://192.168.1.121:554/user=admin&password=tlJwpbo6&channel=0&stream=0.sdp";
-                    _cameraService.StartIpCamera("Vao1", debugUrl);
-                    activeKeys.Add("Vao1");
-                }
             }
 
             Services.Connection.AutoReconnectService.Instance.UpdateCameraResources(activeKeys, _cameraService);
@@ -882,33 +876,56 @@ namespace QuanLyGiuXe
 
         private void UpdateCameraFrame(string uiCamKey, Mat mat)
         {
-            if (string.IsNullOrEmpty(uiCamKey) || mat == null || mat.Empty()) return;
-
-            int width = mat.Width;
-            int height = mat.Height;
-            PixelFormat wpfFormat;
-            int channels = mat.Channels();
-            switch (channels)
-            {
-                case 1:
-                    wpfFormat = PixelFormats.Gray8;
-                    break;
-                case 3:
-                    wpfFormat = PixelFormats.Bgr24;
-                    break;
-                case 4:
-                    wpfFormat = PixelFormats.Bgr32;
-                    break;
-                default:
-                    wpfFormat = PixelFormats.Bgr24;
-                    break;
-            }
+            if (string.IsNullOrEmpty(uiCamKey) || mat == null) return;
 
             try
             {
-                int stride = (int)mat.Step();
-                int bufferSize = stride * height;
-                IntPtr scan0 = mat.Data;
+                int width;
+                int height;
+                PixelFormat wpfFormat;
+                int stride;
+                int bufferSize;
+
+                lock (mat)
+                {
+                    if (mat.IsDisposed || mat.Empty()) return;
+                    width = mat.Width;
+                    height = mat.Height;
+                    int channels = mat.Channels();
+                    switch (channels)
+                    {
+                        case 1:
+                            wpfFormat = PixelFormats.Gray8;
+                            break;
+                        case 3:
+                            wpfFormat = PixelFormats.Bgr24;
+                            break;
+                        case 4:
+                            wpfFormat = PixelFormats.Bgr32;
+                            break;
+                        default:
+                            wpfFormat = PixelFormats.Bgr24;
+                            break;
+                    }
+                    stride = (int)mat.Step();
+                    bufferSize = stride * height;
+                }
+
+                byte[] pixelData;
+                lock (_pixelBuffers)
+                {
+                    if (!_pixelBuffers.TryGetValue(uiCamKey, out pixelData) || pixelData.Length != bufferSize)
+                    {
+                        pixelData = new byte[bufferSize];
+                        _pixelBuffers[uiCamKey] = pixelData;
+                    }
+                }
+
+                lock (mat)
+                {
+                    if (mat.IsDisposed || mat.Empty()) return;
+                    System.Runtime.InteropServices.Marshal.Copy(mat.Data, pixelData, 0, bufferSize);
+                }
 
                 Dispatcher.Invoke(() =>
                 {
@@ -927,7 +944,7 @@ namespace QuanLyGiuXe
                             parkingView.UpdateCamera(uiCamKey, wBmp);
                         }
 
-                        wBmp.WritePixels(new Int32Rect(0, 0, width, height), scan0, bufferSize, stride);
+                        wBmp.WritePixels(new Int32Rect(0, 0, width, height), pixelData, stride, 0);
                     }
                     catch (Exception ex)
                     {
