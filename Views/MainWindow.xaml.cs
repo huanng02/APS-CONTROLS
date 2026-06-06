@@ -681,18 +681,23 @@ namespace QuanLyGiuXe
 
             // Start dynamic lane cameras if any are configured
             bool startedAnyDynamic = false;
+            var activeKeys = new System.Collections.Generic.List<string>();
             if (cfg.LaneCameras != null && cfg.LaneCameras.Count > 0)
             {
                 foreach (var lc in cfg.LaneCameras)
                 {
                     if (!string.IsNullOrEmpty(lc.ToanCanh))
                     {
-                        _cameraService.StartIpCamera($"Lane_{lc.LaneId}_ToanCanh", lc.ToanCanh);
+                        string key = $"Lane_{lc.LaneId}_ToanCanh";
+                        _cameraService.StartIpCamera(key, lc.ToanCanh);
+                        activeKeys.Add(key);
                         startedAnyDynamic = true;
                     }
                     if (!string.IsNullOrEmpty(lc.BienSo))
                     {
-                        _cameraService.StartIpCamera($"Lane_{lc.LaneId}_BienSo", lc.BienSo);
+                        string key = $"Lane_{lc.LaneId}_BienSo";
+                        _cameraService.StartIpCamera(key, lc.BienSo);
+                        activeKeys.Add(key);
                         startedAnyDynamic = true;
                     }
                 }
@@ -701,17 +706,20 @@ namespace QuanLyGiuXe
             // Fallback to legacy cameras if no dynamic camera was started
             if (!startedAnyDynamic)
             {
-                if (!string.IsNullOrEmpty(cfg.VaoToanCanh)) _cameraService.StartIpCamera("Vao1", cfg.VaoToanCanh);
-                if (!string.IsNullOrEmpty(cfg.VaoBienSo)) _cameraService.StartIpCamera("Vao2", cfg.VaoBienSo);
-                if (!string.IsNullOrEmpty(cfg.RaToanCanh)) _cameraService.StartIpCamera("Ra1", cfg.RaToanCanh);
-                if (!string.IsNullOrEmpty(cfg.RaBienSo)) _cameraService.StartIpCamera("Ra2", cfg.RaBienSo);
+                if (!string.IsNullOrEmpty(cfg.VaoToanCanh)) { _cameraService.StartIpCamera("Vao1", cfg.VaoToanCanh); activeKeys.Add("Vao1"); }
+                if (!string.IsNullOrEmpty(cfg.VaoBienSo)) { _cameraService.StartIpCamera("Vao2", cfg.VaoBienSo); activeKeys.Add("Vao2"); }
+                if (!string.IsNullOrEmpty(cfg.RaToanCanh)) { _cameraService.StartIpCamera("Ra1", cfg.RaToanCanh); activeKeys.Add("Ra1"); }
+                if (!string.IsNullOrEmpty(cfg.RaBienSo)) { _cameraService.StartIpCamera("Ra2", cfg.RaBienSo); activeKeys.Add("Ra2"); }
                 
                 // Fallback for debug if no config
                 if (string.IsNullOrEmpty(cfg.VaoToanCanh)) {
                     string debugUrl = "rtsp://192.168.1.121:554/user=admin&password=tlJwpbo6&channel=0&stream=0.sdp";
                     _cameraService.StartIpCamera("Vao1", debugUrl);
+                    activeKeys.Add("Vao1");
                 }
             }
+
+            Services.Connection.AutoReconnectService.Instance.UpdateCameraResources(activeKeys, _cameraService);
         }
 
         public void ReloadCameras()
@@ -738,18 +746,23 @@ namespace QuanLyGiuXe
 
                 // Start dynamic lane cameras if any are configured
                 bool startedAnyDynamic = false;
+                var activeKeys = new System.Collections.Generic.List<string>();
                 if (cfg.LaneCameras != null && cfg.LaneCameras.Count > 0)
                 {
                     foreach (var lc in cfg.LaneCameras)
                     {
                         if (!string.IsNullOrEmpty(lc.ToanCanh))
                         {
-                            _cameraService.StartIpCamera($"Lane_{lc.LaneId}_ToanCanh", lc.ToanCanh);
+                            string key = $"Lane_{lc.LaneId}_ToanCanh";
+                            _cameraService.StartIpCamera(key, lc.ToanCanh);
+                            activeKeys.Add(key);
                             startedAnyDynamic = true;
                         }
                         if (!string.IsNullOrEmpty(lc.BienSo))
                         {
-                            _cameraService.StartIpCamera($"Lane_{lc.LaneId}_BienSo", lc.BienSo);
+                            string key = $"Lane_{lc.LaneId}_BienSo";
+                            _cameraService.StartIpCamera(key, lc.BienSo);
+                            activeKeys.Add(key);
                             startedAnyDynamic = true;
                         }
                     }
@@ -758,11 +771,13 @@ namespace QuanLyGiuXe
                 // Fallback to legacy cameras if no dynamic camera was started
                 if (!startedAnyDynamic)
                 {
-                    if (!string.IsNullOrEmpty(cfg.VaoToanCanh)) _cameraService.StartIpCamera("Vao1", cfg.VaoToanCanh);
-                    if (!string.IsNullOrEmpty(cfg.VaoBienSo)) _cameraService.StartIpCamera("Vao2", cfg.VaoBienSo);
-                    if (!string.IsNullOrEmpty(cfg.RaToanCanh)) _cameraService.StartIpCamera("Ra1", cfg.RaToanCanh);
-                    if (!string.IsNullOrEmpty(cfg.RaBienSo)) _cameraService.StartIpCamera("Ra2", cfg.RaBienSo);
+                    if (!string.IsNullOrEmpty(cfg.VaoToanCanh)) { _cameraService.StartIpCamera("Vao1", cfg.VaoToanCanh); activeKeys.Add("Vao1"); }
+                    if (!string.IsNullOrEmpty(cfg.VaoBienSo)) { _cameraService.StartIpCamera("Vao2", cfg.VaoBienSo); activeKeys.Add("Vao2"); }
+                    if (!string.IsNullOrEmpty(cfg.RaToanCanh)) { _cameraService.StartIpCamera("Ra1", cfg.RaToanCanh); activeKeys.Add("Ra1"); }
+                    if (!string.IsNullOrEmpty(cfg.RaBienSo)) { _cameraService.StartIpCamera("Ra2", cfg.RaBienSo); activeKeys.Add("Ra2"); }
                 }
+
+                Services.Connection.AutoReconnectService.Instance.UpdateCameraResources(activeKeys, _cameraService);
             }
             catch (Exception ex)
             {

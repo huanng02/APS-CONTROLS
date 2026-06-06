@@ -21,6 +21,58 @@ namespace QuanLyGiuXe.Services
         private readonly Dictionary<string, bool> _isCameraConnected = new();
         private readonly ConcurrentDictionary<string, CameraRuntimeState> _runtimeStates = new();
 
+        // Cache database cameras to resolve Cam_xxxxxx keys to active running keys (like Lane_X_ToanCanh)
+        private List<CameraEntity> _cachedDbCameras = new();
+        private DateTime _lastCacheUpdate = DateTime.MinValue;
+        private readonly SemaphoreSlim _cacheLock = new(1, 1);
+
+        private async Task EnsureCacheLoadedAsync()
+        {
+            if (DateTime.UtcNow - _lastCacheUpdate < TimeSpan.FromSeconds(5))
+                return;
+
+            await _cacheLock.WaitAsync();
+            try
+            {
+                if (DateTime.UtcNow - _lastCacheUpdate < TimeSpan.FromSeconds(5))
+                    return;
+
+                var list = await CameraRepository.Instance.GetAllAsync();
+                _cachedDbCameras = list ?? new List<CameraEntity>();
+                _lastCacheUpdate = DateTime.UtcNow;
+            }
+            catch
+            {
+                // Silently swallow
+            }
+            finally
+            {
+                _cacheLock.Release();
+            }
+        }
+
+        private string NormalizeRtspUrl(string url)
+        {
+            if (string.IsNullOrEmpty(url)) return "";
+            try
+            {
+                string normalized = url.ToLower().Trim();
+                normalized = normalized.Replace("_password=", "password=")
+                                      .Replace("_channel=", "channel=")
+                                      .Replace("_stream=", "stream=")
+                                      .Replace("&", "_")
+                                      .Replace("?", "_")
+                                      .Replace("/", "_")
+                                      .Replace(":", "_")
+                                      .Replace("\\", "_");
+                return normalized;
+            }
+            catch
+            {
+                return url;
+            }
+        }
+
         // Sự kiện gửi ảnh về UI
         public event EventHandler<(string CamKey, Bitmap Frame)>? NewFrameReceived;
 
@@ -31,7 +83,8 @@ namespace QuanLyGiuXe.Services
 
         public CameraRuntimeState GetRuntimeState(string key)
         {
-            return _runtimeStates.GetOrAdd(key, k => new CameraRuntimeState { CameraKey = k });
+            string resolvedKey = ResolveActiveKey(key);
+            return _runtimeStates.GetOrAdd(resolvedKey, k => new CameraRuntimeState { CameraKey = k });
         }
 
         public List<CameraRuntimeState> GetAllRuntimeStates()
@@ -270,6 +323,60 @@ namespace QuanLyGiuXe.Services
             }
         }
 
+        public string GetCameraFriendlyName(string camKey)
+        {
+            if (string.IsNullOrEmpty(camKey)) return "Camera";
+
+            // 1. Trigger background load of DB cameras if cache is stale (non-blocking)
+            if (DateTime.UtcNow - _lastCacheUpdate > TimeSpan.FromSeconds(5))
+            {
+                _ = Task.Run(() => EnsureCacheLoadedAsync());
+            }
+
+            // 2. If it's a database key directly (Cam_xxxxxx), find it in cache
+            var dbCam = _cachedDbCameras.FirstOrDefault(c => c.CameraKey.Equals(camKey, StringComparison.OrdinalIgnoreCase));
+            if (dbCam != null)
+            {
+                return dbCam.CameraName;
+            }
+
+            // 3. If it's an active key (like Lane_3_ToanCanh), find its URL, then match in cache
+            if (_cameraUrls.TryGetValue(camKey, out var url) && !string.IsNullOrEmpty(url))
+            {
+                string normUrl = NormalizeRtspUrl(url);
+                var matchedCam = _cachedDbCameras.FirstOrDefault(c => !string.IsNullOrEmpty(c.RtspUrl) && NormalizeRtspUrl(c.RtspUrl) == normUrl);
+                if (matchedCam != null)
+                {
+                    return matchedCam.CameraName;
+                }
+            }
+
+            // 4. Fallback to readable slot name
+            if (camKey.StartsWith("Lane_"))
+            {
+                var parts = camKey.Split('_');
+                if (parts.Length >= 3)
+                {
+                    string laneId = parts[1];
+                    string type = parts[2] == "ToanCanh" ? "Toàn Cảnh" : "Biển Số";
+                    return $"Camera {type} Làn {laneId}";
+                }
+            }
+
+            return camKey switch
+            {
+                "VaoToanCanh" => "Camera Toàn Cảnh Làn Vào",
+                "VaoBienSo" => "Camera Biển Số Làn Vào",
+                "RaToanCanh" => "Camera Toàn Cảnh Làn Ra",
+                "RaBienSo" => "Camera Biển Số Làn Ra",
+                "Vao1" => "Camera Toàn Cảnh Làn Vào",
+                "Vao2" => "Camera Biển Số Làn Vào",
+                "Ra1" => "Camera Toàn Cảnh Làn Ra",
+                "Ra2" => "Camera Biển Số Làn Ra",
+                _ => $"Camera {camKey}"
+            };
+        }
+
         private int? GetLaneIdFromUiIndex(int uiIndex)
         {
             try
@@ -315,47 +422,43 @@ namespace QuanLyGiuXe.Services
             }
         }
 
-        public bool IsConnected(string camKey)
+        private string ResolveActiveKey(string camKey)
         {
-            if (_isCameraConnected.TryGetValue(camKey, out var connected) && connected)
-                return true;
+            if (string.IsNullOrEmpty(camKey)) return camKey;
 
+            // 1. If the key exists in our active dictionaries directly, return it
+            if (_isCameraConnected.ContainsKey(camKey))
+                return camKey;
+
+            // 2. Check fallback mappings (legacy keys)
             string? mappedKey = null;
             if (camKey == "VaoToanCanh" || camKey == "Vao1")
             {
                 int? laneId = GetLaneIdFromUiIndex(1);
                 if (laneId.HasValue && HasDynamicConfigForLane(laneId.Value))
-                {
                     mappedKey = $"Lane_{laneId.Value}_ToanCanh";
-                }
             }
             else if (camKey == "VaoBienSo" || camKey == "Vao2")
             {
                 int? laneId = GetLaneIdFromUiIndex(1);
                 if (laneId.HasValue && HasDynamicConfigForLane(laneId.Value))
-                {
                     mappedKey = $"Lane_{laneId.Value}_BienSo";
-                }
             }
             else if (camKey == "RaToanCanh" || camKey == "Ra1")
             {
                 int? laneId = GetLaneIdFromUiIndex(2);
                 if (laneId.HasValue && HasDynamicConfigForLane(laneId.Value))
-                {
                     mappedKey = $"Lane_{laneId.Value}_ToanCanh";
-                }
             }
             else if (camKey == "RaBienSo" || camKey == "Ra2")
             {
                 int? laneId = GetLaneIdFromUiIndex(2);
                 if (laneId.HasValue && HasDynamicConfigForLane(laneId.Value))
-                {
                     mappedKey = $"Lane_{laneId.Value}_BienSo";
-                }
             }
 
-            if (mappedKey != null && _isCameraConnected.TryGetValue(mappedKey, out connected) && connected)
-                return true;
+            if (mappedKey != null && _isCameraConnected.ContainsKey(mappedKey))
+                return mappedKey;
 
             string? fallbackKey = camKey switch
             {
@@ -370,62 +473,48 @@ namespace QuanLyGiuXe.Services
                 _ => null
             };
 
-            if (fallbackKey != null && _isCameraConnected.TryGetValue(fallbackKey, out connected) && connected)
-                return true;
+            if (fallbackKey != null && _isCameraConnected.ContainsKey(fallbackKey))
+                return fallbackKey;
 
+            // 3. Trigger background load of DB cameras if cache is stale (non-blocking)
+            if (DateTime.UtcNow - _lastCacheUpdate > TimeSpan.FromSeconds(5))
+            {
+                _ = Task.Run(() => EnsureCacheLoadedAsync());
+            }
+
+            // 4. Match by URL from cached DB cameras
+            var dbCam = _cachedDbCameras.FirstOrDefault(c => c.CameraKey.Equals(camKey, StringComparison.OrdinalIgnoreCase));
+            if (dbCam != null && !string.IsNullOrEmpty(dbCam.RtspUrl))
+            {
+                string normUrl = NormalizeRtspUrl(dbCam.RtspUrl);
+                foreach (var activeKey in _cameraUrls.Keys.ToList())
+                {
+                    if (_cameraUrls.TryGetValue(activeKey, out var activeUrl) && !string.IsNullOrEmpty(activeUrl))
+                    {
+                        if (NormalizeRtspUrl(activeUrl) == normUrl)
+                        {
+                            return activeKey;
+                        }
+                    }
+                }
+            }
+
+            return camKey;
+        }
+
+        public bool IsConnected(string camKey)
+        {
+            string resolvedKey = ResolveActiveKey(camKey);
+            if (_isCameraConnected.TryGetValue(resolvedKey, out var connected) && connected)
+                return true;
             return false;
         }
 
         public string GetUrl(string camKey)
         {
-            if (_cameraUrls.TryGetValue(camKey, out var url))
+            string resolvedKey = ResolveActiveKey(camKey);
+            if (_cameraUrls.TryGetValue(resolvedKey, out var url))
                 return url;
-
-            string? mappedKey = null;
-            if (camKey == "VaoToanCanh" || camKey == "Vao1")
-            {
-                int? laneId = GetLaneIdFromUiIndex(1);
-                if (laneId.HasValue && HasDynamicConfigForLane(laneId.Value))
-                    mappedKey = $"Lane_{laneId.Value}_ToanCanh";
-            }
-            else if (camKey == "VaoBienSo" || camKey == "Vao2")
-            {
-                int? laneId = GetLaneIdFromUiIndex(1);
-                if (laneId.HasValue && HasDynamicConfigForLane(laneId.Value))
-                    mappedKey = $"Lane_{laneId.Value}_BienSo";
-            }
-            else if (camKey == "RaToanCanh" || camKey == "Ra1")
-            {
-                int? laneId = GetLaneIdFromUiIndex(2);
-                if (laneId.HasValue && HasDynamicConfigForLane(laneId.Value))
-                    mappedKey = $"Lane_{laneId.Value}_ToanCanh";
-            }
-            else if (camKey == "RaBienSo" || camKey == "Ra2")
-            {
-                int? laneId = GetLaneIdFromUiIndex(2);
-                if (laneId.HasValue && HasDynamicConfigForLane(laneId.Value))
-                    mappedKey = $"Lane_{laneId.Value}_BienSo";
-            }
-
-            if (mappedKey != null && _cameraUrls.TryGetValue(mappedKey, out url))
-                return url;
-
-            string? fallbackKey = camKey switch
-            {
-                "VaoToanCanh" => "Vao1",
-                "VaoBienSo" => "Vao2",
-                "RaToanCanh" => "Ra1",
-                "RaBienSo" => "Ra2",
-                "Vao1" => "VaoToanCanh",
-                "Vao2" => "VaoBienSo",
-                "Ra1" => "RaToanCanh",
-                "Ra2" => "RaBienSo",
-                _ => null
-            };
-
-            if (fallbackKey != null && _cameraUrls.TryGetValue(fallbackKey, out url))
-                return url;
-
             return null;
         }
 

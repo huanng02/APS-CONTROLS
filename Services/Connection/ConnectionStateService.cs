@@ -35,6 +35,20 @@ namespace QuanLyGiuXe.Services.Connection
                 bool isCamera = resourceId.StartsWith("Camera_");
                 string displayName = GetDisplayName(resourceId);
 
+                // Do not show toast notifications for cameras (visual indicator on screen is sufficient)
+                if (isCamera)
+                {
+                    if (newState == ConnectionState.Connected)
+                    {
+                        _notifiedOffline[resourceId] = false;
+                    }
+                    else if (newState == ConnectionState.Failed || newState == ConnectionState.Disconnected)
+                    {
+                        _notifiedOffline[resourceId] = true;
+                    }
+                    return;
+                }
+
                 if (newState == ConnectionState.Connected)
                 {
                     // Show reconnected toast only if it was previously confirmed offline
@@ -55,14 +69,11 @@ namespace QuanLyGiuXe.Services.Connection
                 }
                 else if (newState == ConnectionState.Disconnected)
                 {
-                    // For Critical resources (DB/C3), we notify immediately on Disconnected
-                    if (!isCamera)
+                    // Notify immediately on Disconnected (both cameras and other resources)
+                    if (!_notifiedOffline.TryGetValue(resourceId, out var wasOffline) || !wasOffline)
                     {
-                        if (!_notifiedOffline.TryGetValue(resourceId, out var wasOffline) || !wasOffline)
-                        {
-                            ToastNotificationService.Instance.ShowToast($"Mất kết nối {displayName}! Đang thử kết nối lại...", ToastType.Error);
-                            _notifiedOffline[resourceId] = true;
-                        }
+                        ToastNotificationService.Instance.ShowToast($"Mất kết nối {displayName}! Đang thử kết nối lại...", ToastType.Error);
+                        _notifiedOffline[resourceId] = true;
                     }
                 }
             }
@@ -73,14 +84,7 @@ namespace QuanLyGiuXe.Services.Connection
             if (resourceId.StartsWith("Camera_"))
             {
                 string key = resourceId.Replace("Camera_", "");
-                switch (key)
-                {
-                    case "VaoToanCanh": return "Camera Toàn Cảnh Làn Vào";
-                    case "VaoBienSo": return "Camera Biển Số Làn Vào";
-                    case "RaToanCanh": return "Camera Toàn Cảnh Làn Ra";
-                    case "RaBienSo": return "Camera Biển Số Làn Ra";
-                    default: return $"Camera {key}";
-                }
+                return CameraService.Instance.GetCameraFriendlyName(key);
             }
             if (resourceId == "C3200" || resourceId == "C3200Controller" || resourceId == "C3200Resource") return "Bộ điều khiển C3-200";
             if (resourceId == "Database") return "Cơ sở dữ liệu (SQL)";

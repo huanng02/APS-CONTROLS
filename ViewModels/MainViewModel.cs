@@ -767,19 +767,6 @@ namespace QuanLyGiuXe.ViewModels
             set { _c3State = value; OnPropertyChanged(nameof(C3State)); }
         }
 
-        private Services.Connection.ConnectionState _camVaoState = Services.Connection.ConnectionState.Disconnected;
-        public Services.Connection.ConnectionState CamVaoState
-        {
-            get => _camVaoState;
-            set { _camVaoState = value; OnPropertyChanged(nameof(CamVaoState)); }
-        }
-
-        private Services.Connection.ConnectionState _camRaState = Services.Connection.ConnectionState.Disconnected;
-        public Services.Connection.ConnectionState CamRaState
-        {
-            get => _camRaState;
-            set { _camRaState = value; OnPropertyChanged(nameof(CamRaState)); }
-        }
 
         private bool _isDbConnected;
         public bool IsDbConnected
@@ -1234,14 +1221,6 @@ namespace QuanLyGiuXe.ViewModels
                                 Services.Connection.ConnectionState.Reconnecting => "C3-200 (Đang thử lại...)",
                                 _ => "C3-200 (Mất kết nối)"
                             };
-                            break;
-                        case "Camera_VaoToanCanh":
-                        case "Camera_VaoBienSo":
-                            // Cập nhật trạng thái cụm camera vào
-                            var s1 = svc.GetState("Camera_VaoToanCanh");
-                            var s2 = svc.GetState("Camera_VaoBienSo");
-                            CamVaoState = (s1 == Services.Connection.ConnectionState.Connected && s2 == Services.Connection.ConnectionState.Connected) 
-                                ? Services.Connection.ConnectionState.Connected : Services.Connection.ConnectionState.Disconnected;
                             break;
                     }
                 }));

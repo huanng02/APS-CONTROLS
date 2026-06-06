@@ -23,10 +23,33 @@ namespace QuanLyGiuXe.Services.Connection
 
         public void RegisterResource(IConnectionResource resource)
         {
-            if (!_resources.Any(r => r.ResourceId == resource.ResourceId))
+            lock (_resources)
             {
-                _resources.Add(resource);
-                _retryCounts[resource.ResourceId] = 0;
+                if (!_resources.Any(r => r.ResourceId == resource.ResourceId))
+                {
+                    _resources.Add(resource);
+                    _retryCounts[resource.ResourceId] = 0;
+                }
+            }
+        }
+
+        public void UpdateCameraResources(List<string> activeKeys, CameraService cameraService)
+        {
+            lock (_resources)
+            {
+                // Remove existing camera resources
+                _resources.RemoveAll(r => r.Type == ResourceType.Camera);
+
+                // Register new camera resources for the active keys currently running
+                foreach (var key in activeKeys)
+                {
+                    string resId = $"Camera_{key}";
+                    if (!_resources.Any(r => r.ResourceId == resId))
+                    {
+                        _resources.Add(new CameraResource(key, cameraService));
+                        _retryCounts[resId] = 0;
+                    }
+                }
             }
         }
 
@@ -57,7 +80,13 @@ namespace QuanLyGiuXe.Services.Connection
             {
                 try
                 {
-                    foreach (var resource in _resources)
+                    List<IConnectionResource> targets;
+                    lock (_resources)
+                    {
+                        targets = _resources.ToList();
+                    }
+
+                    foreach (var resource in targets)
                     {
                         await CheckAndReconnectResource(resource, _cts.Token);
                     }
@@ -82,7 +111,13 @@ namespace QuanLyGiuXe.Services.Connection
             {
                 try
                 {
-                    foreach (var resource in _resources)
+                    List<IConnectionResource> targets;
+                    lock (_resources)
+                    {
+                        targets = _resources.ToList();
+                    }
+
+                    foreach (var resource in targets)
                     {
                         if (token.IsCancellationRequested) break;
 
