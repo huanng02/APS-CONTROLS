@@ -745,56 +745,7 @@ namespace QuanLyGiuXe.ViewModels
             if (success)
             {
                 // Sync to config.json
-                try
-                {
-                    var cfg = AppConfig.Load();
-                    if (cfg.Cameras.LaneCameras == null)
-                    {
-                        cfg.Cameras.LaneCameras = new List<LaneCameraSetting>();
-                    }
-
-                    // Remove this camera's RTSP URL from any previous lane config first
-                    foreach (var lc in cfg.Cameras.LaneCameras)
-                    {
-                        if (lc.ToanCanh == entity.RtspUrl) lc.ToanCanh = "";
-                        if (lc.BienSo == entity.RtspUrl) lc.BienSo = "";
-                    }
-
-                    if (entity.LaneId.HasValue && entity.IsActive)
-                    {
-                        var laneSetting = cfg.Cameras.LaneCameras.FirstOrDefault(lc => lc.LaneId == entity.LaneId.Value);
-                        if (laneSetting == null)
-                        {
-                            laneSetting = new LaneCameraSetting { LaneId = entity.LaneId.Value };
-                            cfg.Cameras.LaneCameras.Add(laneSetting);
-                        }
-
-                        if (entity.Direction == "Overview")
-                        {
-                            laneSetting.ToanCanh = entity.RtspUrl;
-                        }
-                        else
-                        {
-                            laneSetting.BienSo = entity.RtspUrl;
-                        }
-
-                        // Also update legacy fallbacks if it maps to first In/Out lanes
-                        var firstIn = Lanes.FirstOrDefault(l => l.Direction?.ToUpper() == "IN");
-                        var firstOut = Lanes.FirstOrDefault(l => l.Direction?.ToUpper() == "OUT");
-                        if (firstIn != null && firstIn.Id == entity.LaneId.Value)
-                        {
-                            if (entity.Direction == "Overview") cfg.Cameras.VaoToanCanh = entity.RtspUrl;
-                            else cfg.Cameras.VaoBienSo = entity.RtspUrl;
-                        }
-                        else if (firstOut != null && firstOut.Id == entity.LaneId.Value)
-                        {
-                            if (entity.Direction == "Overview") cfg.Cameras.RaToanCanh = entity.RtspUrl;
-                            else cfg.Cameras.RaBienSo = entity.RtspUrl;
-                        }
-                    }
-                    cfg.Save();
-                }
-                catch { }
+                await SyncCamerasToConfigAsync();
 
                 // Manage stream state in CameraService
                 if (entity.IsActive)
@@ -844,24 +795,7 @@ namespace QuanLyGiuXe.ViewModels
                 if (deleted)
                 {
                     // Remove from config.json
-                    try
-                    {
-                        var cfg = AppConfig.Load();
-                        if (cfg.Cameras.LaneCameras != null)
-                        {
-                            foreach (var lc in cfg.Cameras.LaneCameras)
-                            {
-                                if (lc.ToanCanh == SelectedCamera.RtspUrl) lc.ToanCanh = "";
-                                if (lc.BienSo == SelectedCamera.RtspUrl) lc.BienSo = "";
-                            }
-                        }
-                        if (cfg.Cameras.VaoToanCanh == SelectedCamera.RtspUrl) cfg.Cameras.VaoToanCanh = "";
-                        if (cfg.Cameras.VaoBienSo == SelectedCamera.RtspUrl) cfg.Cameras.VaoBienSo = "";
-                        if (cfg.Cameras.RaToanCanh == SelectedCamera.RtspUrl) cfg.Cameras.RaToanCanh = "";
-                        if (cfg.Cameras.RaBienSo == SelectedCamera.RtspUrl) cfg.Cameras.RaBienSo = "";
-                        cfg.Save();
-                    }
-                    catch { }
+                    await SyncCamerasToConfigAsync();
 
                     // Stop streaming
                     CameraService.Instance.StopIpCamera(SelectedCamera.CameraKey);
@@ -874,6 +808,77 @@ namespace QuanLyGiuXe.ViewModels
                 {
                     MessageBox.Show("Lỗi khi xóa camera khỏi cơ sở dữ liệu.", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
+            }
+        }
+
+        private async Task SyncCamerasToConfigAsync()
+        {
+            try
+            {
+                var cfg = AppConfig.Load();
+                var dbCams = await CameraRepository.Instance.GetAllAsync();
+
+                if (cfg.Cameras.LaneCameras == null)
+                {
+                    cfg.Cameras.LaneCameras = new List<LaneCameraSetting>();
+                }
+                else
+                {
+                    cfg.Cameras.LaneCameras.Clear();
+                }
+
+                cfg.Cameras.VaoToanCanh = "";
+                cfg.Cameras.VaoBienSo = "";
+                cfg.Cameras.RaToanCanh = "";
+                cfg.Cameras.RaBienSo = "";
+
+                var activeCams = dbCams.Where(c => c.IsActive && c.LaneId.HasValue).ToList();
+                var dbLanes = ParkingTopologyService.Instance.GetLanes();
+
+                var firstIn = dbLanes.FirstOrDefault(l => l.Direction?.ToUpper() == "IN");
+                var firstOut = dbLanes.FirstOrDefault(l => l.Direction?.ToUpper() == "OUT");
+
+                foreach (var group in activeCams.GroupBy(c => c.LaneId!.Value))
+                {
+                    int laneId = group.Key;
+                    var laneSetting = new LaneCameraSetting { LaneId = laneId };
+
+                    foreach (var cam in group)
+                    {
+                        if (cam.Direction == "Overview")
+                        {
+                            laneSetting.ToanCanh = cam.RtspUrl;
+                        }
+                        else
+                        {
+                            laneSetting.BienSo = cam.RtspUrl;
+                        }
+
+                        // Legacy fallbacks for the first IN/OUT lanes
+                        if (firstIn != null && firstIn.Id == laneId)
+                        {
+                            if (cam.Direction == "Overview") cfg.Cameras.VaoToanCanh = cam.RtspUrl;
+                            else cfg.Cameras.VaoBienSo = cam.RtspUrl;
+                        }
+                        else if (firstOut != null && firstOut.Id == laneId)
+                        {
+                            if (cam.Direction == "Overview") cfg.Cameras.RaToanCanh = cam.RtspUrl;
+                            else cfg.Cameras.RaBienSo = cam.RtspUrl;
+                        }
+                    }
+
+                    cfg.Cameras.LaneCameras.Add(laneSetting);
+                }
+
+                cfg.Save();
+            }
+            catch (Exception ex)
+            {
+                try
+                {
+                    LoggingService.Instance.LogError("SyncCamerasToConfig", "CameraManagementViewModel", "Lỗi đồng bộ cấu hình camera vào config.json", ex);
+                }
+                catch { }
             }
         }
     }

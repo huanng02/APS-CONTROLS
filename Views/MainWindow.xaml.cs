@@ -666,6 +666,7 @@ namespace QuanLyGiuXe
 
         private void MoCameras()
         {
+            AppConfig.ClearCache();
             var cfg = AppConfig.Load().Cameras;
             _cameraService.Initialize();
 
@@ -735,6 +736,7 @@ namespace QuanLyGiuXe
         {
             try
             {
+                AppConfig.ClearCache();
                 var cfg = AppConfig.Load().Cameras;
                 
                 // Stop all cameras first
