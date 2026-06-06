@@ -1227,6 +1227,7 @@ namespace QuanLyGiuXe.ViewModels
             };
 
             reconnectService.Start();
+            Services.Connection.CameraDiagnosticsService.Instance.Start();
         }
 
         // ── Connection Monitor handler ─────────────────────────────────────────

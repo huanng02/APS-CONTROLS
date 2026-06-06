@@ -17,6 +17,7 @@ namespace QuanLyGiuXe
         {
             try
             {
+                System.Environment.SetEnvironmentVariable("OPENCV_FFMPEG_CAPTURE_OPTIONS", "rtsp_transport;tcp|fflags;nobuffer|flags;low_delay");
                 base.OnStartup(e);
                 this.ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
@@ -75,7 +76,8 @@ namespace QuanLyGiuXe
         private void SafeShutdown(string reason)
         {
             LoggingService.Instance.LogInfo("App", "App", $"SAFE SHUTDOWN REQUESTED: {reason}");
-            this.Shutdown();
+            try { this.Shutdown(); } catch { }
+            Environment.Exit(0);
         }
 
         public void PerformLogout()
@@ -98,7 +100,10 @@ namespace QuanLyGiuXe
                     ConnectionMonitorService.Instance.Stop();
                     ConnectivityStateService.Instance.Stop();
                     QuanLyGiuXe.Services.Connection.AutoReconnectService.Instance.Stop();
+                    QuanLyGiuXe.Services.Connection.CameraDiagnosticsService.Instance.Stop();
                     QuanLyGiuXe.Services.OfflineCache.AutoSyncService.Instance.Stop();
+                    C3200Service.Instance.Disconnect();
+                    RFIDService.Instance.Stop();
                 });
 
                 // 3. Close ALL open windows (including Toasts/Notifications)
@@ -224,17 +229,28 @@ namespace QuanLyGiuXe
                 ConnectionMonitorService.Instance.Stop();
                 ConnectivityStateService.Instance.Stop();
                 QuanLyGiuXe.Services.Connection.AutoReconnectService.Instance.Stop();
+                QuanLyGiuXe.Services.Connection.CameraDiagnosticsService.Instance.Stop();
                 QuanLyGiuXe.Services.OfflineCache.AutoSyncService.Instance.Stop();
                 QuanLyGiuXe.Services.Backup.BackupScheduler.Instance.Stop();
                 QuanLyGiuXe.Services.OfflineCache.SessionHealthMonitor.Instance.Stop();
+                
+                // Giải phóng các luồng kết nối phần cứng
+                C3200Service.Instance.Disconnect();
+                RFIDService.Instance.Stop();
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error stopping background services: {ex.Message}");
             }
             
-            LoggingService.Instance.Shutdown();
+            try
+            {
+                LoggingService.Instance.Shutdown();
+            }
+            catch { }
+            
             base.OnExit(e);
+            Environment.Exit(e.ApplicationExitCode);
         }
     }
 

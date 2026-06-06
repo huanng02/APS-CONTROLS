@@ -10,6 +10,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using System.Windows.Input;
+using OpenCvSharp;
 using QuanLyGiuXe.Models;
 using QuanLyGiuXe.Services;
 using QuanLyGiuXe.ViewModels;
@@ -27,7 +28,8 @@ namespace QuanLyGiuXe
         private readonly Dictionary<string, DateTime> _lastScanByUid = new();
 
         private CameraService _cameraService = new CameraService();
-        private Dictionary<string, Bitmap> _currentFrames = new();
+        private readonly Dictionary<string, WriteableBitmap> _writeableBitmaps = new();
+        private ParkingView? _parkingViewCache = null;
         private bool _isProcessingAuto = false;
         private DateTime _lastAutoScanTime = DateTime.MinValue;
         private readonly GateControlService _gateControlService = new GateControlService();
@@ -42,6 +44,17 @@ namespace QuanLyGiuXe
             DataContext = _mainViewModel;
 
             this.Loaded += MainWindow_Loaded;
+
+            // Cấu hình GC Timer chạy mỗi 2 giây để giải phóng các bộ đệm ảnh dư thừa trên LOH/Gen2 một cách bất đồng bộ (giảm RAM tối đa, không block UI)
+            var gcTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(2)
+            };
+            gcTimer.Tick += (s, e) =>
+            {
+                GC.Collect(2, GCCollectionMode.Optimized, false, false);
+            };
+            gcTimer.Start();
             
             // Register standard Handlers with centralized RFID Event Router
             var vehicleAccessHandler = new VehicleAccessHandler();
@@ -286,8 +299,19 @@ namespace QuanLyGiuXe
 
             if (isButton)
             {
-                // Đẩy sang Service xử lý ngầm, không làm treo UI
-                Task.Run(() => _gateControlService.ProcessGateActionAsync(evt.Door, _currentFrames, "BUTTON_PRESS"));
+                // Đẩy sang Service xử lý ngầm, tạo snapshot camera và giải phóng sau khi xong để không treo/rò rỉ RAM
+                var snapshot = GetCurrentFramesSnapshot();
+                Task.Run(async () =>
+                {
+                    try
+                    {
+                        await _gateControlService.ProcessGateActionAsync(evt.Door, snapshot, "BUTTON_PRESS");
+                    }
+                    finally
+                    {
+                        foreach (var bmp in snapshot.Values) bmp.Dispose();
+                    }
+                });
             }
         }
 
@@ -362,26 +386,33 @@ namespace QuanLyGiuXe
 
                             var (cam1, cam2) = GetCameraKeysForLane(lane.Id, lane.Direction);
 
-                            lock (_currentFrames)
+                            using (var mat1 = _cameraService.GetLatestFrame(cam1))
                             {
-                                if (_currentFrames.TryGetValue(cam1, out var bmp1))
+                                if (mat1 != null && !mat1.Empty())
                                 {
-                                    var img1 = ConvertBitmap((System.Drawing.Bitmap)bmp1.Clone());
-
-                                    Dispatcher.BeginInvoke(new Action(() =>
+                                    using (var bmp1 = OpenCvSharp.Extensions.BitmapConverter.ToBitmap(mat1))
                                     {
-                                        vm.UpdateLaneSnapshot(uiLaneIndex, 1, img1);
-                                    }));
+                                        var img1 = ConvertBitmap(bmp1);
+                                        Dispatcher.BeginInvoke(new Action(() =>
+                                        {
+                                            vm.UpdateLaneSnapshot(uiLaneIndex, 1, img1);
+                                        }));
+                                    }
                                 }
+                            }
 
-                                if (_currentFrames.TryGetValue(cam2, out var bmp2))
+                            using (var mat2 = _cameraService.GetLatestFrame(cam2))
+                            {
+                                if (mat2 != null && !mat2.Empty())
                                 {
-                                    var img2 = ConvertBitmap((System.Drawing.Bitmap)bmp2.Clone());
-
-                                    Dispatcher.BeginInvoke(new Action(() =>
+                                    using (var bmp2 = OpenCvSharp.Extensions.BitmapConverter.ToBitmap(mat2))
                                     {
-                                        vm.UpdateLaneSnapshot(uiLaneIndex, 2, img2);
-                                    }));
+                                        var img2 = ConvertBitmap(bmp2);
+                                        Dispatcher.BeginInvoke(new Action(() =>
+                                        {
+                                            vm.UpdateLaneSnapshot(uiLaneIndex, 2, img2);
+                                        }));
+                                    }
                                 }
                             }
                         }
@@ -507,8 +538,16 @@ namespace QuanLyGiuXe
                 return; // Operator cancelled
             }
 
-            // Gọi Service xử lý trọn gói: Chụp ảnh -> Mở cổng -> Ghi Log
-            await _gateControlService.ProcessGateActionAsync(doorNumber, _currentFrames, "MANUAL_OPEN", reason);
+            // Gọi Service xử lý trọn gói: Chụp ảnh -> Mở cổng -> Ghi Log (tạo snapshot và giải phóng ảnh sau khi dọn dẹp để giảm RAM)
+            var snapshot = GetCurrentFramesSnapshot();
+            try
+            {
+                await _gateControlService.ProcessGateActionAsync(doorNumber, snapshot, "MANUAL_OPEN", reason);
+            }
+            finally
+            {
+                foreach (var bmp in snapshot.Values) bmp.Dispose();
+            }
 
             // (Tùy chọn) Cập nhật trạng thái lên UI để người dùng biết
             if (DataContext is MainViewModel vm)
@@ -631,44 +670,14 @@ namespace QuanLyGiuXe
             _cameraService.Initialize();
 
             // Đăng ký sự kiện xử lý ảnh
-            _cameraService.NewFrameReceived += (s, data) =>
+            _cameraService.NewMatFrameReceived += (s, data) =>
             {
-                Bitmap bmpForUI = null;
-                lock (data.Frame)
-                {
-                    bmpForUI = data.Frame.Clone(new Rectangle(0, 0, data.Frame.Width, data.Frame.Height),
-                                     System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
-                }
-
                 string uiCamKey = MapCameraKeyToUi(data.CamKey);
 
-                lock (_currentFrames)
+                // 3. Cập nhật ảnh lên giao diện thông qua WriteableBitmap (giảm cấp phát LOH)
+                if (uiCamKey != null)
                 {
-                    if (_currentFrames.TryGetValue(data.CamKey, out var old)) old.Dispose();
-                    _currentFrames[data.CamKey] = (Bitmap)bmpForUI.Clone();
-                    
-                    if (uiCamKey != null && uiCamKey != data.CamKey)
-                    {
-                        if (_currentFrames.TryGetValue(uiCamKey, out var oldUi)) oldUi.Dispose();
-                        _currentFrames[uiCamKey] = (Bitmap)bmpForUI.Clone();
-                    }
-                }
-
-                // 3. Chuyển đổi ảnh (vẫn ở luồng phụ của Camera)
-                var uiImage = ConvertBitmap(bmpForUI);
-                bmpForUI.Dispose(); // Dùng xong bản cho UI thì hủy ngay
-
-                // 4. Chỉ đẩy kết quả cuối cùng lên màn hình
-                if (uiImage != null && uiCamKey != null)
-                {
-                    Dispatcher.BeginInvoke(new Action(() =>
-                    {
-                        var parkingView = FindVisualChild<ParkingView>(MainContentHost);
-                        if (parkingView != null)
-                        {
-                            parkingView.UpdateCamera(uiCamKey, uiImage);
-                        }
-                    }));
+                    UpdateCameraFrame(uiCamKey, data.Frame);
                 }
                 
                 // Plate recognition on the active inbound lane's plate camera
@@ -778,6 +787,7 @@ namespace QuanLyGiuXe
                 }
 
                 Services.Connection.AutoReconnectService.Instance.UpdateCameraResources(activeKeys, _cameraService);
+                Services.Connection.CameraDiagnosticsService.Instance.TrimMemory();
             }
             catch (Exception ex)
             {
@@ -785,7 +795,7 @@ namespace QuanLyGiuXe
             }
         }
 
-        private async void RunAutoDetection(Bitmap originalBitmap, int uiLaneIndex)
+        private async void RunAutoDetection(Mat originalMat, int uiLaneIndex)
         {
             if (_isProcessingAuto) return;
 
@@ -796,13 +806,9 @@ namespace QuanLyGiuXe
             try
             {
                 Bitmap bmpToProcess = null;
-                lock (originalBitmap)
+                lock (originalMat)
                 {
-                    bmpToProcess = new Bitmap(originalBitmap.Width, originalBitmap.Height);
-                    using (Graphics g = Graphics.FromImage(bmpToProcess))
-                    {
-                        g.DrawImage(originalBitmap, 0, 0);
-                    }
+                    bmpToProcess = OpenCvSharp.Extensions.BitmapConverter.ToBitmap(originalMat);
                 }
 
                 // 1. Gửi ảnh lên server lấy biển số
@@ -843,6 +849,93 @@ namespace QuanLyGiuXe
             finally
             {
                 _isProcessingAuto = false;
+            }
+        }
+
+        private Dictionary<string, Bitmap> GetCurrentFramesSnapshot()
+        {
+            var snapshot = new Dictionary<string, Bitmap>();
+            foreach (var key in new[] { "Vao1", "Vao2", "Ra1", "Ra2" })
+            {
+                using (var mat = _cameraService.GetLatestFrame(key))
+                {
+                    if (mat != null && !mat.Empty())
+                    {
+                        snapshot[key] = OpenCvSharp.Extensions.BitmapConverter.ToBitmap(mat);
+                    }
+                }
+            }
+            return snapshot;
+        }
+
+        private ParkingView? GetParkingView()
+        {
+            if (_parkingViewCache != null && _parkingViewCache.IsLoaded)
+            {
+                return _parkingViewCache;
+            }
+            _parkingViewCache = FindVisualChild<ParkingView>(MainContentHost);
+            return _parkingViewCache;
+        }
+
+        private void UpdateCameraFrame(string uiCamKey, Mat mat)
+        {
+            if (string.IsNullOrEmpty(uiCamKey) || mat == null || mat.Empty()) return;
+
+            int width = mat.Width;
+            int height = mat.Height;
+            PixelFormat wpfFormat;
+            int channels = mat.Channels();
+            switch (channels)
+            {
+                case 1:
+                    wpfFormat = PixelFormats.Gray8;
+                    break;
+                case 3:
+                    wpfFormat = PixelFormats.Bgr24;
+                    break;
+                case 4:
+                    wpfFormat = PixelFormats.Bgr32;
+                    break;
+                default:
+                    wpfFormat = PixelFormats.Bgr24;
+                    break;
+            }
+
+            try
+            {
+                int stride = (int)mat.Step();
+                int bufferSize = stride * height;
+                IntPtr scan0 = mat.Data;
+
+                Dispatcher.Invoke(() =>
+                {
+                    try
+                    {
+                        var parkingView = GetParkingView();
+                        if (parkingView == null) return;
+
+                        if (!_writeableBitmaps.TryGetValue(uiCamKey, out var wBmp) ||
+                            wBmp.PixelWidth != width ||
+                            wBmp.PixelHeight != height ||
+                            wBmp.Format != wpfFormat)
+                        {
+                            wBmp = new WriteableBitmap(width, height, 96, 96, wpfFormat, null);
+                            _writeableBitmaps[uiCamKey] = wBmp;
+                            parkingView.UpdateCamera(uiCamKey, wBmp);
+                        }
+
+                        wBmp.WritePixels(new Int32Rect(0, 0, width, height), scan0, bufferSize, stride);
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Lỗi cập nhật WriteableBitmap từ Mat: {ex.Message}");
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Lỗi trong UpdateCameraFrame: {ex.Message}");
             }
         }
 
@@ -900,63 +993,69 @@ namespace QuanLyGiuXe
         }
 
         private async void Capture_Click(object sender, RoutedEventArgs e)
-        {
+                {
             try
             {
                 string targetCamKey = GetActiveInboundPlateCameraKey();
-                if (_currentFrames.TryGetValue(targetCamKey, out var bitmapToProcess) && bitmapToProcess != null)
+                using (var mat = _cameraService.GetLatestFrame(targetCamKey))
                 {
-                    // BƯỚC 1: TẠO DEEP COPY (Quan trọng nhất cho x64)
-                    // Việc tạo mới Bitmap(width, height) này đảm bảo tách rời hoàn toàn khỏi Camera
-                    Bitmap finalBitmap = new Bitmap(bitmapToProcess.Width, bitmapToProcess.Height);
-                    using (Graphics g = Graphics.FromImage(finalBitmap))
+                    if (mat != null && !mat.Empty())
                     {
-                        g.DrawImage(bitmapToProcess, 0, 0);
-                    }
-
-                    // BƯỚC 2: GỌI API (Vẫn dùng await)
-                    // Trong lúc API chạy, finalBitmap này sẽ an toàn, không bị camera ghi đè
-                    string plate = await ApiService.SendImageAsync(finalBitmap);
-
-                    // BƯỚC 3: CẬP NHẬT GIAO DIỆN
-                    if (DataContext is MainViewModel vm)
-                    {
-                        // Dùng Dispatcher để đảm bảo UI nhận được giá trị mới ngay lập tức
-                        this.Dispatcher.BeginInvoke(new Action(() =>
+                        using (var bitmapToProcess = OpenCvSharp.Extensions.BitmapConverter.ToBitmap(mat))
                         {
-                            string formattedPlate = plate?.Trim()?.ToUpper() ?? "";
-                            vm.BienSoNhap = formattedPlate;
-
-                            // Determine which UI lane is inbound to trigger command and update snapshots
-                            int? dbLaneId1 = vm.GetDbLaneIdForUiIndex(1);
-                            var lane1 = dbLaneId1.HasValue ? ParkingTopologyService.Instance.GetLanes().FirstOrDefault(l => l.Id == dbLaneId1.Value) : null;
-                            if (lane1 != null && lane1.Direction?.ToUpper() == "IN")
+                            // BƯỚC 1: TẠO DEEP COPY (Quan trọng nhất cho x64)
+                            // Việc tạo mới Bitmap(width, height) này đảm bảo tách rời hoàn toàn khỏi Camera
+                            Bitmap finalBitmap = new Bitmap(bitmapToProcess.Width, bitmapToProcess.Height);
+                            using (Graphics g = Graphics.FromImage(finalBitmap))
                             {
-                                vm.Lane1BienSo = formattedPlate;
+                                g.DrawImage(bitmapToProcess, 0, 0);
                             }
-                            else
+
+                            // BƯỚC 2: GỌI API (Vẫn dùng await)
+                            // Trong lúc API chạy, finalBitmap này sẽ an toàn, không bị camera ghi đè
+                            string plate = await ApiService.SendImageAsync(finalBitmap);
+
+                            // BƯỚC 3: CẬP NHẬT GIAO DIỆN
+                            if (DataContext is MainViewModel vm)
                             {
-                                int? dbLaneId2 = vm.GetDbLaneIdForUiIndex(2);
-                                var lane2 = dbLaneId2.HasValue ? ParkingTopologyService.Instance.GetLanes().FirstOrDefault(l => l.Id == dbLaneId2.Value) : null;
-                                if (lane2 != null && lane2.Direction?.ToUpper() == "IN")
+                                // Dùng Dispatcher để đảm bảo UI nhận được giá trị mới ngay lập tức 
+                                this.Dispatcher.BeginInvoke(new Action(() =>
                                 {
-                                    vm.Lane2BienSo = formattedPlate;
-                                }
+                                    string formattedPlate = plate?.Trim()?.ToUpper() ?? "";
+                                    vm.BienSoNhap = formattedPlate;
+
+                                    // Determine which UI lane is inbound to trigger command and update snapshots
+                                    int? dbLaneId1 = vm.GetDbLaneIdForUiIndex(1);
+                                    var lane1 = dbLaneId1.HasValue ? ParkingTopologyService.Instance.GetLanes().FirstOrDefault(l => l.Id == dbLaneId1.Value) : null;
+                                    if (lane1 != null && lane1.Direction?.ToUpper() == "IN")
+                                    {
+                                        vm.Lane1BienSo = formattedPlate;
+                                    }
+                                    else
+                                    {
+                                        int? dbLaneId2 = vm.GetDbLaneIdForUiIndex(2);
+                                        var lane2 = dbLaneId2.HasValue ? ParkingTopologyService.Instance.GetLanes().FirstOrDefault(l => l.Id == dbLaneId2.Value) : null;
+                                        if (lane2 != null && lane2.Direction?.ToUpper() == "IN")
+                                        {
+                                            vm.Lane2BienSo = formattedPlate;
+                                        }
+                                    }
+
+                                    if (vm.XeVaoCommand.CanExecute(null))
+                                    {
+                                        vm.XeVaoCommand.Execute(null);
+                                    }
+                                }));
                             }
 
-                            if (vm.XeVaoCommand.CanExecute(null))
-                            {
-                                vm.XeVaoCommand.Execute(null);
-                            }
-                        }));
+                            // Giải phóng ảnh tạm sau khi đã gửi xong
+                            finalBitmap.Dispose();
+                        }
                     }
-
-                    // Giải phóng ảnh tạm sau khi đã gửi xong
-                    finalBitmap.Dispose();
-                }
-                else
-                {
-                    MessageBox.Show($"Không tìm thấy dữ liệu hình ảnh từ Camera {targetCamKey}!");
+                    else
+                    {
+                        MessageBox.Show($"Không tìm thấy dữ liệu hình ảnh từ Camera {targetCamKey}!");
+                    }
                 }
             }
             catch (Exception ex)

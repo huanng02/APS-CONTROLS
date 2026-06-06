@@ -20,7 +20,9 @@
     "VaoToanCanh": "",
     "VaoBienSo": "",
     "RaToanCanh": "",
-    "RaBienSo": ""
+    "RaBienSo": "",
+    "MaxRenderFps": 10,
+    "TargetResolution": "480x360"
   },
   "Backup": {
     "AutoBackupEnabled": true,

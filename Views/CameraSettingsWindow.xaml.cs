@@ -35,7 +35,7 @@ namespace QuanLyGiuXe.Views
             DataContext = _viewModel;
 
             // Subscribe to live frame events from background streams
-            CameraService.Instance.NewFrameReceived += OnCameraNewFrameReceived;
+            CameraService.Instance.NewMatFrameReceived += OnCameraNewFrameReceived;
 
             // Trigger preview state reload on selected camera changes
             _viewModel.PropertyChanged += (s, e) =>
@@ -52,7 +52,7 @@ namespace QuanLyGiuXe.Views
             Closed += (s, e) =>
             {
                 // Clean up streaming event handlers and cancel test/preview threads
-                CameraService.Instance.NewFrameReceived -= OnCameraNewFrameReceived;
+                CameraService.Instance.NewMatFrameReceived -= OnCameraNewFrameReceived;
                 StopConnectionTest();
                 StopAutoPreview();
 
@@ -69,7 +69,7 @@ namespace QuanLyGiuXe.Views
             };
         }
 
-        private void OnCameraNewFrameReceived(object? sender, (string CamKey, Bitmap Frame) data)
+        private void OnCameraNewFrameReceived(object? sender, (string CamKey, Mat Frame) data)
         {
             if (_isTestingConnection) return;
 
@@ -91,7 +91,7 @@ namespace QuanLyGiuXe.Views
                 Bitmap bmpClone;
                 lock (data.Frame)
                 {
-                    bmpClone = (Bitmap)data.Frame.Clone();
+                    bmpClone = OpenCvSharp.Extensions.BitmapConverter.ToBitmap(data.Frame);
                 }
 
                 Dispatcher.BeginInvoke(new Action(() =>

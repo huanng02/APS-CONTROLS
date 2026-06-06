@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO.Ports;
 
 namespace QuanLyGiuXe.Services
@@ -64,6 +64,27 @@ namespace QuanLyGiuXe.Services
                    .ToArray())
                    .ToUpper();
         }
-        
+
+        public void Stop()
+        {
+            try
+            {
+                if (port != null)
+                {
+                    if (port.IsOpen)
+                    {
+                        port.DataReceived -= Port_DataReceived;
+                        port.Close();
+                    }
+                    port.Dispose();
+                    port = null;
+                }
+                Console.WriteLine("⏹️ RFID Stopped");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("❌ Error stopping RFID: " + ex.Message);
+            }
+        }
     }
 }

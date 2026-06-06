@@ -155,6 +155,8 @@ namespace QuanLyGiuXe.Services
         public string RaToanCanh { get; set; } = "";
         public string RaBienSo { get; set; } = "";
         public System.Collections.Generic.List<LaneCameraSetting> LaneCameras { get; set; } = new();
+        public int MaxRenderFps { get; set; } = 10;
+        public string TargetResolution { get; set; } = "480x360";
     }
 
     public sealed class LaneCameraSetting
