@@ -1670,11 +1670,11 @@ namespace QuanLyGiuXe.Services
             _ = LuuLichSuAsync(bienSo, vao, ra, tien, anhXe, cardUid, siteId, zoneId, entryLaneId, exitLaneId);
         }
 
-        public async Task<bool> LuuLichSuAsync(string bienSo, DateTime vao, DateTime ra, double tien, string anhXe, string cardUid = null, int? siteId = null, int? zoneId = null, int? entryLaneId = null, int? exitLaneId = null)
+        public async Task<bool> LuuLichSuAsync(string bienSo, DateTime vao, DateTime ra, double tien, string anhXe, string cardUid = null, int? siteId = null, int? zoneId = null, int? entryLaneId = null, int? exitLaneId = null, string anhVao = null)
         {
             return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
                 "INSERT_LICH_SU",
-                new { BienSo = bienSo, Vao = vao, Ra = ra, Tien = tien, AnhXe = anhXe, CardUid = cardUid, SiteId = siteId, ZoneId = zoneId, EntryLaneId = entryLaneId, ExitLaneId = exitLaneId },
+                new { BienSo = bienSo, Vao = vao, Ra = ra, Tien = tien, AnhXe = anhXe, AnhVao = anhVao, CardUid = cardUid, SiteId = siteId, ZoneId = zoneId, EntryLaneId = entryLaneId, ExitLaneId = exitLaneId },
                 async conn =>
                 {
                     int? cardId = null;
@@ -1696,14 +1696,15 @@ namespace QuanLyGiuXe.Services
                             if (v != null && v != DBNull.Value) cardId = Convert.ToInt32(v);
                         }
                     }
-                    using (SqlCommand cmd = new SqlCommand( @"INSERT INTO LichSuXe (CardId, BienSo, ThoiGianVao, ThoiGianRa, Tien, AnhRa, SiteId, ZoneId, EntryLaneId, ExitLaneId) VALUES (@cardId, @bs, @vao, @ra, @tien, @anh, @siteId, @zoneId, @entryLane, @exitLane)", conn))
+                    using (SqlCommand cmd = new SqlCommand( @"INSERT INTO LichSuXe (CardId, BienSo, ThoiGianVao, ThoiGianRa, Tien, AnhVao, AnhRa, SiteId, ZoneId, EntryLaneId, ExitLaneId) VALUES (@cardId, @bs, @vao, @ra, @tien, @anhVao, @anhRa, @siteId, @zoneId, @entryLane, @exitLane)", conn))
                     {
                         cmd.Parameters.AddWithValue("@cardId", (object?)cardId ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("@bs", string.IsNullOrEmpty(bienSo) ? (object?)DBNull.Value : bienSo);
                         cmd.Parameters.AddWithValue("@vao", vao);
                         cmd.Parameters.AddWithValue("@ra", ra);
                         cmd.Parameters.AddWithValue("@tien", tien);
-                        cmd.Parameters.AddWithValue("@anh", (object?)anhXe ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@anhVao", (object?)anhVao ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@anhRa", (object?)anhXe ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("@siteId", (object?)siteId ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("@zoneId", (object?)zoneId ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("@entryLane", (object?)entryLaneId ?? DBNull.Value);

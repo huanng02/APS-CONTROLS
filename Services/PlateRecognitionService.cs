@@ -8,6 +8,18 @@ using OpenCvSharp;
 
 namespace QuanLyGiuXe.Services
 {
+    /// <summary>
+    /// Kết quả nhận diện biển số từ LPR server.
+    /// </summary>
+    public class LprResult
+    {
+        /// <summary>Biển số nhận diện được (chuỗi rỗng nếu không nhận được).</summary>
+        public string Plate { get; set; } = string.Empty;
+
+        /// <summary>Ảnh vùng biển số đã cắt (ROI) từ server, dạng JPEG bytes. Null nếu không detect.</summary>
+        public byte[]? PlateCropBytes { get; set; }
+    }
+
     public class PlateRecognitionService
     {
         private static readonly Lazy<PlateRecognitionService> _instance = new(() => new PlateRecognitionService());
@@ -19,10 +31,9 @@ namespace QuanLyGiuXe.Services
             PooledConnectionLifetime = TimeSpan.FromMinutes(5),
             PooledConnectionIdleTimeout = TimeSpan.FromMinutes(2),
             MaxConnectionsPerServer = 4,
-            EnableMultipleHttp2Connections = false,
         })
         {
-            Timeout = TimeSpan.FromSeconds(3) // Fail fast – don't block RFID flow
+            Timeout = TimeSpan.FromSeconds(3)
         };
 
         // JPEG encode params: quality 75 → ~3x smaller than default 95, still readable for LPR
@@ -34,14 +45,19 @@ namespace QuanLyGiuXe.Services
 
         private const string LprEndpoint = "http://localhost:5000/process_plate";
 
-        public async Task<string> RecognizePlateAsync(Mat frame, CancellationToken ct = default)
+        /// <summary>
+        /// Nhận diện biển số từ frame camera.
+        /// Trả về LprResult gồm biển số và ảnh crop (nếu có).
+        /// </summary>
+        public async Task<LprResult> RecognizePlateAsync(Mat frame, CancellationToken ct = default)
         {
+            var result = new LprResult();
+
             if (frame == null || frame.Empty())
-                return string.Empty;
+                return result;
 
             try
             {
-                // Encode Mat to JPEG with optimized quality (non-blocking)
                 byte[] jpegBytes = await Task.Run(() =>
                 {
                     Cv2.ImEncode(".jpg", frame, out var buf, _jpegParams);
@@ -49,7 +65,7 @@ namespace QuanLyGiuXe.Services
                 }, ct);
 
                 if (jpegBytes == null || jpegBytes.Length == 0)
-                    return string.Empty;
+                    return result;
 
                 using var content = new MultipartFormDataContent();
                 using var imageContent = new ByteArrayContent(jpegBytes);
@@ -57,38 +73,44 @@ namespace QuanLyGiuXe.Services
                 content.Add(imageContent, "image", "plate.jpg");
 
                 using var response = await _client.PostAsync(LprEndpoint, content, ct);
-
                 if (!response.IsSuccessStatusCode)
-                    return string.Empty;
+                    return result;
 
                 var responseString = await response.Content.ReadAsStringAsync(ct);
-                var result = JsonConvert.DeserializeObject<PlateRecognitionResult>(responseString);
+                var json = JsonConvert.DeserializeObject<PlateRecognitionResponse>(responseString);
 
-                if (result?.Status == "success" && result.Results?.Count > 0)
+                if (json?.Status == "success" && json.Results?.Count > 0)
                 {
-                    return result.Results[0].Plate ?? string.Empty;
+                    result.Plate = json.Results[0].Plate ?? string.Empty;
+                }
+
+                // Parse crop image base64 nếu server trả về
+                if (!string.IsNullOrEmpty(json?.PlateCropB64))
+                {
+                    try { result.PlateCropBytes = Convert.FromBase64String(json.PlateCropB64); }
+                    catch { /* ignore decode error */ }
                 }
             }
-            catch (OperationCanceledException)
-            {
-                // Timed out or cancelled – normal flow, don't log as error
-            }
+            catch (OperationCanceledException) { }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"❌ [PlateRecognitionService] LPR failed: {ex.Message}");
             }
 
-            return string.Empty;
+            return result;
         }
     }
 
-    public class PlateRecognitionResult
+    public class PlateRecognitionResponse
     {
         [JsonProperty("status")]
         public string Status { get; set; }
 
         [JsonProperty("results")]
         public List<PlateInfo> Results { get; set; }
+
+        [JsonProperty("plate_crop_b64")]
+        public string PlateCropB64 { get; set; }
     }
 
     public class PlateInfo

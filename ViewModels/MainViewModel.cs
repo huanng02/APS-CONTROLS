@@ -1423,6 +1423,11 @@ namespace QuanLyGiuXe.ViewModels
                 return;
             }
 
+            string recognizedPlate = string.Empty;
+            byte[]? plateCropBytes = null;
+            Mat? plateRawFrame = null;
+            Mat? fullFrame = null;
+
             try
             {
                 LoggingService.Instance.LogInfo("ProcessAction", "MainViewModel", $"UI_Lane={uiLaneIndex} DB_Lane={dbLaneId} In={isInbound} UID={uid}");
@@ -1469,17 +1474,16 @@ namespace QuanLyGiuXe.ViewModels
 
                 // ─── LICENSE PLATE RECOGNITION (LPR) ───
                 // Only runs after card is verified as registered.
-                string recognizedPlate = string.Empty;
                 string lprCamKey = GetLicensePlateCameraKey(dbLaneId, laneConfig.Direction);
                 
                 try
                 {
-                    using (var mat = CameraService.Instance.GetLatestFrame(lprCamKey))
+                    plateRawFrame = CameraService.Instance.GetLatestFrame(lprCamKey);
+                    if (plateRawFrame != null && !plateRawFrame.Empty())
                     {
-                        if (mat != null && !mat.Empty())
-                        {
-                            recognizedPlate = await PlateRecognitionService.Instance.RecognizePlateAsync(mat);
-                        }
+                        var lprResult = await PlateRecognitionService.Instance.RecognizePlateAsync(plateRawFrame);
+                        recognizedPlate = lprResult.Plate;
+                        plateCropBytes = lprResult.PlateCropBytes;
                     }
                 }
                 catch (Exception lprEx)
@@ -1585,14 +1589,22 @@ namespace QuanLyGiuXe.ViewModels
                     }
                 }
 
+                // Capture full overview frame for image saving
+                string overviewCamKey = laneConfig.Direction?.ToUpper() == "OUT" ? "Ra1" : "Vao1";
+                var lc2 = AppConfig.Load().Cameras?.LaneCameras?.FirstOrDefault(c => c.LaneId == dbLaneId);
+                if (lc2 != null && !string.IsNullOrEmpty(lc2.ToanCanh)) overviewCamKey = $"Lane_{dbLaneId}_ToanCanh";
+                fullFrame = CameraService.Instance.GetLatestFrame(overviewCamKey);
+
                 if (isInbound)
                 {
-                    bool success = await ProcessInboundAsync(uiLaneIndex, card, uid, siteId, zoneId, laneId, recognizedPlate);
+                    bool success = await ProcessInboundAsync(uiLaneIndex, card, uid, siteId, zoneId, laneId,
+                        recognizedPlate, plateCropBytes, fullFrame, plateRawFrame);
                     if (!success) LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
                 }
                 else
                 {
-                    bool success = await ProcessOutboundAsync(uiLaneIndex, card, uid, siteId, zoneId, laneId, recognizedPlate);
+                    bool success = await ProcessOutboundAsync(uiLaneIndex, card, uid, siteId, zoneId, laneId,
+                        recognizedPlate, plateCropBytes, fullFrame, plateRawFrame);
                     if (!success) LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
                 }
 
@@ -1611,9 +1623,20 @@ namespace QuanLyGiuXe.ViewModels
                 LoggingService.Instance.LogError("ProcessActionError", "MainViewModel", $"DB_Lane={dbLaneId}", ex);
                 LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
             }
+            finally
+            {
+                fullFrame?.Dispose();
+                plateRawFrame?.Dispose();
+            }
         }
 
-        private async Task<bool> ProcessInboundAsync(int uiLaneIndex, RFIDCard card, string uid, int? siteId, int? zoneId, int? laneId, string recognizedPlate)
+        private async Task<bool> ProcessInboundAsync(
+            int uiLaneIndex, RFIDCard card, string uid,
+            int? siteId, int? zoneId, int? laneId,
+            string recognizedPlate,
+            byte[]? plateCropBytes = null,
+            Mat? fullFrame = null,
+            Mat? plateRawFrame = null)
         {
             var existingRec = db.GetXeTrongBaiRecordByCardId(card.Id);
             if (existingRec != null)
@@ -1622,19 +1645,39 @@ namespace QuanLyGiuXe.ViewModels
                 return false;
             }
 
-            // If it's a monthly card, save the registered plate (card.BienSo), otherwise save the recognized plate
-            string plate = IsMonthlyTicket(card.LoaiVeId) 
-                ? (card.BienSo ?? string.Empty) 
+            string plate = IsMonthlyTicket(card.LoaiVeId)
+                ? (card.BienSo ?? string.Empty)
                 : (!string.IsNullOrEmpty(recognizedPlate) ? recognizedPlate : string.Empty);
 
             try
             {
-                await db.ThemXeAsync(card.Id, string.IsNullOrEmpty(plate) ? null : plate, "", siteId, zoneId, laneId);
-                
-                // Update UI for the specific lane
+                // ── Lưu ảnh theo topology trước khi ghi DB ──
+                string? imageFolderPath = null;
+                try
+                {
+                    var timestamp = DateTime.Now;
+                    var (siteName, zoneName, gateName, laneName) =
+                        await ParkingImageService.ResolveTopologyNamesAsync(siteId, zoneId, laneId);
+
+                    string overviewCamKey = laneId.HasValue ? $"Lane_{laneId}_ToanCanh" : "Vao1";
+                    imageFolderPath = await ParkingImageService.Instance.SaveSnapshotsAsync(
+                        siteName, zoneName, gateName, laneName,
+                        plate, "IN", timestamp,
+                        fullFrame,
+                        plateRawFrame,
+                        plateCropBytes);
+                }
+                catch (Exception imgEx)
+                {
+                    LoggingService.Instance.LogError("ImageSaveInbound", "MainViewModel", "Lỗi lưu ảnh vào", imgEx);
+                }
+
+                await db.ThemXeAsync(card.Id, string.IsNullOrEmpty(plate) ? null : plate,
+                    imageFolderPath ?? "", siteId, zoneId, laneId);
+
                 SetLanePlate(uiLaneIndex, plate);
                 SetLaneUID(uiLaneIndex, uid);
-                
+
                 bool opened = await C3200Service.Instance.OpenBarrierAsync(uiLaneIndex);
                 SetLaneStatus(uiLaneIndex, opened ? $"✅ Xe vào lúc {DateTime.Now:HH:mm}" : "⚠ Xe vào – barrier lỗi");
 
@@ -1647,7 +1690,6 @@ namespace QuanLyGiuXe.ViewModels
                     });
                 }
 
-                // Add to list
                 DanhSachXe.Add(new Xe { BienSo = plate, ThoiGianVao = DateTime.Now });
                 return opened;
             }
@@ -1658,7 +1700,13 @@ namespace QuanLyGiuXe.ViewModels
             }
         }
 
-        private async Task<bool> ProcessOutboundAsync(int uiLaneIndex, RFIDCard card, string uid, int? exitSiteId, int? exitZoneId, int? exitLaneId, string recognizedPlate)
+        private async Task<bool> ProcessOutboundAsync(
+            int uiLaneIndex, RFIDCard card, string uid,
+            int? exitSiteId, int? exitZoneId, int? exitLaneId,
+            string recognizedPlate,
+            byte[]? plateCropBytes = null,
+            Mat? fullFrame = null,
+            Mat? plateRawFrame = null)
         {
             var rec = db.GetXeTrongBaiRecordByCardId(card.Id);
             if (rec == null)
@@ -1671,23 +1719,48 @@ namespace QuanLyGiuXe.ViewModels
             var duration = DateTime.Now - timeIn;
             double fee = db.TinhTien(card.LoaiXeId, card.LoaiVeId, timeIn, DateTime.Now);
 
-            // Fetch entry topology details
             var xeTrongBai = await db.GetXeTrongBaiEntityByCardIdAsync(card.Id);
             int? entrySiteId = xeTrongBai?.SiteId;
             int? entryZoneId = xeTrongBai?.ZoneId;
             int? entryLaneId = xeTrongBai?.EntryLaneId;
+            string? entryImageFolder = xeTrongBai?.AnhXe; // folder lưu ảnh lúc vào
 
             try
             {
+                // ── Lưu ảnh ra theo topology ──
+                string? exitImageFolderPath = null;
+                try
+                {
+                    var timestamp = DateTime.Now;
+                    var (siteName, zoneName, gateName, laneName) =
+                        await ParkingImageService.ResolveTopologyNamesAsync(
+                            exitSiteId ?? entrySiteId, exitZoneId ?? entryZoneId, exitLaneId);
+
+                    exitImageFolderPath = await ParkingImageService.Instance.SaveSnapshotsAsync(
+                        siteName, zoneName, gateName, laneName,
+                        !string.IsNullOrEmpty(recognizedPlate) ? recognizedPlate : plate,
+                        "OUT", timestamp,
+                        fullFrame,
+                        plateRawFrame,
+                        plateCropBytes);
+                }
+                catch (Exception imgEx)
+                {
+                    LoggingService.Instance.LogError("ImageSaveOutbound", "MainViewModel", "Lỗi lưu ảnh ra", imgEx);
+                }
+
                 await db.UpdateXeRaByIdAsync(id, DateTime.Now);
-                await db.LuuLichSuAsync(plate, timeIn, DateTime.Now, fee, "", uid, 
-                    siteId: entrySiteId ?? exitSiteId, 
-                    zoneId: entryZoneId ?? exitZoneId, 
-                    entryLaneId: entryLaneId, 
-                    exitLaneId: exitLaneId);
+                await db.LuuLichSuAsync(
+                    plate, timeIn, DateTime.Now, fee,
+                    exitImageFolderPath ?? "",
+                    uid,
+                    siteId: entrySiteId ?? exitSiteId,
+                    zoneId: entryZoneId ?? exitZoneId,
+                    entryLaneId: entryLaneId,
+                    exitLaneId: exitLaneId,
+                    anhVao: entryImageFolder);
                 await db.XoaXeByCardIdAsync(card.Id);
 
-                // Update UI: show recognized plate if available, else checkin plate
                 string displayPlate = !string.IsNullOrEmpty(recognizedPlate) ? recognizedPlate : plate;
                 SetLanePlate(uiLaneIndex, displayPlate);
                 SetLaneUID(uiLaneIndex, uid);
@@ -1706,7 +1779,6 @@ namespace QuanLyGiuXe.ViewModels
                     });
                 }
 
-                // Remove from local list
                 var item = DanhSachXe.FirstOrDefault(x => x.BienSo == plate);
                 if (item != null) DanhSachXe.Remove(item);
                 return true;
@@ -1774,6 +1846,10 @@ namespace QuanLyGiuXe.ViewModels
 
         public async Task ProcessManualActionAsync(int uiLaneIndex, int dbLaneId, RFIDCard card, string uid, string manualPlate = "")
         {
+            byte[]? plateCropBytes = null;
+            Mat? plateRawFrame = null;
+            Mat? fullFrame = null;
+
             try
             {
                 // Display UID and temporary status immediately
@@ -1807,22 +1883,21 @@ namespace QuanLyGiuXe.ViewModels
 
                 // Determine recognized plate
                 string recognizedPlate = manualPlate;
-                if (string.IsNullOrEmpty(recognizedPlate))
+                string lprCamKey2 = GetLicensePlateCameraKey(dbLaneId, laneConfig.Direction);
+                try
                 {
-                    // If no manual plate is typed (they typed Card UID), try to run LPR from camera
-                    string lprCamKey = GetLicensePlateCameraKey(dbLaneId, laneConfig.Direction);
-                    try
+                    plateRawFrame = CameraService.Instance.GetLatestFrame(lprCamKey2);
+                    if (plateRawFrame != null && !plateRawFrame.Empty())
                     {
-                        using (var mat = CameraService.Instance.GetLatestFrame(lprCamKey))
+                        var lprResult = await PlateRecognitionService.Instance.RecognizePlateAsync(plateRawFrame);
+                        if (string.IsNullOrEmpty(recognizedPlate))
                         {
-                            if (mat != null && !mat.Empty())
-                            {
-                                recognizedPlate = await PlateRecognitionService.Instance.RecognizePlateAsync(mat);
-                            }
+                            recognizedPlate = lprResult.Plate;
                         }
+                        plateCropBytes = lprResult.PlateCropBytes;
                     }
-                    catch { }
                 }
+                catch { }
 
                 // If we got a plate, update UI
                 if (!string.IsNullOrEmpty(recognizedPlate))
@@ -1916,13 +1991,19 @@ namespace QuanLyGiuXe.ViewModels
                     }
                 }
 
+                // Capture full overview frame for image saving
+                string overviewCamKey = laneConfig.Direction?.ToUpper() == "OUT" ? "Ra1" : "Vao1";
+                var lc2 = AppConfig.Load().Cameras?.LaneCameras?.FirstOrDefault(c => c.LaneId == dbLaneId);
+                if (lc2 != null && !string.IsNullOrEmpty(lc2.ToanCanh)) overviewCamKey = $"Lane_{dbLaneId}_ToanCanh";
+                fullFrame = CameraService.Instance.GetLatestFrame(overviewCamKey);
+
                 if (isInbound)
                 {
-                    await ProcessInboundAsync(uiLaneIndex, card, uid, siteId, zoneId, laneId, recognizedPlate);
+                    await ProcessInboundAsync(uiLaneIndex, card, uid, siteId, zoneId, laneId, recognizedPlate, plateCropBytes, fullFrame, plateRawFrame);
                 }
                 else
                 {
-                    await ProcessOutboundAsync(uiLaneIndex, card, uid, siteId, zoneId, laneId, recognizedPlate);
+                    await ProcessOutboundAsync(uiLaneIndex, card, uid, siteId, zoneId, laneId, recognizedPlate, plateCropBytes, fullFrame, plateRawFrame);
                 }
 
                 UpdateVehicleCount();
@@ -1931,6 +2012,11 @@ namespace QuanLyGiuXe.ViewModels
             {
                 SetLaneStatus(uiLaneIndex, $"❌ Lỗi xử lý: {ex.Message}");
                 LoggingService.Instance.LogError("ProcessManualActionError", "MainViewModel", $"DB_Lane={dbLaneId}", ex);
+            }
+            finally
+            {
+                fullFrame?.Dispose();
+                plateRawFrame?.Dispose();
             }
         }
 
