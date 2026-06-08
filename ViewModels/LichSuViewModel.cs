@@ -69,6 +69,60 @@ namespace QuanLyGiuXe.ViewModels
                 OnPropertyChanged(nameof(SelectedLichSu));
                 OnPropertyChanged(nameof(HasSelectedLichSu));
                 OnPropertyChanged(nameof(ThoiGianDo));
+                OnPropertyChanged(nameof(SelectedAnhVaoPath));
+                OnPropertyChanged(nameof(SelectedAnhRaPath));
+            }
+        }
+
+        public string? SelectedAnhVaoPath
+        {
+            get
+            {
+                if (SelectedLichSu == null || string.IsNullOrEmpty(SelectedLichSu.AnhVao))
+                    return null;
+
+                if (System.IO.File.Exists(SelectedLichSu.AnhVao))
+                    return SelectedLichSu.AnhVao;
+
+                if (System.IO.Directory.Exists(SelectedLichSu.AnhVao))
+                {
+                    string fullPath = System.IO.Path.Combine(SelectedLichSu.AnhVao, "full.jpg");
+                    if (System.IO.File.Exists(fullPath)) return fullPath;
+
+                    string rawPath = System.IO.Path.Combine(SelectedLichSu.AnhVao, "plate_raw.jpg");
+                    if (System.IO.File.Exists(rawPath)) return rawPath;
+
+                    string cropPath = System.IO.Path.Combine(SelectedLichSu.AnhVao, "plate_crop.jpg");
+                    if (System.IO.File.Exists(cropPath)) return cropPath;
+                }
+
+                return null;
+            }
+        }
+
+        public string? SelectedAnhRaPath
+        {
+            get
+            {
+                if (SelectedLichSu == null || string.IsNullOrEmpty(SelectedLichSu.AnhRa))
+                    return null;
+
+                if (System.IO.File.Exists(SelectedLichSu.AnhRa))
+                    return SelectedLichSu.AnhRa;
+
+                if (System.IO.Directory.Exists(SelectedLichSu.AnhRa))
+                {
+                    string fullPath = System.IO.Path.Combine(SelectedLichSu.AnhRa, "full.jpg");
+                    if (System.IO.File.Exists(fullPath)) return fullPath;
+
+                    string rawPath = System.IO.Path.Combine(SelectedLichSu.AnhRa, "plate_raw.jpg");
+                    if (System.IO.File.Exists(rawPath)) return rawPath;
+
+                    string cropPath = System.IO.Path.Combine(SelectedLichSu.AnhRa, "plate_crop.jpg");
+                    if (System.IO.File.Exists(cropPath)) return cropPath;
+                }
+
+                return null;
             }
         }
 

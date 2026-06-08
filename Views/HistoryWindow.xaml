@@ -371,17 +371,17 @@
                                 <Border BorderBrush="{StaticResource BorderMediumBrush}" BorderThickness="1" CornerRadius="4" Background="#F1F3F5" Height="120">
                                     <Grid>
                                         <!-- Image element -->
-                                        <Image Source="{Binding SelectedLichSu.AnhVao}" Stretch="Uniform" Margin="2"/>
+                                        <Image Source="{Binding SelectedAnhVaoPath}" Stretch="Uniform" Margin="2"/>
                                         <!-- Placeholder when image path is null or empty -->
                                         <Border Background="#F1F3F5" CornerRadius="3">
                                             <Border.Style>
                                                 <Style TargetType="Border">
                                                     <Setter Property="Visibility" Value="Collapsed"/>
                                                     <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding SelectedLichSu.AnhVao}" Value="{x:Null}">
+                                                        <DataTrigger Binding="{Binding SelectedAnhVaoPath}" Value="{x:Null}">
                                                             <Setter Property="Visibility" Value="Visible"/>
                                                         </DataTrigger>
-                                                        <DataTrigger Binding="{Binding SelectedLichSu.AnhVao}" Value="">
+                                                        <DataTrigger Binding="{Binding SelectedAnhVaoPath}" Value="">
                                                             <Setter Property="Visibility" Value="Visible"/>
                                                         </DataTrigger>
                                                     </Style.Triggers>
@@ -402,17 +402,17 @@
                                 <Border BorderBrush="{StaticResource BorderMediumBrush}" BorderThickness="1" CornerRadius="4" Background="#F1F3F5" Height="120">
                                     <Grid>
                                         <!-- Image element -->
-                                        <Image Source="{Binding SelectedLichSu.AnhRa}" Stretch="Uniform" Margin="2"/>
+                                        <Image Source="{Binding SelectedAnhRaPath}" Stretch="Uniform" Margin="2"/>
                                         <!-- Placeholder when image path is null or empty -->
                                         <Border Background="#F1F3F5" CornerRadius="3">
                                             <Border.Style>
                                                 <Style TargetType="Border">
                                                     <Setter Property="Visibility" Value="Collapsed"/>
                                                     <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding SelectedLichSu.AnhRa}" Value="{x:Null}">
+                                                        <DataTrigger Binding="{Binding SelectedAnhRaPath}" Value="{x:Null}">
                                                             <Setter Property="Visibility" Value="Visible"/>
                                                         </DataTrigger>
-                                                        <DataTrigger Binding="{Binding SelectedLichSu.AnhRa}" Value="">
+                                                        <DataTrigger Binding="{Binding SelectedAnhRaPath}" Value="">
                                                             <Setter Property="Visibility" Value="Visible"/>
                                                         </DataTrigger>
                                                     </Style.Triggers>
