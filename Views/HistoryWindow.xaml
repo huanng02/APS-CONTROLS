@@ -346,7 +346,6 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
 
@@ -358,79 +357,218 @@
                             <TextBlock Text="{Binding SelectedLichSu.BienSo}" FontSize="24" FontWeight="Bold" Foreground="#212529" HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Consolas, Segoe UI"/>
                         </Border>
 
-                        <!-- Photos Grid -->
-                        <Grid Grid.Row="2" Margin="0,0,0,15">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-
-                            <!-- Entry Photo -->
-                            <StackPanel Grid.Column="0" Margin="0,0,5,0">
-                                <TextBlock Text="ẢNH XE VÀO" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,5" HorizontalAlignment="Center"/>
-                                <Border BorderBrush="{StaticResource BorderMediumBrush}" BorderThickness="1" CornerRadius="4" Background="#F1F3F5" Height="120">
-                                    <Grid>
-                                        <!-- Image element -->
-                                        <Image Source="{Binding SelectedAnhVaoPath}" Stretch="Uniform" Margin="2"/>
-                                        <!-- Placeholder when image path is null or empty -->
-                                        <Border Background="#F1F3F5" CornerRadius="3">
-                                            <Border.Style>
-                                                <Style TargetType="Border">
-                                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding SelectedAnhVaoPath}" Value="{x:Null}">
-                                                            <Setter Property="Visibility" Value="Visible"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding SelectedAnhVaoPath}" Value="">
-                                                            <Setter Property="Visibility" Value="Visible"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Border.Style>
-                                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                                                <TextBlock Text="📷" FontSize="36" Foreground="#ADB5BD" HorizontalAlignment="Center"/>
-                                                <TextBlock Text="Không có ảnh vào" FontSize="10" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center"/>
-                                            </StackPanel>
-                                        </Border>
-                                    </Grid>
-                                </Border>
-                            </StackPanel>
-
-                            <!-- Exit Photo -->
-                            <StackPanel Grid.Column="1" Margin="5,0,0,0">
-                                <TextBlock Text="ẢNH XE RA" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,5" HorizontalAlignment="Center"/>
-                                <Border BorderBrush="{StaticResource BorderMediumBrush}" BorderThickness="1" CornerRadius="4" Background="#F1F3F5" Height="120">
-                                    <Grid>
-                                        <!-- Image element -->
-                                        <Image Source="{Binding SelectedAnhRaPath}" Stretch="Uniform" Margin="2"/>
-                                        <!-- Placeholder when image path is null or empty -->
-                                        <Border Background="#F1F3F5" CornerRadius="3">
-                                            <Border.Style>
-                                                <Style TargetType="Border">
-                                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding SelectedAnhRaPath}" Value="{x:Null}">
-                                                            <Setter Property="Visibility" Value="Visible"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding SelectedAnhRaPath}" Value="">
-                                                            <Setter Property="Visibility" Value="Visible"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Border.Style>
-                                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                                                <TextBlock Text="📷" FontSize="36" Foreground="#ADB5BD" HorizontalAlignment="Center"/>
-                                                <TextBlock Text="Không có ảnh ra" FontSize="10" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center"/>
-                                            </StackPanel>
-                                        </Border>
-                                    </Grid>
-                                </Border>
-                            </StackPanel>
-                        </Grid>
-
-                        <!-- Text Details ScrollViewer -->
-                        <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <!-- Scrollable Photos and Text Details -->
+                        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
                             <StackPanel Margin="0,5,0,0">
+                                
+                                <!-- XE VÀO SECTION -->
+                                <Border Style="{StaticResource EnterpriseCardBorder}" Margin="0,0,0,15" Padding="10" Background="#F8F9FC">
+                                    <StackPanel>
+                                        <TextBlock Text="📷 LƯỢT XE VÀO / ENTRY" FontWeight="Bold" FontSize="11" Foreground="{StaticResource APSBlueBrush}" Margin="0,0,0,8"/>
+                                        
+                                        <!-- Images Grid -->
+                                        <Grid Margin="0,0,0,5">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="8"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            
+                                            <!-- Toàn cảnh -->
+                                            <StackPanel Grid.Column="0">
+                                                <TextBlock Text="Toàn cảnh / Overview" FontSize="9" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,3" HorizontalAlignment="Center"/>
+                                                <Border BorderBrush="{StaticResource BorderMediumBrush}" BorderThickness="1" CornerRadius="4" Background="#F1F3F5" Height="90">
+                                                    <Grid>
+                                                        <Image Source="{Binding SelectedAnhVaoToanCanh}" Stretch="Uniform" Margin="1"/>
+                                                        <Border Background="#F1F3F5" CornerRadius="3">
+                                                            <Border.Style>
+                                                                <Style TargetType="Border">
+                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding SelectedAnhVaoToanCanh}" Value="{x:Null}">
+                                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding SelectedAnhVaoToanCanh}" Value="">
+                                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </Border.Style>
+                                                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                                                <TextBlock Text="📷" FontSize="20" Foreground="#ADB5BD" HorizontalAlignment="Center"/>
+                                                                <TextBlock Text="Không có ảnh" FontSize="8" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center"/>
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </Grid>
+                                                </Border>
+                                            </StackPanel>
+
+                                            <!-- Cam biển số -->
+                                            <StackPanel Grid.Column="2">
+                                                <TextBlock Text="Ảnh biển số / Plate Cam" FontSize="9" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,3" HorizontalAlignment="Center"/>
+                                                <Border BorderBrush="{StaticResource BorderMediumBrush}" BorderThickness="1" CornerRadius="4" Background="#F1F3F5" Height="90">
+                                                    <Grid>
+                                                        <Image Source="{Binding SelectedAnhVaoBienSo}" Stretch="Uniform" Margin="1"/>
+                                                        <Border Background="#F1F3F5" CornerRadius="3">
+                                                            <Border.Style>
+                                                                <Style TargetType="Border">
+                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding SelectedAnhVaoBienSo}" Value="{x:Null}">
+                                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding SelectedAnhVaoBienSo}" Value="">
+                                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </Border.Style>
+                                                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                                                <TextBlock Text="📷" FontSize="20" Foreground="#ADB5BD" HorizontalAlignment="Center"/>
+                                                                <TextBlock Text="Không có ảnh" FontSize="8" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center"/>
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </Grid>
+                                                </Border>
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <!-- Biển số cắt -->
+                                        <Grid Margin="0,4,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="Biển số cắt / Cropped:" FontSize="9" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                            <Border Grid.Column="1" BorderBrush="#212529" BorderThickness="1.5" Background="White" CornerRadius="3" Padding="5,2" Height="30" HorizontalAlignment="Left" MinWidth="100">
+                                                <Grid>
+                                                    <Image Source="{Binding SelectedAnhVaoBienSoCat}" Stretch="Uniform" Margin="1"/>
+                                                    <Border Background="White">
+                                                        <Border.Style>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding SelectedAnhVaoBienSoCat}" Value="{x:Null}">
+                                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding SelectedAnhVaoBienSoCat}" Value="">
+                                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Border.Style>
+                                                        <TextBlock Text="CHƯA CẮT" FontSize="9" FontWeight="Bold" Foreground="#868E96" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                                    </Border>
+                                                </Grid>
+                                            </Border>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- XE RA SECTION -->
+                                <Border Style="{StaticResource EnterpriseCardBorder}" Margin="0,0,0,15" Padding="10" Background="#FFF8F8">
+                                    <StackPanel>
+                                        <TextBlock Text="📷 LƯỢT XE RA / EXIT" FontWeight="Bold" FontSize="11" Foreground="{StaticResource APSRedBrush}" Margin="0,0,0,8"/>
+                                        
+                                        <!-- Images Grid -->
+                                        <Grid Margin="0,0,0,5">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="8"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            
+                                            <!-- Toàn cảnh -->
+                                            <StackPanel Grid.Column="0">
+                                                <TextBlock Text="Toàn cảnh / Overview" FontSize="9" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,3" HorizontalAlignment="Center"/>
+                                                <Border BorderBrush="{StaticResource BorderMediumBrush}" BorderThickness="1" CornerRadius="4" Background="#F1F3F5" Height="90">
+                                                    <Grid>
+                                                        <Image Source="{Binding SelectedAnhRaToanCanh}" Stretch="Uniform" Margin="1"/>
+                                                        <Border Background="#F1F3F5" CornerRadius="3">
+                                                            <Border.Style>
+                                                                <Style TargetType="Border">
+                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding SelectedAnhRaToanCanh}" Value="{x:Null}">
+                                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding SelectedAnhRaToanCanh}" Value="">
+                                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </Border.Style>
+                                                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                                                <TextBlock Text="📷" FontSize="20" Foreground="#ADB5BD" HorizontalAlignment="Center"/>
+                                                                <TextBlock Text="Không có ảnh" FontSize="8" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center"/>
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </Grid>
+                                                </Border>
+                                            </StackPanel>
+
+                                            <!-- Cam biển số -->
+                                            <StackPanel Grid.Column="2">
+                                                <TextBlock Text="Ảnh biển số / Plate Cam" FontSize="9" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,3" HorizontalAlignment="Center"/>
+                                                <Border BorderBrush="{StaticResource BorderMediumBrush}" BorderThickness="1" CornerRadius="4" Background="#F1F3F5" Height="90">
+                                                    <Grid>
+                                                        <Image Source="{Binding SelectedAnhRaBienSo}" Stretch="Uniform" Margin="1"/>
+                                                        <Border Background="#F1F3F5" CornerRadius="3">
+                                                            <Border.Style>
+                                                                <Style TargetType="Border">
+                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding SelectedAnhRaBienSo}" Value="{x:Null}">
+                                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding SelectedAnhRaBienSo}" Value="">
+                                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </Border.Style>
+                                                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                                                <TextBlock Text="📷" FontSize="20" Foreground="#ADB5BD" HorizontalAlignment="Center"/>
+                                                                <TextBlock Text="Không có ảnh" FontSize="8" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center"/>
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </Grid>
+                                                </Border>
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <!-- Biển số cắt -->
+                                        <Grid Margin="0,4,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Grid.Column="0" Text="Biển số cắt / Cropped:" FontSize="9" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                            <Border Grid.Column="1" BorderBrush="#212529" BorderThickness="1.5" Background="White" CornerRadius="3" Padding="5,2" Height="30" HorizontalAlignment="Left" MinWidth="100">
+                                                <Grid>
+                                                    <Image Source="{Binding SelectedAnhRaBienSoCat}" Stretch="Uniform" Margin="1"/>
+                                                    <Border Background="White">
+                                                        <Border.Style>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding SelectedAnhRaBienSoCat}" Value="{x:Null}">
+                                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding SelectedAnhRaBienSoCat}" Value="">
+                                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Border.Style>
+                                                        <TextBlock Text="CHƯA CẮT" FontSize="9" FontWeight="Bold" Foreground="#868E96" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                                    </Border>
+                                                </Grid>
+                                            </Border>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
                                 <!-- Details Grid -->
                                 <Grid>
                                     <Grid.ColumnDefinitions>
