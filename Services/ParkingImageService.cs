@@ -95,14 +95,22 @@ namespace QuanLyGiuXe.Services
                 if (fullFrame != null && !fullFrame.Empty())
                 {
                     string fullPath = Path.Combine(folderPath, "full.jpg");
-                    tasks.Add(Task.Run(() => Cv2.ImWrite(fullPath, fullFrame, new ImageEncodingParam(ImwriteFlags.JpegQuality, 85))));
+                    tasks.Add(Task.Run(() =>
+                    {
+                        Cv2.ImEncode(".jpg", fullFrame, out var buf, new ImageEncodingParam(ImwriteFlags.JpegQuality, 85));
+                        File.WriteAllBytes(fullPath, buf);
+                    }));
                 }
 
                 // 2. Ảnh biển số chưa cắt (raw frame từ camera biển)
                 if (plateRawFrame != null && !plateRawFrame.Empty())
                 {
                     string rawPath = Path.Combine(folderPath, "plate_raw.jpg");
-                    tasks.Add(Task.Run(() => Cv2.ImWrite(rawPath, plateRawFrame, new ImageEncodingParam(ImwriteFlags.JpegQuality, 85))));
+                    tasks.Add(Task.Run(() =>
+                    {
+                        Cv2.ImEncode(".jpg", plateRawFrame, out var buf, new ImageEncodingParam(ImwriteFlags.JpegQuality, 85));
+                        File.WriteAllBytes(rawPath, buf);
+                    }));
                 }
 
                 // 3. Ảnh biển số đã cắt (ROI từ LPR server)
