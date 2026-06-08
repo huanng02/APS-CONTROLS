@@ -33,7 +33,7 @@ namespace QuanLyGiuXe.Services
             MaxConnectionsPerServer = 4,
         })
         {
-            Timeout = TimeSpan.FromSeconds(3)
+            Timeout = TimeSpan.FromSeconds(15)
         };
 
         // JPEG encode params: quality 75 → ~3x smaller than default 95, still readable for LPR

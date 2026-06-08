@@ -4,8 +4,8 @@
         xmlns:sys="clr-namespace:System;assembly=System.Runtime"
         xmlns:converters="clr-namespace:QuanLyGiuXe.Converters"
         Title="Lịch sử xe"
-        Height="768"
-        Width="1200"
+        Height="850"
+        Width="1550"
         Background="{StaticResource BgLightBrush}">
 
     <Window.Resources>
@@ -216,11 +216,15 @@
         </Border>
 
         <!-- TABLE AND DETAIL SPLIT -->
-        <Grid Grid.Row="2">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="380"/>
-            </Grid.ColumnDefinitions>
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" MinWidth="500"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="650" MinWidth="500" MaxWidth="1200"/>
+                </Grid.ColumnDefinitions>
+                
+                <!-- Resizable Splitter -->
+                <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="#D1D3E2" Margin="5,0" ShowsPreview="True"/>
             
             <!-- LEFT COLUMN: TABLE AND PAGING -->
             <Grid Grid.Column="0">
@@ -328,7 +332,7 @@
             </Grid>
             
             <!-- RIGHT COLUMN: DETAIL VIEW -->
-            <Border Grid.Column="1" Style="{StaticResource EnterpriseCardBorder}" Margin="15,0,0,0" Padding="15">
+            <Border Grid.Column="2" Style="{StaticResource EnterpriseCardBorder}" Margin="5,0,0,0" Padding="15">
                 <Grid>
                     <!-- Content Panel (Visible when SelectedLichSu is NOT null) -->
                     <Grid x:Name="DetailContentGrid">
@@ -353,8 +357,8 @@
                         <TextBlock Grid.Row="0" Text="CHI TIẾT LƯỢT XE / VISIT DETAIL" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}" Margin="0,0,0,10" HorizontalAlignment="Center"/>
 
                         <!-- License Plate Display -->
-                        <Border Grid.Row="1" BorderBrush="#212529" BorderThickness="2" Background="White" CornerRadius="6" Padding="15,6" HorizontalAlignment="Center" Margin="0,0,0,15">
-                            <TextBlock Text="{Binding SelectedLichSu.BienSo}" FontSize="24" FontWeight="Bold" Foreground="#212529" HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Consolas, Segoe UI"/>
+                        <Border Grid.Row="1" BorderBrush="#212529" BorderThickness="2" Background="White" CornerRadius="6" Padding="25,8" HorizontalAlignment="Center" Margin="0,0,0,15">
+                            <TextBlock Text="{Binding SelectedLichSu.BienSo}" FontSize="32" FontWeight="Bold" Foreground="#212529" HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Consolas, Segoe UI"/>
                         </Border>
 
                         <!-- Scrollable Photos and Text Details -->
@@ -364,7 +368,7 @@
                                 <!-- XE VÀO SECTION -->
                                 <Border Style="{StaticResource EnterpriseCardBorder}" Margin="0,0,0,15" Padding="10" Background="#F8F9FC">
                                     <StackPanel>
-                                        <TextBlock Text="📷 LƯỢT XE VÀO / ENTRY" FontWeight="Bold" FontSize="11" Foreground="{StaticResource APSBlueBrush}" Margin="0,0,0,8"/>
+                                        <TextBlock Text="📷 LƯỢT XE VÀO / ENTRY" FontWeight="Bold" FontSize="13" Foreground="{StaticResource APSBlueBrush}" Margin="0,0,0,8"/>
                                         
                                         <!-- Images Grid -->
                                         <Grid Margin="0,0,0,5">
@@ -376,8 +380,8 @@
                                             
                                             <!-- Toàn cảnh -->
                                             <StackPanel Grid.Column="0">
-                                                <TextBlock Text="Toàn cảnh / Overview" FontSize="9" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,3" HorizontalAlignment="Center"/>
-                                                <Border BorderBrush="{StaticResource BorderMediumBrush}" BorderThickness="1" CornerRadius="4" Background="#F1F3F5" Height="90">
+                                                <TextBlock Text="Toàn cảnh / Overview" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,3" HorizontalAlignment="Center"/>
+                                                <Border BorderBrush="{StaticResource BorderMediumBrush}" BorderThickness="1" CornerRadius="4" Background="#F1F3F5" Height="220">
                                                     <Grid>
                                                         <Image Source="{Binding SelectedAnhVaoToanCanh}" Stretch="Uniform" Margin="1"/>
                                                         <Border Background="#F1F3F5" CornerRadius="3">
@@ -395,8 +399,8 @@
                                                                 </Style>
                                                             </Border.Style>
                                                             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                                                                <TextBlock Text="📷" FontSize="20" Foreground="#ADB5BD" HorizontalAlignment="Center"/>
-                                                                <TextBlock Text="Không có ảnh" FontSize="8" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center"/>
+                                                                <TextBlock Text="📷" FontSize="24" Foreground="#ADB5BD" HorizontalAlignment="Center"/>
+                                                                <TextBlock Text="Không có ảnh" FontSize="10" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center"/>
                                                             </StackPanel>
                                                         </Border>
                                                     </Grid>
@@ -405,8 +409,8 @@
 
                                             <!-- Cam biển số -->
                                             <StackPanel Grid.Column="2">
-                                                <TextBlock Text="Ảnh biển số / Plate Cam" FontSize="9" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,3" HorizontalAlignment="Center"/>
-                                                <Border BorderBrush="{StaticResource BorderMediumBrush}" BorderThickness="1" CornerRadius="4" Background="#F1F3F5" Height="90">
+                                                <TextBlock Text="Ảnh biển số / Plate Cam" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,3" HorizontalAlignment="Center"/>
+                                                <Border BorderBrush="{StaticResource BorderMediumBrush}" BorderThickness="1" CornerRadius="4" Background="#F1F3F5" Height="220">
                                                     <Grid>
                                                         <Image Source="{Binding SelectedAnhVaoBienSo}" Stretch="Uniform" Margin="1"/>
                                                         <Border Background="#F1F3F5" CornerRadius="3">
@@ -424,8 +428,8 @@
                                                                 </Style>
                                                             </Border.Style>
                                                             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                                                                <TextBlock Text="📷" FontSize="20" Foreground="#ADB5BD" HorizontalAlignment="Center"/>
-                                                                <TextBlock Text="Không có ảnh" FontSize="8" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center"/>
+                                                                <TextBlock Text="📷" FontSize="24" Foreground="#ADB5BD" HorizontalAlignment="Center"/>
+                                                                <TextBlock Text="Không có ảnh" FontSize="10" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center"/>
                                                             </StackPanel>
                                                         </Border>
                                                     </Grid>
@@ -439,8 +443,8 @@
                                                 <ColumnDefinition Width="Auto"/>
                                                 <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="Biển số cắt / Cropped:" FontSize="9" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                            <Border Grid.Column="1" BorderBrush="#212529" BorderThickness="1.5" Background="White" CornerRadius="3" Padding="5,2" Height="30" HorizontalAlignment="Left" MinWidth="100">
+                                            <TextBlock Grid.Column="0" Text="Biển số cắt / Cropped:" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                            <Border Grid.Column="1" BorderBrush="#212529" BorderThickness="1.5" Background="White" CornerRadius="3" Padding="5,2" Height="65" HorizontalAlignment="Left" MinWidth="220">
                                                 <Grid>
                                                     <Image Source="{Binding SelectedAnhVaoBienSoCat}" Stretch="Uniform" Margin="1"/>
                                                     <Border Background="White">
@@ -457,7 +461,7 @@
                                                                 </Style.Triggers>
                                                             </Style>
                                                         </Border.Style>
-                                                        <TextBlock Text="CHƯA CẮT" FontSize="9" FontWeight="Bold" Foreground="#868E96" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="CHƯA CẮT" FontSize="13" FontWeight="Bold" Foreground="#868E96" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                                                     </Border>
                                                 </Grid>
                                             </Border>
@@ -468,7 +472,7 @@
                                 <!-- XE RA SECTION -->
                                 <Border Style="{StaticResource EnterpriseCardBorder}" Margin="0,0,0,15" Padding="10" Background="#FFF8F8">
                                     <StackPanel>
-                                        <TextBlock Text="📷 LƯỢT XE RA / EXIT" FontWeight="Bold" FontSize="11" Foreground="{StaticResource APSRedBrush}" Margin="0,0,0,8"/>
+                                        <TextBlock Text="📷 LƯỢT XE RA / EXIT" FontWeight="Bold" FontSize="13" Foreground="{StaticResource APSRedBrush}" Margin="0,0,0,8"/>
                                         
                                         <!-- Images Grid -->
                                         <Grid Margin="0,0,0,5">
@@ -480,8 +484,8 @@
                                             
                                             <!-- Toàn cảnh -->
                                             <StackPanel Grid.Column="0">
-                                                <TextBlock Text="Toàn cảnh / Overview" FontSize="9" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,3" HorizontalAlignment="Center"/>
-                                                <Border BorderBrush="{StaticResource BorderMediumBrush}" BorderThickness="1" CornerRadius="4" Background="#F1F3F5" Height="90">
+                                                <TextBlock Text="Toàn cảnh / Overview" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,3" HorizontalAlignment="Center"/>
+                                                <Border BorderBrush="{StaticResource BorderMediumBrush}" BorderThickness="1" CornerRadius="4" Background="#F1F3F5" Height="220">
                                                     <Grid>
                                                         <Image Source="{Binding SelectedAnhRaToanCanh}" Stretch="Uniform" Margin="1"/>
                                                         <Border Background="#F1F3F5" CornerRadius="3">
@@ -499,8 +503,8 @@
                                                                 </Style>
                                                             </Border.Style>
                                                             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                                                                <TextBlock Text="📷" FontSize="20" Foreground="#ADB5BD" HorizontalAlignment="Center"/>
-                                                                <TextBlock Text="Không có ảnh" FontSize="8" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center"/>
+                                                                <TextBlock Text="📷" FontSize="24" Foreground="#ADB5BD" HorizontalAlignment="Center"/>
+                                                                <TextBlock Text="Không có ảnh" FontSize="10" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center"/>
                                                             </StackPanel>
                                                         </Border>
                                                     </Grid>
@@ -509,8 +513,8 @@
 
                                             <!-- Cam biển số -->
                                             <StackPanel Grid.Column="2">
-                                                <TextBlock Text="Ảnh biển số / Plate Cam" FontSize="9" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,3" HorizontalAlignment="Center"/>
-                                                <Border BorderBrush="{StaticResource BorderMediumBrush}" BorderThickness="1" CornerRadius="4" Background="#F1F3F5" Height="90">
+                                                <TextBlock Text="Ảnh biển số / Plate Cam" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,3" HorizontalAlignment="Center"/>
+                                                <Border BorderBrush="{StaticResource BorderMediumBrush}" BorderThickness="1" CornerRadius="4" Background="#F1F3F5" Height="220">
                                                     <Grid>
                                                         <Image Source="{Binding SelectedAnhRaBienSo}" Stretch="Uniform" Margin="1"/>
                                                         <Border Background="#F1F3F5" CornerRadius="3">
@@ -528,8 +532,8 @@
                                                                 </Style>
                                                             </Border.Style>
                                                             <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                                                                <TextBlock Text="📷" FontSize="20" Foreground="#ADB5BD" HorizontalAlignment="Center"/>
-                                                                <TextBlock Text="Không có ảnh" FontSize="8" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center"/>
+                                                                <TextBlock Text="📷" FontSize="24" Foreground="#ADB5BD" HorizontalAlignment="Center"/>
+                                                                <TextBlock Text="Không có ảnh" FontSize="10" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center"/>
                                                             </StackPanel>
                                                         </Border>
                                                     </Grid>
@@ -543,8 +547,8 @@
                                                 <ColumnDefinition Width="Auto"/>
                                                 <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="Biển số cắt / Cropped:" FontSize="9" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                            <Border Grid.Column="1" BorderBrush="#212529" BorderThickness="1.5" Background="White" CornerRadius="3" Padding="5,2" Height="30" HorizontalAlignment="Left" MinWidth="100">
+                                            <TextBlock Grid.Column="0" Text="Biển số cắt / Cropped:" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                            <Border Grid.Column="1" BorderBrush="#212529" BorderThickness="1.5" Background="White" CornerRadius="3" Padding="5,2" Height="65" HorizontalAlignment="Left" MinWidth="220">
                                                 <Grid>
                                                     <Image Source="{Binding SelectedAnhRaBienSoCat}" Stretch="Uniform" Margin="1"/>
                                                     <Border Background="White">
@@ -561,7 +565,7 @@
                                                                 </Style.Triggers>
                                                             </Style>
                                                         </Border.Style>
-                                                        <TextBlock Text="CHƯA CẮT" FontSize="9" FontWeight="Bold" Foreground="#868E96" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="CHƯA CẮT" FontSize="13" FontWeight="Bold" Foreground="#868E96" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                                                     </Border>
                                                 </Grid>
                                             </Border>
