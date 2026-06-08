@@ -428,6 +428,12 @@ namespace QuanLyGiuXe.Services
                 Debug.WriteLine($"📡 C3200 Event: card={evt.CardNo}, door={evt.Door}, " +
                     $"event={evt.EventType}, inout={evt.InOutState}, verify={evt.VerifyMode}, time={evt.Time}");
 
+                try
+                {
+                    LoggingService.Instance.LogInfo("C3200_RAW_EVENT", "C3200Service", $"Raw event: card={evt.CardNo}, door={evt.Door}, event={evt.EventType}, inout={evt.InOutState}");
+                }
+                catch { }
+
                 OnEvent?.Invoke(evt);
 
                 if (!string.IsNullOrEmpty(evt.CardNo) && evt.CardNo != "0")

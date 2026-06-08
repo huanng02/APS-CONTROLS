@@ -128,14 +128,27 @@
                                     </StackPanel>
                                     
                                     <!-- Scanning details (UID or In/Out times) -->
-                                    <StackPanel Visibility="{Binding DataContext.IsLane1Inbound, Converter={StaticResource BoolToVis}}" Orientation="Horizontal">
+                                    <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="UID: " FontSize="10" Foreground="{StaticResource TextMutedBrush}"/>
                                         <TextBlock Text="{Binding DataContext.Lane1UID, RelativeSource={RelativeSource AncestorType=Window}}" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
                                     </StackPanel>
                                     
                                     <StackPanel Visibility="{Binding DataContext.Lane1TimeVisibility, RelativeSource={RelativeSource AncestorType=Window}}">
-                                        <TextBlock Text="{Binding DataContext.Lane1ThoiGianVao, RelativeSource={RelativeSource AncestorType=Window}, StringFormat='Vào: {0}'}" FontSize="10" Foreground="{StaticResource TextMutedBrush}"/>
-                                        <TextBlock Text="{Binding DataContext.Lane1ThoiGianTrongBai, RelativeSource={RelativeSource AncestorType=Window}, StringFormat='Trong bãi: {0}'}" FontSize="10" Foreground="{StaticResource TextMutedBrush}" Margin="0,2,0,0"/>
+                                        <TextBlock Text="{Binding DataContext.Lane1ThoiGianVao, RelativeSource={RelativeSource AncestorType=Window}, StringFormat='Vào: {0}'}" FontSize="10" Foreground="DimGray"/>
+                                        <TextBlock Text="{Binding DataContext.Lane1ThoiGianTrongBai, RelativeSource={RelativeSource AncestorType=Window}, StringFormat='Trong bãi: {0}'}" FontSize="10" Foreground="DimGray" Margin="0,2,0,0"/>
+                                    </StackPanel>
+
+                                    <!-- Manual input row -->
+                                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                        <TextBox Width="120" Height="22" 
+                                                 Text="{Binding DataContext.Lane1ManualInput, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}" 
+                                                 VerticalContentAlignment="Center" 
+                                                 FontSize="11"/>
+                                        <Button Content="Xử lý" 
+                                                Command="{Binding DataContext.Lane1ManualSendCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                                Style="{StaticResource ModernButton}" 
+                                                Background="{Binding DataContext.Lane1Color, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                                Width="45" Height="22" Margin="5,0,0,0" FontSize="10" Padding="0"/>
                                     </StackPanel>
                                 </StackPanel>
 
@@ -320,14 +333,27 @@
                                     </StackPanel>
                                     
                                     <!-- Scanning details (UID or In/Out times) -->
-                                    <StackPanel Visibility="{Binding DataContext.IsLane2Inbound, Converter={StaticResource BoolToVis}}" Orientation="Horizontal">
+                                    <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="UID: " FontSize="10" Foreground="{StaticResource TextMutedBrush}"/>
                                         <TextBlock Text="{Binding DataContext.Lane2UID, RelativeSource={RelativeSource AncestorType=Window}}" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
                                     </StackPanel>
                                     
                                     <StackPanel Visibility="{Binding DataContext.Lane2TimeVisibility, RelativeSource={RelativeSource AncestorType=Window}}">
-                                        <TextBlock Text="{Binding DataContext.Lane2ThoiGianVao, RelativeSource={RelativeSource AncestorType=Window}, StringFormat='Vào: {0}'}" FontSize="10" Foreground="{StaticResource TextMutedBrush}"/>
-                                        <TextBlock Text="{Binding DataContext.Lane2ThoiGianTrongBai, RelativeSource={RelativeSource AncestorType=Window}, StringFormat='Trong bãi: {0}'}" FontSize="10" Foreground="{StaticResource TextMutedBrush}" Margin="0,2,0,0"/>
+                                        <TextBlock Text="{Binding DataContext.Lane2ThoiGianVao, RelativeSource={RelativeSource AncestorType=Window}, StringFormat='Vào: {0}'}" FontSize="10" Foreground="DimGray"/>
+                                        <TextBlock Text="{Binding DataContext.Lane2ThoiGianTrongBai, RelativeSource={RelativeSource AncestorType=Window}, StringFormat='Trong bãi: {0}'}" FontSize="10" Foreground="DimGray" Margin="0,2,0,0"/>
+                                    </StackPanel>
+
+                                    <!-- Manual input row -->
+                                    <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                        <TextBox Width="120" Height="22" 
+                                                 Text="{Binding DataContext.Lane2ManualInput, RelativeSource={RelativeSource AncestorType=Window}, UpdateSourceTrigger=PropertyChanged}" 
+                                                 VerticalContentAlignment="Center" 
+                                                 FontSize="11"/>
+                                        <Button Content="Xử lý" 
+                                                Command="{Binding DataContext.Lane2ManualSendCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                                Style="{StaticResource ModernButton}" 
+                                                Background="{Binding DataContext.Lane2Color, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                                Width="45" Height="22" Margin="5,0,0,0" FontSize="10" Padding="0"/>
                                     </StackPanel>
                                 </StackPanel>
 

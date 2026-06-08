@@ -22,7 +22,7 @@
     "RaToanCanh": "",
     "RaBienSo": "",
     "MaxRenderFps": 10,
-    "TargetResolution": "480x360"
+    "TargetResolution": "640x480"
   },
   "Backup": {
     "AutoBackupEnabled": true,

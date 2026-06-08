@@ -376,56 +376,7 @@ namespace QuanLyGiuXe
                         uiLaneIndex = 2;
                     }
 
-                    Task.Run(async () =>
-                    {
-                        try
-                        {
-                            var lane = await ParkingTopologyService.Instance.GetLaneByIdAsync(mapping.LaneId);
-
-                            if (lane == null)
-                                return;
-
-                            var (cam1, cam2) = GetCameraKeysForLane(lane.Id, lane.Direction);
-
-                            using (var mat1 = _cameraService.GetLatestFrame(cam1))
-                            {
-                                if (mat1 != null && !mat1.Empty())
-                                {
-                                    using (var bmp1 = OpenCvSharp.Extensions.BitmapConverter.ToBitmap(mat1))
-                                    {
-                                        var img1 = ConvertBitmap(bmp1);
-                                        Dispatcher.BeginInvoke(new Action(() =>
-                                        {
-                                            vm.UpdateLaneSnapshot(uiLaneIndex, 1, img1);
-                                        }));
-                                    }
-                                }
-                            }
-
-                            using (var mat2 = _cameraService.GetLatestFrame(cam2))
-                            {
-                                if (mat2 != null && !mat2.Empty())
-                                {
-                                    using (var bmp2 = OpenCvSharp.Extensions.BitmapConverter.ToBitmap(mat2))
-                                    {
-                                        var img2 = ConvertBitmap(bmp2);
-                                        Dispatcher.BeginInvoke(new Action(() =>
-                                        {
-                                            vm.UpdateLaneSnapshot(uiLaneIndex, 2, img2);
-                                        }));
-                                    }
-                                }
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            LoggingService.Instance.LogError(
-                                "XuLyQuetThe",
-                                "MainWindow",
-                                $"Lỗi xử lý snapshot cho Reader {readerNo}",
-                                ex);
-                        }
-                    });
+                    // Snapshots will be captured in MainViewModel after successful validation & barrier trigger
                 }
 
                 await vm.ProcessScanFromReaderAsync(readerNo, uid);

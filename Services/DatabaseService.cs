@@ -190,7 +190,7 @@ namespace QuanLyGiuXe.Services
                 $"RFID_BIENSO_{bienSo}",
                 async conn =>
                 {
-                    using (SqlCommand cmd = new SqlCommand( @"SELECT Id, CardUID, BienSo, LoaiVeId, LoaiXeId, TrangThai, NgayDangKy, GroupId FROM RFIDCards WHERE BienSo = @bs", conn))
+                    using (SqlCommand cmd = new SqlCommand( @"SELECT Id, CardUID, BienSo, CardName, LoaiVeId, LoaiXeId, TrangThai, NgayDangKy, NgayHetHan, GroupId FROM RFIDCards WHERE BienSo = @bs", conn))
                     {
                         cmd.Parameters.AddWithValue("@bs", bienSo ?? string.Empty);
                         using (var r = await cmd.ExecuteReaderAsync())
@@ -202,10 +202,12 @@ namespace QuanLyGiuXe.Services
                                     Id = r["Id"] != DBNull.Value ? Convert.ToInt32(r["Id"]) : 0,
                                     UID = r["CardUID"]?.ToString() ?? string.Empty,
                                     BienSo = r["BienSo"]?.ToString() ?? string.Empty,
+                                    CardName = r["CardName"]?.ToString() ?? string.Empty,
                                     LoaiVeId = r["LoaiVeId"] != DBNull.Value ? Convert.ToInt32(r["LoaiVeId"]) : 0,
                                     LoaiXeId = r["LoaiXeId"] != DBNull.Value ? Convert.ToInt32(r["LoaiXeId"]) : 0,
                                     TrangThai = r["TrangThai"]?.ToString() ?? string.Empty,
                                     NgayTao = r["NgayDangKy"] != DBNull.Value ? Convert.ToDateTime(r["NgayDangKy"]) : DateTime.MinValue,
+                                    NgayHetHan = r["NgayHetHan"] != DBNull.Value ? Convert.ToDateTime(r["NgayHetHan"]) : (DateTime?)null,
                                     GroupId = r["GroupId"] != DBNull.Value ? Convert.ToInt32(r["GroupId"]) : (int?)null
                                 };
                             }
@@ -425,7 +427,7 @@ namespace QuanLyGiuXe.Services
                 $"RFID_UID_{uid}",
                 async conn =>
                 {
-                    using (SqlCommand cmd = new SqlCommand( @"SELECT Id, CardUID, BienSo, LoaiVeId, LoaiXeId, TrangThai, NgayDangKy, GroupId FROM RFIDCards WHERE CardUID = @uid", conn))
+                    using (SqlCommand cmd = new SqlCommand( @"SELECT Id, CardUID, BienSo, CardName, LoaiVeId, LoaiXeId, TrangThai, NgayDangKy, NgayHetHan, GroupId FROM RFIDCards WHERE CardUID = @uid", conn))
                     {
                         cmd.Parameters.AddWithValue("@uid", uid ?? string.Empty);
                         using (var r = await cmd.ExecuteReaderAsync())
@@ -437,10 +439,12 @@ namespace QuanLyGiuXe.Services
                                     Id = r["Id"] != DBNull.Value ? Convert.ToInt32(r["Id"]) : 0,
                                     UID = r["CardUID"]?.ToString() ?? string.Empty,
                                     BienSo = r["BienSo"]?.ToString() ?? string.Empty,
+                                    CardName = r["CardName"]?.ToString() ?? string.Empty,
                                     LoaiVeId = r["LoaiVeId"] != DBNull.Value ? Convert.ToInt32(r["LoaiVeId"]) : 0,
                                     LoaiXeId = r["LoaiXeId"] != DBNull.Value ? Convert.ToInt32(r["LoaiXeId"]) : 0,
                                     TrangThai = r["TrangThai"]?.ToString() ?? string.Empty,
                                     NgayTao = r["NgayDangKy"] != DBNull.Value ? Convert.ToDateTime(r["NgayDangKy"]) : DateTime.MinValue,
+                                    NgayHetHan = r["NgayHetHan"] != DBNull.Value ? Convert.ToDateTime(r["NgayHetHan"]) : (DateTime?)null,
                                     GroupId = r["GroupId"] != DBNull.Value ? Convert.ToInt32(r["GroupId"]) : (int?)null
                                 };
                             }
@@ -457,6 +461,52 @@ namespace QuanLyGiuXe.Services
                 if (list != null)
                 {
                     card = list.FirstOrDefault(c => c.UID == uid);
+                }
+            }
+
+            return card;
+        }
+
+        public async Task<RFIDCard?> GetRFIDCardByIdAsync(int id)
+        {
+            var card = await ConnectivityAwareRepository.Instance.ExecuteReadAsync<RFIDCard>(
+                $"RFID_ID_{id}",
+                async conn =>
+                {
+                    using (SqlCommand cmd = new SqlCommand( @"SELECT Id, CardUID, BienSo, CardName, LoaiVeId, LoaiXeId, TrangThai, NgayDangKy, NgayHetHan, GroupId FROM RFIDCards WHERE Id = @id", conn))
+                    {
+                        cmd.Parameters.AddWithValue("@id", id);
+                        using (var r = await cmd.ExecuteReaderAsync())
+                        {
+                            if (await r.ReadAsync())
+                            {
+                                return new RFIDCard
+                                {
+                                    Id = r["Id"] != DBNull.Value ? Convert.ToInt32(r["Id"]) : 0,
+                                    UID = r["CardUID"]?.ToString() ?? string.Empty,
+                                    BienSo = r["BienSo"]?.ToString() ?? string.Empty,
+                                    CardName = r["CardName"]?.ToString() ?? string.Empty,
+                                    LoaiVeId = r["LoaiVeId"] != DBNull.Value ? Convert.ToInt32(r["LoaiVeId"]) : 0,
+                                    LoaiXeId = r["LoaiXeId"] != DBNull.Value ? Convert.ToInt32(r["LoaiXeId"]) : 0,
+                                    TrangThai = r["TrangThai"]?.ToString() ?? string.Empty,
+                                    NgayTao = r["NgayDangKy"] != DBNull.Value ? Convert.ToDateTime(r["NgayDangKy"]) : DateTime.MinValue,
+                                    NgayHetHan = r["NgayHetHan"] != DBNull.Value ? Convert.ToDateTime(r["NgayHetHan"]) : (DateTime?)null,
+                                    GroupId = r["GroupId"] != DBNull.Value ? Convert.ToInt32(r["GroupId"]) : (int?)null
+                                };
+                            }
+                        }
+                    }
+                    return null;
+                }
+            );
+
+            // 🟢 OFFLINE FALLBACK: Nếu cache bị miss khi mất mạng, ta lấy từ LIST_RFID_CARDS
+            if (card == null && (ConnectivityStateService.Instance.IsSimulatingOffline || !ConnectivityStateService.Instance.IsOnline))
+            {
+                var list = await QuanLyGiuXe.Services.OfflineCache.OfflineCacheService.Instance.GetCacheAsync<List<RFIDCard>>("LIST_RFID_CARDS");
+                if (list != null)
+                {
+                    card = list.FirstOrDefault(c => c.Id == id);
                 }
             }
 
@@ -1454,6 +1504,40 @@ namespace QuanLyGiuXe.Services
                                 string bs = r["BienSo"]?.ToString() ?? string.Empty;
                                 DateTime vao = r["ThoiGianVao"] != DBNull.Value ? Convert.ToDateTime(r["ThoiGianVao"]) : DateTime.MinValue;
                                 return (id, bs, vao);
+                            }
+                        }
+                    }
+                    return null;
+                }
+            );
+        }
+
+        public async Task<(int Id, int CardId, string BienSo, DateTime ThoiGianVao)?> GetXeTrongBaiRecordByPlateAsync(string bienSo)
+        {
+            if (ConnectivityStateService.Instance.IsSimulatingOffline || !ConnectivityStateService.Instance.IsOnline)
+            {
+                var local = await OfflineCacheService.Instance.GetXeTrongBaiRecordByPlateLocalAsync(bienSo);
+                if (local == null) return null;
+                // local returns (CardId, BienSo, ThoiGianVao, SiteId, ZoneId, EntryLaneId), CardId is placed as Id, CardId for mapping
+                return (local.Value.CardId, local.Value.CardId, local.Value.BienSo, local.Value.ThoiGianVao);
+            }
+
+            return await ConnectivityAwareRepository.Instance.ExecuteReadAsync<(int Id, int CardId, string BienSo, DateTime ThoiGianVao)?>(
+                $"RECORD_XE_PLATE_{bienSo}",
+                async conn =>
+                {
+                    using (var cmd = new SqlCommand( @"SELECT TOP 1 Id, CardId, BienSo, ThoiGianVao FROM XeTrongBai WHERE BienSo = @bs AND ThoiGianRa IS NULL ORDER BY ThoiGianVao DESC", conn))
+                    {
+                        cmd.Parameters.AddWithValue("@bs", bienSo ?? string.Empty);
+                        using (var r = await cmd.ExecuteReaderAsync())
+                        {
+                            if (await r.ReadAsync())
+                            {
+                                int id = r["Id"] != DBNull.Value ? Convert.ToInt32(r["Id"]) : 0;
+                                int cardId = r["CardId"] != DBNull.Value ? Convert.ToInt32(r["CardId"]) : 0;
+                                string bs = r["BienSo"]?.ToString() ?? string.Empty;
+                                DateTime vao = r["ThoiGianVao"] != DBNull.Value ? Convert.ToDateTime(r["ThoiGianVao"]) : DateTime.MinValue;
+                                return (id, cardId, bs, vao);
                             }
                         }
                     }

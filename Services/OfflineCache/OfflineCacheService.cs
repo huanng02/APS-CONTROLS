@@ -653,5 +653,33 @@ namespace QuanLyGiuXe.Services.OfflineCache
             }
             return null;
         }
+
+        public async Task<(int CardId, string BienSo, DateTime ThoiGianVao, int? SiteId, int? ZoneId, int? EntryLaneId)?> GetXeTrongBaiRecordByPlateLocalAsync(string bienSo)
+        {
+            try
+            {
+                using var conn = new SqliteConnection(_connectionString);
+                await conn.OpenAsync();
+                string sql = "SELECT CardId, BienSo, ThoiGianVao, SiteId, ZoneId, EntryLaneId FROM LocalXeTrongBai WHERE BienSo = @bs ORDER BY ThoiGianVao DESC LIMIT 1";
+                using var cmd = new SqliteCommand(sql, conn);
+                cmd.Parameters.AddWithValue("@bs", bienSo ?? string.Empty);
+                using var r = await cmd.ExecuteReaderAsync();
+                if (await r.ReadAsync())
+                {
+                    int id = r.GetInt32(0);
+                    string bs = r.IsDBNull(1) ? string.Empty : r.GetString(1);
+                    DateTime vao = r.GetDateTime(2);
+                    int? siteId = r.IsDBNull(3) ? null : r.GetInt32(3);
+                    int? zoneId = r.IsDBNull(4) ? null : r.GetInt32(4);
+                    int? entryLaneId = r.IsDBNull(5) ? null : r.GetInt32(5);
+                    return (id, bs, vao, siteId, zoneId, entryLaneId);
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("OFFLINE_CACHE", "GetXeTrongBaiRecordByPlateLocalAsync", $"Failed for plate {bienSo}", ex);
+            }
+            return null;
+        }
     }
 }
