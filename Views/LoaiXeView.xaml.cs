@@ -1,4 +1,4 @@
-﻿using QuanLyGiuXe.Models;
+using QuanLyGiuXe.Models;
 using QuanLyGiuXe.Services;
 using QuanLyGiuXe.ViewModels;
 using System;
@@ -16,7 +16,6 @@ namespace QuanLyGiuXe.Views
         public LoaiXeView()
         {
             InitializeComponent();
-            DataContext = new LoaiXeViewModel();
         }
     }
 }

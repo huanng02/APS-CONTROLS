@@ -5,114 +5,81 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:QuanLyGiuXe.Views"
         mc:Ignorable="d"
-        Title="Lịch sử gia hạn thẻ" Height="600" Width="1000"
-        WindowStartupLocation="CenterScreen" Background="#F8FAFC">
-    <Grid Margin="20">
+        Title="RFID EXTENSION LOGS" Height="700" Width="1100"
+        WindowStartupLocation="CenterScreen" Background="{StaticResource BgLightBrush}">
+    <Grid Margin="25">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Text="LỊCH SỬ GIA HẠN THẺ RFID" FontSize="20" FontWeight="Bold" Margin="0,0,0,20" Foreground="#1E293B"/>
+        <Border Style="{StaticResource EnterpriseCardBorder}" Padding="20" Margin="0,0,0,20">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Border Background="{StaticResource APSBlueBrush}" CornerRadius="4" Padding="8" Margin="0,0,15,0">
+                    <TextBlock Text="📜" Foreground="White" FontSize="18"/>
+                </Border>
+                <TextBlock Text="RFID CARD RENEWAL HISTORY" Style="{StaticResource Heading1Style}" Foreground="{StaticResource APSBlueBrush}"/>
+            </StackPanel>
+        </Border>
 
         <!-- Filter Bar -->
-        <Border Grid.Row="1" Background="White" Padding="15" CornerRadius="8" Margin="0,0,0,20">
-            <Border.Effect>
-                <DropShadowEffect BlurRadius="10" ShadowDepth="1" Opacity="0.1"/>
-            </Border.Effect>
+        <Border Grid.Row="1" Style="{StaticResource EnterpriseCardBorder}" Padding="20" Margin="0,0,0,20">
             <StackPanel Orientation="Horizontal">
-                <StackPanel Margin="0,0,15,0">
-                    <TextBlock Text="Từ ngày" FontSize="12" Foreground="#64748B" Margin="0,0,0,5"/>
-                    <DatePicker SelectedDate="{Binding FromDate}" Width="150" Height="32"/>
+                <StackPanel Margin="0,0,20,0">
+                    <TextBlock Text="START DATE" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold" Margin="0,0,0,6"/>
+                    <DatePicker SelectedDate="{Binding FromDate}" Width="160" Height="36" VerticalContentAlignment="Center"/>
                 </StackPanel>
                 
-                <StackPanel Margin="0,0,15,0">
-                    <TextBlock Text="Đến ngày" FontSize="12" Foreground="#64748B" Margin="0,0,0,5"/>
-                    <DatePicker SelectedDate="{Binding ToDate}" Width="150" Height="32"/>
+                <StackPanel Margin="0,0,20,0">
+                    <TextBlock Text="END DATE" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold" Margin="0,0,0,6"/>
+                    <DatePicker SelectedDate="{Binding ToDate}" Width="160" Height="36" VerticalContentAlignment="Center"/>
                 </StackPanel>
 
-                <StackPanel Margin="0,0,15,0">
-                    <TextBlock Text="Tìm kiếm (UID, Biển số...)" FontSize="12" Foreground="#64748B" Margin="0,0,0,5"/>
-                    <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Width="250" Height="32" VerticalContentAlignment="Center" Padding="8,0">
+                <StackPanel Margin="0,0,20,0">
+                    <TextBlock Text="SEARCH (UID, PLATE, NAME...)" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold" Margin="0,0,0,6"/>
+                    <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ModernTextBox}" Width="300" Height="36">
                         <TextBox.InputBindings>
                             <KeyBinding Key="Enter" Command="{Binding SearchCommand}"/>
                         </TextBox.InputBindings>
                     </TextBox>
                 </StackPanel>
 
-                <Button Content="Tìm kiếm" Command="{Binding SearchCommand}" Width="100" Height="32" Margin="0,20,0,0" Background="#3B82F6" Foreground="White" FontWeight="Bold" Cursor="Hand">
-                    <Button.Resources>
-                        <Style TargetType="Border">
-                            <Setter Property="CornerRadius" Value="6"/>
-                        </Style>
-                    </Button.Resources>
-                </Button>
-
-                <Button Content="Làm mới" Command="{Binding LoadCommand}" Width="100" Height="32" Margin="10,20,0,0" Background="#94A3B8" Foreground="White" FontWeight="Bold" Cursor="Hand">
-                    <Button.Resources>
-                        <Style TargetType="Border">
-                            <Setter Property="CornerRadius" Value="6"/>
-                        </Style>
-                    </Button.Resources>
-                </Button>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom">
+                    <Button Content="🔍 SEARCH" Command="{Binding SearchCommand}" Style="{StaticResource ModernButton}" Background="{StaticResource APSBlueBrush}" Width="130" Height="38" Margin="0,0,10,0"/>
+                    <Button Content="↻ RESET" Command="{Binding LoadCommand}" Style="{StaticResource ModernOutlineButton}" Width="110" Height="38"/>
+                </StackPanel>
             </StackPanel>
         </Border>
 
         <!-- Data Grid -->
-        <DataGrid Grid.Row="2" ItemsSource="{Binding History}" AutoGenerateColumns="False" IsReadOnly="True" 
-                  Background="White" BorderThickness="1" BorderBrush="#E2E8F0" GridLinesVisibility="Horizontal" 
-                  RowHeight="40" HorizontalGridLinesBrush="#F1F5F9" SelectionUnit="FullRow">
-            <DataGrid.Resources>
-                <Style TargetType="DataGridColumnHeader">
-                    <Setter Property="Background" Value="#F1F5F9"/>
-                    <Setter Property="Foreground" Value="#475569"/>
-                    <Setter Property="FontWeight" Value="SemiBold"/>
-                    <Setter Property="Padding" Value="12,8"/>
-                    <Setter Property="Height" Value="45"/>
-                    <Setter Property="BorderThickness" Value="0,0,0,1"/>
-                    <Setter Property="BorderBrush" Value="#E2E8F0"/>
-                </Style>
-                <Style TargetType="DataGridCell">
-                    <Setter Property="Padding" Value="12,0"/>
-                    <Setter Property="Template">
-                        <Setter.Value>
-                            <ControlTemplate TargetType="DataGridCell">
-                                <Border Padding="{TemplateBinding Padding}" Background="{TemplateBinding Background}">
-                                    <ContentPresenter VerticalAlignment="Center" />
-                                </Border>
-                            </ControlTemplate>
-                        </Setter.Value>
-                    </Setter>
-                    <Style.Triggers>
-                        <Trigger Property="IsSelected" Value="True">
-                            <Setter Property="Background" Value="#E0F2FE"/>
-                            <Setter Property="Foreground" Value="#0369A1"/>
-                        </Trigger>
-                    </Style.Triggers>
-                </Style>
-            </DataGrid.Resources>
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Card UID" Binding="{Binding CardUID}" Width="150"/>
-                <DataGridTextColumn Header="Tên thẻ" Binding="{Binding CardName}" Width="*"/>
-                <DataGridTextColumn Header="Biển số" Binding="{Binding BienSo}" Width="120"/>
-                <DataGridTextColumn Header="Số tháng" Binding="{Binding SoThang}" Width="80">
-                    <DataGridTextColumn.ElementStyle>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="HorizontalAlignment" Value="Center"/>
-                        </Style>
-                    </DataGridTextColumn.ElementStyle>
-                </DataGridTextColumn>
-                <DataGridTextColumn Header="Ngày gia hạn" Binding="{Binding NgayGiaHan, StringFormat='dd/MM/yyyy HH:mm'}" Width="160"/>
-                <DataGridTextColumn Header="Hết hạn mới" Binding="{Binding NgayHetHanMoi, StringFormat='dd/MM/yyyy'}" Width="140">
-                    <DataGridTextColumn.ElementStyle>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="FontWeight" Value="SemiBold"/>
-                            <Setter Property="Foreground" Value="#059669"/>
-                        </Style>
-                    </DataGridTextColumn.ElementStyle>
-                </DataGridTextColumn>
-            </DataGrid.Columns>
-        </DataGrid>
+        <Border Grid.Row="2" Style="{StaticResource EnterpriseCardBorder}" Padding="0">
+            <DataGrid ItemsSource="{Binding History}" AutoGenerateColumns="False" IsReadOnly="True" 
+                      Style="{StaticResource ModernDataGrid}">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="CARD UID" Binding="{Binding CardUID}" Width="150"/>
+                    <DataGridTextColumn Header="IDENTIFIER NAME" Binding="{Binding CardName}" Width="*"/>
+                    <DataGridTextColumn Header="LICENSE PLATE" Binding="{Binding BienSo}" Width="140"/>
+                    <DataGridTextColumn Header="TENURE" Binding="{Binding SoThang}" Width="100">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="HorizontalAlignment" Value="Center"/>
+                                <Setter Property="FontWeight" Value="Bold"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn Header="TRANSACTION DATE" Binding="{Binding NgayGiaHan, StringFormat='dd/MM/yyyy HH:mm'}" Width="180"/>
+                    <DataGridTextColumn Header="NEW EXPIRY" Binding="{Binding NgayHetHanMoi, StringFormat='dd/MM/yyyy'}" Width="160">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="FontWeight" Value="Bold"/>
+                                <Setter Property="Foreground" Value="{StaticResource SuccessBrush}"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
     </Grid>
 </Window>
+

@@ -67,8 +67,8 @@ namespace QuanLyGiuXe.Services
         public bool IsConnected => _handle != IntPtr.Zero;
         public string LastError { get; private set; } = "";
 
-        /// <summary>Sự kiện quẹt thẻ: (cardNo, doorNumber).</summary>
-        public event Action<string, int>? OnCardScanned;
+        /// <summary>Sự kiện quẹt thẻ: (cardNo, doorNumber, inOutState).</summary>
+        public event Action<string, int, int>? OnCardScanned;
 
         /// <summary>Sự kiện đầy đủ từ RTLog (bao gồm tất cả dữ liệu).</summary>
         public event Action<C3200Event>? OnEvent;
@@ -92,37 +92,37 @@ namespace QuanLyGiuXe.Services
 
         // ── Kết nối ───────────────────────────────────────────────────────────────
 
-        public Task<bool> ConnectAsync()
+        public async Task<bool> ConnectAsync()
         {
-            Disconnect();
-
-            try
+            return await ErrorHandling.SafeExecutionService.SafeExecuteAsync(async () => 
             {
-                foreach (var parameters in BuildConnectCandidates())
-                {
-                    _handle = PLConnect(parameters);
-                    if (_handle != IntPtr.Zero) break;
-                }
+                Disconnect();
+                IntPtr handle = await Task.Run(() => {
+                    IntPtr h = IntPtr.Zero;
+                    foreach (var parameters in BuildConnectCandidates())
+                    {
+                        h = PLConnect(parameters);
+                        if (h != IntPtr.Zero) break;
+                    }
+                    return h;
+                });
 
-                if (_handle == IntPtr.Zero)
+                if (handle == IntPtr.Zero)
                 {
                     LastError = $"Kết nối thất bại (sdkError={GetSdkError()})";
                     _handle = IntPtr.Zero;
                     OnConnectionChanged?.Invoke(false);
-                    return Task.FromResult(false);
+                    return false;
                 }
 
+                _handle = handle;
                 OnConnectionChanged?.Invoke(true);
                 StartPolling();
-                return Task.FromResult(true);
-            }
-            catch (Exception ex)
-            {
-                LastError = ex.Message;
-                _handle = IntPtr.Zero;
-                OnConnectionChanged?.Invoke(false);
-                return Task.FromResult(false);
-            }
+                return true;
+            }, 
+            source: "C3200Service.Connect", 
+            defaultValue: false,
+            friendlyMessage: "Không thể kết nối với bộ điều khiển C3-200. Vui lòng kiểm tra mạng.");
         }
 
         public void Disconnect()
@@ -154,11 +154,11 @@ namespace QuanLyGiuXe.Services
         /// <summary>Mở barrier. doorNumber: 1 = cửa vào, 2 = cửa ra.</summary>
         public async Task<bool> OpenBarrierAsync(int doorNumber = 1)
         {
-            if (!IsConnected && !await ConnectAsync())
-                return false;
-
-            try
+            return await ErrorHandling.SafeExecutionService.SafeExecuteAsync(async () => 
             {
+                if (!IsConnected && !await ConnectAsync())
+                    return false;
+
                 StopPolling();
 
                 // Gửi lệnh ngay trên kết nối hiện tại
@@ -205,12 +205,10 @@ namespace QuanLyGiuXe.Services
                 // success: keep LastError empty but record ret for trace
                 LastError = $"ret={r}";
                 return true;
-            }
-            catch (Exception ex)
-            {
-                LastError = ex.Message;
-                return false;
-            }
+            }, 
+            source: $"C3200Service.OpenBarrier({doorNumber})",
+            defaultValue: false,
+            friendlyMessage: "Lỗi lệnh điều khiển Barrier.");
         }
 
         /// <summary>Đóng barrier. doorNumber: 1 = cửa vào, 2 = cửa ra.</summary>
@@ -298,7 +296,7 @@ namespace QuanLyGiuXe.Services
                 OnEvent?.Invoke(evt);
 
                 if (!string.IsNullOrEmpty(evt.CardNo) && evt.CardNo != "0")
-                    OnCardScanned?.Invoke(evt.CardNo, evt.Door);
+                    OnCardScanned?.Invoke(evt.CardNo, evt.Door, evt.InOutState);
             }
         }
 

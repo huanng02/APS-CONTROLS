@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Net;
-using System.Net.NetworkInformation;
-using System.Runtime.InteropServices;
-using System.Threading.Tasks;
+using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
+using System.Text.Json;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 
 namespace QuanLyGiuXe.Services
 {
@@ -16,136 +19,192 @@ namespace QuanLyGiuXe.Services
         public string RtspUrl { get; set; }
     }
 
+    public class CameraBrandConfig
+    {
+        public string Brand { get; set; }
+        public string PasswordDefault { get; set; }
+        public string RtspTemplate { get; set; }
+        public List<string> MacPrefixes { get; set; }
+    }
+
     public class NetworkDiscoveryService
     {
-        [DllImport("iphlpapi.dll", ExactSpelling = true)]
-        private static extern int SendARP(int destIp, int srcIp, byte[] macAddr, ref uint physicalAddrLen);
+        private List<CameraBrandConfig> _brandsConfig = new List<CameraBrandConfig>();
 
-        public async Task<List<CameraDetected>> ScanNetworkAsync(string baseIpPrefix = "192.168.2.")
+        public NetworkDiscoveryService()
+        {
+            LoadBrandsFromJson();
+        }
+
+        private void LoadBrandsFromJson()
+        {
+            try
+            {
+                string filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "camera_brands.json");
+                if (File.Exists(filePath))
+                {
+                    string jsonContent = File.ReadAllText(filePath);
+                    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                    _brandsConfig = JsonSerializer.Deserialize<List<CameraBrandConfig>>(jsonContent, options) ?? new List<CameraBrandConfig>();
+                }
+            }
+            catch
+            {
+                _brandsConfig = new List<CameraBrandConfig>();
+            }
+        }
+
+        /// <summary>
+        /// Quét và định danh chính xác tất cả Camera IP bằng giao thức ONVIF (WS-Discovery)
+        /// Bỏ qua hoàn toàn giới hạn dải IP mạng LAN
+        /// </summary>
+        public async Task<List<CameraDetected>> ScanNetworkAsync(string unusedParameter = "")
         {
             var detectedList = new List<CameraDetected>();
-            var tasks = new List<Task>();
+            var discoveredIps = new HashSet<string>(); // Tránh trùng lặp IP
 
-            for (int i = 1; i <= 254; i++)
+            // Chuỗi Probe chuẩn của liên minh ONVIF để gọi tất cả Camera IP thức dậy phản hồi
+            string messageId = Guid.NewGuid().ToString();
+            string soapProbe =
+                "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
+                "<Envelope xmlns:tds=\"http://www.onvif.org/ver10/device/wsdl\" xmlns:dn=\"http://www.onvif.org/ver10/network/wsdl\" xmlns=\"http://www.w3.org/2003/05/soap-envelope\">" +
+                "  <Header>" +
+                "    <MessageID xmlns=\"http://www.w3.org/2005/08/addressing\">urn:uuid:" + messageId + "</MessageID>" +
+                "    <To xmlns=\"http://www.w3.org/2005/08/addressing\">urn:schemas-xmlsoap-org:node:ephemeral:id</To>" +
+                "    <Action xmlns=\"http://www.w3.org/2005/08/addressing\">http://schemas.xmlsoap-org.xml/ws/2005/04/discovery/Probe</Action>" +
+                "  </Header>" +
+                "  <Body>" +
+                "    <Probe xmlns=\"http://schemas.xmlsoap-org.xml/ws/2005/04/discovery\">" +
+                "      <Types>tds:Device dn:NetworkVideoTransmitter</Types>" +
+                "    </Probe>" +
+                "  </Body>" +
+                "</Envelope>";
+
+            byte[] requestBytes = Encoding.UTF8.GetBytes(soapProbe);
+
+            // Cổng và địa chỉ Multicast chuẩn của giao thức ONVIF toàn cầu
+            var multicastEndpoint = new IPEndPoint(IPAddress.Parse("239.255.255.250"), 3702);
+
+            using (var udpClient = new UdpClient())
             {
-                string ip = baseIpPrefix + i;
-                tasks.Add(Task.Run(() =>
-                {
-                    try
-                    {
-                        // Đặt cấu hình thời gian chờ tối đa cho mỗi IP là 200ms
-                        string mac = GetMacAddress(ip);
-
-                        if (!string.IsNullOrEmpty(mac) && mac.Length >= 8)
-                        {
-                            string url = "rtsp://" + ip + "/live"; // Gán tạm trước để tránh crash hàm GetRtspUrl
-                            try { url = GetRtspUrl(ip, mac); } catch { }
-
-                            string vendorName = "Generic";
-                            try { vendorName = GetVendorName(mac); } catch { }
-
-                            lock (detectedList)
-                            {
-                                detectedList.Add(new CameraDetected
-                                {
-                                    IP = ip,
-                                    MAC = mac,
-                                    Vendor = vendorName,
-                                    RtspUrl = url
-                                });
-                            }
-                        }
-                    }
-                    catch
-                    {
-                        // Có lỗi ở 1 IP đơn lẻ thì bỏ qua, không làm treo toàn hệ thống
-                    }
-                }));
-            }
-
-            // Khống chế tổng thời gian quét mạng tối đa là 5 giây, quá 5s tự nhả giao diện
-            var completionTask = Task.WhenAll(tasks);
-            var timeoutTask = Task.Delay(5000);
-
-            await Task.WhenAny(completionTask, timeoutTask);
-
-            return detectedList.OrderBy(x => {
                 try
                 {
-                    var parts = x.IP.Split('.');
-                    return int.Parse(parts.Last());
+                    udpClient.EnableBroadcast = true;
+                    udpClient.Client.ReceiveTimeout = 2000; // Chờ camera phản hồi trong 2 giây
+
+                    // Bắn gói tin ONVIF ra toàn mạng LAN
+                    await udpClient.SendAsync(requestBytes, requestBytes.Length, multicastEndpoint);
+
+                    // Lắng nghe tất cả camera phản hồi ngược lại
+                    var listenTask = Task.Run(() =>
+                    {
+                        while (true)
+                        {
+                            try
+                            {
+                                IPEndPoint remoteEP = null;
+                                byte[] responseBytes = udpClient.Receive(ref remoteEP);
+                                string responseString = Encoding.UTF8.GetString(responseBytes);
+
+                                // Trích xuất địa chỉ IP thực tế từ nội dung XML phản hồi của Camera
+                                string ip = ExtractIpFromXml(responseString);
+                                if (string.IsNullOrEmpty(ip) || discoveredIps.Contains(ip)) continue;
+
+                                discoveredIps.Add(ip);
+
+                                // Định danh hãng và gán luồng dựa vào Port đặc trưng hoặc thông tin XML
+                                var (vendorName, rtspUrl) = DinhDanhQuaThongTinOnvif(ip, responseString);
+
+                                lock (detectedList)
+                                {
+                                    detectedList.Add(new CameraDetected
+                                    {
+                                        IP = ip,
+                                        MAC = "ONVIF Device", // Giao thức ONVIF trả về thẳng Service URL, không cần MAC
+                                        Vendor = vendorName,
+                                        RtspUrl = rtspUrl
+                                    });
+                                }
+                            }
+                            catch (SocketException)
+                            {
+                                break; // Hết thời gian chờ (Timeout), kết thúc việc nhận dữ liệu
+                            }
+                            catch { }
+                        }
+                    });
+
+                    // Khống chế thời gian chờ tổng thể là 2.5 giây để đóng cổng nhận hình
+                    await Task.WhenAny(listenTask, Task.Delay(2500));
                 }
-                catch { return 0; }
+                catch { }
+            }
+
+            // Sắp xếp danh sách IP tăng dần đều để kỹ thuật dễ nhìn
+            return detectedList.OrderBy(x => {
+                try { return int.Parse(x.IP.Split('.').Last()); } catch { return 0; }
             }).ToList();
         }
 
-        private string GetMacAddress(string ipAddress)
+        // Hàm dùng Regex bốc tách địa chỉ IP nằm giữa các thẻ URL trong XML của Camera
+        private string ExtractIpFromXml(string xml)
         {
-            try
+            var match = Regex.Match(xml, @"http://(?<ip>[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3})");
+            return match.Success ? match.Groups["ip"].Value : null;
+        }
+
+        // Hàm định danh thông minh: phối hợp Port dịch vụ mở và File JSON cấu hình ngoài
+        private (string Vendor, string RtspUrl) DinhDanhQuaThongTinOnvif(string ip, string xml)
+        {
+            string vendor = "Generic ONVIF";
+            string passDefault = "12345";
+            string rtspTemplate = "rtsp://{user}:{pass}@{ip}:554/live";
+
+            // Dùng thuật toán kiểm tra nhanh cổng dịch vụ mở (Port Scan) để nhận diện hãng
+            if (xml.Contains("hardware/XM") || KiemTraPortMo(ip, 34567)) // Cổng 34567 độc quyền của chip Xiongmai (Enster)
             {
-                IPAddress dst = IPAddress.Parse(ipAddress);
-                byte[] macAddr = new byte[6];
-                uint len = (uint)macAddr.Length;
-
-#pragma warning disable CS0618 // Tắt cảnh báo Obsolete của .NET 8 để chạy nhanh
-                int destIp = (int)dst.Address;
-#pragma warning restore CS0618
-
-                int res = SendARP(destIp, 0, macAddr, ref len);
-
-                return res == 0 ? BitConverter.ToString(macAddr).Replace("-", ":") : null;
+                var ensterCfg = _brandsConfig.FirstOrDefault(b => b.Brand.Contains("Enster"));
+                vendor = "Enster/XMeye";
+                passDefault = ensterCfg != null ? ensterCfg.PasswordDefault : "tlJwpbo6";
+                rtspTemplate = ensterCfg != null ? ensterCfg.RtspTemplate : "rtsp://{user}:{pass}@{ip}:554/user={user}&password={pass}&channel=0&stream=0.sdp";
             }
-            catch { return null; }
+            else if (xml.ToLower().Contains("hikvision") || KiemTraPortMo(ip, 8000))
+            {
+                var hikCfg = _brandsConfig.FirstOrDefault(b => b.Brand.Contains("Hikvision"));
+                vendor = "Hikvision";
+                passDefault = hikCfg != null ? hikCfg.PasswordDefault : "12345";
+                rtspTemplate = hikCfg != null ? hikCfg.RtspTemplate : "rtsp://{user}:{pass}@{ip}/Streaming/Channels/101";
+            }
+            else if (xml.ToLower().Contains("dahua") || KiemTraPortMo(ip, 37777))
+            {
+                var dahuaCfg = _brandsConfig.FirstOrDefault(b => b.Brand.Contains("Dahua"));
+                vendor = "Dahua/Imou";
+                passDefault = dahuaCfg != null ? dahuaCfg.PasswordDefault : "admin123";
+                rtspTemplate = dahuaCfg != null ? dahuaCfg.RtspTemplate : "rtsp://{user}:{pass}@{ip}/cam/realmonitor?channel=1&subtype=0";
+            }
+
+            string realRtsp = rtspTemplate
+                .Replace("{user}", "admin")
+                .Replace("{pass}", passDefault)
+                .Replace("{ip}", ip);
+
+            return (vendor, realRtsp);
         }
 
-        private string GetVendorName(string mac)
+        private bool KiemTraPortMo(string ip, int port)
         {
-            if (string.IsNullOrEmpty(mac)) return "Unknown";
-            string oui = mac.Length >= 8 ? mac.Substring(0, 8).ToUpper() : "";
-
-            return oui switch
+            using (var tcpClient = new TcpClient())
             {
-                "00:12:41" or "A4:B1:C1" or "A4:E8:8D" => "Enster/XMeye",
-                "00:40:8C" or "BC:AD:28" => "Hikvision",
-                "3C:EF:8C" or "BC:32:5F" => "Dahua",
-                _ => "Generic"
-            };
-        }
-
-        public string GetRtspUrl(string ip, string mac)
-        {
-            string oui = (mac ?? "").Length >= 8 ? mac.Substring(0, 8).ToUpper() : "";
-
-            return oui switch
-            {
-                "00:12:41" or "A4:B1:C1" or "A4:E8:8D" => $"rtsp://admin:tlJwpbo6@{ip}:554/user=admin&password=tlJwpbo6&channel=0&stream=0.sdp",
-                "00:40:8C" or "BC:AD:28" => $"rtsp://admin:12345@{ip}/Streaming/Channels/101",
-                "3C:EF:8C" or "BC:32:5F" => $"rtsp://admin:admin123@{ip}/cam/realmonitor?channel=1&subtype=0",
-                _ => $"rtsp://admin:12345@{ip}/live"
-            };
-        }
-        public string GetCurrentIpPrefix()
-        {
-            try
-            {
-                // Lấy tên máy và danh sách các IP của máy hiện tại
-                string hostName = System.Net.Dns.GetHostName();
-                var ipEntry = System.Net.Dns.GetHostEntry(hostName);
-
-                // Lọc ra IP thuộc dạng IPv4 (InterNetwork) và không phải IP ảo (loopback)
-                var ip = ipEntry.AddressList.FirstOrDefault(a =>
-                    a.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork &&
-                    !a.ToString().StartsWith("127."));
-
-                if (ip != null)
+                try
                 {
-                    string ipStr = ip.ToString(); // Ví dụ: "192.168.2.9"
-                                                  // Cắt chuỗi lấy đến dấu chấm cuối cùng để thành "192.168.2."
-                    return ipStr.Substring(0, ipStr.LastIndexOf('.') + 1);
+                    var result = tcpClient.ConnectAsync(ip, port);
+                    Task.WaitAny(new Task[] { result }, 150);
+                    return tcpClient.Connected;
                 }
+                catch { return false; }
             }
-            catch { }
-            return "192.168.1."; // Dự phòng nếu lỗi thì quay về mặc định
         }
+
+        public string GetCurrentIpPrefix() => "ONVIF_MODE";
     }
 }

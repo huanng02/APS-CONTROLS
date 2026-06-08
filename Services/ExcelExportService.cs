@@ -14,11 +14,11 @@ namespace QuanLyGiuXe.Services
         /// </summary>
         public string? ExportRFIDCardsToExcel(IEnumerable<RFIDCard> cards, string folder, bool openAfter = false)
         {
-            if (cards == null) throw new ArgumentNullException(nameof(cards));
-            if (string.IsNullOrEmpty(folder)) throw new ArgumentException("Folder path is required", nameof(folder));
-
-            try
+            return ErrorHandling.SafeExecutionService.SafeExecute<string?>(() => 
             {
+                if (cards == null) throw new ArgumentNullException(nameof(cards));
+                if (string.IsNullOrEmpty(folder)) throw new ArgumentException("Folder path is required", nameof(folder));
+
                 Directory.CreateDirectory(folder);
                 var filename = Path.Combine(folder, $"RFIDCards_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx");
 
@@ -123,6 +123,21 @@ namespace QuanLyGiuXe.Services
                 // Save
                 wb.SaveAs(filename);
 
+                // Audit Log
+                try 
+                {
+                    var count = cards.Count();
+                    LoggingService.Instance.LogAudit(
+                        "EXPORT_DATA", 
+                        "RFIDCard", 
+                        null, 
+                        null, 
+                        new { Filename = Path.GetFileName(filename), RecordCount = count },
+                        source: "ExcelExport",
+                        details: $"Exported {count} RFID cards to {filename}");
+                }
+                catch { }
+
                 if (openAfter)
                 {
                     try
@@ -138,12 +153,10 @@ namespace QuanLyGiuXe.Services
                 }
 
                 return filename;
-            }
-            catch (Exception ex)
-            {
-                try { LoggingService.Instance.LogError("ExportExcelFailed", "ExcelExportService", ex.Message, ex); } catch { }
-                return null;
-            }
+            }, 
+            source: "ExcelExportService.Export",
+            defaultValue: null,
+            friendlyMessage: "Xuất dữ liệu Excel thất bại. Vui lòng kiểm tra quyền ghi file.");
         }
     }
 }

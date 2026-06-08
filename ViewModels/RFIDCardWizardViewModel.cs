@@ -120,7 +120,7 @@ namespace QuanLyGiuXe.ViewModels
         }
 
         // C3200 supplies cardNo and door; adapt to same update flow
-        private void Scanner_OnCardScanned_C3200(string cardNo, int door)
+        private void Scanner_OnCardScanned_C3200(string cardNo, int door, int inOutState)
         {
             if (IsEditMode) return;
             var normalized = QuanLyGiuXe.Services.RFIDService.ChuanHoaUID(cardNo);

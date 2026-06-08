@@ -1,0 +1,209 @@
+<Window x:Class="QuanLyGiuXe.Views.BackupRestoreWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:viewmodels="clr-namespace:QuanLyGiuXe.ViewModels"
+        xmlns:converters="clr-namespace:QuanLyGiuXe.Converters"
+        mc:Ignorable="d"
+        Title="Quản Lý Sao Lưu &amp; Phục Hồi Dữ Liệu" Height="580" Width="850"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource BgLightBrush}">
+
+    <Window.Resources>
+        <converters:ProgressToIndeterminateConverter x:Key="ProgressToIndeterminateConverter"/>
+        <converters:ProgressToVisibilityConverter x:Key="ProgressToVisibilityConverter"/>
+        <converters:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVis" />
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+    </Window.Resources>
+
+    <Window.DataContext>
+        <viewmodels:BackupRestoreViewModel/>
+    </Window.DataContext>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header Area -->
+        <Border Grid.Row="0" Style="{StaticResource EnterpriseCardBorder}" Padding="20" Margin="0,0,0,20">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="BACKUP &amp; RESTORE" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}"/>
+                    <TextBlock Text="Bảo vệ an toàn dữ liệu hệ thống Smart Parking" FontSize="14" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,5,0,0"/>
+                </StackPanel>
+
+                <Button Grid.Column="1" Command="{Binding BackupNowCommand}" 
+                        Style="{StaticResource ModernButton}"
+                        Height="45" Padding="25,0">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="☁️" FontSize="18" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="TẠO BẢN SAO LƯU NGAY" FontWeight="Bold" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+            </Grid>
+        </Border>
+
+        <!-- Main Content Area -->
+        <TabControl Grid.Row="1" Style="{StaticResource EnterpriseTabControl}">
+            <TabItem Header="DANH SÁCH SAO LƯU">
+                <Border Style="{StaticResource EnterpriseCardBorder}" Margin="0,10,0,0" Padding="10">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <Grid Grid.Row="0" Margin="0,0,0,15">
+                            <TextBlock Text="LỊCH SỬ CÁC BẢN SAO LƯU" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
+                            <Button HorizontalAlignment="Right" Command="{Binding RefreshCommand}" Style="{StaticResource ModernOutlineButton}" Width="40" Height="35" ToolTip="Làm mới danh sách">
+                                <TextBlock Text="🔄" FontSize="16"/>
+                            </Button>
+                        </Grid>
+
+                        <DataGrid Grid.Row="1" ItemsSource="{Binding BackupFiles}" Style="{StaticResource ModernDataGrid}">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="TÊN FILE" Binding="{Binding FileName}" Width="*"/>
+                                <DataGridTextColumn Header="NGÀY TẠO" Binding="{Binding CreatedAtDisplay}" Width="180"/>
+                                <DataGridTextColumn Header="DUNG LƯỢNG" Binding="{Binding SizeDisplay}" Width="120"/>
+                                <DataGridTemplateColumn Header="THAO TÁC" Width="220">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                <!-- Restore Button -->
+                                                <Button Command="{Binding DataContext.RestoreCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                                        CommandParameter="{Binding}"
+                                                        Style="{StaticResource ModernOutlineButton}" 
+                                                        BorderBrush="{StaticResource InfoBrush}" Foreground="{StaticResource InfoBrush}"
+                                                        Height="30" Padding="10,0" Margin="0,0,8,0">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="⏪" FontSize="12" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Restore" FontSize="12" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                
+                                                <!-- Verify Button -->
+                                                <Button Command="{Binding DataContext.VerifyCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                                        CommandParameter="{Binding}"
+                                                        Style="{StaticResource ModernOutlineButton}" 
+                                                        BorderBrush="{StaticResource APSBlueBrush}" Foreground="{StaticResource APSBlueBrush}"
+                                                        Height="30" Padding="10,0" Margin="0,0,8,0">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="🔍" FontSize="12" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Kiểm tra" FontSize="12" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                                
+                                                <!-- Delete Button -->
+                                                <Button Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                                        CommandParameter="{Binding}"
+                                                        Style="{StaticResource ModernOutlineButton}" 
+                                                        BorderBrush="{StaticResource ErrorBrush}" Foreground="{StaticResource ErrorBrush}"
+                                                        Height="30" Padding="10,0">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="❌" FontSize="12" Margin="0,0,5,0" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Xóa" FontSize="12" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Button>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                </Border>
+            </TabItem>
+            
+            <TabItem Header="CÀI ĐẶT TỰ ĐỘNG">
+                <Border Style="{StaticResource EnterpriseCardBorder}" Margin="0,10,0,0" Padding="40">
+                    <StackPanel MaxWidth="550" HorizontalAlignment="Left">
+                        <TextBlock Text="CẤU HÌNH SAO LƯU TỰ ĐỘNG" FontSize="18" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}" Margin="0,0,0,25"/>
+                        
+                        <CheckBox Content="Kích hoạt tự động sao lưu hàng ngày" 
+                                  IsChecked="{Binding AutoBackupEnabled}"
+                                  FontSize="14" FontWeight="SemiBold"
+                                  Margin="0,0,0,20"/>
+                        
+                        <Grid Margin="0,0,0,20">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="220"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="Thời điểm sao lưu (HH:mm):" VerticalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}"/>
+                            <TextBox Grid.Column="1" Text="{Binding BackupTime}" 
+                                     Style="{StaticResource ModernTextBox}"
+                                     IsEnabled="{Binding AutoBackupEnabled}"/>
+                        </Grid>
+
+                        <Grid Margin="0,0,0,30">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="220"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Thời gian lưu trữ (Ngày):" VerticalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <TextBlock Text="Backup cũ hơn sẽ tự xóa" FontSize="11" Opacity="0.6"/>
+                            </StackPanel>
+                            <TextBox Grid.Column="1" Text="{Binding RetentionDays}" 
+                                     Style="{StaticResource ModernTextBox}"
+                                     IsEnabled="{Binding AutoBackupEnabled}"/>
+                        </Grid>
+
+                        <Grid Margin="0,0,0,30">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="220"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Đường dẫn hiện tại:" VerticalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <TextBlock Text="Vị trí lưu file thực tế" FontSize="11" Opacity="0.6"/>
+                            </StackPanel>
+                            <TextBlock Grid.Column="1" Text="{Binding CurrentBackupPath}" 
+                                       FontStyle="Italic" TextWrapping="Wrap"
+                                       VerticalAlignment="Center" Opacity="0.8"/>
+                        </Grid>
+
+                        <Button Command="{Binding SaveSettingsCommand}"
+                                Content="LƯU CẤU HÌNH" 
+                                Style="{StaticResource ModernButton}"
+                                Width="180" HorizontalAlignment="Left"/>
+                    </StackPanel>
+                </Border>
+            </TabItem>
+        </TabControl>
+
+        <!-- Footer / Status Bar Area -->
+        <Border Grid.Row="2" Margin="0,20,0,0" Padding="10,0" Background="#08000000" CornerRadius="4">
+            <Grid Height="40">
+                <StackPanel Orientation="Horizontal" Visibility="{Binding IsProcessing, Converter={StaticResource BoolToVis}}">
+                    <Grid Margin="0,0,15,0" VerticalAlignment="Center">
+                        <ProgressBar Width="24" Height="24" 
+                                     Value="{Binding ProgressValue}" 
+                                     IsIndeterminate="{Binding ProgressValue, Converter={StaticResource ProgressToIndeterminateConverter}}" 
+                                     Style="{StaticResource {x:Type ProgressBar}}"/>
+                        <TextBlock Text="{Binding ProgressValue}" 
+                                   FontSize="8" FontWeight="Bold" 
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   Visibility="{Binding ProgressValue, Converter={StaticResource ProgressToVisibilityConverter}}"/>
+                    </Grid>
+                    <TextBlock Text="{Binding StatusMessage}" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="{StaticResource APSBlueBrush}"/>
+                </StackPanel>
+                
+                <TextBlock Text="{Binding StatusMessage}" 
+                           VerticalAlignment="Center" 
+                           Foreground="{StaticResource TextSecondaryBrush}"
+                           Visibility="{Binding IsProcessing, Converter={StaticResource InverseBoolToVis}}"/>
+            </Grid>
+        </Border>
+
+    </Grid>
+</Window>

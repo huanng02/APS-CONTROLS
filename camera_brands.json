@@ -1,0 +1,20 @@
+[
+  {
+    "Brand": "Enster/XMeye",
+    "PasswordDefault": "tlJwpbo6",
+    "RtspTemplate": "rtsp://{user}:{pass}@{ip}:554/user={user}&password={pass}&channel=0&stream=0.sdp",
+    "MacPrefixes": ["00:12:41", "A4:B1:C1", "A4:E8:8D", "B0:F1:EC", "8C:A6:DF", "00:3E:E1"]
+  },
+  {
+    "Brand": "Hikvision",
+    "PasswordDefault": "12345",
+    "RtspTemplate": "rtsp://{user}:{pass}@{ip}/Streaming/Channels/101",
+    "MacPrefixes": ["00:40:8C", "BC:AD:28", "D4:52:2A", "14:14:4B"]
+  },
+  {
+    "Brand": "Dahua",
+    "PasswordDefault": "admin123",
+    "RtspTemplate": "rtsp://{user}:{pass}@{ip}/cam/realmonitor?channel=1&subtype=0",
+    "MacPrefixes": ["3C:EF:8C", "BC:32:5F", "90:02:A9", "00:1A:07"]
+  }
+]

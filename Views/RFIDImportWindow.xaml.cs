@@ -50,8 +50,8 @@ namespace QuanLyGiuXe.Views
             }
 
             PreviewGrid.ItemsSource = null;
-            ProgressBar.Value = 0;
-            TxtStats.Text = "Loading...";
+            this.ImportProgressBar.Value = 0;
+            this.TxtStats.Text = "Loading...";
 
             await Task.Run(() => { _preview = _svc.PreviewFromExcel(_path, ActiveLoaiVeId); });
 
@@ -60,8 +60,8 @@ namespace QuanLyGiuXe.Views
             int ok = _preview.Count(x => x.Status == "OK");
             int err = _preview.Count(x => x.Status.StartsWith("Error"));
             int auto = _preview.Count(x => x.Status.Contains("AutoFix"));
-            TxtStats.Text = $"Total={total} | OK={ok} | AutoFix={auto} | Error={err}";
-            ProgressBar.Value = 100;
+            this.TxtStats.Text = $"Total={total} | OK={ok} | AutoFix={auto} | Error={err}";
+            this.ImportProgressBar.Value = 100;
         }
 
         private async void BtnImport_Click(object sender, RoutedEventArgs e)
@@ -75,8 +75,8 @@ namespace QuanLyGiuXe.Views
             var confirm = System.Windows.MessageBox.Show("Bắt đầu import những dòng hợp lệ?", "Xác nhận", MessageBoxButton.YesNo, MessageBoxImage.Question);
             if (confirm != MessageBoxResult.Yes) return;
 
-            ProgressBar.Value = 0;
-            TxtStats.Text = "Importing...";
+            this.ImportProgressBar.Value = 0;
+            this.TxtStats.Text = "Importing...";
 
             (int Inserted, int Updated) result = (0, 0);
             int toImport = 0;
@@ -91,8 +91,8 @@ namespace QuanLyGiuXe.Views
                 }
             });
 
-            ProgressBar.Value = 100;
-            TxtStats.Text = $"Import completed. ToImport={toImport} | Inserted={result.Inserted} | Updated={result.Updated}";
+            this.ImportProgressBar.Value = 100;
+            this.TxtStats.Text = $"Import completed. ToImport={toImport} | Inserted={result.Inserted} | Updated={result.Updated}";
             System.Windows.MessageBox.Show($"Import completed. Inserted={result.Inserted}, Updated={result.Updated}, ToImport={toImport}", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
 
             // keep window open if nothing imported so user can inspect preview errors

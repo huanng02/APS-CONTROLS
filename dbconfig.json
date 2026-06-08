@@ -1,0 +1,7 @@
+{
+  "ServerIP": "192.168.2.13",
+  "Port": "1433",
+  "Database": "BaiXe",
+  "Username": "appuser",
+  "Password": "123456"
+}

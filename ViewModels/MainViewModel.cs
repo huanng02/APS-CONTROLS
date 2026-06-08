@@ -2,166 +2,456 @@ using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Data;
-using System.Drawing;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using QuanLyGiuXe.Models;
 using QuanLyGiuXe.Services;
+using QuanLyGiuXe.Services.OfflineCache;
 
 namespace QuanLyGiuXe.ViewModels
 {
-    internal class MainViewModel : INotifyPropertyChanged
+    public class MainViewModel : INotifyPropertyChanged, IDisposable
     {
         private readonly DatabaseService db = new();
-        private static readonly System.Net.Http.HttpClient _sharedClient = new System.Net.Http.HttpClient();
-        private readonly AnprService _anprService = new AnprService(_sharedClient);
         public event PropertyChangedEventHandler? PropertyChanged;
-        private readonly C3200Service _plcService = C3200Service.Instance;
-
-        // ── Field & Properties (Đã dọn dẹp trùng lặp) ────────────────────────────────
-
-        private ImageSource _lanVaoRoiImage;
-        public ImageSource LanVaoRoiImage
+        private void OnPropertyChanged(string name)
         {
-            get => _lanVaoRoiImage;
-            set { _lanVaoRoiImage = value; OnPropertyChanged(); }
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
         }
 
-        private string _lanVaoTrangThai = "Chờ xe vào...";
-        public string LanVaoTrangThai
-        {
-            get => _lanVaoTrangThai;
-            set { _lanVaoTrangThai = value; OnPropertyChanged(); }
-        }
-
-        private string _lanVaoBienSo = "";
-        public string LanVaoBienSo
-        {
-            get => _lanVaoBienSo;
-            set { _lanVaoBienSo = value; OnPropertyChanged(); }
-        }
+        // ── Properties ────────────────────────────────────────────────────────────
 
         private string _bienSoNhap = "";
         public string BienSoNhap
         {
             get => _bienSoNhap;
-            set { _bienSoNhap = value; OnPropertyChanged(); }
+            set { _bienSoNhap = value; OnPropertyChanged(nameof(BienSoNhap)); }
         }
-
-        private object _currentView;
-        public object CurrentView
-        {
-            get => _currentView;
-            set { _currentView = value; OnPropertyChanged(); }
-        }
-
-        private string _thongBao;
-        public string ThongBao
-        {
-            get => _thongBao;
-            set { _thongBao = value; OnPropertyChanged(); }
-        }
-        public ObservableCollection<Xe> DanhSachXe { get; set; } = new();
-        public ObservableCollection<LogEntry> LogEntries { get; } = new();
 
         private string _tienHienThi = "";
         public string TienHienThi
         {
             get => _tienHienThi;
-            set { _tienHienThi = value; OnPropertyChanged(); }
+            set { _tienHienThi = value; OnPropertyChanged(nameof(TienHienThi)); }
         }
 
         private string _tuKhoaTimKiem = "";
         public string TuKhoaTimKiem
         {
             get => _tuKhoaTimKiem;
-            set { _tuKhoaTimKiem = value; OnPropertyChanged(); TimKiemXe(); }
+            set { _tuKhoaTimKiem = value; OnPropertyChanged(nameof(TuKhoaTimKiem)); TimKiemXe(); }
         }
 
         public string LastScannedUID { get; set; } = "";
 
-        // ── Làn Ra ───────────────────────────────────────────────────────────────
+        public object CurrentView { get; set; }
+        public ObservableCollection<Xe> DanhSachXe { get; set; }
 
-        private string _lanRaBienSo = "";
-        public string LanRaBienSo
+        // ── Làn Vào ──────────────────────────────────────────────────────────────
+
+        private string _lane1BienSo = "";
+        public string Lane1BienSo
         {
-            get => _lanRaBienSo;
-            set { _lanRaBienSo = value; OnPropertyChanged(); }
+            get => _lane1BienSo;
+            set { _lane1BienSo = value; OnPropertyChanged(nameof(Lane1BienSo)); }
         }
 
-        private string _lanRaTrangThai = "Chờ xe ra...";
-        public string LanRaTrangThai
+        private string _lane1TrangThai = "Chờ xe...";
+        public string Lane1TrangThai
         {
-            get => _lanRaTrangThai;
-            set { _lanRaTrangThai = value; OnPropertyChanged(); }
+            get => _lane1TrangThai;
+            set { _lane1TrangThai = value; OnPropertyChanged(nameof(Lane1TrangThai)); }
         }
 
-        private string _lanRaTien = "";
-        public string LanRaTien
+        private string _lane1UID = "";
+        public string Lane1UID
         {
-            get => _lanRaTien;
-            set { _lanRaTien = value; OnPropertyChanged(); }
+            get => _lane1UID;
+            set { _lane1UID = value; OnPropertyChanged(nameof(Lane1UID)); }
         }
 
-        private string _lanVaoUID = "";
-        public string LanVaoUID
+        private string _lane1Tien = "";
+        public string Lane1Tien
         {
-            get => _lanVaoUID;
-            set { _lanVaoUID = value; OnPropertyChanged(); }
+            get => _lane1Tien;
+            set { _lane1Tien = value; OnPropertyChanged(nameof(Lane1Tien)); }
         }
 
-        private string _lanRaThoiGianVao = "";
-        public string LanRaThoiGianVao
+        private string _lane1ThoiGianVao = "";
+        public string Lane1ThoiGianVao
         {
-            get => _lanRaThoiGianVao;
-            set { _lanRaThoiGianVao = value; OnPropertyChanged(); }
+            get => _lane1ThoiGianVao;
+            set { _lane1ThoiGianVao = value; OnPropertyChanged(nameof(Lane1ThoiGianVao)); }
         }
 
-        private string _lanRaThoiGianTrongBai = "";
-        public string LanRaThoiGianTrongBai
+        private string _lane1ThoiGianTrongBai = "";
+        public string Lane1ThoiGianTrongBai
         {
-            get => _lanRaThoiGianTrongBai;
-            set { _lanRaThoiGianTrongBai = value; OnPropertyChanged(); }
+            get => _lane1ThoiGianTrongBai;
+            set { _lane1ThoiGianTrongBai = value; OnPropertyChanged(nameof(Lane1ThoiGianTrongBai)); }
+        }
+
+        // ── Lane 2 (Right UI) ─────────────────────────────────────────────────
+        private string _lane2BienSo = "";
+        public string Lane2BienSo
+        {
+            get => _lane2BienSo;
+            set { _lane2BienSo = value; OnPropertyChanged(nameof(Lane2BienSo)); }
+        }
+
+        private string _lane2TrangThai = "Chờ xe...";
+        public string Lane2TrangThai
+        {
+            get => _lane2TrangThai;
+            set { _lane2TrangThai = value; OnPropertyChanged(nameof(Lane2TrangThai)); }
+        }
+
+        private string _lane2UID = "";
+        public string Lane2UID
+        {
+            get => _lane2UID;
+            set { _lane2UID = value; OnPropertyChanged(nameof(Lane2UID)); }
+        }
+
+        private string _lane2Tien = "";
+        public string Lane2Tien
+        {
+            get => _lane2Tien;
+            set { _lane2Tien = value; OnPropertyChanged(nameof(Lane2Tien)); }
+        }
+
+        private string _lane2ThoiGianVao = "";
+        public string Lane2ThoiGianVao
+        {
+            get => _lane2ThoiGianVao;
+            set { _lane2ThoiGianVao = value; OnPropertyChanged(nameof(Lane2ThoiGianVao)); }
+        }
+
+        private string _lane2ThoiGianTrongBai = "";
+        public string Lane2ThoiGianTrongBai
+        {
+            get => _lane2ThoiGianTrongBai;
+            set { _lane2ThoiGianTrongBai = value; OnPropertyChanged(nameof(Lane2ThoiGianTrongBai)); }
         }
 
         private string _trangThaiKetNoi = "C3200: Đang kết nối...";
         public string TrangThaiKetNoi
         {
             get => _trangThaiKetNoi;
-            set { _trangThaiKetNoi = value; OnPropertyChanged(); }
+            set { _trangThaiKetNoi = value; OnPropertyChanged(nameof(TrangThaiKetNoi)); }
         }
 
-        public string SoXeTrongBai => $"Xe trong bãi: {DanhSachXe?.Count ?? 0}";
-
-        private bool _newestOnTop = true;
-        public bool NewestOnTop
+        // ── Dynamic Lane Configuration ───────────────────────────────────────────
+        private string _lane1Title = "LÀN 1";
+        public string Lane1Title
         {
-            get => _newestOnTop;
-            set { _newestOnTop = value; OnPropertyChanged(); }
+            get => _lane1Title;
+            set { _lane1Title = value; OnPropertyChanged(nameof(Lane1Title)); }
         }
 
-        private bool _showLog;
-        public bool ShowLog
+        private string _lane2Title = "LÀN 2";
+        public string Lane2Title
         {
-            get => _showLog;
-            set { _showLog = value; OnPropertyChanged(); }
+            get => _lane2Title;
+            set { _lane2Title = value; OnPropertyChanged(nameof(Lane2Title)); }
         }
 
-        // ── Ảnh biển số & Camera ──────────────────────────────────────────────────
+        private System.Windows.Media.Brush _lane1Color = (System.Windows.Media.Brush)Application.Current.Resources["APSBlueBrush"];
+        public System.Windows.Media.Brush Lane1Color
+        {
+            get => _lane1Color;
+            set { _lane1Color = value; OnPropertyChanged(nameof(Lane1Color)); }
+        }
 
-        public ImageSource? AnhBienSoVao { get; set; } // Giản lược để tránh trùng
-        public ImageSource? AnhBienSoRaVao { get; set; }
-        public ImageSource? AnhBienSoRaRa { get; set; }
-        public ImageSource? AnhChupVao1 { get; set; }
-        public ImageSource? AnhChupVao2 { get; set; }
-        public ImageSource? AnhChupRa1 { get; set; }
-        public ImageSource? AnhChupRa2 { get; set; }
+        private System.Windows.Media.Brush _lane2Color = (System.Windows.Media.Brush)Application.Current.Resources["APSRedBrush"];
+        public System.Windows.Media.Brush Lane2Color
+        {
+            get => _lane2Color;
+            set { _lane2Color = value; OnPropertyChanged(nameof(Lane2Color)); }
+        }
+
+        private string _lane1ButtonText = "MỞ CỔNG 1";
+        public string Lane1ButtonText
+        {
+            get => _lane1ButtonText;
+            set { _lane1ButtonText = value; OnPropertyChanged(nameof(Lane1ButtonText)); }
+        }
+
+        private string _lane2ButtonText = "MỞ CỔNG 2";
+        public string Lane2ButtonText
+        {
+            get => _lane2ButtonText;
+            set { _lane2ButtonText = value; OnPropertyChanged(nameof(Lane2ButtonText)); }
+        }
+
+        private bool _isLane1Inbound = true;
+        public bool IsLane1Inbound
+        {
+            get => _isLane1Inbound;
+            set { _isLane1Inbound = value; OnPropertyChanged(nameof(IsLane1Inbound)); }
+        }
+
+        private bool _isLane2Inbound = false;
+        public bool IsLane2Inbound
+        {
+            get => _isLane2Inbound;
+            set { _isLane2Inbound = value; OnPropertyChanged(nameof(IsLane2Inbound)); }
+        }
+
+        private string _lane1InfoLabel = "THÔNG TIN XE VÀO";
+        public string Lane1InfoLabel
+        {
+            get => _lane1InfoLabel;
+            set { _lane1InfoLabel = value; OnPropertyChanged(nameof(Lane1InfoLabel)); }
+        }
+
+        private string _lane2InfoLabel = "THÔNG TIN XE RA";
+        public string Lane2InfoLabel
+        {
+            get => _lane2InfoLabel;
+            set { _lane2InfoLabel = value; OnPropertyChanged(nameof(Lane2InfoLabel)); }
+        }
+
+        public Visibility Lane1FeeVisibility => IsLane1Inbound ? Visibility.Collapsed : Visibility.Visible;
+        public Visibility Lane2FeeVisibility => IsLane2Inbound ? Visibility.Collapsed : Visibility.Visible;
+        public Visibility Lane1TimeVisibility => IsLane1Inbound ? Visibility.Collapsed : Visibility.Visible;
+        public Visibility Lane2TimeVisibility => IsLane2Inbound ? Visibility.Collapsed : Visibility.Visible;
+
+        public string Lane1ReaderMappingIn => GetReaderMappingIn(1);
+        public string Lane1ReaderMappingOut => GetReaderMappingOut(1);
+        public string Lane1ReaderMappingEmpty => (string.IsNullOrEmpty(Lane1ReaderMappingIn) && string.IsNullOrEmpty(Lane1ReaderMappingOut)) ? "⚠ CHƯA CẤU HÌNH ĐẦU ĐỌC" : "";
+
+        public string Lane2ReaderMappingIn => GetReaderMappingIn(2);
+        public string Lane2ReaderMappingOut => GetReaderMappingOut(2);
+        public string Lane2ReaderMappingEmpty => (string.IsNullOrEmpty(Lane2ReaderMappingIn) && string.IsNullOrEmpty(Lane2ReaderMappingOut)) ? "⚠ CHƯA CẤU HÌNH ĐẦU ĐỌC" : "";
+
+        private void SyncLaneUIState(int laneId)
+        {
+            var state = LaneRuntimeManager.Instance.GetLaneState(laneId);
+            bool isInbound = state.CurrentDirection == "IN";
+
+            if (laneId == 1)
+            {
+                IsLane1Inbound = isInbound;
+                Lane1Title = isInbound ? "LÀN 1 [VÀO]" : "LÀN 1 [RA]";
+                Lane1InfoLabel = isInbound ? "THÔNG TIN XE VÀO" : "THÔNG TIN XE RA";
+                Lane1ButtonText = isInbound ? "MỞ CỔNG 1" : "MỞ CỔNG 1";
+                Lane1Color = (System.Windows.Media.Brush)Application.Current.Resources[isInbound ? "APSBlueBrush" : "APSRedBrush"];
+
+                OnPropertyChanged(nameof(Lane1FeeVisibility));
+                OnPropertyChanged(nameof(Lane1TimeVisibility));
+            }
+            else if (laneId == 2)
+            {
+                IsLane2Inbound = isInbound;
+                Lane2Title = isInbound ? "LÀN 2 [VÀO]" : "LÀN 2 [RA]";
+                Lane2InfoLabel = isInbound ? "THÔNG TIN XE VÀO" : "THÔNG TIN XE RA";
+                Lane2ButtonText = isInbound ? "MỞ CỔNG 2" : "MỞ CỔNG 2";
+                Lane2Color = (System.Windows.Media.Brush)Application.Current.Resources[isInbound ? "APSBlueBrush" : "APSRedBrush"];
+
+                OnPropertyChanged(nameof(Lane2FeeVisibility));
+                OnPropertyChanged(nameof(Lane2TimeVisibility));
+            }
+        }
+
+        private string GetReaderMappingIn(int laneIndex)
+        {
+            var inReaders = ReaderLaneMappingService.Instance.GetAll().Where(m => m.LaneIndex == laneIndex && m.IsEnabled && m.Direction == "IN").Select(m => "R" + m.ReaderNo).ToList();
+            return inReaders.Any() ? $"[VÀO: {string.Join(",", inReaders)}]" : "";
+        }
+
+        private string GetReaderMappingOut(int laneIndex)
+        {
+            var outReaders = ReaderLaneMappingService.Instance.GetAll().Where(m => m.LaneIndex == laneIndex && m.IsEnabled && m.Direction == "OUT").Select(m => "R" + m.ReaderNo).ToList();
+            return outReaders.Any() ? $"[RA: {string.Join(",", outReaders)}]" : "";
+        }
+
+        private int _totalXeTrongBai = 0;
+        public string SoXeTrongBai => $"Xe trong bãi: {_totalXeTrongBai}";
+
+        private bool _isUserPopupOpen;
+        public bool IsUserPopupOpen
+        {
+            get => _isUserPopupOpen;
+            set { _isUserPopupOpen = value; OnPropertyChanged(nameof(IsUserPopupOpen)); }
+        }
+
+        private bool _isSidebarExpanded = true;
+        public bool IsSidebarExpanded
+        {
+            get => _isSidebarExpanded;
+            set
+            {
+                _isSidebarExpanded = value;
+                OnPropertyChanged(nameof(IsSidebarExpanded));
+            }
+        }
+
+        public string CurrentUserTen => QuanLyGiuXe.Models.CurrentUser.Ten ?? "Nhân viên";
+        public string CurrentUserRole => QuanLyGiuXe.Models.CurrentUser.Role ?? "Người vận hành";
+        public string CurrentUserUsername => QuanLyGiuXe.Models.CurrentUser.Username ?? "user";
+
+        public async void UpdateVehicleCount()
+        {
+            try
+            {
+                int count = await Task.Run(() => db.GetTotalXeTrongBaiCount());
+                Application.Current?.Dispatcher?.BeginInvoke(new Action(() => {
+                    _totalXeTrongBai = count;
+                    OnPropertyChanged(nameof(SoXeTrongBai));
+                }));
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("UpdateCount", "MainViewModel", "Lỗi cập nhật số xe", ex);
+            }
+        }
+
+
+
+        // ── Connection status indicators (Phase 2) ──────────────────────────────────
+
+        private Services.Connection.ConnectionState _dbState = Services.Connection.ConnectionState.Disconnected;
+        public Services.Connection.ConnectionState DbState
+        {
+            get => _dbState;
+            set { _dbState = value; OnPropertyChanged(nameof(DbState)); }
+        }
+
+        private Services.Connection.ConnectionState _c3State = Services.Connection.ConnectionState.Disconnected;
+        public Services.Connection.ConnectionState C3State
+        {
+            get => _c3State;
+            set { _c3State = value; OnPropertyChanged(nameof(C3State)); }
+        }
+
+        private Services.Connection.ConnectionState _camVaoState = Services.Connection.ConnectionState.Disconnected;
+        public Services.Connection.ConnectionState CamVaoState
+        {
+            get => _camVaoState;
+            set { _camVaoState = value; OnPropertyChanged(nameof(CamVaoState)); }
+        }
+
+        private Services.Connection.ConnectionState _camRaState = Services.Connection.ConnectionState.Disconnected;
+        public Services.Connection.ConnectionState CamRaState
+        {
+            get => _camRaState;
+            set { _camRaState = value; OnPropertyChanged(nameof(CamRaState)); }
+        }
+
+        private bool _isDbConnected;
+        public bool IsDbConnected
+        {
+            get => _isDbConnected;
+            set { _isDbConnected = value; OnPropertyChanged(nameof(IsDbConnected)); }
+        }
+
+        private bool _isC3Connected;
+        public bool IsC3Connected
+        {
+            get => _isC3Connected;
+            set { _isC3Connected = value; OnPropertyChanged(nameof(IsC3Connected)); }
+        }
+
+        private string _dbStatusLabel = "Database";
+        public string DbStatusLabel
+        {
+            get => _dbStatusLabel;
+            set { _dbStatusLabel = value; OnPropertyChanged(nameof(DbStatusLabel)); }
+        }
+
+        private string _c3StatusLabel = "C3-200";
+        public string C3StatusLabel
+        {
+            get => _c3StatusLabel;
+            set { _c3StatusLabel = value; OnPropertyChanged(nameof(C3StatusLabel)); }
+        }
+
+
+
+
+
+        // ── Ảnh biển số ─────────────────────────────────────────────────────────────
+
+        private ImageSource? _anhBienSoVao;
+        public ImageSource? AnhBienSoVao
+        {
+            get => _anhBienSoVao;
+            set { _anhBienSoVao = value; OnPropertyChanged(nameof(AnhBienSoVao)); }
+        }
+
+        private ImageSource? _anhBienSoRaVao;
+        public ImageSource? AnhBienSoRaVao
+        {
+            get => _anhBienSoRaVao;
+            set { _anhBienSoRaVao = value; OnPropertyChanged(nameof(AnhBienSoRaVao)); }
+        }
+
+        private ImageSource? _anhBienSoRaRa;
+        public ImageSource? AnhBienSoRaRa
+        {
+            get => _anhBienSoRaRa;
+            set { _anhBienSoRaRa = value; OnPropertyChanged(nameof(AnhBienSoRaRa)); }
+        }
+
+        // ── Ảnh chụp từ 2 cam (snapshot khi xe vào/ra) ──────────────────────────
+
+        private ImageSource? _anhChupVao1;
+        public ImageSource? AnhChupVao1
+        {
+            get => _anhChupVao1;
+            set { _anhChupVao1 = value; OnPropertyChanged(nameof(AnhChupVao1)); }
+        }
+
+        private ImageSource? _anhChupVao2;
+        public ImageSource? AnhChupVao2
+        {
+            get => _anhChupVao2;
+            set { _anhChupVao2 = value; OnPropertyChanged(nameof(AnhChupVao2)); }
+        }
+
+        private ImageSource? _anhChupRa1;
+        public ImageSource? AnhChupRa1
+        {
+            get => _anhChupRa1;
+            set { _anhChupRa1 = value; OnPropertyChanged(nameof(AnhChupRa1)); }
+        }
+
+        private ImageSource? _anhChupRa2;
+        public ImageSource? AnhChupRa2
+        {
+            get => _anhChupRa2;
+            set { _anhChupRa2 = value; OnPropertyChanged(nameof(AnhChupRa2)); }
+        }
+
+        // ── Helper methods for UI updates ─────────────────────────────────────
+
+        public void UpdateLaneSnapshot(int lane, int cameraIndex, ImageSource source)
+        {
+            if (lane == 1) // Lane 1 (Left)
+            {
+                if (cameraIndex == 1) AnhChupVao1 = source;
+                else if (cameraIndex == 2) AnhChupVao2 = source;
+            }
+            else if (lane == 2) // Lane 2 (Right)
+            {
+                if (cameraIndex == 1) AnhChupRa1 = source;
+                else if (cameraIndex == 2) AnhChupRa2 = source;
+            }
+        }
+
+        public void SetLanePlate(int lane, string plate)
+        {
+            if (lane == 1) Lane1BienSo = plate;
+            else if (lane == 2) Lane2BienSo = plate;
+        }
+
+
 
         // ── Commands ──────────────────────────────────────────────────────────────
 
@@ -172,474 +462,560 @@ namespace QuanLyGiuXe.ViewModels
         public ICommand TimKiemCommand { get; }
         public ICommand LichSuCommand { get; }
         public ICommand DatabaseExplorerCommand { get; }
+        public ICommand LogoutCommand { get; }
+        public ICommand ToggleUserPopupCommand { get; }
+        public ICommand EditProfileCommand { get; }
+        public ICommand ChangePasswordCommand { get; }
+        public ICommand ToggleSidebarCommand { get; }
+        public ICommand BackupRestoreCommand { get; }
 
         // ── Constructor ───────────────────────────────────────────────────────────
-
-        private string _currentCardUID;
-        public string CurrentCardUID
-        {
-            get => _currentCardUID;
-            set
-            {
-                if (_currentCardUID != value)
-                {
-                    _currentCardUID = value;
-                    OnPropertyChanged(nameof(CurrentCardUID));
-
-                    if (!string.IsNullOrEmpty(value))
-                    {
-                        XeVaoCommand.Execute(null); 
-                    }
-                }
-            }
-        }
-
-        private string _pathAnhVao;
-        public string PathAnhVao
-        {
-            get => _pathAnhVao;
-            set
-            {
-                _pathAnhVao = value;
-                OnPropertyChanged(nameof(PathAnhVao));
-            }
-        }
 
         public MainViewModel()
         {
             var cfg = AppConfig.Load();
-            _showLog = cfg.ShowLog;
 
-            var zk = cfg.ZKTeco;
-            C3200Service.Instance.Configure(zk.IpAddress, zk.TcpPort, zk.Password, zk.Timeout, zk.BarrierDuration);
-            _ = C3200Service.Instance.ConnectAsync();
-
+            DanhSachXe = new ObservableCollection<Xe>();
             DanhSachXe.CollectionChanged += (_, _) => OnPropertyChanged(nameof(SoXeTrongBai));
 
-            XeVaoCommand = new RelayCommand(async _ => await XeVaoAsync());
-            XeRaCommand = new RelayCommand(async _ => await XeRaAsync());
+            XeVaoCommand = new RelayCommand(async _ => await ProcessActionAsync(1, IsLane1Inbound, LastScannedUID));
+            XeRaCommand = new RelayCommand(async _ => await ProcessActionAsync(2, IsLane2Inbound, LastScannedUID));
             XeChiTietCommand = new RelayCommand<Xe>(XeChiTiet);
 
-            C3200Service.Instance.OnConnectionChanged += online =>
-                Application.Current?.Dispatcher?.Invoke(() =>
-                    TrangThaiKetNoi = online ? "C3200: Online ●" : "C3200: Offline ○");
+            C3200Service.Instance.OnConnectionChanged += OnC3200ConnectionChanged;
 
-            SetView(new TrangChuViewModel());
-            _ = InitializeAsync();
+            LaneRuntimeManager.Instance.OnLaneDirectionChanged += (laneId) => {
+                Application.Current?.Dispatcher?.BeginInvoke(new Action(() => SyncLaneUIState(laneId)));
+            };
+            SyncLaneUIState(1);
+            SyncLaneUIState(2);
+
+            CurrentView = new TrangChuViewModel();
 
             TrangChuCommand = new RelayCommand(_ => SetView(new TrangChuViewModel()));
             TimKiemCommand = new RelayCommand(_ => SetView(new TimKiemViewModel()));
             LichSuCommand = new RelayCommand(_ => SetView(new LichSuViewModel()));
             DatabaseExplorerCommand = new RelayCommand(_ => SetView(new DatabaseExplorerViewModel()));
-
-            try { LoggingService.Instance.LogEmitted += OnLogEmitted; } catch { }
-        }
-
-        // ── Methods ───────────────────────────────────────────────────────────────
-
-        protected void OnPropertyChanged([CallerMemberName] string name = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
-        }
-
-        private void SetView(object view)
-        {
-            CurrentView = view;
-        }
-
-        private void OnLogEmitted(LogEntry entry)
-        {
-            Application.Current?.Dispatcher?.Invoke(() =>
+            ToggleUserPopupCommand = new RelayCommand(_ => IsUserPopupOpen = !IsUserPopupOpen);
+            EditProfileCommand = new RelayCommand(_ =>
             {
-                entry.Timestamp = entry.Timestamp.ToLocalTime();
-                if (NewestOnTop)
-                {
-                    if (LogEntries.Count > 200) LogEntries.RemoveAt(LogEntries.Count - 1);
-                    LogEntries.Insert(0, entry);
-                }
-                else
-                {
-                    if (LogEntries.Count > 200) LogEntries.RemoveAt(0);
-                    LogEntries.Add(entry);
-                }
-            });
-        }
-        public async Task ProcessAutoDetection(Bitmap bitmap)
-        {
-            var plate = await ApiService.SendImageAsync(bitmap);
-            if (!string.IsNullOrEmpty(plate))
-            {
-                BienSoNhap = plate.ToUpper();
-                LanVaoTrangThai = "✅ Tự động nhận diện: " + BienSoNhap;
-            }
-        }
-
-        private async Task InitializeAsync()
-        {
-            try
-            {
-                // Chạy nạp dữ liệu ở luồng phụ để không treo giao diện
-                await Task.Run(() => LoadXeTrongBai());
-            }
-            catch (Exception ex)
-            {
-                ThongBao = "Lỗi kết nối dữ liệu ban đầu!";
-            }
-        }
-        private void ThemLog(string dir, string bienSo, string status)
-        {
-            var entry = new LogEntry
-            {
-                Timestamp = DateTime.Now,
-                Level = "Info",
-                EventType = dir,
-                Source = "UI",
-                Plate = bienSo,
-                Details = status
-            };
-            OnLogEmitted(entry);
-        }
-        private async Task OpenBarrier()
-        {
-            try
-            {
-                bool success = await _plcService.OpenBarrierAsync(1);
-
-                if (!success)
-                {
-                    ThongBao = $"Lỗi mở barrier: {_plcService.LastError}";
-                }
-                else
-                {
-                    ThongBao = "Mở barrier thành công!";
-                }
-            }
-            catch (Exception ex)
-            {
-                ThongBao = "Lỗi hệ thống: " + ex.Message;
-            }
-        }
-
-        private void InsertXeVao(string cardUid, string bienSo, int loaiXe, int loaiVe)
-        {
-            try
-            {
-                string pathAnhRong = "";
-
-                db.InsertXeVao(bienSo, cardUid, loaiXe, loaiVe, pathAnhRong);
-
-                ThongBao = "Đã ghi nhận xe vào bãi (Không ảnh).";
-            }
-            catch (Exception ex)
-            {
-                ThongBao = "Lỗi Database: " + ex.Message;
-            }
-        }
-
-        public async void ProcessCardSwipe(string cardUid)
-        {
-            var card = db.GetRFIDCardByUid(cardUid);
-            if (card == null)
-            {
-                ThongBao = "THẺ CHƯA ĐĂNG KÝ!";
-                return;
-            }
-
-            string plateFromUI = this.LanVaoBienSo;
-
-            if (card.LoaiVeId == 1) 
-            {
-                if (PlateService.IsMatch(plateFromUI, card.BienSo))
-                {
-                    InsertXeVao(cardUid, plateFromUI, card.LoaiXeId, card.LoaiVeId);
-                    await OpenBarrier();
-                    ThongBao = "XE THÁNG - MỜI VÀO";
-                }
-                else
-                {
-                    ThongBao = "SAI BIỂN SỐ! (ĐK: " + card.BienSo + ")";
-                }
-            }
-            else
-            {
-                InsertXeVao(cardUid, plateFromUI, card.LoaiXeId, card.LoaiVeId);
-                await OpenBarrier();
-                ThongBao = "VÃNG LAI - MỜI VÀO";
-            }
-        }
-        public void LoadRoiImage(string path)
-        {
-            if (!System.IO.File.Exists(path)) return;
-
-            var bitmap = new BitmapImage();
-            bitmap.BeginInit();
-            bitmap.UriSource = new Uri(path, UriKind.Absolute);
-            bitmap.CacheOption = BitmapCacheOption.OnLoad; 
-            bitmap.EndInit();
-            bitmap.Freeze(); 
-
-            LanVaoRoiImage = bitmap;
-        }
-        private void LoadXeTrongBai()
-        {
-            DanhSachXe.Clear();
-            foreach (DataRow row in db.LayXeTrongBai().Rows)
-            {
-                var xe = new Xe
-                {
-                    BienSo = row["BienSo"].ToString()!,
-                    ThoiGianVao = Convert.ToDateTime(row["ThoiGianVao"])
-                };
-                DanhSachXe.Add(xe);
-            }
-        }
-
-        // ── Xe Vào / Ra ──────────────────────────────────────────────────────────
-
-        public async Task XeVaoAsync()
-        {
-            // ENTRY must be by RFID only. Plate is optional and not required for validation.
-            string uid = string.IsNullOrEmpty(LastScannedUID) ? string.Empty : LastScannedUID;
-
-            if (string.IsNullOrEmpty(uid))
-            {
-                LanVaoTrangThai = "❌ Vui lòng quét thẻ RFID!";
-                return;
-            }
-
-            try
-            {
-                LoggingService.Instance.LogInfo("XeVaoScan", "MainViewModel", $"Scan in UID={uid}");
-
-                // verify card exists
-                var card = db.GetRFIDCardByUid(uid);
-                if (card == null || card.Id == 0)
-                {
-                    LanVaoTrangThai = $"❌ Thẻ {uid} chưa đăng ký!";
-                    LoggingService.Instance.LogInfo("XeVao", "MainViewModel", $"Unregistered UID={uid}");
-                    return;
-                }
-
-                string plate = string.IsNullOrEmpty(card.BienSo) ? string.Empty : card.BienSo;
-
-                if (!Directory.Exists("Images"))
-                    Directory.CreateDirectory("Images");
-
-                // insert into DB (CardId-first - FIXED)
                 try
                 {
-                    db.ThemXe(card.Id, string.IsNullOrEmpty(plate) ? null : plate, "");
-                }
-                catch (Exception ex)
-                {
-                    LanVaoTrangThai = $"❌ Lỗi ghi DB: {ex.Message}";
-                    LoggingService.Instance.LogError("XeVaoInsertFailed", "MainViewModel", $"CardId={card.Id}", ex);
-                    return;
-                }
+                    IsUserPopupOpen = false;
 
-                // verify insert (FIXED: CardId)
-                int count = db.GetXeTrongBaiCountByCardId(card.Id);
+                    var window = new Views.UserProfileWindow();
 
-                LoggingService.Instance.LogInfo(
-                    "XeVao",
-                    "MainViewModel",
-                    $"After insert CardId={card.Id} activeCount={count}"
-                );
+                    window.ShowDialog();
 
-                if (count == 0)
-                {
-                    LanVaoTrangThai = "⚠ Insert DB không thành công (không tìm thấy bản ghi sau insert). Kiểm tra logs.";
-                    return;
-                }
-
-                // reflect in UI list
-                var xe = new Xe
-                {
-                    BienSo = plate ?? string.Empty,
-                    ThoiGianVao = DateTime.Now
-                };
-
-                DanhSachXe.Add(xe);
-
-                LanVaoBienSo = plate;
-                LanVaoUID = uid;
-
-                bool opened = await C3200Service.Instance.OpenBarrierAsync(1);
-
-                LanVaoTrangThai = opened
-                    ? $"✅ Xe vào lúc {DateTime.Now:HH:mm} – barrier đã mở"
-                    : "⚠ Xe vào – barrier lỗi";
-
-                LoggingService.Instance.LogInfo(
-                    "XeVao",
-                    "MainViewModel",
-                    $"CardId={card.Id}; Plate={plate}; opened={opened}"
-                );
-
-                ThemLog("VÀO", plate, opened ? "✅ Barrier đã mở" : "⚠ Barrier lỗi");
-
-                BienSoNhap = "";
-                LastScannedUID = string.Empty;
-            }
-            catch (Exception ex)
-            {
-                LanVaoTrangThai = $"❌ Lỗi xử lý vào: {ex.Message}";
-                LoggingService.Instance.LogError(
-                    "XeVaoUnhandled",
-                    "MainViewModel",
-                    $"UID={LastScannedUID}",
-                    ex
-                );
-            }
-        }
-
-        private async Task XeRaAsync()
-        {
-            // EXIT must be by RFID only.
-            string cardUid = string.IsNullOrEmpty(LastScannedUID) ? string.Empty : LastScannedUID;
-
-            if (string.IsNullOrEmpty(cardUid))
-            {
-                LanRaTrangThai = "❌ Vui lòng quét thẻ RFID!";
-                return;
-            }
-
-            try
-            {
-                LoggingService.Instance.LogInfo("XeRaScan", "MainViewModel", $"Scan out UID={cardUid}");
-
-                var card = db.GetRFIDCardByUid(cardUid);
-                if (card == null || card.Id == 0)
-                {
-                    LanRaTrangThai = $"❌ Thẻ {cardUid} chưa đăng ký!";
-                    return;
-                }
-
-                int cardId = card.Id;
-
-                // debug count (CARD ID)
-                int activeCount = db.GetXeTrongBaiCountByCardId(cardId);
-                LoggingService.Instance.LogInfo("XeRaDebug", "MainViewModel",
-                    $"Active XeTrongBai rows for CardId={cardId}: {activeCount}");
-
-                var rec = db.GetXeTrongBaiRecordByCardId(cardId);
-                if (rec == null)
-                {
-                    LanRaTrangThai = "⚠ Không tìm thấy xe trong bãi cho thẻ này";
-                    LoggingService.Instance.LogInfo("XeRaNotFound", "MainViewModel",
-                        $"No active XeTrongBai for CardId={cardId}. ActiveCount={activeCount}");
-                    return;
-                }
-
-                var (id, plate, timeIn) = rec.Value;
-
-                LanRaBienSo = plate;
-
-                var thoiGian = DateTime.Now - timeIn;
-
-                LanRaThoiGianVao =
-                    $"Vào: {timeIn:HH:mm} │ {thoiGian.Hours}h{thoiGian.Minutes:D2}m";
-
-                LanRaThoiGianTrongBai =
-                    $"Thời gian trong bãi: {thoiGian.Days}d {thoiGian.Hours}h{thoiGian.Minutes:D2}m";
-
-                int? loaiXeId = (card.LoaiXeId > 0) ? card.LoaiXeId : (int?)null;
-                int? loaiVeId = (card.LoaiVeId > 0) ? card.LoaiVeId : (int?)null;
-
-                double tien = db.TinhTien(loaiXeId, loaiVeId, timeIn, DateTime.Now);
-
-                LanRaTien = $"💰 {tien:N0} VNĐ";
-                TienHienThi = $"Tiền: {tien:N0} VNĐ";
-
-                // DB update
-                try
-                {
-                    db.UpdateXeRaById(id, DateTime.Now);
-                    db.LuuLichSu(   
-                        string.IsNullOrEmpty(plate) ? null : plate,
-                        timeIn,
-                        DateTime.Now,
-                        tien,
-                        string.Empty,
-                        cardUid
-                    );
-
-                    db.XoaXeByCardId(cardId);
-
-                    LoggingService.Instance.LogInfo(
-                        "XeRa",
-                        "MainViewModel",
-                        $"Processed exit CardId={cardId}, Id={id}, Fee={tien}"
-                    );
+                    // Refresh UI user info
+                    RefreshCurrentUserInfo();
                 }
                 catch (Exception ex)
                 {
                     LoggingService.Instance.LogError(
-                        "XeRaDbFail",
+                        "OpenProfileWindow",
                         "MainViewModel",
-                        $"CardId={cardId}, Id={id}",
-                        ex
-                    );
+                        "Failed to open profile window",
+                        ex);
 
-                    LanRaTrangThai = $"❌ Lỗi ghi DB khi xử lý ra: {ex.Message}";
-                    return;
+                    MessageBox.Show(
+                        "Không thể mở thông tin cá nhân",
+                        "Lỗi",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error);
                 }
+            });
 
-                // remove from UI list
-                if (!string.IsNullOrEmpty(plate))
+            ChangePasswordCommand = new RelayCommand(_ =>
+            {
+                try
                 {
-                    var xeInList = DanhSachXe.FirstOrDefault(x => x.BienSo == plate);
-                    if (xeInList != null) DanhSachXe.Remove(xeInList);
+                    IsUserPopupOpen = false;
+
+                    var window = new Views.ChangePasswordWindow();
+
+                    window.ShowDialog();
                 }
+                catch (Exception ex)
+                {
+                    LoggingService.Instance.LogError(
+                        "OpenChangePasswordWindow",
+                        "MainViewModel",
+                        "Failed to open change password window",
+                        ex);
 
-                BienSoNhap = string.Empty;
-                LastScannedUID = string.Empty;
+                    MessageBox.Show(
+                        "Không thể mở đổi mật khẩu",
+                        "Lỗi",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error);
+                }
+            });
 
-                await C3200Service.Instance.OpenBarrierAsync(2);
+            BackupRestoreCommand = new RelayCommand(_ =>
+            {
+                try
+                {
+                    IsUserPopupOpen = false;
+                    var window = new Views.BackupRestoreWindow();
+                    window.ShowDialog();
+                }
+                catch (Exception ex)
+                {
+                    LoggingService.Instance.LogError("OpenBackupWindow", "MainViewModel", "Failed to open backup window", ex);
+                    MessageBox.Show("Không thể mở cửa sổ Quản lý Backup", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            });
 
-                LanRaTrangThai = $"✅ Xe ra lúc {DateTime.Now:HH:mm} – barrier đã mở";
+            ToggleSidebarCommand = new RelayCommand(_ => IsSidebarExpanded = !IsSidebarExpanded);
+            LogoutCommand = new RelayCommand(_ => {
+                IsUserPopupOpen = false;
+                UnsubscribeEvents(); // Clean up this VM
+                if (Application.Current is App app)
+                {
+                    app.PerformLogout();
+                }
+            });
 
-                LoggingService.Instance.LogInfo(
-                    "XeRaComplete",
-                    "MainViewModel",
-                    $"CardId={cardId}, Fee={tien}"
-                );
+            // Kick off heavy initialization in the background
+            Task.Run(async () => await InitializeAsync(cfg));
 
-                ThemLog("RA", plate, $"💰 {tien:N0} VNĐ");
+            RefreshSettings();
+        }
+
+        public void RefreshSettings()
+        {
+            try
+            {
+                var cfg = AppConfig.Load();
+                var blue = (System.Windows.Media.Brush)Application.Current.Resources["APSBlueBrush"];
+                var red = (System.Windows.Media.Brush)Application.Current.Resources["APSRedBrush"];
+
+                // Lane UI state is now managed dynamically via LaneRuntimeManager and SyncLaneUIState
+                SyncLaneUIState(1);
+                SyncLaneUIState(2);
+
+                // Notify visibility changes
+                OnPropertyChanged(nameof(Lane1FeeVisibility));
+                OnPropertyChanged(nameof(Lane2FeeVisibility));
+                OnPropertyChanged(nameof(Lane1TimeVisibility));
+                OnPropertyChanged(nameof(Lane2TimeVisibility));
+                // Refresh reader mappings
+                ReaderLaneMappingService.Instance.Load();
+                OnPropertyChanged(nameof(Lane1ReaderMappingIn));
+                OnPropertyChanged(nameof(Lane1ReaderMappingOut));
+                OnPropertyChanged(nameof(Lane1ReaderMappingEmpty));
+                OnPropertyChanged(nameof(Lane2ReaderMappingIn));
+                OnPropertyChanged(nameof(Lane2ReaderMappingOut));
+                OnPropertyChanged(nameof(Lane2ReaderMappingEmpty));
+            }
+            catch { }
+        }
+
+        private async Task InitializeAsync(AppConfig cfg)
+        {
+            try
+            {
+                // 1. ZKTeco/C3200 Init
+                var zk = cfg.ZKTeco;
+                C3200Service.Instance.Configure(
+                    ip: zk.IpAddress, port: zk.TcpPort,
+                    password: zk.Password, timeoutMs: zk.Timeout,
+                    barrierDuration: zk.BarrierDuration);
+
+                await C3200Service.Instance.ConnectAsync();
+
+                // 2. Heavy data loading removed from startup (Load on demand)
+                UpdateVehicleCount();
+
+
+
+                // 4. Connection monitor: reset UI + restart loop (login lại / VM mới)
+                await Application.Current.Dispatcher.InvokeAsync(ResetStatus);
+                await StartConnectionCheck();
+
+                // 5. Initialize Auto Reconnect (Phase 2)
+                InitializeAutoReconnect(cfg);
+
+                // 6. Khởi động Backup Scheduler
+                Services.Backup.BackupScheduler.Instance.Start();
+
+                // 7. Khởi động SQL Connectivity Monitoring (New Service)
+                ConnectivityStateService.Instance.Start();
+
+                // 8. Khởi động Auto Sync Engine (Phase 6.2)
+                AutoSyncService.Instance.Start();
+
+                LoggingService.Instance.LogInfo("VMInit", "MainViewModel", "Async initialization complete");
             }
             catch (Exception ex)
             {
-                LanRaTrangThai = $"❌ Lỗi xử lý ra: {ex.Message}";
-                LoggingService.Instance.LogError(
-                    "XeRaUnhandled",
-                    "MainViewModel",
-                    $"UID={LastScannedUID}",
-                    ex
-                );
+                LoggingService.Instance.LogError("VMInitError", "MainViewModel", "Async init failed", ex);
             }
+        }
+
+        private void InitializeAutoReconnect(AppConfig cfg)
+        {
+            var reconnectService = Services.Connection.AutoReconnectService.Instance;
+
+            // Đăng ký DB và C3
+            reconnectService.RegisterResource(new Services.Connection.DatabaseResource());
+            reconnectService.RegisterResource(new Services.Connection.C3200Resource());
+
+            // Lắng nghe thay đổi trạng thái để cập nhật UI
+            Services.Connection.ConnectionStateService.Instance.PropertyChanged += (s, e) =>
+            {
+                Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
+                {
+                    var svc = Services.Connection.ConnectionStateService.Instance;
+                    switch (e.PropertyName)
+                    {
+                        case "Database":
+                            DbState = svc.GetState("Database");
+                            IsDbConnected = DbState == Services.Connection.ConnectionState.Connected;
+                            DbStatusLabel = DbState switch
+                            {
+                                Services.Connection.ConnectionState.Connected => "Database",
+                                Services.Connection.ConnectionState.Reconnecting => "DB (Đang thử lại...)",
+                                _ => "DB (Mất kết nối)"
+                            };
+                            break;
+                        case "C3200":
+                            C3State = svc.GetState("C3200");
+                            IsC3Connected = C3State == Services.Connection.ConnectionState.Connected;
+                            C3StatusLabel = C3State switch
+                            {
+                                Services.Connection.ConnectionState.Connected => "C3-200",
+                                Services.Connection.ConnectionState.Reconnecting => "C3-200 (Đang thử lại...)",
+                                _ => "C3-200 (Mất kết nối)"
+                            };
+                            break;
+                        case "Camera_VaoToanCanh":
+                        case "Camera_VaoBienSo":
+                            // Cập nhật trạng thái cụm camera vào
+                            var s1 = svc.GetState("Camera_VaoToanCanh");
+                            var s2 = svc.GetState("Camera_VaoBienSo");
+                            CamVaoState = (s1 == Services.Connection.ConnectionState.Connected && s2 == Services.Connection.ConnectionState.Connected)
+                                ? Services.Connection.ConnectionState.Connected : Services.Connection.ConnectionState.Disconnected;
+                            break;
+                    }
+                }));
+            };
+
+            reconnectService.Start();
+        }
+
+        // ── Connection Monitor handler ─────────────────────────────────────────
+
+        /// <summary>
+        /// Đặt chỉ báo DB/C3 về màu vàng "Đang kiểm tra". Gọi trên UI thread (Dispatcher).
+        /// </summary>
+        public void ResetStatus()
+        {
+            DbStatusLabel = "Database — Đang kiểm tra";
+            C3StatusLabel = "C3-200 — Đang kiểm tra";
+            Services.Connection.ConnectionStateService.Instance.ResetState();
+        }
+
+        /// <summary>
+        /// Đăng ký handler và hủy task monitor cũ (nếu có), chạy vòng kiểm tra mới.
+        /// </summary>
+        public async Task StartConnectionCheck()
+        {
+            ConnectionMonitorService.Instance.StatusChanged -= OnConnectionStatusChanged;
+            ConnectionMonitorService.Instance.StatusChanged += OnConnectionStatusChanged;
+            await Task.Run(() => ConnectionMonitorService.Instance.Restart()).ConfigureAwait(false);
+        }
+
+        private void OnConnectionStatusChanged(ConnectionStatus status)
+        {
+            Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
+            {
+                // UI cập nhật Label đã được chuyển sang ConnectionStateService PropertyChanged
+            }));
+        }
+
+
+
+        public void SetView(object view)
+        {
+            CurrentView = view;
+            OnPropertyChanged(nameof(CurrentView));
+        }
+
+        // LoadXeTrongBai removed - use UpdateVehicleCount for dashboard instead
+
+
+        // ── Xe Vào / Ra ──────────────────────────────────────────────────────────
+
+        // ── Xe Vào / Ra (Dynamic Lane Support) ──────────────────────────────────
+
+        public async Task ProcessScanFromReaderAsync(int readerNo, string uid)
+        {
+            var mapping = ReaderLaneMappingService.Instance.GetMappingByReader(readerNo);
+            if (mapping == null || !mapping.IsEnabled)
+            {
+                LoggingService.Instance.LogWarning("ProcessScan", "MainViewModel", $"Reader {readerNo} is unmapped or disabled.");
+                return;
+            }
+
+            int laneIndex = mapping.LaneIndex;
+            var laneState = LaneRuntimeManager.Instance.GetLaneState(laneIndex);
+
+            if (laneState.CurrentDirection == "DISABLED" || laneState.CurrentDirection == "MAINTENANCE")
+            {
+                SetLaneStatus(laneIndex, $"❌ Làn {laneIndex} đang bảo trì/vô hiệu hóa");
+                return;
+            }
+
+            if (mapping.Direction != laneState.CurrentDirection)
+            {
+                SetLaneStatus(laneIndex, $"❌ Sai luồng thẻ! Làn đang là {laneState.CurrentDirection}");
+                return;
+            }
+
+            if (laneState.IsLocked)
+            {
+                SetLaneStatus(laneIndex, $"⚠ Làn đang bận xử lý xe khác!");
+                return;
+            }
+
+            // Lock the lane
+            LaneRuntimeManager.Instance.LockLane(laneIndex, uid);
+
+            bool isInbound = mapping.Direction == "IN";
+            await ProcessActionAsync(laneIndex, isInbound, uid);
+        }
+
+        public async Task ProcessActionAsync(int laneIndex, bool isInbound, string uid)
+        {
+            if (string.IsNullOrEmpty(uid))
+            {
+                SetLaneStatus(laneIndex, "❌ Vui lòng quét thẻ RFID!");
+                LaneRuntimeManager.Instance.UnlockLane(laneIndex);
+                return;
+            }
+
+            try
+            {
+                LoggingService.Instance.LogInfo("ProcessAction", "MainViewModel", $"Lane={laneIndex} In={isInbound} UID={uid}");
+
+                // Verify card
+                var card = db.GetRFIDCardByUid(uid);
+                if (card == null || card.Id == 0)
+                {
+                    SetLaneStatus(laneIndex, $"❌ Thẻ {uid} chưa đăng ký!");
+                    LaneRuntimeManager.Instance.UnlockLane(laneIndex);
+                    return;
+                }
+
+                if (isInbound)
+                {
+                    bool success = await ProcessInboundAsync(laneIndex, card, uid);
+                    if (!success) LaneRuntimeManager.Instance.UnlockLane(laneIndex);
+                }
+                else
+                {
+                    bool success = await ProcessOutboundAsync(laneIndex, card, uid);
+                    if (!success) LaneRuntimeManager.Instance.UnlockLane(laneIndex);
+                }
+
+                UpdateVehicleCount();
+                LastScannedUID = string.Empty;
+
+                // Simulate vehicle passing after 2s if successful (reduces block time for operators)
+                _ = Task.Run(async () => {
+                    await Task.Delay(2000);
+                    LaneRuntimeManager.Instance.UnlockLane(laneIndex);
+                });
+            }
+            catch (Exception ex)
+            {
+                SetLaneStatus(laneIndex, $"❌ Lỗi xử lý: {ex.Message}");
+                LoggingService.Instance.LogError("ProcessActionError", "MainViewModel", $"Lane={laneIndex}", ex);
+                LaneRuntimeManager.Instance.UnlockLane(laneIndex);
+            }
+        }
+
+        private async Task<bool> ProcessInboundAsync(int laneIndex, RFIDCard card, string uid)
+        {
+            var existingRec = db.GetXeTrongBaiRecordByCardId(card.Id);
+            if (existingRec != null)
+            {
+                SetLaneStatus(laneIndex, "⚠ Thẻ này đang ở trong bãi!");
+                return false;
+            }
+
+            string plate = card.BienSo ?? string.Empty;
+
+            try
+            {
+                await db.ThemXeAsync(card.Id, string.IsNullOrEmpty(plate) ? null : plate, "");
+
+                // Update UI for the specific lane
+                SetLanePlate(laneIndex, plate);
+                SetLaneUID(laneIndex, uid);
+
+                bool opened = await C3200Service.Instance.OpenBarrierAsync(laneIndex);
+                SetLaneStatus(laneIndex, opened ? $"✅ Xe vào lúc {DateTime.Now:HH:mm}" : "⚠ Xe vào – barrier lỗi");
+
+                // Add to list
+                DanhSachXe.Add(new Xe { BienSo = plate, ThoiGianVao = DateTime.Now });
+                return opened;
+            }
+            catch (Exception ex)
+            {
+                SetLaneStatus(laneIndex, $"❌ Lỗi ghi DB: {ex.Message}");
+                return false;
+            }
+        }
+
+        private async Task<bool> ProcessOutboundAsync(int laneIndex, RFIDCard card, string uid)
+        {
+            var rec = db.GetXeTrongBaiRecordByCardId(card.Id);
+            if (rec == null)
+            {
+                SetLaneStatus(laneIndex, "⚠ Không tìm thấy xe trong bãi");
+                return false;
+            }
+
+            var (id, plate, timeIn) = rec.Value;
+            var duration = DateTime.Now - timeIn;
+            double fee = db.TinhTien(card.LoaiXeId, card.LoaiVeId, timeIn, DateTime.Now);
+
+            try
+            {
+                await db.UpdateXeRaByIdAsync(id, DateTime.Now);
+                await db.LuuLichSuAsync(plate, timeIn, DateTime.Now, fee, "", uid);
+                await db.XoaXeByCardIdAsync(card.Id);
+
+                // Update UI
+                SetLanePlate(laneIndex, plate);
+                SetLaneUID(laneIndex, uid);
+                SetLaneTimeInfo(laneIndex, timeIn, duration);
+                SetLaneFee(laneIndex, fee);
+
+                bool opened = await C3200Service.Instance.OpenBarrierAsync(laneIndex);
+                SetLaneStatus(laneIndex, opened ? $"✅ Xe ra lúc {DateTime.Now:HH:mm}" : "⚠ Xe ra – barrier lỗi");
+
+                // Remove from local list
+                var item = DanhSachXe.FirstOrDefault(x => x.BienSo == plate);
+                if (item != null) DanhSachXe.Remove(item);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                SetLaneStatus(laneIndex, $"❌ Lỗi ghi DB: {ex.Message}");
+                return false;
+            }
+        }
+
+        // ── UI Helper Methods (Lane Aware) ─────────────────────────────────────
+
+        private void SetLaneStatus(int lane, string msg)
+        {
+            if (lane == 1) Lane1TrangThai = msg;
+            else Lane2TrangThai = msg;
+        }
+
+        private void SetLaneUID(int lane, string uid)
+        {
+            if (lane == 1) Lane1UID = uid;
+            else Lane2UID = uid;
+        }
+
+        private void SetLaneTimeInfo(int lane, DateTime timeIn, TimeSpan duration)
+        {
+            string vaoStr = $"Vào: {timeIn:HH:mm} │ {duration.Hours}h{duration.Minutes:D2}m";
+            string trongStr = $"Thời gian trong bãi: {duration.Days}d {duration.Hours}h{duration.Minutes:D2}m";
+
+            if (lane == 1)
+            {
+                Lane1ThoiGianVao = vaoStr;
+                Lane1ThoiGianTrongBai = trongStr;
+            }
+            else
+            {
+                Lane2ThoiGianVao = vaoStr;
+                Lane2ThoiGianTrongBai = trongStr;
+            }
+        }
+
+        private void SetLaneFee(int lane, double fee)
+        {
+            string feeStr = $"💰 {fee:N0} VNĐ";
+            if (lane == 1) Lane1Tien = feeStr;
+            else Lane2Tien = feeStr;
         }
 
         // ── Tìm kiếm / Chi tiết ──────────────────────────────────────────────────
 
-        private void TimKiemXe()
+        private async void TimKiemXe()
         {
-            DanhSachXe.Clear();
-            var source = string.IsNullOrWhiteSpace(TuKhoaTimKiem)
-                ? db.LayXeTrongBai().AsEnumerable()
-                : db.LayXeTrongBai().AsEnumerable()
-                    .Where(r => r["BienSo"].ToString()!.Contains(TuKhoaTimKiem));
-
-            foreach (var row in source)
-                DanhSachXe.Add(new Xe
+            try
+            {
+                var keyword = TuKhoaTimKiem?.Trim().ToLower();
+                var source = await Task.Run(() =>
                 {
-                    BienSo = row["BienSo"].ToString()!,
-                    ThoiGianVao = Convert.ToDateTime(row["ThoiGianVao"])
+                    var data = db.LayXeTrongBai().AsEnumerable();
+                    if (!string.IsNullOrWhiteSpace(keyword))
+                    {
+                        data = data.Where(r => r["BienSo"].ToString()!.ToLower().Contains(keyword));
+                    }
+                    return data.ToList();
                 });
+
+                Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
+                {
+                    DanhSachXe.Clear();
+                    foreach (var row in source)
+                    {
+                        DanhSachXe.Add(new Xe
+                        {
+                            BienSo = row["BienSo"].ToString()!,
+                            ThoiGianVao = Convert.ToDateTime(row["ThoiGianVao"])
+                        });
+                    }
+                }));
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("TimKiem", "MainViewModel", "Lỗi tìm kiếm xe", ex);
+            }
         }
 
         public void XeChiTiet(Xe xe)
         {
-            if (xe != null) new Views.VehicleDetailWindow(xe).ShowDialog();
+            if (xe == null) return;
+            new Views.VehicleDetailWindow(xe).ShowDialog();
+        }
+
+        public void UnsubscribeEvents()
+        {
+            try
+            {
+                // Unsubscribe from global services to prevent memory leaks and background crashes
+                C3200Service.Instance.OnConnectionChanged -= OnC3200ConnectionChanged;
+                ConnectionMonitorService.Instance.StatusChanged -= OnConnectionStatusChanged;
+            }
+            catch { }
+        }
+
+        private void OnC3200ConnectionChanged(bool online)
+        {
+            Application.Current?.Dispatcher?.Invoke(() =>
+                TrangThaiKetNoi = online ? "C3200: Online ●" : "C3200: Offline ○");
+        }
+        public void RefreshCurrentUserInfo()
+        {
+            OnPropertyChanged(nameof(CurrentUserTen));
+            OnPropertyChanged(nameof(CurrentUserUsername));
+            OnPropertyChanged(nameof(CurrentUserRole));
+        }
+
+        public void Dispose()
+        {
+            UnsubscribeEvents();
         }
     }
 }

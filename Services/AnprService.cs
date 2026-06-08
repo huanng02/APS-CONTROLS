@@ -1,11 +1,8 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Drawing;
 using System.IO;
-using System.Linq;
 using System.Net.Http;
-using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Media.Imaging;
 
 namespace QuanLyGiuXe.Services
@@ -20,14 +17,22 @@ namespace QuanLyGiuXe.Services
     public class AnprService
     {
         private readonly HttpClient _httpClient;
+        private bool _isProcessing = false;
+
+        // Giữ nguyên Event của bạn để MainWindow đăng ký nhận kết quả
+        public event Action<AnprResult> OnDetectionCompleted;
+
         public AnprService(HttpClient httpClient)
         {
             _httpClient = httpClient;
+            // Thiết lập Timeout hợp lý một lần duy nhất trong Constructor
+            _httpClient.Timeout = TimeSpan.FromSeconds(5);
         }
-        private bool _isProcessing = false;
-        public event Action<AnprResult> OnDetectionCompleted;
 
-        public async Task ProcessAutoDetectionAsync(Bitmap originalBitmap)
+        /// <summary>
+        /// Hàm xử lý nhận diện tự động từ file ảnh tạm được chụp bởi MediaPlayer
+        /// </summary>
+        public async Task ProcessAutoDetectionAsync(string imagePath)
         {
             if (_isProcessing) return;
 
@@ -35,13 +40,27 @@ namespace QuanLyGiuXe.Services
             {
                 _isProcessing = true;
 
-                // Thực hiện nhận diện (RecognizeAsync là hàm bạn đã viết gọi API)
-                var result = await RecognizeAsync(originalBitmap);
+                if (!File.Exists(imagePath)) return;
+
+                // Đọc file ảnh ra mảng byte mà không khóa file (để VLC có thể ghi đè ảnh tiếp theo)
+                byte[] byteData;
+                using (var stream = new FileStream(imagePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                using (var ms = new MemoryStream())
+                {
+                    await stream.CopyToAsync(ms);
+                    byteData = ms.ToArray();
+                }
+
+                // Thực hiện gọi sang Server Flask AI
+                var result = await RecognizeBytesAsync(byteData);
 
                 if (result != null)
                 {
-                    // Kích hoạt event để MainWindow nhận được
-                    OnDetectionCompleted?.Invoke(result);
+                    // AN TOÀN LUỒNG: Ép Event chạy trên Dispatcher của UI Thread để MainWindow cập nhật giao diện không bị crash
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        OnDetectionCompleted?.Invoke(result);
+                    });
                 }
             }
             catch (Exception ex)
@@ -53,22 +72,20 @@ namespace QuanLyGiuXe.Services
                 _isProcessing = false;
             }
         }
-        public async Task<AnprResult> RecognizeAsync(Bitmap bmp)
+
+        /// <summary>
+        /// Hàm lõi gửi mảng byte ảnh lên Flask API nhận diện
+        /// </summary>
+        private async Task<AnprResult> RecognizeBytesAsync(byte[] byteData)
         {
             try
             {
-                // 1. Giải phóng CPU: Resize ngay trong bộ nhớ
-                using var resizedBmp = new Bitmap(bmp, new Size(800, (bmp.Height * 800) / bmp.Width));
-                using var ms = new MemoryStream();
-                resizedBmp.Save(ms, System.Drawing.Imaging.ImageFormat.Jpeg);
-                var byteData = ms.ToArray();
+                using var content = new MultipartFormDataContent();
+                var imageContent = new ByteArrayContent(byteData);
+                imageContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
+                content.Add(imageContent, "image", "frame.jpg");
 
-                // 2. Gửi request
-                var content = new MultipartFormDataContent();
-                content.Add(new ByteArrayContent(byteData), "image", "frame.jpg"); // "image" phải khớp Flask
-
-                // Thiết lập Timeout ngắn để không treo App nếu Flask bị sập
-                _httpClient.Timeout = TimeSpan.FromSeconds(10);
+                // Gọi tới Endpoint xử lý biển số của Flask
                 var response = await _httpClient.PostAsync("http://127.0.0.1:5000/process_plate", content);
 
                 if (response.IsSuccessStatusCode)
@@ -79,7 +96,9 @@ namespace QuanLyGiuXe.Services
                     if (result.results != null && result.results.Count > 0)
                     {
                         string plate = result.results[0].plate;
-                        string roiPath = @"D:\APS\AI_Plate_Recognition\static\debug\last_roi.jpg";
+
+                        // TỐI ƯU: Lấy đường dẫn ảnh ROI động do Flask trả về (nếu có), nếu không có thì lấy file tạm cấu hình
+                        string roiPath = result.results[0].roi_path ?? @"D:\APS\AI_Plate_Recognition\static\debug\last_roi.jpg";
 
                         return new AnprResult
                         {
@@ -92,55 +111,57 @@ namespace QuanLyGiuXe.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine("Lỗi API: " + ex.Message);
+                System.Diagnostics.Debug.WriteLine("Lỗi kết nối Flask API: " + ex.Message);
             }
             return null;
         }
 
-        private BitmapSource LoadImageNoLock(string path)
+        public BitmapSource LoadImageNoLock(string path)
         {
             try
             {
-                if (!System.IO.File.Exists(path)) return null;
+                if (!File.Exists(path)) return null;
                 var bitmap = new BitmapImage();
-                using (var stream = System.IO.File.OpenRead(path))
+                using (var stream = File.OpenRead(path))
                 {
                     bitmap.BeginInit();
                     bitmap.CacheOption = BitmapCacheOption.OnLoad;
                     bitmap.StreamSource = stream;
                     bitmap.EndInit();
                 }
-                bitmap.Freeze();
+                bitmap.Freeze(); // Cực kỳ quan trọng để chia sẻ luồng đồ họa
                 return bitmap;
             }
             catch { return null; }
         }
 
+        /// <summary>
+        /// Lưu ảnh bãi xe cuối cùng vào thư mục D:\APS\SavedImages theo ngày để nạp SQL Server
+        /// </summary>
         public string SaveFinalImage(BitmapSource image, string plate)
         {
             try
             {
-                // 1. Tạo thư mục lưu trữ theo ngày
+                if (image == null) return null;
+
                 string baseFolder = @"D:\APS\SavedImages";
                 string dailyFolder = Path.Combine(baseFolder, DateTime.Now.ToString("yyyyMMdd"));
 
                 if (!Directory.Exists(dailyFolder))
                     Directory.CreateDirectory(dailyFolder);
 
-                // 2. Tạo tên file duy nhất
                 string fileName = $"{plate}_{DateTime.Now:HHmmss}.jpg";
                 string fullPath = Path.Combine(dailyFolder, fileName);
 
-                // 3. Lưu ảnh từ BitmapSource ra file
                 using (var fileStream = new FileStream(fullPath, FileMode.Create))
                 {
                     JpegBitmapEncoder encoder = new JpegBitmapEncoder();
                     encoder.Frames.Add(BitmapFrame.Create(image));
-                    encoder.QualityLevel = 80; // Giảm nhẹ chất lượng để tiết kiệm ổ cứng
+                    encoder.QualityLevel = 80;
                     encoder.Save(fileStream);
                 }
 
-                return fullPath; // Trả về đường dẫn này để lưu vào SQL Server
+                return fullPath;
             }
             catch (Exception ex)
             {

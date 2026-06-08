@@ -33,6 +33,11 @@ namespace QuanLyGiuXe.Views
                 vm.TrangThai = model.TrangThai;
                 this.DataContext = vm;
             }
+
+            this.MouseDown += (s, e) => {
+                if (e.LeftButton == System.Windows.Input.MouseButtonState.Pressed)
+                    this.DragMove();
+            };
         }
         private void TxtCardUID_PreviewTextInput(object sender, TextCompositionEventArgs e)
         {
@@ -120,11 +125,11 @@ namespace QuanLyGiuXe.Views
         private void AttachedVm_RequestClose(bool? result)
         {
             // marshal to UI thread
-            Dispatcher.Invoke(() =>
+            Dispatcher.BeginInvoke(new Action(() =>
             {
                 this.DialogResult = result;
                 this.Close();
-            });
+            }));
         }
 
         // Removed dynamic UI creation. XAML contains step grids and bindings; code-behind only handles commands via ViewModel.

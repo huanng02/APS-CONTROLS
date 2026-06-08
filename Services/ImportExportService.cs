@@ -406,6 +406,21 @@ namespace QuanLyGiuXe.Services
 
             // call DB upsert which handles insert/update in batches
             var res = _db.BulkUpsertRFIDCards(models, batchSize: 1000, progress: null, updateExisting: updateExisting);
+
+            // Audit Log
+            try
+            {
+                LoggingService.Instance.LogAudit(
+                    "IMPORT_DATA", 
+                    "RFIDCard", 
+                    null, 
+                    null, 
+                    new { TotalRows = models.Count, Inserted = res.Inserted, Updated = res.Updated, UpdateExisting = updateExisting },
+                    source: "ImportExportService",
+                    details: $"Imported {res.Inserted} and updated {res.Updated} RFID cards");
+            }
+            catch { }
+
             return res;
         }
 
@@ -542,6 +557,20 @@ namespace QuanLyGiuXe.Services
                 {
                     try { LoggingService.Instance.LogInfo("Export", "ImportExportService", $"Export saved to '{saved}' because destination was locked"); } catch { }
                 }
+
+                // Audit Log
+                try
+                {
+                    LoggingService.Instance.LogAudit(
+                        "EXPORT_DATA", 
+                        "RFIDCard", 
+                        null, 
+                        null, 
+                        new { Filename = Path.GetFileName(saved), RecordCount = list.Count, FilteredByLoaiVe = activeLoaiVeId },
+                        source: "ImportExportService",
+                        details: $"Exported {list.Count} RFID cards to {saved}");
+                }
+                catch { }
             }
         }
 
@@ -609,6 +638,20 @@ namespace QuanLyGiuXe.Services
             sb.AppendLine("- LoaiVe: VE LUOT, VE THANG");
             sb.AppendLine("- Có thể nhập: \"xe may\", \"Xe Máy\" (hệ thống tự hiểu)");
             File.WriteAllText(guide, sb.ToString(), Encoding.UTF8);
+
+            // Audit Log
+            try
+            {
+                LoggingService.Instance.LogAudit(
+                    "DOWNLOAD_TEMPLATE", 
+                    "System", 
+                    null, 
+                    null, 
+                    new { Folder = folder },
+                    source: "ImportExportService",
+                    details: $"Generated import templates in {folder}");
+            }
+            catch { }
         }
     }
 }

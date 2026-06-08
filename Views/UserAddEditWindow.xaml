@@ -1,0 +1,96 @@
+<Window x:Class="QuanLyGiuXe.Views.UserAddEditWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="QUẢN LÝ NGƯỜI DÙNG" 
+        SizeToContent="Height" 
+        Width="500" 
+        WindowStartupLocation="CenterOwner" 
+        ResizeMode="NoResize"
+        AllowsTransparency="True" WindowStyle="None"
+        Background="Transparent">
+    
+    <Border Background="White" CornerRadius="12" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1">
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="15" ShadowDepth="2" Opacity="0.2"/>
+        </Border.Effect>
+        
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <Border Grid.Row="0" Background="{StaticResource APSBlueBrush}" CornerRadius="12,12,0,0" Padding="25,20">
+                <Grid>
+                    <StackPanel Orientation="Horizontal">
+                        <Border Width="40" Height="40" Background="#20FFFFFF" CornerRadius="20" Margin="0,0,15,0">
+                            <TextBlock Text="👤" FontSize="20" Foreground="White" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                        </Border>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock x:Name="TxtTitle" Text="THÊM NGƯỜI DÙNG MỚI" FontWeight="Bold" Foreground="White" FontSize="16"/>
+                            <TextBlock Text="Thông tin tài khoản truy cập hệ thống" Foreground="#B0C4DE" FontSize="11"/>
+                        </StackPanel>
+                    </StackPanel>
+                    <Button Content="✕" HorizontalAlignment="Right" VerticalAlignment="Top" 
+                            Style="{StaticResource ModernOutlineButton}" BorderThickness="0" Foreground="White"
+                            Width="30" Height="30" Click="Cancel_Click"/>
+                </Grid>
+            </Border>
+
+            <!-- Body -->
+            <StackPanel Grid.Row="1" Margin="30,25">
+                <TextBlock Text="HỌ VÀ TÊN *" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,8"/>
+                <TextBox x:Name="TxtTen" Style="{StaticResource ModernTextBox}" Margin="0,0,0,20" Tag="Nhập họ và tên..."/>
+
+                <Grid Margin="0,0,0,20">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="20"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="TÊN ĐĂNG NHẬP *" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,8"/>
+                        <TextBox x:Name="TxtUsername" Style="{StaticResource ModernTextBox}" Tag="Username"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2" x:Name="PanelPassword">
+                        <TextBlock Text="MẬT KHẨU *" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,8"/>
+                        <PasswordBox x:Name="TxtPassword" Height="40"/>
+                    </StackPanel>
+                </Grid>
+
+                <Grid Margin="0,0,0,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="20"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="VAI TRÒ *" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,8"/>
+                        <ComboBox x:Name="CboRole" Style="{StaticResource ModernComboBox}" DisplayMemberPath="Name" SelectedValuePath="Id"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="TRẠNG THÁI *" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,8"/>
+                        <ComboBox x:Name="CboStatus" Style="{StaticResource ModernComboBox}"/>
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+
+            <!-- Footer -->
+            <Border Grid.Row="2" Background="{StaticResource BgLightBrush}" CornerRadius="0,0,12,12" Padding="25,20" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,1,0,0">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Content="HỦY BỎ" Width="100" Height="40" Margin="0,0,12,0" 
+                            Style="{StaticResource ModernOutlineButton}" Click="Cancel_Click"/>
+                    <Button Content="LƯU NGƯỜI DÙNG" Width="160" Height="40" 
+                            Style="{StaticResource ModernButton}" Background="{StaticResource SuccessBrush}" 
+                            Click="Save_Click"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
+</Window>

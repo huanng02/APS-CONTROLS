@@ -1,0 +1,45 @@
+// Global usings to resolve ambiguity between WPF and WinForms controls
+// Default to WPF controls as the project is primarily WPF
+
+global using Application = System.Windows.Application;
+global using TextBox = System.Windows.Controls.TextBox;
+global using Button = System.Windows.Controls.Button;
+global using Label = System.Windows.Controls.Label;
+global using CheckBox = System.Windows.Controls.CheckBox;
+global using ComboBox = System.Windows.Controls.ComboBox;
+global using UserControl = System.Windows.Controls.UserControl;
+global using HorizontalAlignment = System.Windows.HorizontalAlignment;
+global using VerticalAlignment = System.Windows.VerticalAlignment;
+global using Orientation = System.Windows.Controls.Orientation;
+global using Image = System.Windows.Controls.Image;
+global using MessageBox = System.Windows.MessageBox;
+global using Window = System.Windows.Window;
+global using MessageBoxButton = System.Windows.MessageBoxButton;
+global using MessageBoxResult = System.Windows.MessageBoxResult;
+global using MessageBoxImage = System.Windows.MessageBoxImage;
+global using SaveFileDialog = Microsoft.Win32.SaveFileDialog;
+global using OpenFileDialog = Microsoft.Win32.OpenFileDialog;
+global using Cursors = System.Windows.Input.Cursors;
+global using Control = System.Windows.Controls.Control;
+global using Clipboard = System.Windows.Clipboard;
+global using DataGrid = System.Windows.Controls.DataGrid;
+global using DatePicker = System.Windows.Controls.DatePicker;
+global using Binding = System.Windows.Data.Binding;
+global using KeyEventArgs = System.Windows.Input.KeyEventArgs;
+global using Key = System.Windows.Input.Key;
+global using ModifierKeys = System.Windows.Input.ModifierKeys;
+global using Brushes = System.Windows.Media.Brushes;
+global using ColorConverter = System.Windows.Media.ColorConverter;
+global using TextBlock = System.Windows.Controls.TextBlock;
+global using Grid = System.Windows.Controls.Grid;
+global using StackPanel = System.Windows.Controls.StackPanel;
+global using Border = System.Windows.Controls.Border;
+global using ScrollViewer = System.Windows.Controls.ScrollViewer;
+global using Thickness = System.Windows.Thickness;
+global using CornerRadius = System.Windows.CornerRadius;
+global using GridLength = System.Windows.GridLength;
+global using GridUnitType = System.Windows.GridUnitType;
+global using RoutedEventArgs = System.Windows.RoutedEventArgs;
+global using SelectionChangedEventArgs = System.Windows.Controls.SelectionChangedEventArgs;
+global using ColumnDefinition = System.Windows.Controls.ColumnDefinition;
+global using RowDefinition = System.Windows.Controls.RowDefinition;

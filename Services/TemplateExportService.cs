@@ -167,6 +167,20 @@ namespace QuanLyGiuXe.Services
 
                     File.WriteAllText(guidePath, sb.ToString(), Encoding.UTF8);
 
+                    // Audit Log
+                    try
+                    {
+                        LoggingService.Instance.LogAudit(
+                            "DOWNLOAD_TEMPLATE", 
+                            "System", 
+                            null, 
+                            null, 
+                            new { Folder = folderPath },
+                            source: "TemplateExportService",
+                            details: $"Generated RFID import templates in {folderPath}");
+                    }
+                    catch { }
+
                     // open folder
                     try
                     {

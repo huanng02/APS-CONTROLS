@@ -8,7 +8,7 @@ namespace QuanLyGiuXe.Views
         public DashboardView()
         {
             InitializeComponent();
-            this.DataContext = new DashboardViewModel();
+            // DataContext is set via the View hosting mechanism in MainWindow
         }
     }
 }

@@ -9,7 +9,7 @@
 
     <!-- DataContext is set in code-behind to allow safe construction with try/catch -->
 
-    <Grid Margin="8">
+    <Grid Margin="15">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -17,29 +17,42 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <StackPanel Orientation="Horizontal" Grid.Row="0" Margin="0,0,0,8">
-            <Button Content="Import Excel" Command="{Binding ImportExcelCommand}" Width="120" Margin="0,0,8,0" />
-            <Button Content="Export Excel" Command="{Binding ExportExcelCommand}" Width="120" />
-        </StackPanel>
+        <!-- TOOLBAR -->
+        <Border Grid.Row="0" Style="{StaticResource EnterpriseCardBorder}" Padding="15" Margin="0,0,0,15">
+            <StackPanel Orientation="Horizontal">
+                <Button Content="📂 IMPORT EXCEL" Command="{Binding ImportExcelCommand}" Style="{StaticResource ModernButton}" Background="{StaticResource APSBlueBrush}" Width="160" Margin="0,0,10,0" />
+                <Button Content="📥 EXPORT EXCEL" Command="{Binding ExportExcelCommand}" Style="{StaticResource ModernOutlineButton}" Width="160" />
+            </StackPanel>
+        </Border>
 
-        <ProgressBar Grid.Row="1" Height="18" Minimum="0" Maximum="100" Value="{Binding Progress}" />
+        <!-- PROGRESS -->
+        <Border Grid.Row="1" Margin="0,0,0,15" Visibility="{Binding Progress, Converter={StaticResource BoolToVis}}">
+             <ProgressBar Height="4" Minimum="0" Maximum="100" Value="{Binding Progress}" Background="{StaticResource BgLightBrush}" Foreground="{StaticResource APSBlueBrush}"/>
+        </Border>
 
-        <DataGrid Grid.Row="2" ItemsSource="{Binding PreviewRows}" AutoGenerateColumns="False" IsReadOnly="True">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="CardUID" Binding="{Binding CardUID}" Width="*" />
-                <DataGridTextColumn Header="BienSo" Binding="{Binding BienSo}" Width="120" />
-                <DataGridTextColumn Header="LoaiXeId" Binding="{Binding LoaiXeId}" Width="80" />
-                <DataGridTextColumn Header="LoaiVeId" Binding="{Binding LoaiVeId}" Width="80" />
-                <DataGridTextColumn Header="NgayDangKy" Binding="{Binding NgayDangKy, StringFormat=dd/MM/yyyy}" Width="120" />
-                <DataGridTextColumn Header="NgayHetHan" Binding="{Binding NgayHetHan, StringFormat=dd/MM/yyyy}" Width="120" />
-                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="120" />
-                <DataGridTextColumn Header="Message" Binding="{Binding StatusMessage}" Width="*" />
-            </DataGrid.Columns>
-        </DataGrid>
+        <!-- PREVIEW DATA -->
+        <Border Grid.Row="2" Style="{StaticResource EnterpriseCardBorder}" Padding="0">
+            <DataGrid ItemsSource="{Binding PreviewRows}" AutoGenerateColumns="False" IsReadOnly="True" Style="{StaticResource ModernDataGrid}">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="CARD UID" Binding="{Binding CardUID}" Width="*"/>
+                    <DataGridTextColumn Header="PLATE NUMBER" Binding="{Binding BienSo}" Width="150" />
+                    <DataGridTextColumn Header="VEHICLE ID" Binding="{Binding LoaiXeId}" Width="120" />
+                    <DataGridTextColumn Header="TICKET ID" Binding="{Binding LoaiVeId}" Width="120" />
+                    <DataGridTextColumn Header="ISSUE DATE" Binding="{Binding NgayDangKy, StringFormat=dd/MM/yyyy}" Width="150" />
+                    <DataGridTextColumn Header="EXPIRY DATE" Binding="{Binding NgayHetHan, StringFormat=dd/MM/yyyy}" Width="150" />
+                    <DataGridTextColumn Header="STATUS" Binding="{Binding Status}" Width="150" />
+                    <DataGridTextColumn Header="MESSAGE" Binding="{Binding StatusMessage}" Width="*" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
 
-        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
-            <Button Content="Confirm Import" Command="{Binding ConfirmImportCommand}" Width="140" Margin="0,0,8,0" />
-            <TextBlock Text="{Binding StatusSummary}" VerticalAlignment="Center" />
-        </StackPanel>
+        <!-- ACTIONS -->
+        <Border Grid.Row="3" Style="{StaticResource EnterpriseCardBorder}" Padding="15" Margin="0,15,0,0">
+            <Grid>
+                <TextBlock Text="{Binding StatusSummary}" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold" VerticalAlignment="Center" HorizontalAlignment="Left" Foreground="{StaticResource APSBlueBrush}"/>
+                <Button Content="✅ CONFIRM IMPORT" Command="{Binding ConfirmImportCommand}" Style="{StaticResource ModernButton}" Background="{StaticResource SuccessBrush}" Width="200" HorizontalAlignment="Right" />
+            </Grid>
+        </Border>
     </Grid>
 </UserControl>
+

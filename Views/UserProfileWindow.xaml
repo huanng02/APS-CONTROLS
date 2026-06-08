@@ -1,0 +1,45 @@
+<Window x:Class="QuanLyGiuXe.Views.UserProfileWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="ACCOUNT SETTINGS"
+        SizeToContent="Height"
+        MinHeight="550"
+        Width="480"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        Background="{StaticResource BgLightBrush}">
+
+    <Grid Margin="30">
+        <Border Style="{StaticResource EnterpriseCardBorder}" Padding="35">
+            <StackPanel>
+                <!-- Header -->
+                <TextBlock Text="PERSONAL INFORMATION" Style="{StaticResource Heading1Style}" Foreground="{StaticResource APSBlueBrush}" Margin="0,0,0,30" HorizontalAlignment="Center"/>
+
+                <!-- Avatar -->
+                <Border Width="100" Height="100" CornerRadius="50" Background="{StaticResource APSBlueBrush}" HorizontalAlignment="Center" Margin="0,0,0,30">
+                    <TextBlock Text="👤" FontSize="45" Foreground="White" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                </Border>
+
+                <!-- Tên -->
+                <TextBlock Text="FULL NAME" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold" Margin="0,0,0,8"/>
+                <TextBox Style="{StaticResource ModernTextBox}" Margin="0,0,0,20" Text="{Binding Ten}"/>
+
+                <!-- Username -->
+                <TextBlock Text="USERNAME" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold" Margin="0,0,0,8"/>
+                <TextBox Style="{StaticResource ModernTextBox}" Margin="0,0,0,30" Text="{Binding Username}" IsReadOnly="True" Opacity="0.7"/>
+
+                <!-- Buttons -->
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*"/>
+                        <ColumnDefinition Width="15"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Button Grid.Column="0" Content="SAVE CHANGES" Style="{StaticResource ModernButton}" Background="{StaticResource SuccessBrush}" Height="45" Command="{Binding SaveCommand}"/>
+                    <Button Grid.Column="2" Content="CLOSE" Style="{StaticResource ModernOutlineButton}" Height="45" Click="Close_Click"/>
+                </Grid>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

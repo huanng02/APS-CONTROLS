@@ -4,6 +4,7 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
 using QuanLyGiuXe.Models;
+using QuanLyGiuXe.Services.OfflineCache;
 
 namespace QuanLyGiuXe.Services
 {
@@ -11,205 +12,216 @@ namespace QuanLyGiuXe.Services
     {
         private readonly DatabaseService _db = new DatabaseService();
 
-        /// <summary>
-        /// Get all BangGia rows.
-        /// </summary>
         public List<BangGia> GetAll()
         {
-            var list = new List<BangGia>();
-            string conn = _db.GetConnectionString();
-            using (var sql = new SqlConnection(conn))
-            {
-                sql.Open();
-                // New schema: pricing per KhungGio. Only read GiaThang here.
-                string q = "SELECT Id, LoaiXeId, LoaiVeId, GiaThang, TrangThai FROM dbo.BangGia ORDER BY Id";
-                using (var cmd = new SqlCommand(q, sql))
-                using (var r = cmd.ExecuteReader())
-                {
-                    while (r.Read())
-                    {
-                        list.Add(new BangGia
-                        {
-                            Id = r["Id"] != DBNull.Value ? Convert.ToInt32(r["Id"]) : 0,
-                            LoaiXeId = r["LoaiXeId"] != DBNull.Value ? Convert.ToInt32(r["LoaiXeId"]) : 0,
-                            LoaiVeId = r["LoaiVeId"] != DBNull.Value ? Convert.ToInt32(r["LoaiVeId"]) : 0,
-                            GiaThang = r["GiaThang"] != DBNull.Value ? (decimal?)Convert.ToDecimal(r["GiaThang"]) : null,
-                            TrangThai = r["TrangThai"]?.ToString() ?? string.Empty
-                        });
-                    }
-                }
-            }
-            return list;
+            return System.Threading.Tasks.Task.Run(() => GetAllAsync()).GetAwaiter().GetResult();
         }
 
-        /// <summary>
-        /// Get by primary id
-        /// </summary>
+        public async System.Threading.Tasks.Task<List<BangGia>> GetAllAsync()
+        {
+            return await ConnectivityAwareRepository.Instance.ExecuteReadAsync<List<BangGia>>(
+                "LIST_BANG_GIA",
+                async conn =>
+                {
+                    var list = new List<BangGia>();
+                    string q = "SELECT Id, LoaiXeId, LoaiVeId, GiaThang, TrangThai FROM dbo.BangGia ORDER BY Id";
+                    using (var cmd = new SqlCommand(q, conn))
+                    using (var r = await cmd.ExecuteReaderAsync())
+                    {
+                        while (await r.ReadAsync())
+                        {
+                            list.Add(new BangGia
+                            {
+                                Id = r["Id"] != DBNull.Value ? Convert.ToInt32(r["Id"]) : 0,
+                                LoaiXeId = r["LoaiXeId"] != DBNull.Value ? Convert.ToInt32(r["LoaiXeId"]) : 0,
+                                LoaiVeId = r["LoaiVeId"] != DBNull.Value ? Convert.ToInt32(r["LoaiVeId"]) : 0,
+                                GiaThang = r["GiaThang"] != DBNull.Value ? (decimal?)Convert.ToDecimal(r["GiaThang"]) : null,
+                                TrangThai = r["TrangThai"]?.ToString() ?? string.Empty
+                            });
+                        }
+                    }
+                    return list;
+                }
+            ) ?? new List<BangGia>();
+        }
+
         public BangGia GetById(int id)
         {
-            if (id <= 0) return null;
-            string conn = _db.GetConnectionString();
-            using (var sql = new SqlConnection(conn))
-            {
-                sql.Open();
-                string q = "SELECT Id, LoaiXeId, LoaiVeId, GiaThang, TrangThai FROM dbo.BangGia WHERE Id = @id";
-                using (var cmd = new SqlCommand(q, sql))
-                {
-                    cmd.Parameters.AddWithValue("@id", id);
-                    using (var r = cmd.ExecuteReader())
-                    {
-                        if (r.Read())
-                        {
-                            return new BangGia
-                            {
-                                Id = r["Id"] != DBNull.Value ? Convert.ToInt32(r["Id"]) : 0,
-                                LoaiXeId = r["LoaiXeId"] != DBNull.Value ? Convert.ToInt32(r["LoaiXeId"]) : 0,
-                                LoaiVeId = r["LoaiVeId"] != DBNull.Value ? Convert.ToInt32(r["LoaiVeId"]) : 0,
-                                GiaThang = r["GiaThang"] != DBNull.Value ? (decimal?)Convert.ToDecimal(r["GiaThang"]) : null,
-                                TrangThai = r["TrangThai"]?.ToString() ?? string.Empty
-                            };
-                        }
-                    }
-                }
-            }
-            return null;
+            return System.Threading.Tasks.Task.Run(() => GetByIdAsync(id)).GetAwaiter().GetResult();
         }
 
-        /// <summary>
-        /// Get BangGia by LoaiXeId + LoaiVeId (returns most recent match if multiple)
-        /// </summary>
+        public async System.Threading.Tasks.Task<BangGia?> GetByIdAsync(int id)
+        {
+            if (id <= 0) return null;
+            return await ConnectivityAwareRepository.Instance.ExecuteReadAsync<BangGia>(
+                $"BANG_GIA_{id}",
+                async conn =>
+                {
+                    string q = "SELECT Id, LoaiXeId, LoaiVeId, GiaThang, TrangThai FROM dbo.BangGia WHERE Id = @id";
+                    using (var cmd = new SqlCommand(q, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@id", id);
+                        using (var r = await cmd.ExecuteReaderAsync())
+                        {
+                            if (await r.ReadAsync())
+                            {
+                                return new BangGia
+                                {
+                                    Id = r["Id"] != DBNull.Value ? Convert.ToInt32(r["Id"]) : 0,
+                                    LoaiXeId = r["LoaiXeId"] != DBNull.Value ? Convert.ToInt32(r["LoaiXeId"]) : 0,
+                                    LoaiVeId = r["LoaiVeId"] != DBNull.Value ? Convert.ToInt32(r["LoaiVeId"]) : 0,
+                                    GiaThang = r["GiaThang"] != DBNull.Value ? (decimal?)Convert.ToDecimal(r["GiaThang"]) : null,
+                                    TrangThai = r["TrangThai"]?.ToString() ?? string.Empty
+                                };
+                            }
+                        }
+                    }
+                    return null;
+                }
+            );
+        }
+
         public BangGia GetByLoaiXeAndLoaiVe(int loaiXeId, int loaiVeId)
         {
+            return System.Threading.Tasks.Task.Run(() => GetByLoaiXeAndLoaiVeAsync(loaiXeId, loaiVeId)).GetAwaiter().GetResult();
+        }
+
+        public async System.Threading.Tasks.Task<BangGia?> GetByLoaiXeAndLoaiVeAsync(int loaiXeId, int loaiVeId)
+        {
             if (loaiXeId <= 0 || loaiVeId <= 0) return null;
-            string conn = _db.GetConnectionString();
-            using (var sql = new SqlConnection(conn))
-            {
-                sql.Open();
-                string q = "SELECT TOP(1) Id, LoaiXeId, LoaiVeId, GiaThang, TrangThai FROM dbo.BangGia WHERE LoaiXeId = @lx AND LoaiVeId = @lv ORDER BY Id DESC";
-                using (var cmd = new SqlCommand(q, sql))
+            return await ConnectivityAwareRepository.Instance.ExecuteReadAsync<BangGia>(
+                $"BANG_GIA_LX_{loaiXeId}_LV_{loaiVeId}",
+                async conn =>
                 {
-                    cmd.Parameters.AddWithValue("@lx", loaiXeId);
-                    cmd.Parameters.AddWithValue("@lv", loaiVeId);
-                    using (var r = cmd.ExecuteReader())
+                    string q = "SELECT TOP(1) Id, LoaiXeId, LoaiVeId, GiaThang, TrangThai FROM dbo.BangGia WHERE LoaiXeId = @lx AND LoaiVeId = @lv ORDER BY Id DESC";
+                    using (var cmd = new SqlCommand(q, conn))
                     {
-                        if (r.Read())
+                        cmd.Parameters.AddWithValue("@lx", loaiXeId);
+                        cmd.Parameters.AddWithValue("@lv", loaiVeId);
+                        using (var r = await cmd.ExecuteReaderAsync())
                         {
-                            return new BangGia
+                            if (await r.ReadAsync())
                             {
-                                Id = r["Id"] != DBNull.Value ? Convert.ToInt32(r["Id"]) : 0,
-                                LoaiXeId = r["LoaiXeId"] != DBNull.Value ? Convert.ToInt32(r["LoaiXeId"]) : 0,
-                                LoaiVeId = r["LoaiVeId"] != DBNull.Value ? Convert.ToInt32(r["LoaiVeId"]) : 0,
-                                GiaThang = r["GiaThang"] != DBNull.Value ? (decimal?)Convert.ToDecimal(r["GiaThang"]) : null,
-                                TrangThai = r["TrangThai"]?.ToString() ?? string.Empty
-                            };
+                                return new BangGia
+                                {
+                                    Id = r["Id"] != DBNull.Value ? Convert.ToInt32(r["Id"]) : 0,
+                                    LoaiXeId = r["LoaiXeId"] != DBNull.Value ? Convert.ToInt32(r["LoaiXeId"]) : 0,
+                                    LoaiVeId = r["LoaiVeId"] != DBNull.Value ? Convert.ToInt32(r["LoaiVeId"]) : 0,
+                                    GiaThang = r["GiaThang"] != DBNull.Value ? (decimal?)Convert.ToDecimal(r["GiaThang"]) : null,
+                                    TrangThai = r["TrangThai"]?.ToString() ?? string.Empty
+                                };
+                            }
                         }
                     }
+                    return null;
                 }
-            }
-            return null;
+            );
         }
 
-        /// <summary>
-        /// Insert new BangGia. Validates business rules and uniqueness.
-        /// </summary>
         public void Insert(BangGia entity)
         {
-            if (entity == null) throw new ArgumentNullException(nameof(entity));
-            ValidateEntity(entity, isUpdate: false);
-            if (Exists(entity.LoaiXeId, entity.LoaiVeId))
-                throw new InvalidOperationException("A pricing row for the given LoaiXeId and LoaiVeId already exists.");
-
-            string conn = _db.GetConnectionString();
-            using (var sql = new SqlConnection(conn))
-            {
-                sql.Open();
-                // New model: do not write legacy per-day/night columns from repository.
-                string q = @"INSERT INTO dbo.BangGia (LoaiXeId, LoaiVeId, GiaThang, TrangThai)
-                                     VALUES (@lx,@lv,@gt,@tt)";
-                using (var cmd = new SqlCommand(q, sql))
-                {
-                    cmd.Parameters.AddWithValue("@lx", entity.LoaiXeId);
-                    cmd.Parameters.AddWithValue("@lv", entity.LoaiVeId);
-                    AddDecimalParameter(cmd, "@gt", entity.GiaThang);
-                    cmd.Parameters.AddWithValue("@tt", (object?)entity.TrangThai ?? string.Empty);
-                    cmd.ExecuteNonQuery();
-                }
-            }
+            _ = InsertAsync(entity);
         }
 
-        /// <summary>
-        /// Update existing BangGia. Validates business rules and uniqueness.
-        /// </summary>
+        public async System.Threading.Tasks.Task<bool> InsertAsync(BangGia entity)
+        {
+            if (entity == null) return false;
+            ValidateEntity(entity, isUpdate: false);
+
+            return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+                "INSERT_BANG_GIA",
+                entity,
+                async conn =>
+                {
+                    string q = @"INSERT INTO dbo.BangGia (LoaiXeId, LoaiVeId, GiaThang, TrangThai) VALUES (@lx,@lv,@gt,@tt)";
+                    using (var cmd = new SqlCommand(q, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@lx", entity.LoaiXeId);
+                        cmd.Parameters.AddWithValue("@lv", entity.LoaiVeId);
+                        AddDecimalParameter(cmd, "@gt", entity.GiaThang);
+                        cmd.Parameters.AddWithValue("@tt", (object?)entity.TrangThai ?? string.Empty);
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+                }
+            );
+        }
+
         public void Update(BangGia entity)
         {
-            if (entity == null) throw new ArgumentNullException(nameof(entity));
-            if (entity.Id <= 0) throw new ArgumentException("Invalid Id", nameof(entity));
+            _ = UpdateAsync(entity);
+        }
+
+        public async System.Threading.Tasks.Task<bool> UpdateAsync(BangGia entity)
+        {
+            if (entity == null || entity.Id <= 0) return false;
             ValidateEntity(entity, isUpdate: true);
 
-            // ensure uniqueness: no other row with same pair
-            var existing = GetByLoaiXeAndLoaiVe(entity.LoaiXeId, entity.LoaiVeId);
-            if (existing != null && existing.Id != entity.Id)
-                throw new InvalidOperationException("Another pricing row with same LoaiXeId and LoaiVeId exists.");
-
-            string conn = _db.GetConnectionString();
-            using (var sql = new SqlConnection(conn))
-            {
-                sql.Open();
-                // New model: do not update legacy per-day/night columns here.
-                string q = @"UPDATE dbo.BangGia SET LoaiXeId=@lx, LoaiVeId=@lv, GiaThang=@gt, TrangThai=@tt WHERE Id=@id";
-                using (var cmd = new SqlCommand(q, sql))
+            return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+                "UPDATE_BANG_GIA",
+                entity,
+                async conn =>
                 {
-                    cmd.Parameters.AddWithValue("@lx", entity.LoaiXeId);
-                    cmd.Parameters.AddWithValue("@lv", entity.LoaiVeId);
-                    AddDecimalParameter(cmd, "@gt", entity.GiaThang);
-                    cmd.Parameters.AddWithValue("@tt", (object?)entity.TrangThai ?? string.Empty);
-                    cmd.Parameters.AddWithValue("@id", entity.Id);
-                    cmd.ExecuteNonQuery();
+                    string q = @"UPDATE dbo.BangGia SET LoaiXeId=@lx, LoaiVeId=@lv, GiaThang=@gt, TrangThai=@tt WHERE Id=@id";
+                    using (var cmd = new SqlCommand(q, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@lx", entity.LoaiXeId);
+                        cmd.Parameters.AddWithValue("@lv", entity.LoaiVeId);
+                        AddDecimalParameter(cmd, "@gt", entity.GiaThang);
+                        cmd.Parameters.AddWithValue("@tt", (object?)entity.TrangThai ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@id", entity.Id);
+                        await cmd.ExecuteNonQueryAsync();
+                    }
                 }
-            }
+            );
         }
 
-        /// <summary>
-        /// Delete by id
-        /// </summary>
         public void Delete(int id)
         {
-            if (id <= 0) throw new ArgumentException("Invalid id", nameof(id));
-            string conn = _db.GetConnectionString();
-            using (var sql = new SqlConnection(conn))
-            {
-                sql.Open();
-                const string q = "DELETE FROM dbo.BangGia WHERE Id=@id";
-                using (var cmd = new SqlCommand(q, sql))
-                {
-                    cmd.Parameters.AddWithValue("@id", id);
-                    cmd.ExecuteNonQuery();
-                }
-            }
+            _ = DeleteAsync(id);
         }
 
-        /// <summary>
-        /// Check existence of LoaiXeId+LoaiVeId pair
-        /// </summary>
+        public async System.Threading.Tasks.Task<bool> DeleteAsync(int id)
+        {
+            if (id <= 0) return false;
+            return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+                "DELETE_BANG_GIA",
+                new { Id = id },
+                async conn =>
+                {
+                    const string q = "DELETE FROM dbo.BangGia WHERE Id=@id";
+                    using (var cmd = new SqlCommand(q, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@id", id);
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+                }
+            );
+        }
+
         public bool Exists(int loaiXeId, int loaiVeId)
         {
-            if (loaiXeId <= 0 || loaiVeId <= 0) return false;
-            string conn = _db.GetConnectionString();
-            using (var sql = new SqlConnection(conn))
-            {
-                sql.Open();
-                const string q = "SELECT COUNT(1) FROM dbo.BangGia WHERE LoaiXeId=@lx AND LoaiVeId=@lv";
-                using (var cmd = new SqlCommand(q, sql))
-                {
-                    cmd.Parameters.AddWithValue("@lx", loaiXeId);
-                    cmd.Parameters.AddWithValue("@lv", loaiVeId);
-                    var v = cmd.ExecuteScalar();
-                    return Convert.ToInt32(v) > 0;
-                }
-            }
+            return System.Threading.Tasks.Task.Run(() => ExistsAsync(loaiXeId, loaiVeId)).GetAwaiter().GetResult();
         }
 
-        // ------------------ helpers ------------------
+        public async System.Threading.Tasks.Task<bool> ExistsAsync(int loaiXeId, int loaiVeId)
+        {
+            if (loaiXeId <= 0 || loaiVeId <= 0) return false;
+            return await ConnectivityAwareRepository.Instance.ExecuteReadAsync<bool>(
+                $"BANG_GIA_EXISTS_{loaiXeId}_{loaiVeId}",
+                async conn =>
+                {
+                    const string q = "SELECT COUNT(1) FROM dbo.BangGia WHERE LoaiXeId=@lx AND LoaiVeId=@lv";
+                    using (var cmd = new SqlCommand(q, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@lx", loaiXeId);
+                        cmd.Parameters.AddWithValue("@lv", loaiVeId);
+                        var v = await cmd.ExecuteScalarAsync();
+                        return Convert.ToInt32(v) > 0;
+                    }
+                }
+            );
+        }
+
         private void AddDecimalParameter(SqlCommand cmd, string name, decimal? value)
         {
             var p = cmd.Parameters.Add(name, SqlDbType.Decimal);
@@ -223,37 +235,30 @@ namespace QuanLyGiuXe.Services
             if (entity.LoaiXeId <= 0) throw new ArgumentException("LoaiXeId is required and must be > 0", nameof(entity.LoaiXeId));
             if (entity.LoaiVeId <= 0) throw new ArgumentException("LoaiVeId is required and must be > 0", nameof(entity.LoaiVeId));
 
-            // Price values must be non-negative when provided
             if (entity.GiaThang.HasValue && entity.GiaThang.Value < 0) throw new ArgumentException("GiaThang must be >= 0");
 
-            // Determine ticket type using name-based detection (not hardcoded IDs)
             bool isThang = IsMonthlyTicket(entity.LoaiVeId);
             bool isVangLai = !isThang;
 
             if (isThang)
             {
-                // monthly: GiaThang required and non-negative
                 if (!entity.GiaThang.HasValue) throw new ArgumentException("GiaThang is required for monthly (Thang) ticket types.");
-                if (entity.GiaThang.HasValue && entity.GiaThang.Value < 0) throw new ArgumentException("GiaThang must be >= 0");
             }
             else if (isVangLai)
             {
-                // transient (vé lượt, vãng lai, etc.): pricing is driven by BangGiaKhungGio; ensure GiaThang is cleared
                 entity.GiaThang = null;
             }
         }
 
-        /// Check using DB CoTheGiaHan column
-        /// </summary>
         private bool IsMonthlyTicket(int loaiVeId)
         {
             if (loaiVeId <= 0) return false;
             try
             {
-                var loaiVeList = _db.GetLoaiVe();
+                // Use the service which is now offline-aware
+                var loaiVeList = new LoaiVeService().GetAll();
                 var lv = loaiVeList.FirstOrDefault(x => x.Id == loaiVeId);
-                if (lv == null) return false;
-                return lv.CoTheGiaHan;
+                return lv?.CoTheGiaHan ?? false;
             }
             catch { return false; }
         }

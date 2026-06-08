@@ -71,12 +71,16 @@ namespace QuanLyGiuXe.Views
         public ButtonLogsWindow()
         {
             Title = "Lịch sử nhấn nút";
-            Width = 1000;
-            Height = 640;
+            Width = 1200;
+            Height = 750;
+            WindowStartupLocation = WindowStartupLocation.CenterScreen;
+            
+            // Apply background from theme
+            this.SetResourceReference(BackgroundProperty, "BgLightBrush");
 
             _defaultImagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "default_button.png");
 
-            var root = new Grid { Margin = new Thickness(8) };
+            var root = new Grid { Margin = new Thickness(25) };
             root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
 
@@ -98,7 +102,17 @@ namespace QuanLyGiuXe.Views
             _cbDoor.Items.Add("2");
             _cbDoor.SelectedIndex = 0;
             sp.Children.Add(_cbDoor);
-            var btnFind = new Button { Content = "Tìm", Margin = new Thickness(12,0,0,0), Padding = new Thickness(8,4,8,4) };
+            var btnFind = new Button 
+            { 
+                Content = "TÌM KIẾM", 
+                Margin = new Thickness(12,0,0,0), 
+                Padding = new Thickness(20,8,20,8),
+                FontWeight = FontWeights.Bold,
+                Cursor = Cursors.Hand
+            };
+            btnFind.SetResourceReference(StyleProperty, "ModernButton");
+            btnFind.SetResourceReference(BackgroundProperty, "APSBlueBrush");
+            
             btnFind.Click += async (s,e) =>
             {
                 _currentPageIndex = 0;
@@ -115,7 +129,16 @@ namespace QuanLyGiuXe.Views
             sp.Children.Add(btnFind);
 
             // Export Excel button
-            var btnExportExcel = new Button { Content = "Export Excel", Margin = new Thickness(8,0,0,0), Padding = new Thickness(8,4,8,4) };
+            var btnExportExcel = new Button 
+            { 
+                Content = "XUẤT EXCEL", 
+                Margin = new Thickness(8,0,0,0), 
+                Padding = new Thickness(20,8,20,8),
+                FontWeight = FontWeights.Bold,
+                Cursor = Cursors.Hand
+            };
+            btnExportExcel.SetResourceReference(StyleProperty, "ModernButton");
+            btnExportExcel.SetResourceReference(BackgroundProperty, "SuccessBrush");
             btnExportExcel.Click += async (s, e) =>
             {
                 // collect current filter values first so suggested filename can reflect them
@@ -267,7 +290,9 @@ namespace QuanLyGiuXe.Views
             // PDF export removed; Excel export supports embedded images now
             // page size selector moved below the table
             // page size selector moved below the table
-            _btnPrev = new Button { Content = "Trang trước", Margin = new Thickness(8,0,0,0), Padding = new Thickness(8,4,8,4), IsEnabled = false };
+            _btnPrev = new Button { Content = "Trang trước", Margin = new Thickness(8,0,0,0), Padding = new Thickness(12,4,12,4), IsEnabled = false };
+            _btnPrev.SetResourceReference(StyleProperty, "ModernButton");
+            _btnPrev.SetResourceReference(BackgroundProperty, "APSBlueBrush");
             _btnPrev.Click += async (s, e) =>
             {
                 if (_currentPageIndex <= 0) return;
@@ -281,7 +306,9 @@ namespace QuanLyGiuXe.Views
                 }
             };
 
-            _btnNext = new Button { Content = "Trang sau", Margin = new Thickness(8,0,0,0), Padding = new Thickness(8,4,8,4) };
+            _btnNext = new Button { Content = "Trang sau", Margin = new Thickness(8,0,0,0), Padding = new Thickness(12,4,12,4) };
+            _btnNext.SetResourceReference(StyleProperty, "ModernButton");
+            _btnNext.SetResourceReference(BackgroundProperty, "APSBlueBrush");
             _btnNext.Click += async (s, e) =>
             {
                 _currentPageIndex++; // Increment the current page index
@@ -297,7 +324,9 @@ namespace QuanLyGiuXe.Views
             };
 
             _lblPageInfo = new TextBlock { Text = "Trang 1", VerticalAlignment = System.Windows.VerticalAlignment.Center, Margin = new Thickness(8,0,0,0) };
-            _btnRefresh = new Button { Content = "Làm mới", Margin = new Thickness(8,0,0,0), Padding = new Thickness(8,4,8,4), ToolTip = "Làm mới danh sách" };
+            _btnRefresh = new Button { Content = "Làm mới", Margin = new Thickness(8,0,0,0), Padding = new Thickness(12,4,12,4), ToolTip = "Làm mới danh sách" };
+            _btnRefresh.SetResourceReference(StyleProperty, "ModernButton");
+            _btnRefresh.SetResourceReference(BackgroundProperty, "InfoBrush");
             _btnRefresh.Click += async (s,e) =>
             {
                 _currentPageSize = _pageIncrement; // reset
@@ -330,13 +359,15 @@ namespace QuanLyGiuXe.Views
                 SelectionMode = DataGridSelectionMode.Single,
                 VerticalAlignment = System.Windows.VerticalAlignment.Stretch,
                 HorizontalAlignment = System.Windows.HorizontalAlignment.Stretch,
-                Margin = new Thickness(0),
+                Margin = new Thickness(0,0,0,10),
                 CanUserAddRows = false,
                 CanUserDeleteRows = false,
                 HeadersVisibility = DataGridHeadersVisibility.Column,
                 RowHeaderWidth = 0,
                 SelectionUnit = DataGridSelectionUnit.FullRow
             };
+            _dgLogs.SetResourceReference(StyleProperty, "ModernDataGrid");
+            
             // enable virtualization/recycling for performance with many rows
             _dgLogs.EnableRowVirtualization = true;
             _dgLogs.EnableColumnVirtualization = true;

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -9,11 +10,10 @@ namespace QuanLyGiuXe
     public partial class C3200SettingsWindow : Window
     {
         private AppConfig _cfg;
-        private bool _suppressGroupSync = false;
 
         public C3200SettingsWindow()
         {
-            InitializeComponent();
+                InitializeComponent();
             _cfg = AppConfig.Load();
 
             IpBox.Text = _cfg.ZKTeco.IpAddress;
@@ -23,32 +23,7 @@ namespace QuanLyGiuXe
             BarrierBox.Text = _cfg.ZKTeco.BarrierDuration.ToString();
             CooldownBox.Text = _cfg.ZKTeco.CardCooldownMs.ToString();
 
-            // populate group combos (C3-200 reports rawDoor groups 1 or 2)
-            var gi = this.FindName("GateInCombo") as ComboBox;
-            var go = this.FindName("GateOutCombo") as ComboBox;
-            if (gi != null && go != null)
-            {
-                gi.Items.Clear();
-                go.Items.Clear();
-                var item1 = new ComboBoxItem { Content = "Group A — readers 1+2 (rawDoor=1)", Tag = "1" };
-                var item2 = new ComboBoxItem { Content = "Group B — readers 3+4 (rawDoor=2)", Tag = "2" };
-                gi.Items.Add(item1);
-                gi.Items.Add(item2);
-                go.Items.Add(new ComboBoxItem { Content = "Group A — readers 1+2 (rawDoor=1)", Tag = "1" });
-                go.Items.Add(new ComboBoxItem { Content = "Group B — readers 3+4 (rawDoor=2)", Tag = "2" });
-
-                // pre-select according to CSV config (choose first matching group)
-                var inCsv = _cfg.ZKTeco.GateInDoors ?? _cfg.ZKTeco.GateInDoor.ToString();
-                if (inCsv.Contains("1")) gi.SelectedItem = item1;
-                else if (inCsv.Contains("2")) gi.SelectedItem = item2;
-                var outCsv = _cfg.ZKTeco.GateOutDoors ?? _cfg.ZKTeco.GateOutDoor.ToString();
-                if (outCsv.Contains("1")) go.SelectedIndex = 0;
-                else if (outCsv.Contains("2")) go.SelectedIndex = 1;
-
-                // show current config in tooltips
-                gi.ToolTip = "Select IN group. Button actions configured in C3-200 Settings.";
-                go.ToolTip = "Select OUT group. Button actions configured in C3-200 Settings.";
-            }
+            LoadReaderSelection();
 
             // populate button action combos selection
             var b1 = this.FindName("Button1ActionCombo") as ComboBox;
@@ -67,34 +42,7 @@ namespace QuanLyGiuXe
                 }
             }
 
-            // wire up selection sync so choosing one group auto-selects the opposite in the other combo
-            if (gi != null && go != null)
-            {
-                gi.SelectionChanged += GateInCombo_SelectionChanged;
-                go.SelectionChanged += GateOutCombo_SelectionChanged;
-            }
-
-            if (_cfg.ZKTeco.ForceAllIn)
-            {
-                ForceAllInRadio.IsChecked = true;
-            }
-            else if (_cfg.ZKTeco.ForceAllOut)
-            {
-                ForceAllOutRadio.IsChecked = true;
-            }
-            else
-            {
-                AutomaticRadio.IsChecked = true;
-            }
-
-            // disable combos if forcing mode is selected
-            var gi2 = this.FindName("GateInCombo") as ComboBox;
-            var go2 = this.FindName("GateOutCombo") as ComboBox;
-            if (gi2 != null && go2 != null)
-            {
-                gi2.IsEnabled = !_cfg.ZKTeco.ForceAllIn && !_cfg.ZKTeco.ForceAllOut;
-                go2.IsEnabled = !_cfg.ZKTeco.ForceAllIn && !_cfg.ZKTeco.ForceAllOut;
-            }
+            // Force mode is obsolete, handled dynamically in LaneRuntimeControl
         }
 
         private void Reset_Click(object sender, RoutedEventArgs e)
@@ -113,74 +61,101 @@ namespace QuanLyGiuXe
             BarrierBox.Text = _cfg.ZKTeco.BarrierDuration.ToString();
             CooldownBox.Text = _cfg.ZKTeco.CardCooldownMs.ToString();
 
-            // reset combos
-            var gi3 = this.FindName("GateInCombo") as ComboBox;
-            var go3 = this.FindName("GateOutCombo") as ComboBox;
-            if (gi3 != null && go3 != null)
-            {
-                gi3.SelectedIndex = 0;
-                go3.SelectedIndex = 1;
-            }
-
             var b1c = this.FindName("Button1ActionCombo") as ComboBox;
             var b2c = this.FindName("Button2ActionCombo") as ComboBox;
             if (b1c != null) b1c.SelectedIndex = 1; // default OpenThisDoor
             if (b2c != null) b2c.SelectedIndex = 1;
-
-            AutomaticRadio.IsChecked = true;
-
             MessageBox.Show("Đã reset về mặc định", "Reset", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
-        private void ForceMode_Checked(object sender, RoutedEventArgs e)
+
+        private bool _isSyncingCombos = false;
+
+        private void LoadReaderSelection()
         {
-            // toggle enable state of combos depending on force mode
-            bool forced = (ForceAllInRadio.IsChecked == true) || (ForceAllOutRadio.IsChecked == true);
-            var gi = this.FindName("GateInCombo") as ComboBox;
-            var go = this.FindName("GateOutCombo") as ComboBox;
-            if (gi != null && go != null)
+            var mappings = ReaderLaneMappingService.Instance.GetAll();
+            
+            // Determine door mapping from Reader 1
+            var r1Map = mappings.FirstOrDefault(m => m.ReaderNo == 1);
+            int door1Lane = (r1Map != null) ? r1Map.LaneIndex : 1;
+            int door2Lane = (door1Lane == 1) ? 2 : 1;
+
+            _isSyncingCombos = true;
+            SetComboValue(Door1LaneCombo, door1Lane.ToString());
+            SetComboValue(Door2LaneCombo, door2Lane.ToString());
+            _isSyncingCombos = false;
+
+            void BindReader(int readerNo, ComboBox dirCombo, CheckBox enableCheck)
             {
-                gi.IsEnabled = !forced;
-                go.IsEnabled = !forced;
+                var map = mappings.FirstOrDefault(m => m.ReaderNo == readerNo);
+                if (map != null)
+                {
+                    // Select Direction
+                    foreach (ComboBoxItem item in dirCombo.Items)
+                    {
+                        if (item.Tag?.ToString() == map.Direction)
+                        {
+                            dirCombo.SelectedItem = item;
+                            break;
+                        }
+                    }
+                    // Select Enabled
+                    enableCheck.IsChecked = map.IsEnabled;
+                }
+                else
+                {
+                    dirCombo.SelectedIndex = 0;
+                    enableCheck.IsChecked = true;
+                }
+            }
+
+            BindReader(1, R1DirCombo, R1EnableCheck);
+            BindReader(2, R2DirCombo, R2EnableCheck);
+            BindReader(3, R3DirCombo, R3EnableCheck);
+            BindReader(4, R4DirCombo, R4EnableCheck);
+        }
+
+        private void SetComboValue(ComboBox combo, string tag)
+        {
+            if (combo == null) return;
+            for (int i = 0; i < combo.Items.Count; i++)
+            {
+                if ((combo.Items[i] as ComboBoxItem)?.Tag?.ToString() == tag)
+                {
+                    combo.SelectedIndex = i;
+                    break;
+                }
             }
         }
 
-        // now using group combos; no per-reader selection handlers
-        private void GateInCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void Door1LaneCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (_suppressGroupSync) return;
-            try
+            if (_isSyncingCombos) return;
+            if (Door1LaneCombo.SelectedItem is ComboBoxItem item)
             {
-                _suppressGroupSync = true;
-                var gi = sender as ComboBox;
-                var go = this.FindName("GateOutCombo") as ComboBox;
-                if (gi != null && go != null && gi.SelectedItem is ComboBoxItem ci)
-                {
-                    // auto-select opposite group: if A selected for IN then select B for OUT, and vice versa
-                    var sel = ci.Tag?.ToString();
-                    if (sel == "1") go.SelectedIndex = 1; // select group B
-                    else if (sel == "2") go.SelectedIndex = 0; // select group A
-                }
+                string tag = item.Tag?.ToString();
+                int door1Lane = tag == "2" ? 2 : 1;
+                int door2Lane = door1Lane == 1 ? 2 : 1;
+
+                _isSyncingCombos = true;
+                SetComboValue(Door2LaneCombo, door2Lane.ToString());
+                _isSyncingCombos = false;
             }
-            finally { _suppressGroupSync = false; }
         }
 
-        private void GateOutCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void Door2LaneCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (_suppressGroupSync) return;
-            try
+            if (_isSyncingCombos) return;
+            if (Door2LaneCombo.SelectedItem is ComboBoxItem item)
             {
-                _suppressGroupSync = true;
-                var go = sender as ComboBox;
-                var gi = this.FindName("GateInCombo") as ComboBox;
-                if (gi != null && go != null && go.SelectedItem is ComboBoxItem co)
-                {
-                    var sel = co.Tag?.ToString();
-                    if (sel == "1") gi.SelectedIndex = 1;
-                    else if (sel == "2") gi.SelectedIndex = 0;
-                }
+                string tag = item.Tag?.ToString();
+                int door2Lane = tag == "2" ? 2 : 1;
+                int door1Lane = door2Lane == 1 ? 2 : 1;
+
+                _isSyncingCombos = true;
+                SetComboValue(Door1LaneCombo, door1Lane.ToString());
+                _isSyncingCombos = false;
             }
-            finally { _suppressGroupSync = false; }
         }
 
         private async void TestConnection_Click(object sender, RoutedEventArgs e)
@@ -211,7 +186,6 @@ namespace QuanLyGiuXe
                 string pwd = PwdBox.Text;
                 int timeout = int.TryParse(TimeoutBox.Text, out var t) ? t : 3000;
 
-                // Call detailed test
                 var res = Services.C3200Service.TestConnectDetailed(ip, port, pwd, timeout);
 
                 var sb = new System.Text.StringBuilder();
@@ -222,7 +196,6 @@ namespace QuanLyGiuXe
                 sb.AppendLine("Params Tried:");
                 foreach (var tparam in res.TriedParams)
                 {
-                    // mask password in display
                     var masked = tparam;
                     masked = System.Text.RegularExpressions.Regex.Replace(masked, ",password=[^,]*", ",password=***", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
                     masked = System.Text.RegularExpressions.Regex.Replace(masked, ",passwd=[^,]*", ",passwd=***", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
@@ -231,7 +204,6 @@ namespace QuanLyGiuXe
                 sb.AppendLine($"DLL Arch: {res.DllArch}");
                 sb.AppendLine($"Process Arch: {(Environment.Is64BitProcess ? "x64" : "x86")} ");
 
-                // log attempts without password
                 try { LoggingService.Instance.LogInfo("C3200TestDetailed", "C3200SettingsWindow", sb.ToString(), userId: Environment.UserName); } catch { }
 
                 MessageBox.Show(sb.ToString(), "C3200 Detailed Test", MessageBoxButton.OK);
@@ -244,15 +216,12 @@ namespace QuanLyGiuXe
 
         private void Save_Click(object sender, RoutedEventArgs e)
         {
-            // capture previous values for diff
             var prevIp = _cfg.ZKTeco.IpAddress;
             var prevPort = _cfg.ZKTeco.TcpPort;
             var prevPwd = _cfg.ZKTeco.Password;
             var prevTimeout = _cfg.ZKTeco.Timeout;
             var prevBarrier = _cfg.ZKTeco.BarrierDuration;
             var prevCooldown = _cfg.ZKTeco.CardCooldownMs;
-            var prevGateIn = _cfg.ZKTeco.GateInDoors;
-            var prevGateOut = _cfg.ZKTeco.GateOutDoors;
             var prevForceIn = _cfg.ZKTeco.ForceAllIn;
             var prevForceOut = _cfg.ZKTeco.ForceAllOut;
             var prevBtn1 = _cfg.ZKTeco.Button1Action;
@@ -264,31 +233,44 @@ namespace QuanLyGiuXe
             _cfg.ZKTeco.Timeout = int.TryParse(TimeoutBox.Text, out var t) ? t : _cfg.ZKTeco.Timeout;
             _cfg.ZKTeco.BarrierDuration = int.TryParse(BarrierBox.Text, out var b) ? b : _cfg.ZKTeco.BarrierDuration;
             _cfg.ZKTeco.CardCooldownMs = int.TryParse(CooldownBox.Text, out var c) ? c : _cfg.ZKTeco.CardCooldownMs;
-            // save selected groups
-            var selIn = this.FindName("GateInCombo") as ComboBox;
-            var selOut = this.FindName("GateOutCombo") as ComboBox;
-            var selInItem = selIn?.SelectedItem as ComboBoxItem;
-            var selOutItem = selOut?.SelectedItem as ComboBoxItem;
-            _cfg.ZKTeco.GateInDoors = selInItem?.Tag?.ToString() ?? _cfg.ZKTeco.GateInDoors;
-            _cfg.ZKTeco.GateOutDoors = selOutItem?.Tag?.ToString() ?? _cfg.ZKTeco.GateOutDoors;
-            if (int.TryParse(_cfg.ZKTeco.GateInDoors?.Split(',')[0], out var legacyIn)) _cfg.ZKTeco.GateInDoor = legacyIn;
-            if (int.TryParse(_cfg.ZKTeco.GateOutDoors?.Split(',')[0], out var legacyOut)) _cfg.ZKTeco.GateOutDoor = legacyOut;
-            _cfg.ZKTeco.ForceAllIn = ForceAllInRadio.IsChecked == true;
-            _cfg.ZKTeco.ForceAllOut = ForceAllOutRadio.IsChecked == true;
+            
+            // ForceMode obsolete
+            _cfg.ZKTeco.ForceAllIn = false;
+            _cfg.ZKTeco.ForceAllOut = false;
 
             var b1 = this.FindName("Button1ActionCombo") as ComboBox;
             var b2 = this.FindName("Button2ActionCombo") as ComboBox;
             if (b1?.SelectedItem is ComboBoxItem bi1) _cfg.ZKTeco.Button1Action = bi1.Tag?.ToString() ?? _cfg.ZKTeco.Button1Action;
             if (b2?.SelectedItem is ComboBoxItem bi2) _cfg.ZKTeco.Button2Action = bi2.Tag?.ToString() ?? _cfg.ZKTeco.Button2Action;
 
-            // validation: no overlap between selected groups
-            if (selInItem != null && selOutItem != null && selInItem.Tag?.ToString() == selOutItem.Tag?.ToString())
+            // save reader mappings
+            int laneForDoor1 = 1;
+            if (Door1LaneCombo.SelectedItem is ComboBoxItem biDoor1)
             {
-                MessageBox.Show($"Selected group for IN and OUT cannot be the same. Please choose different groups.", "Validation error", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
+                int.TryParse(biDoor1.Tag?.ToString(), out laneForDoor1);
+            }
+            int laneForDoor2 = (laneForDoor1 == 1) ? 2 : 1;
+
+            var newMappings = new List<ReaderLaneMapping>();
+            
+            void ExtractReaderMap(int readerNo, int mappedLane, ComboBox dirCombo, CheckBox enableCheck)
+            {
+                newMappings.Add(new ReaderLaneMapping
+                {
+                    ReaderNo = readerNo,
+                    LaneIndex = mappedLane,
+                    Direction = ((ComboBoxItem)dirCombo.SelectedItem)?.Tag?.ToString() ?? "IN",
+                    IsEnabled = enableCheck.IsChecked == true
+                });
             }
 
-            // compute diffs
+            ExtractReaderMap(1, laneForDoor1, R1DirCombo, R1EnableCheck);
+            ExtractReaderMap(2, laneForDoor1, R2DirCombo, R2EnableCheck);
+            ExtractReaderMap(3, laneForDoor2, R3DirCombo, R3EnableCheck);
+            ExtractReaderMap(4, laneForDoor2, R4DirCombo, R4EnableCheck);
+
+            ReaderLaneMappingService.Instance.UpdateMappings(newMappings);
+
             try
             {
                 var changes = new System.Text.StringBuilder();
@@ -307,23 +289,20 @@ namespace QuanLyGiuXe
                 AddChange("Timeout", prevTimeout, _cfg.ZKTeco.Timeout);
                 AddChange("BarrierDuration", prevBarrier, _cfg.ZKTeco.BarrierDuration);
                 AddChange("CardCooldownMs", prevCooldown, _cfg.ZKTeco.CardCooldownMs);
-                AddChange("GateInDoors", prevGateIn, _cfg.ZKTeco.GateInDoors);
-                AddChange("GateOutDoors", prevGateOut, _cfg.ZKTeco.GateOutDoors);
                 AddChange("ForceAllIn", prevForceIn, _cfg.ZKTeco.ForceAllIn);
                 AddChange("ForceAllOut", prevForceOut, _cfg.ZKTeco.ForceAllOut);
                 AddChange("Button1Action", prevBtn1, _cfg.ZKTeco.Button1Action);
                 AddChange("Button2Action", prevBtn2, _cfg.ZKTeco.Button2Action);
+                AddChange("ReaderMappings", "updated", "updated");
 
                 _cfg.Save();
 
-                // reconfigure runtime
                 C3200Service.Instance.Configure(_cfg.ZKTeco.IpAddress, _cfg.ZKTeco.TcpPort,
                     _cfg.ZKTeco.Password, _cfg.ZKTeco.Timeout, _cfg.ZKTeco.BarrierDuration);
 
-                // log detailed audit of changes
                 if (changes.Length > 0)
                 {
-                    try { LoggingService.Instance.LogInfo("ConfigChanged", "C3200SettingsWindow", changes.ToString(), userId: Environment.UserName); } catch { }
+                    try { LoggingService.Instance.LogAudit("CONFIG_CHANGED_UI", "C3200Settings", "config.json", null, new { Diffs = changes.ToString() }, source: "C3200SettingsWindow", details: $"Config updated via UI: {changes}"); } catch { }
                 }
             }
             catch (Exception ex)
