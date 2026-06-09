@@ -160,18 +160,25 @@
                                     </StackPanel>
                                     
                                     <!-- Action Button -->
-                                    <Button Style="{StaticResource ModernButton}" 
-                                            Background="{Binding DataContext.Lane1Color, RelativeSource={RelativeSource AncestorType=Window}}" 
-                                            Click="OpenGateIn_Click" 
-                                            IsEnabled="{Binding DataContext.CanOpenBarrier, RelativeSource={RelativeSource AncestorType=Window}}" 
-                                            Width="36" 
-                                            Height="30" 
-                                            ToolTip="Mở barrier làn vào"
-                                            HorizontalAlignment="Right">
-                                        <Viewbox Width="16" Height="16">
-                                            <Path Data="M5,20 H19 V22 H5 Z M12,2 L19,9 H14 V17 H10 V9 H5 Z" Fill="White" Stretch="Uniform"/>
-                                        </Viewbox>
-                                    </Button>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                        <Button Style="{StaticResource ModernOutlineButton}" 
+                                                Width="36" Height="30" Margin="0,0,6,0"
+                                                ToolTip="Chi tiết thẻ" Click="ShowCardInfo_Click" Tag="1">
+                                            <TextBlock Text="ℹ" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Button>
+                                        <Button Style="{StaticResource ModernButton}" 
+                                                Background="{Binding DataContext.Lane1Color, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                                Click="OpenGateIn_Click" 
+                                                IsEnabled="{Binding DataContext.CanOpenBarrier, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                                Width="36" 
+                                                Height="30" 
+                                                ToolTip="Mở barrier làn vào"
+                                                HorizontalAlignment="Right">
+                                            <Viewbox Width="16" Height="16">
+                                                <Path Data="M5,20 H19 V22 H5 Z M12,2 L19,9 H14 V17 H10 V9 H5 Z" Fill="White" Stretch="Uniform"/>
+                                            </Viewbox>
+                                        </Button>
+                                    </StackPanel>
                                 </StackPanel>
                             </Grid>
                         </Border>
@@ -365,18 +372,25 @@
                                     </StackPanel>
                                     
                                     <!-- Action Button -->
-                                    <Button Style="{StaticResource ModernButton}" 
-                                            Background="{Binding DataContext.Lane2Color, RelativeSource={RelativeSource AncestorType=Window}}" 
-                                            Click="OpenGateOut_Click" 
-                                            IsEnabled="{Binding DataContext.CanOpenBarrier, RelativeSource={RelativeSource AncestorType=Window}}" 
-                                            Width="36" 
-                                            Height="30" 
-                                            ToolTip="Mở barrier làn ra"
-                                            HorizontalAlignment="Right">
-                                        <Viewbox Width="16" Height="16">
-                                            <Path Data="M5,20 H19 V22 H5 Z M12,2 L19,9 H14 V17 H10 V9 H5 Z" Fill="White" Stretch="Uniform"/>
-                                        </Viewbox>
-                                    </Button>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                        <Button Style="{StaticResource ModernOutlineButton}" 
+                                                Width="36" Height="30" Margin="0,0,6,0"
+                                                ToolTip="Chi tiết thẻ" Click="ShowCardInfo_Click" Tag="2">
+                                            <TextBlock Text="ℹ" FontSize="14" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Button>
+                                        <Button Style="{StaticResource ModernButton}" 
+                                                Background="{Binding DataContext.Lane2Color, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                                Click="OpenGateOut_Click" 
+                                                IsEnabled="{Binding DataContext.CanOpenBarrier, RelativeSource={RelativeSource AncestorType=Window}}" 
+                                                Width="36" 
+                                                Height="30" 
+                                                ToolTip="Mở barrier làn ra"
+                                                HorizontalAlignment="Right">
+                                            <Viewbox Width="16" Height="16">
+                                                <Path Data="M5,20 H19 V22 H5 Z M12,2 L19,9 H14 V17 H10 V9 H5 Z" Fill="White" Stretch="Uniform"/>
+                                            </Viewbox>
+                                        </Button>
+                                    </StackPanel>
                                 </StackPanel>
                             </Grid>
                         </Border>

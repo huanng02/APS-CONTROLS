@@ -1691,6 +1691,27 @@ namespace QuanLyGiuXe.ViewModels
                 }
 
                 DanhSachXe.Add(new Xe { BienSo = plate, ThoiGianVao = DateTime.Now });
+                try
+                {
+                    var session = new QuanLyGiuXe.Models.LichSuXe
+                    {
+                        CardId = card.Id,
+                        BienSo = plate,
+                        ThoiGianVao = DateTime.Now,
+                        ThoiGianRa = null,
+                        Tien = null,
+                        AnhVao = imageFolderPath ?? string.Empty
+                    };
+                    Application.Current?.Dispatcher?.Invoke(() =>
+                    {
+                        if (Application.Current?.MainWindow is QuanLyGiuXe.MainWindow mw)
+                        {
+                            mw.ShowScanSession(session);
+                        }
+                    });
+                }
+                catch { }
+
                 return opened;
             }
             catch (Exception ex)
@@ -1781,6 +1802,28 @@ namespace QuanLyGiuXe.ViewModels
 
                 var item = DanhSachXe.FirstOrDefault(x => x.BienSo == plate);
                 if (item != null) DanhSachXe.Remove(item);
+
+                try
+                {
+                    var session = new QuanLyGiuXe.Models.LichSuXe
+                    {
+                        CardId = card.Id,
+                        BienSo = displayPlate,
+                        ThoiGianVao = timeIn,
+                        ThoiGianRa = DateTime.Now,
+                        Tien = fee,
+                        AnhVao = entryImageFolder ?? string.Empty,
+                        AnhRa = exitImageFolderPath ?? string.Empty
+                    };
+                    Application.Current?.Dispatcher?.Invoke(() =>
+                    {
+                        if (Application.Current?.MainWindow is QuanLyGiuXe.MainWindow mw)
+                        {
+                            mw.ShowScanSession(session);
+                        }
+                    });
+                }
+                catch { }
                 return true;
             }
             catch (Exception ex)

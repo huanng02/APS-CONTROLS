@@ -23,6 +23,7 @@ namespace QuanLyGiuXe
 {
     public partial class MainWindow : Window
     {
+        private Window? _activeScanSessionWindow = null;
         private readonly object _manualOpenLock = new();
         private readonly System.Collections.Generic.Dictionary<int, DateTime> _lastManualOpen = new();
         private readonly Dictionary<string, DateTime> _lastScanByUid = new();
@@ -81,6 +82,8 @@ namespace QuanLyGiuXe
                 {
                     MoQAPanel_Click(null, null);
                 }
+
+
                 else if (e.Key == Key.F9)
                 {
                     MoQAPanel_Click(null, null);
@@ -116,6 +119,69 @@ namespace QuanLyGiuXe
                 MoCameras();
                 RFIDService.Instance.Start();
             });
+        }
+
+        public void ShowCardInfoForLane(int laneNumber)
+        {
+            try
+            {
+                if (DataContext is not MainViewModel vm) return;
+
+                string uid = laneNumber == 1 ? vm.Lane1UID : vm.Lane2UID;
+                string plate = laneNumber == 1 ? vm.Lane1BienSo : vm.Lane2BienSo;
+
+                var db = new DatabaseService();
+                QuanLyGiuXe.Models.RFIDCard card = null;
+
+                if (!string.IsNullOrWhiteSpace(plate))
+                {
+                    card = db.GetRFIDCardByBienSo(plate);
+                }
+
+                // If still null and uid present, try scanning offline cache
+                if (card == null && !string.IsNullOrWhiteSpace(uid))
+                {
+                    var list = QuanLyGiuXe.Services.OfflineCache.OfflineCacheService.Instance.GetCacheAsync<System.Collections.Generic.List<QuanLyGiuXe.Models.RFIDCard>>("LIST_RFID_CARDS").GetAwaiter().GetResult();
+                    if (list != null)
+                        card = list.Find(c => string.Equals(c.UID, uid, StringComparison.OrdinalIgnoreCase) || string.Equals(c.BienSo, plate, StringComparison.OrdinalIgnoreCase));
+                }
+
+                var dlg = new CardInfoDialog { Owner = this };
+                if (card != null)
+                {
+                    dlg.SetCard(card);
+                }
+                else
+                {
+                    dlg.SetCard(new QuanLyGiuXe.Models.RFIDCard { UID = uid ?? "-", BienSo = plate ?? "-", CardName = "Không tìm thấy trong DB" });
+                }
+                dlg.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Lỗi khi hiển thị thông tin thẻ: " + ex.Message, "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        // Show a non-modal scan session window. Close previous if exists.
+        public void ShowScanSession(QuanLyGiuXe.Models.LichSuXe session)
+        {
+            try
+            {
+                // Close previous if open
+                try { _activeScanSessionWindow?.Close(); } catch { }
+
+                var win = new ScanSessionWindow();
+                win.Owner = this;
+                win.SetSession(session);
+                win.Topmost = true;
+                _activeScanSessionWindow = win;
+                win.Show();
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("ShowScanSessionError", "MainWindow", "Failed to show scan session window: " + ex.Message, ex);
+            }
         }
 
         public void ApplyPermissions()

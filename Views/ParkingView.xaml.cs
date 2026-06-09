@@ -97,6 +97,22 @@ namespace QuanLyGiuXe.Views
                 main.OpenGateOut_Click(sender, e);
             }
         }
+
+        private void ShowCardInfo_Click(object sender, RoutedEventArgs e)
+        {
+            if (Window.GetWindow(this) is MainWindow main)
+            {
+                // Tag set to lane number (1 or 2)
+                if (sender is FrameworkElement fe && int.TryParse(fe.Tag?.ToString(), out int lane))
+                {
+                    main.ShowCardInfoForLane(lane);
+                }
+                else
+                {
+                    main.ShowCardInfoForLane(1);
+                }
+            }
+        }
         
         // Methods to update cameras from MainWindow
         public void UpdateCamera(string key, System.Windows.Media.ImageSource source)
