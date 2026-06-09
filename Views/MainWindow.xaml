@@ -83,6 +83,16 @@
                         </StackPanel>
                     </Border>
 
+                    <!-- LPR/AI monitor indicator -->
+                    <Border Background="#26FFFFFF" CornerRadius="15" Padding="12,5" Margin="8,0,0,0">
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse Width="8" Height="8" Margin="0,0,8,0" VerticalAlignment="Center"
+                                     Fill="{Binding IsLprAvailable, Converter={StaticResource StateToBrush}}"/>
+                            <TextBlock Text="{Binding LprStatusLabel}"
+                                       Foreground="White" FontSize="11" FontWeight="Bold" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+
                     <!-- Toggle to allow showing scan-session dialog on successful scans -->
                     <ToggleButton x:Name="btnShowSession" IsChecked="True" Margin="10,0,0,0" Padding="8,4"
                                   ToolTip="Toggle automatic session dialog on successful scans">

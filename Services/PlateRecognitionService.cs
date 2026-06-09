@@ -46,6 +46,54 @@ namespace QuanLyGiuXe.Services
         private const string LprEndpoint = "http://localhost:5000/process_plate";
 
         /// <summary>
+        /// Lightweight health check to detect whether the LPR service is reachable.
+        /// Tries GET /health first; if not available, POSTs a tiny JPEG to /process_plate and treats a response as success.
+        /// </summary>
+        public async Task<bool> PingAsync()
+        {
+            try
+            {
+                var baseUri = new Uri(LprEndpoint).GetLeftPart(UriPartial.Authority);
+                using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+
+                // Try GET /health
+                try
+                {
+                    var healthUri = new Uri(new Uri(baseUri), "/health");
+                    var healthResp = await _client.GetAsync(healthUri, cts.Token);
+                    if (healthResp.IsSuccessStatusCode) return true;
+                }
+                catch { /* ignore and try POST test */ }
+
+                // Try POST a tiny JPEG to the actual processing endpoint to verify service is up
+                try
+                {
+                    using (var ms = new System.IO.MemoryStream())
+                    {
+                        // Create a 1x1 JPEG using System.Drawing
+                        using (var bmp = new System.Drawing.Bitmap(1, 1))
+                        using (var g = System.Drawing.Graphics.FromImage(bmp))
+                        {
+                            g.Clear(System.Drawing.Color.Black);
+                            bmp.Save(ms, System.Drawing.Imaging.ImageFormat.Jpeg);
+                        }
+                        ms.Position = 0;
+
+                        using var content = new MultipartFormDataContent();
+                        using var imageContent = new ByteArrayContent(ms.ToArray());
+                        imageContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
+                        content.Add(imageContent, "image", "ping.jpg");
+
+                        using var resp = await _client.PostAsync(LprEndpoint, content, cts.Token);
+                        return resp.IsSuccessStatusCode;
+                    }
+                }
+                catch { return false; }
+            }
+            catch { return false; }
+        }
+
+        /// <summary>
         /// Nhận diện biển số từ frame camera.
         /// Trả về LprResult gồm biển số và ảnh crop (nếu có).
         /// </summary>

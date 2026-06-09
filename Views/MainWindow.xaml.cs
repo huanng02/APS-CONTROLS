@@ -47,6 +47,26 @@ namespace QuanLyGiuXe
 
             this.Loaded += MainWindow_Loaded;
 
+            // LPR health check timer (update UI indicator every 5s)
+            var lprTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
+            lprTimer.Tick += async (s, e) =>
+            {
+                try
+                {
+                    bool ok = await PlateRecognitionService.Instance.PingAsync();
+                    this.Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        if (DataContext is MainViewModel vm)
+                        {
+                            vm.IsLprAvailable = ok;
+                            vm.LprStatusLabel = ok ? "APS Vision AI: OK" : "APS Vision AI: Unavailable";
+                        }
+                    }));
+                }
+                catch { }
+            };
+            lprTimer.Start();
+
             // Cấu hình GC Timer chạy mỗi 2 giây để giải phóng các bộ đệm ảnh dư thừa trên LOH/Gen2 một cách bất đồng bộ (giảm RAM tối đa, không block UI)
             var gcTimer = new DispatcherTimer
             {
@@ -840,13 +860,14 @@ namespace QuanLyGiuXe
                 // 2. Kiểm tra nếu có biển số trả về hợp lệ
                 if (!string.IsNullOrEmpty(plate) && plate.Length > 4 && !plate.Contains("Lỗi"))
                 {
-                    // 3. Đẩy dữ liệu về UI Thread
+                    // LPR success
                     this.Dispatcher.BeginInvoke(new Action(() =>
                     {
                         if (this.DataContext is MainViewModel vm)
                         {
                             string formattedPlate = plate.Trim().ToUpper();
                             vm.BienSoNhap = formattedPlate;
+                            vm.IsLprAvailable = true;
 
                             if (uiLaneIndex == 1)
                             {
@@ -857,6 +878,29 @@ namespace QuanLyGiuXe
                             {
                                 vm.Lane2BienSo = formattedPlate;
                                 vm.Lane2TrangThai = "Đã nhận diện: " + formattedPlate;
+                            }
+                        }
+                    }));
+                }
+                else
+                {
+                    // LPR failed or returned nothing -> mark unavailable and clear plate input
+                    this.Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        if (this.DataContext is MainViewModel vm)
+                        {
+                            vm.BienSoNhap = string.Empty;
+                            vm.IsLprAvailable = false;
+
+                            if (uiLaneIndex == 1)
+                            {
+                                vm.Lane1BienSo = string.Empty;
+                                vm.Lane1TrangThai = "Chưa nhận diện biển số";
+                            }
+                            else if (uiLaneIndex == 2)
+                            {
+                                vm.Lane2BienSo = string.Empty;
+                                vm.Lane2TrangThai = "Chưa nhận diện biển số";
                             }
                         }
                     }));
@@ -1061,32 +1105,41 @@ namespace QuanLyGiuXe
                             // BƯỚC 3: CẬP NHẬT GIAO DIỆN
                             if (DataContext is MainViewModel vm)
                             {
-                                // Dùng Dispatcher để đảm bảo UI nhận được giá trị mới ngay lập tức 
                                 this.Dispatcher.BeginInvoke(new Action(() =>
                                 {
                                     string formattedPlate = plate?.Trim()?.ToUpper() ?? "";
-                                    vm.BienSoNhap = formattedPlate;
-
-                                    // Determine which UI lane is inbound to trigger command and update snapshots
-                                    int? dbLaneId1 = vm.GetDbLaneIdForUiIndex(1);
-                                    var lane1 = dbLaneId1.HasValue ? ParkingTopologyService.Instance.GetLanes().FirstOrDefault(l => l.Id == dbLaneId1.Value) : null;
-                                    if (lane1 != null && lane1.Direction?.ToUpper() == "IN")
+                                    if (!string.IsNullOrEmpty(formattedPlate) && formattedPlate.Length > 4 && !formattedPlate.Contains("Lỗi"))
                                     {
-                                        vm.Lane1BienSo = formattedPlate;
+                                        vm.BienSoNhap = formattedPlate;
+                                        vm.IsLprAvailable = true;
+
+                                        int? dbLaneId1 = vm.GetDbLaneIdForUiIndex(1);
+                                        var lane1 = dbLaneId1.HasValue ? ParkingTopologyService.Instance.GetLanes().FirstOrDefault(l => l.Id == dbLaneId1.Value) : null;
+                                        if (lane1 != null && lane1.Direction?.ToUpper() == "IN")
+                                        {
+                                            vm.Lane1BienSo = formattedPlate;
+                                        }
+                                        else
+                                        {
+                                            int? dbLaneId2 = vm.GetDbLaneIdForUiIndex(2);
+                                            var lane2 = dbLaneId2.HasValue ? ParkingTopologyService.Instance.GetLanes().FirstOrDefault(l => l.Id == dbLaneId2.Value) : null;
+                                            if (lane2 != null && lane2.Direction?.ToUpper() == "IN")
+                                            {
+                                                vm.Lane2BienSo = formattedPlate;
+                                            }
+                                        }
+
+                                        if (vm.XeVaoCommand.CanExecute(null))
+                                        {
+                                            vm.XeVaoCommand.Execute(null);
+                                        }
                                     }
                                     else
                                     {
-                                        int? dbLaneId2 = vm.GetDbLaneIdForUiIndex(2);
-                                        var lane2 = dbLaneId2.HasValue ? ParkingTopologyService.Instance.GetLanes().FirstOrDefault(l => l.Id == dbLaneId2.Value) : null;
-                                        if (lane2 != null && lane2.Direction?.ToUpper() == "IN")
-                                        {
-                                            vm.Lane2BienSo = formattedPlate;
-                                        }
-                                    }
-
-                                    if (vm.XeVaoCommand.CanExecute(null))
-                                    {
-                                        vm.XeVaoCommand.Execute(null);
+                                        // LPR failed
+                                        vm.BienSoNhap = string.Empty;
+                                        vm.IsLprAvailable = false;
+                                        MessageBox.Show("Chưa nhận diện được biển số (LPR)", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Warning);
                                     }
                                 }));
                             }

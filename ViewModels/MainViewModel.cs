@@ -34,6 +34,27 @@ namespace QuanLyGiuXe.ViewModels
             set { _bienSoNhap = value; OnPropertyChanged(nameof(BienSoNhap)); }
         }
 
+        private bool _isLprAvailable = false;
+        /// <summary>
+        /// Indicates whether the last LPR/AI operation returned a valid plate.
+        /// UI can bind to this to disable actions when LPR is unavailable.
+        /// </summary>
+        public bool IsLprAvailable
+        {
+            get => _isLprAvailable;
+            set { _isLprAvailable = value; OnPropertyChanged(nameof(IsLprAvailable)); }
+        }
+
+        private string _lprStatusLabel = "LPR: ?";
+        /// <summary>
+        /// Short human readable LPR status shown on the main status bar.
+        /// </summary>
+        public string LprStatusLabel
+        {
+            get => _lprStatusLabel;
+            set { _lprStatusLabel = value; OnPropertyChanged(nameof(LprStatusLabel)); }
+        }
+
         private string _lane1ManualInput = "";
         public string Lane1ManualInput
         {
