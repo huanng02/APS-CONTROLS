@@ -186,6 +186,15 @@
                 </Grid>
 
                 <!-- LANE 1 SCAN OVERLAY NOTIFICATION -->
+                <!-- Host for per-lane session UI (anchored to lane layout) -->
+                <ContentControl x:Name="Lane1SessionHost"
+                                Grid.Row="0" Grid.RowSpan="3"
+                                Panel.ZIndex="100"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Visibility="Collapsed"
+                                IsHitTestVisible="False" />
+
                 <Border Grid.Row="0" Grid.RowSpan="3"
                         Background="Transparent"
                         Panel.ZIndex="99"
@@ -396,6 +405,15 @@
                         </Border>
                     </StackPanel>
                 </Grid>
+
+                <!-- Host for per-lane session UI (anchored to lane layout) -->
+                <ContentControl x:Name="Lane2SessionHost"
+                                Grid.Row="0" Grid.RowSpan="3"
+                                Panel.ZIndex="100"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Visibility="Collapsed"
+                                IsHitTestVisible="False" />
 
                 <!-- LANE 2 SCAN OVERLAY NOTIFICATION -->
                 <Border Grid.Row="0" Grid.RowSpan="3"

@@ -76,22 +76,31 @@ namespace QuanLyGiuXe
             // UI RBAC
             ApplyPermissions();
 
-            // Shortcut for QA Panel
-            this.KeyDown += (s, e) => {
+            // Register keyboard shortcuts
+            RegisterShortcuts();
+        }
+
+        // Whether automatic session dialog should be shown (bound to ToggleButton in XAML)
+        public bool AllowShowSession => btnShowSession?.IsChecked == true;
+
+        private void RegisterShortcuts()
+        {
+            this.KeyDown += (s, e) =>
+            {
                 if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift | ModifierKeys.Alt) && e.Key == Key.Q)
                 {
                     MoQAPanel_Click(null, null);
                 }
-
-
                 else if (e.Key == Key.F9)
                 {
                     MoQAPanel_Click(null, null);
                 }
             };
+
             if (btnQAPanel != null) btnQAPanel.Visibility = Visibility.Visible;
 
-            this.KeyDown += (s, e) => {
+            this.KeyDown += (s, e) =>
+            {
                 if (e.Key == Key.F4)
                 {
                     MoC3200Settings_Click(null, null);
@@ -120,6 +129,8 @@ namespace QuanLyGiuXe
                 RFIDService.Instance.Start();
             });
         }
+
+
 
         public void ShowCardInfoForLane(int laneNumber)
         {
@@ -163,24 +174,20 @@ namespace QuanLyGiuXe
             }
         }
 
-        // Show a non-modal scan session window. Close previous if exists.
-        public void ShowScanSession(QuanLyGiuXe.Models.LichSuXe session)
+        // Show session UI anchored to lane layout inside ParkingView
+        public void ShowScanSessionForLane(int laneIndex, QuanLyGiuXe.Models.LichSuXe session)
         {
             try
             {
-                // Close previous if open
-                try { _activeScanSessionWindow?.Close(); } catch { }
-
-                var win = new ScanSessionWindow();
-                win.Owner = this;
-                win.SetSession(session);
-                win.Topmost = true;
-                _activeScanSessionWindow = win;
-                win.Show();
+                var parking = GetParkingView();
+                if (parking != null)
+                {
+                    parking.ShowLaneSession(laneIndex, session);
+                }
             }
             catch (Exception ex)
             {
-                LoggingService.Instance.LogError("ShowScanSessionError", "MainWindow", "Failed to show scan session window: " + ex.Message, ex);
+                LoggingService.Instance.LogError("ShowScanSessionForLaneError", "MainWindow", "Failed to show scan session for lane: " + ex.Message, ex);
             }
         }
 

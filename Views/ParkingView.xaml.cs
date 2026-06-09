@@ -7,6 +7,10 @@ namespace QuanLyGiuXe.Views
     public partial class ParkingView : UserControl
     {
         private MainViewModel _mainVm;
+        private ScanSessionControl? _lane1SessionControl;
+        private ScanSessionControl? _lane2SessionControl;
+        private System.Windows.Threading.DispatcherTimer? _lane1CloseTimer;
+        private System.Windows.Threading.DispatcherTimer? _lane2CloseTimer;
 
         public ParkingView()
         {
@@ -111,6 +115,84 @@ namespace QuanLyGiuXe.Views
                 {
                     main.ShowCardInfoForLane(1);
                 }
+            }
+        }
+
+        // Show session overlay inside lane area
+        public void ShowLaneSession(int laneIndex, QuanLyGiuXe.Models.LichSuXe session)
+        {
+            if (laneIndex == 1)
+            {
+                if (_lane1SessionControl == null)
+                {
+                    _lane1SessionControl = new ScanSessionControl();
+                    _lane1SessionControl.RequestClose += (s, e) => CloseLaneSession(1);
+                    // create timer to auto-close after 6 seconds
+                    _lane1CloseTimer = new System.Windows.Threading.DispatcherTimer();
+                    _lane1CloseTimer.Interval = TimeSpan.FromSeconds(6);
+                    _lane1CloseTimer.Tick += (s, e) => { _lane1CloseTimer?.Stop(); CloseLaneSession(1); };
+                }
+                _lane1SessionControl.SetSession(session);
+                var host = this.FindName("Lane1SessionHost") as ContentControl;
+                if (host != null)
+                {
+                    host.Content = _lane1SessionControl;
+                    host.Visibility = System.Windows.Visibility.Visible;
+                    host.IsHitTestVisible = true;
+                    _lane1CloseTimer?.Stop();
+                    _lane1CloseTimer?.Start();
+                }
+            }
+            else
+            {
+                if (_lane2SessionControl == null)
+                {
+                    _lane2SessionControl = new ScanSessionControl();
+                    _lane2SessionControl.RequestClose += (s, e) => CloseLaneSession(2);
+                    _lane2CloseTimer = new System.Windows.Threading.DispatcherTimer();
+                    _lane2CloseTimer.Interval = TimeSpan.FromSeconds(6);
+                    _lane2CloseTimer.Tick += (s, e) => { _lane2CloseTimer?.Stop(); CloseLaneSession(2); };
+                }
+                _lane2SessionControl.SetSession(session);
+                var host = this.FindName("Lane2SessionHost") as ContentControl;
+                if (host != null)
+                {
+                    host.Content = _lane2SessionControl;
+                    host.Visibility = System.Windows.Visibility.Visible;
+                    host.IsHitTestVisible = true;
+                    _lane2CloseTimer?.Stop();
+                    _lane2CloseTimer?.Start();
+                }
+            }
+        }
+
+        public void CloseLaneSession(int laneIndex)
+        {
+            if (laneIndex == 1)
+            {
+                var host = this.FindName("Lane1SessionHost") as ContentControl;
+                if (host != null)
+                {
+                    host.Content = null;
+                    host.Visibility = System.Windows.Visibility.Collapsed;
+                    host.IsHitTestVisible = false;
+                }
+                _lane1SessionControl = null;
+                _lane1CloseTimer?.Stop();
+                _lane1CloseTimer = null;
+            }
+            else
+            {
+                var host = this.FindName("Lane2SessionHost") as ContentControl;
+                if (host != null)
+                {
+                    host.Content = null;
+                    host.Visibility = System.Windows.Visibility.Collapsed;
+                    host.IsHitTestVisible = false;
+                }
+                _lane2SessionControl = null;
+                _lane2CloseTimer?.Stop();
+                _lane2CloseTimer = null;
             }
         }
         

@@ -1704,9 +1704,10 @@ namespace QuanLyGiuXe.ViewModels
                     };
                     Application.Current?.Dispatcher?.Invoke(() =>
                     {
-                        if (Application.Current?.MainWindow is QuanLyGiuXe.MainWindow mw)
+                        var mainWin = Application.Current?.MainWindow as QuanLyGiuXe.MainWindow;
+                        if (mainWin != null && mainWin.AllowShowSession)
                         {
-                            mw.ShowScanSession(session);
+                            mainWin.ShowScanSessionForLane(uiLaneIndex, session);
                         }
                     });
                 }
@@ -1817,9 +1818,10 @@ namespace QuanLyGiuXe.ViewModels
                     };
                     Application.Current?.Dispatcher?.Invoke(() =>
                     {
-                        if (Application.Current?.MainWindow is QuanLyGiuXe.MainWindow mw)
+                        var mainWin = Application.Current?.MainWindow as QuanLyGiuXe.MainWindow;
+                        if (mainWin != null && mainWin.AllowShowSession)
                         {
-                            mw.ShowScanSession(session);
+                            mainWin.ShowScanSessionForLane(uiLaneIndex, session);
                         }
                     });
                 }
