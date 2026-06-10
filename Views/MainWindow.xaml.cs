@@ -37,6 +37,7 @@ namespace QuanLyGiuXe
         private readonly GateControlService _gateControlService = new GateControlService();
         private readonly Dictionary<string, Window> _activeModuleWindows = new();
         private readonly MainViewModel _mainViewModel;
+        private System.Diagnostics.Process? _lprProcess;
 
         public MainWindow()
         {
@@ -148,6 +149,62 @@ namespace QuanLyGiuXe
                 MoCameras();
                 RFIDService.Instance.Start();
             });
+
+            // Try to auto-start LPR process if configured
+            try
+            {
+                var cfgText = System.IO.File.ReadAllText("config.json");
+                dynamic cfg = Newtonsoft.Json.JsonConvert.DeserializeObject(cfgText);
+                if (cfg != null && cfg.Lpr != null && cfg.Lpr.AutoStart == true)
+                {
+                    string cmd = (string)cfg.Lpr.Command;
+                    string wd = (string)cfg.Lpr.WorkingDirectory;
+                    if (!string.IsNullOrEmpty(cmd))
+                    {
+                        try
+                        {
+                            var psi = new System.Diagnostics.ProcessStartInfo();
+                            // Split command into executable + args
+                            var parts = cmd.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries);
+                            psi.FileName = parts[0];
+                            psi.Arguments = parts.Length > 1 ? parts[1] : string.Empty;
+                            psi.WorkingDirectory = string.IsNullOrEmpty(wd) ? Environment.CurrentDirectory : wd;
+                            psi.UseShellExecute = false;
+                            psi.CreateNoWindow = true;
+                            psi.RedirectStandardOutput = true;
+                            psi.RedirectStandardError = true;
+
+                            _lprProcess = System.Diagnostics.Process.Start(psi);
+                            if (_lprProcess != null)
+                            {
+                                _lprProcess.EnableRaisingEvents = true;
+                                _lprProcess.Exited += (s, ev) =>
+                                {
+                                    this.Dispatcher.BeginInvoke(new Action(() =>
+                                    {
+                                        if (DataContext is MainViewModel vm)
+                                        {
+                                            vm.IsLprAvailable = false;
+                                            vm.LprStatusLabel = "APS Vision AI: Stopped";
+                                        }
+                                    }));
+                                };
+
+                                // read output asynchronously (helpful for debugging)
+                                _lprProcess.BeginOutputReadLine();
+                                _lprProcess.BeginErrorReadLine();
+
+                                if (DataContext is MainViewModel vm)
+                                {
+                                    vm.LprStatusLabel = "APS Vision AI: Starting";
+                                }
+                            }
+                        }
+                        catch { }
+                    }
+                }
+            }
+            catch { }
         }
 
 

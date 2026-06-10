@@ -155,6 +155,9 @@ namespace QuanLyGiuXe.Services
         public string RaToanCanh { get; set; } = "";
         public string RaBienSo { get; set; } = "";
         public System.Collections.Generic.List<LaneCameraSetting> LaneCameras { get; set; } = new();
+        // When true the application will sync active DB cameras into config.json automatically.
+        // Set to false to preserve manual edits in config.json and avoid automatic resets.
+        public bool AutoSyncFromDb { get; set; } = true;
         public int MaxRenderFps { get; set; } = 10;
         public string TargetResolution { get; set; } = "480x360";
     }

@@ -491,23 +491,21 @@ namespace QuanLyGiuXe.Services
             try
             {
                 var cfg = AppConfig.Load();
+                if (cfg.Cameras != null && cfg.Cameras.AutoSyncFromDb == false)
+                {
+                    // Auto-sync disabled by configuration; do not overwrite config.json
+                    return;
+                }
                 var dbCams = await CameraRepository.Instance.GetAllAsync();
 
                 if (cfg.Cameras.LaneCameras == null)
                 {
                     cfg.Cameras.LaneCameras = new List<LaneCameraSetting>();
                 }
-                else
-                {
-                    cfg.Cameras.LaneCameras.Clear();
-                }
-
-                cfg.Cameras.VaoToanCanh = "";
-                cfg.Cameras.VaoBienSo = "";
-                cfg.Cameras.RaToanCanh = "";
-                cfg.Cameras.RaBienSo = "";
 
                 var activeCams = dbCams.Where(c => c.IsActive && c.LaneId.HasValue).ToList();
+                // Build a map of existing lane settings to preserve manual entries
+                var existingMap = cfg.Cameras.LaneCameras.ToDictionary(lc => lc.LaneId, lc => lc);
                 var dbLanes = ParkingTopologyService.Instance.GetLanes();
 
                 var firstIn = dbLanes.FirstOrDefault(l => l.Direction?.ToUpper() == "IN");

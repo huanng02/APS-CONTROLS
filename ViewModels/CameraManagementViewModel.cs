@@ -765,8 +765,23 @@ namespace QuanLyGiuXe.ViewModels
                 
                 // Select the saved camera
                 SelectedCamera = Cameras.FirstOrDefault(c => c.CameraKey == entity.CameraKey);
+                // Try to auto-deploy the configuration so camera changes take effect immediately
+                bool deploySuccess = false;
+                try
+                {
+                    var deployer = CurrentUser.Username ?? "System";
+                    deploySuccess = await DeploymentService.Instance.DeployAsync(deployer, "Auto-deploy camera configuration");
+                }
+                catch { deploySuccess = false; }
 
-                MessageBox.Show(successMsg, "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                if (deploySuccess)
+                {
+                    MessageBox.Show(successMsg + "\nCấu hình đã được triển khai.", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else
+                {
+                    MessageBox.Show(successMsg + "\nLưu nhưng không thể tự động triển khai. Vui lòng vào Development Center để kiểm tra.", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
             }
             else
             {

@@ -17,12 +17,18 @@
     "ForceAllOut": false
   },
   "Cameras": {
+    "AutoSyncFromDb": false,
     "VaoToanCanh": "",
     "VaoBienSo": "",
     "RaToanCanh": "",
     "RaBienSo": "",
     "MaxRenderFps": 10,
     "TargetResolution": "640x480"
+  },
+  "Lpr": {
+    "AutoStart": false,
+    "Command": "python server.py",
+    "WorkingDirectory": "C:/path/to/ai"
   },
   "Backup": {
     "AutoBackupEnabled": true,
