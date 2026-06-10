@@ -1,0 +1,163 @@
+<Window x:Class="QuanLyGiuXe.Views.EmployeeDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Employee Information" 
+        Height="540" Width="680"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="{StaticResource BgLightBrush}"
+        FontFamily="Segoe UI">
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,0,0,1" Padding="0,0,0,15" Margin="0,0,0,15">
+            <StackPanel Orientation="Horizontal">
+                <Border Background="{StaticResource APSBlueBrush}" CornerRadius="4" Padding="8" Margin="0,0,12,0">
+                    <TextBlock Text="👤" Foreground="White" FontSize="14"/>
+                </Border>
+                <StackPanel>
+                    <TextBlock Text="EMPLOYEE PROFILE" FontSize="16" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}"/>
+                    <TextBlock Text="Enter personal details and organizational assignment" Style="{StaticResource SubTitleStyle}"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- Form fields (Two columns) -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="20"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Column 1: Personal Info -->
+            <StackPanel Grid.Column="0">
+                <TextBlock Text="PERSONAL INFORMATION" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,5"/>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="100"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Full Name *" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    <TextBox Grid.Column="1" x:Name="txtFullName" Style="{StaticResource ModernTextBox}" Height="32"/>
+                </Grid>
+
+                <Grid Margin="0,8,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="100"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Phone" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    <TextBox Grid.Column="1" x:Name="txtPhone" Style="{StaticResource ModernTextBox}" Height="32"/>
+                </Grid>
+
+                <Grid Margin="0,8,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="100"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Email" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    <TextBox Grid.Column="1" x:Name="txtEmail" Style="{StaticResource ModernTextBox}" Height="32"/>
+                </Grid>
+
+                <Grid Margin="0,8,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="100"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="CCCD / ID" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    <TextBox Grid.Column="1" x:Name="txtCCCD" Style="{StaticResource ModernTextBox}" Height="32"/>
+                </Grid>
+
+                <Grid Margin="0,8,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="100"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Avatar Picture" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    <Grid Grid.Column="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBox x:Name="txtAvatarPath" Style="{StaticResource ModernTextBox}" Height="32" IsReadOnly="True"/>
+                        <Button Grid.Column="1" Content="Browse..." Click="Browse_Click" Style="{StaticResource ModernOutlineButton}" Height="32" Width="75" Margin="5,0,0,0"/>
+                    </Grid>
+                </Grid>
+                
+                <!-- Avatar Preview -->
+                <Border Width="80" Height="80" CornerRadius="40" BorderThickness="1" BorderBrush="{StaticResource BorderLightBrush}" HorizontalAlignment="Center" Margin="0,15,0,0" ClipToBounds="True">
+                    <Image x:Name="imgAvatarPreview" Stretch="UniformToFill" Source="/QuanLyGiuXe;component/Assets/avatar_placeholder.png"/>
+                </Border>
+            </StackPanel>
+
+            <!-- Column 2: Org Info -->
+            <StackPanel Grid.Column="2">
+                <TextBlock Text="ORGANIZATIONAL INFORMATION" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}" FontSize="12" Margin="0,0,0,5"/>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="110"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Employee Code *" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    <TextBox Grid.Column="1" x:Name="txtEmployeeCode" Style="{StaticResource ModernTextBox}" Height="32"/>
+                </Grid>
+
+                <Grid Margin="0,8,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="110"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Company *" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    <ComboBox Grid.Column="1" x:Name="cbCompany" Style="{StaticResource ModernComboBox}" Height="32" DisplayMemberPath="Name" SelectedValuePath="Id" SelectionChanged="cbCompany_SelectionChanged"/>
+                </Grid>
+
+                <Grid Margin="0,8,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="110"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Department" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    <ComboBox Grid.Column="1" x:Name="cbDepartment" Style="{StaticResource ModernComboBox}" Height="32" DisplayMemberPath="DepartmentName" SelectedValuePath="Id"/>
+                </Grid>
+
+                <Grid Margin="0,8,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="110"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Job Position *" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    <ComboBox Grid.Column="1" x:Name="cbPosition" Style="{StaticResource ModernComboBox}" Height="32" DisplayMemberPath="PositionName" SelectedValuePath="Id"/>
+                </Grid>
+
+                <Grid Margin="0,8,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="110"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="Status *" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    <ComboBox Grid.Column="1" x:Name="cbStatus" Style="{StaticResource ModernComboBox}" Height="32">
+                        <ComboBoxItem Content="Active" IsSelected="True"/>
+                        <ComboBoxItem Content="Inactive"/>
+                    </ComboBox>
+                </Grid>
+            </StackPanel>
+        </Grid>
+
+        <!-- Footer Actions -->
+        <Border Grid.Row="2" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,1,0,0" Padding="0,15,0,0" Margin="0,15,0,0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="Cancel" Click="Cancel_Click" Style="{StaticResource ModernOutlineButton}" Width="90" Margin="0,0,10,0" Height="32"/>
+                <Button Content="Save" Click="Save_Click" Style="{StaticResource ModernButton}" Width="90" Height="32"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

@@ -44,6 +44,7 @@ namespace QuanLyGiuXe.Services
                         model.NgayDangKy = ParseDateOrNull(r.Cell(6).GetString());
                         model.NgayHetHan = ParseDateOrNull(r.Cell(7).GetString());
                         model.TrangThai = r.Cell(8).GetString().Trim();
+                        model.EmployeeCode = r.Cell(9).GetString().Trim();
 
                         model.Status = ImportStatus.UNKNOWN;
                         // Normalize raw texts for later mapping

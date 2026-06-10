@@ -63,13 +63,17 @@ namespace QuanLyGiuXe.ViewModels
             // Get existing UIDs from DB via existing GetRFIDCards method
             var existingUids = _db.GetRFIDCards().Select(x => x.UID ?? x.BienSo ?? string.Empty).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-            // load lookups for display (LoaiXe, LoaiVe)
+            // load lookups for display (LoaiXe, LoaiVe, Employees)
             var loaiXeMap = new Dictionary<int, string>();
             var loaiVeMap = new Dictionary<int, string>();
+            var employeeMap = new Dictionary<string, Employee>(StringComparer.OrdinalIgnoreCase);
             try
             {
                 loaiXeMap = _db.GetLoaiXe().ToDictionary(x => x.Id, x => x.TenLoai ?? string.Empty);
                 loaiVeMap = _db.GetLoaiVe().ToDictionary(x => x.Id, x => x.TenLoai ?? string.Empty);
+                var empService = new EnterpriseCrudService();
+                var employees = empService.GetEmployeesPaged(string.Empty, null, null, null, "Active", 0, 10000, out _);
+                employeeMap = employees.ToDictionary(e => e.EmployeeCode.Trim(), e => e, StringComparer.OrdinalIgnoreCase);
             }
             catch { }
 
@@ -99,6 +103,21 @@ namespace QuanLyGiuXe.ViewModels
                 {
                     r.Status = ImportStatus.VALID;
                     r.StatusMessage = "OK";
+                }
+
+                // resolve EmployeeCode
+                if (!string.IsNullOrWhiteSpace(r.EmployeeCode))
+                {
+                    if (employeeMap.TryGetValue(r.EmployeeCode.Trim(), out var emp))
+                    {
+                        r.MappedEmployeeId = emp.Id;
+                        r.EmployeeName = emp.FullName;
+                    }
+                    else
+                    {
+                        r.Status = ImportStatus.INVALID_DATA;
+                        r.StatusMessage = $"Employee '{r.EmployeeCode}' not found";
+                    }
                 }
 
                 // populate display texts
@@ -168,7 +187,7 @@ namespace QuanLyGiuXe.ViewModels
                 StatusSummary = "No rows left after mapping/validation.";
                 return;
             }
-            // map to RFIDCard model
+             // map to RFIDCard model
             var models = toInsert.Select(r => new RFIDCard
             {
                 UID = r.CardUID,
@@ -178,7 +197,8 @@ namespace QuanLyGiuXe.ViewModels
                 // Preserve NgayDangKy if provided; otherwise default to now so records have a sensible registration date
                 NgayTao = r.NgayDangKy ?? DateTime.Now,
                 NgayHetHan = r.NgayHetHan,
-                TrangThai = r.TrangThai
+                TrangThai = r.TrangThai,
+                EmployeeId = r.MappedEmployeeId
             }).ToList();
 
             // bulk upsert via DB service with progress reporting

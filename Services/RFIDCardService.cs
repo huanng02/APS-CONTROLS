@@ -47,7 +47,10 @@ namespace QuanLyGiuXe.Services
                     NgayHetHan = r.NgayHetHan,
                     TrangThai = r.TrangThai ?? string.Empty,
                     LoaiXe = r.LoaiXeId != 0 && loaiXeMap.TryGetValue(r.LoaiXeId, out var lxName) ? lxName : string.Empty,
-                    LoaiVe = r.LoaiVeId != 0 && loaiVeMap.TryGetValue(r.LoaiVeId, out var lvName) ? lvName : string.Empty
+                    LoaiVe = r.LoaiVeId != 0 && loaiVeMap.TryGetValue(r.LoaiVeId, out var lvName) ? lvName : string.Empty,
+                    EmployeeId = r.EmployeeId,
+                    EmployeeName = r.EmployeeName,
+                    EmployeeCode = r.EmployeeCode
                 });
             }
             return list;
@@ -92,7 +95,10 @@ namespace QuanLyGiuXe.Services
                     NgayHetHan = r.NgayHetHan,
                     TrangThai = r.TrangThai ?? string.Empty,
                     LoaiXe = r.LoaiXeId != 0 && loaiXeMap.TryGetValue(r.LoaiXeId, out var lxName) ? lxName : string.Empty,
-                    LoaiVe = r.LoaiVeId != 0 && loaiVeMap.TryGetValue(r.LoaiVeId, out var lvName) ? lvName : string.Empty
+                    LoaiVe = r.LoaiVeId != 0 && loaiVeMap.TryGetValue(r.LoaiVeId, out var lvName) ? lvName : string.Empty,
+                    EmployeeId = r.EmployeeId,
+                    EmployeeName = r.EmployeeName,
+                    EmployeeCode = r.EmployeeCode
                 });
             }
             return list;
@@ -107,12 +113,12 @@ namespace QuanLyGiuXe.Services
             var ngayDangKy = model.NgayDangKy ?? DateTime.Now;
             var ngayHetHan = model.NgayHetHan;
 
-            await db.InsertRFIDCardAsync(model.CardUID, model.BienSo ?? string.Empty, model.CardName ?? string.Empty, model.LoaiVeId ?? 0, model.LoaiXeId ?? 0, model.TrangThai ?? string.Empty, ngayDangKy, ngayHetHan);
+            await db.InsertRFIDCardAsync(model.CardUID, model.BienSo ?? string.Empty, model.CardName ?? string.Empty, model.LoaiVeId ?? 0, model.LoaiXeId ?? 0, model.TrangThai ?? string.Empty, ngayDangKy, ngayHetHan, model.EmployeeId);
 
             try
             {
-                var newValues = new { model.CardUID, model.BienSo, model.CardName, model.LoaiVeId, model.LoaiXeId, model.TrangThai, NgayDangKy = ngayDangKy, NgayHetHan = ngayHetHan };
-                LoggingService.Instance.LogCrud("CARD_REGISTERED", "RFIDCard", model.CardUID, null, newValues, source: "RFIDCardService", details: $"Đăng ký thẻ RFID mới UID: {model.CardUID}, Biển số: {model.BienSo}");
+                var newValues = new { model.CardUID, model.BienSo, model.CardName, model.LoaiVeId, model.LoaiXeId, model.TrangThai, NgayDangKy = ngayDangKy, NgayHetHan = ngayHetHan, model.EmployeeId };
+                LoggingService.Instance.LogCrud("CARD_REGISTERED", "RFIDCard", model.CardUID, null, newValues, source: "RFIDCardService", details: $"Đăng ký thẻ RFID mới UID: {model.CardUID}, Biển số: {model.BienSo}, Nhân viên: {model.EmployeeId}");
             }
             catch { }
         }
@@ -123,14 +129,14 @@ namespace QuanLyGiuXe.Services
             if (model == null || model.Id <= 0) throw new ArgumentException("Model không hợp lệ");
 
             var previous = await GetByIdAsync(model.Id);
-            var oldValues = previous == null ? null : new { previous.CardUID, previous.BienSo, previous.CardName, previous.LoaiVeId, previous.LoaiXeId, previous.TrangThai, previous.NgayDangKy, previous.NgayHetHan };
-            var newValues = new { model.CardUID, model.BienSo, model.CardName, model.LoaiVeId, model.LoaiXeId, model.TrangThai, model.NgayDangKy, model.NgayHetHan };
+            var oldValues = previous == null ? null : new { previous.CardUID, previous.BienSo, previous.CardName, previous.LoaiVeId, previous.LoaiXeId, previous.TrangThai, previous.NgayDangKy, previous.NgayHetHan, previous.EmployeeId };
+            var newValues = new { model.CardUID, model.BienSo, model.CardName, model.LoaiVeId, model.LoaiXeId, model.TrangThai, model.NgayDangKy, model.NgayHetHan, model.EmployeeId };
 
-            await db.UpdateRFIDCardAsync(model.Id, model.CardUID ?? string.Empty, model.BienSo ?? string.Empty, model.CardName ?? string.Empty, model.LoaiVeId ?? 0, model.LoaiXeId ?? 0, model.TrangThai ?? string.Empty, model.NgayDangKy, model.NgayHetHan);
+            await db.UpdateRFIDCardAsync(model.Id, model.CardUID ?? string.Empty, model.BienSo ?? string.Empty, model.CardName ?? string.Empty, model.LoaiVeId ?? 0, model.LoaiXeId ?? 0, model.TrangThai ?? string.Empty, model.NgayDangKy, model.NgayHetHan, model.EmployeeId);
 
             try
             {
-                LoggingService.Instance.LogCrud("CARD_UPDATED", "RFIDCard", model.Id.ToString(), oldValues, newValues, source: "RFIDCardService", details: $"Cập nhật thẻ RFID UID: {model.CardUID}");
+                LoggingService.Instance.LogCrud("CARD_UPDATED", "RFIDCard", model.Id.ToString(), oldValues, newValues, source: "RFIDCardService", details: $"Cập nhật thẻ RFID UID: {model.CardUID}, Nhân viên: {model.EmployeeId}");
             }
             catch { }
         }
@@ -168,7 +174,10 @@ namespace QuanLyGiuXe.Services
                 LoaiXeId = found.LoaiXeId == 0 ? (int?)null : found.LoaiXeId,
                 TrangThai = found.TrangThai,
                 NgayDangKy = found.NgayTao == DateTime.MinValue ? (DateTime?)null : found.NgayTao,
-                NgayHetHan = found.NgayHetHan
+                NgayHetHan = found.NgayHetHan,
+                EmployeeId = found.EmployeeId,
+                EmployeeName = found.EmployeeName,
+                EmployeeCode = found.EmployeeCode
             };
         }
 

@@ -17,6 +17,10 @@ namespace QuanLyGiuXe.Models
         // mapping results
         public int? MappedLoaiXeId { get; set; }
         public int? MappedLoaiVeId { get; set; }
+        public int? MappedEmployeeId { get; set; }
+
+        public string? EmployeeCode { get; set; }
+        public string? EmployeeName { get; set; }
 
         public string Status { get; set; } // OK, AutoFix, Error
         public string Message { get; set; }

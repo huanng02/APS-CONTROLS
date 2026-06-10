@@ -87,4 +87,8 @@
     </None>
   </ItemGroup>
 
+  <ItemGroup>
+    <Resource Include="Assets\avatar_placeholder.png" />
+  </ItemGroup>
+
 </Project>

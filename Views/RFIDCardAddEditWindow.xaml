@@ -110,6 +110,19 @@
                                     <ColumnDefinition Width="150" />
                                     <ColumnDefinition Width="*" />
                                 </Grid.ColumnDefinitions>
+                                <TextBlock Text="NHÂN VIÊN" Style="{StaticResource BaseTextBlockStyle}" VerticalAlignment="Center" />
+                                <ComboBox Grid.Column="1" Style="{StaticResource ModernComboBox}"
+                                          ItemsSource="{Binding EmployeeList}"
+                                          DisplayMemberPath="FullName"
+                                          SelectedValuePath="Id"
+                                          SelectedValue="{Binding EmployeeId, Mode=TwoWay}" />
+                            </Grid>
+
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="150" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
                                 <TextBlock Text="BIỂN SỐ XE" Style="{StaticResource BaseTextBlockStyle}" VerticalAlignment="Center" />
                                 <TextBox Grid.Column="1" Style="{StaticResource ModernTextBox}" Text="{Binding BienSo, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                             </Grid>

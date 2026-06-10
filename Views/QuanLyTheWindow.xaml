@@ -96,7 +96,9 @@
 				<DataGrid.Columns>
 					<DataGridTextColumn Header="RFID UID" Binding="{Binding CardUID}" Width="2*"/>
 					<DataGridTextColumn Header="PLATE NUMBER" Binding="{Binding BienSo}" Width="2*"/>
-					<DataGridTextColumn Header="CARD TYPE" Binding="{Binding LoaiThe}" Width="*"/>
+					<DataGridTextColumn Header="EMPLOYEE CODE" Binding="{Binding EmployeeCode}" Width="1.5*"/>
+					<DataGridTextColumn Header="EMPLOYEE NAME" Binding="{Binding EmployeeName}" Width="2*"/>
+					<DataGridTextColumn Header="CARD TYPE" Binding="{Binding LoaiVe}" Width="*"/>
 					<DataGridTextColumn Header="STATUS" Binding="{Binding TrangThai}" Width="*"/>
 
 					<DataGridTemplateColumn Header="ACTIONS" Width="1.5*">

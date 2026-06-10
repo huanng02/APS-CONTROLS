@@ -31,6 +31,8 @@
                     <DataGridTextColumn Header="CARD UID" Binding="{Binding CardUID}" Width="150"/>
                     <DataGridTextColumn Header="LICENSE PLATE" Binding="{Binding BienSo}" Width="130"/>
                     <DataGridTextColumn Header="HOLDER NAME" Binding="{Binding CardName}" Width="*"/>
+                    <DataGridTextColumn Header="EMPLOYEE CODE" Binding="{Binding EmployeeCode}" Width="120"/>
+                    <DataGridTextColumn Header="EMPLOYEE NAME" Binding="{Binding EmployeeName}" Width="150"/>
                     <DataGridTextColumn Header="VEHICLE" Binding="{Binding LoaiXe}" Width="120"/>
                     <DataGridTextColumn Header="TICKET" Binding="{Binding LoaiVe}" Width="120"/>
                     <DataGridTextColumn Header="ISSUE DATE" Binding="{Binding NgayDangKy, StringFormat=dd/MM/yyyy}" Width="130"/>

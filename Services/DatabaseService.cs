@@ -190,7 +190,13 @@ namespace QuanLyGiuXe.Services
                 $"RFID_BIENSO_{bienSo}",
                 async conn =>
                 {
-                    using (SqlCommand cmd = new SqlCommand( @"SELECT Id, CardUID, BienSo, CardName, LoaiVeId, LoaiXeId, TrangThai, NgayDangKy, NgayHetHan, GroupId FROM RFIDCards WHERE BienSo = @bs", conn))
+                    string sql = @"
+                        SELECT rc.Id, rc.CardUID, rc.BienSo, rc.CardName, rc.LoaiVeId, rc.LoaiXeId, rc.TrangThai, rc.NgayDangKy, rc.NgayHetHan, rc.GroupId, rc.EmployeeId,
+                               e.FullName AS EmployeeName, e.EmployeeCode AS EmployeeCode
+                        FROM RFIDCards rc
+                        LEFT JOIN Employees e ON rc.EmployeeId = e.Id AND e.IsDeleted = 0
+                        WHERE rc.BienSo = @bs";
+                    using (SqlCommand cmd = new SqlCommand(sql, conn))
                     {
                         cmd.Parameters.AddWithValue("@bs", bienSo ?? string.Empty);
                         using (var r = await cmd.ExecuteReaderAsync())
@@ -208,7 +214,10 @@ namespace QuanLyGiuXe.Services
                                     TrangThai = r["TrangThai"]?.ToString() ?? string.Empty,
                                     NgayTao = r["NgayDangKy"] != DBNull.Value ? Convert.ToDateTime(r["NgayDangKy"]) : DateTime.MinValue,
                                     NgayHetHan = r["NgayHetHan"] != DBNull.Value ? Convert.ToDateTime(r["NgayHetHan"]) : (DateTime?)null,
-                                    GroupId = r["GroupId"] != DBNull.Value ? Convert.ToInt32(r["GroupId"]) : (int?)null
+                                    GroupId = r["GroupId"] != DBNull.Value ? Convert.ToInt32(r["GroupId"]) : (int?)null,
+                                    EmployeeId = r["EmployeeId"] != DBNull.Value ? Convert.ToInt32(r["EmployeeId"]) : (int?)null,
+                                    EmployeeName = r["EmployeeName"] == DBNull.Value ? null : r["EmployeeName"].ToString(),
+                                    EmployeeCode = r["EmployeeCode"] == DBNull.Value ? null : r["EmployeeCode"].ToString()
                                 };
                             }
                         }
@@ -427,7 +436,13 @@ namespace QuanLyGiuXe.Services
                 $"RFID_UID_{uid}",
                 async conn =>
                 {
-                    using (SqlCommand cmd = new SqlCommand( @"SELECT Id, CardUID, BienSo, CardName, LoaiVeId, LoaiXeId, TrangThai, NgayDangKy, NgayHetHan, GroupId FROM RFIDCards WHERE CardUID = @uid", conn))
+                    string sql = @"
+                        SELECT rc.Id, rc.CardUID, rc.BienSo, rc.CardName, rc.LoaiVeId, rc.LoaiXeId, rc.TrangThai, rc.NgayDangKy, rc.NgayHetHan, rc.GroupId, rc.EmployeeId,
+                               e.FullName AS EmployeeName, e.EmployeeCode AS EmployeeCode
+                        FROM RFIDCards rc
+                        LEFT JOIN Employees e ON rc.EmployeeId = e.Id AND e.IsDeleted = 0
+                        WHERE rc.CardUID = @uid";
+                    using (SqlCommand cmd = new SqlCommand(sql, conn))
                     {
                         cmd.Parameters.AddWithValue("@uid", uid ?? string.Empty);
                         using (var r = await cmd.ExecuteReaderAsync())
@@ -445,7 +460,10 @@ namespace QuanLyGiuXe.Services
                                     TrangThai = r["TrangThai"]?.ToString() ?? string.Empty,
                                     NgayTao = r["NgayDangKy"] != DBNull.Value ? Convert.ToDateTime(r["NgayDangKy"]) : DateTime.MinValue,
                                     NgayHetHan = r["NgayHetHan"] != DBNull.Value ? Convert.ToDateTime(r["NgayHetHan"]) : (DateTime?)null,
-                                    GroupId = r["GroupId"] != DBNull.Value ? Convert.ToInt32(r["GroupId"]) : (int?)null
+                                    GroupId = r["GroupId"] != DBNull.Value ? Convert.ToInt32(r["GroupId"]) : (int?)null,
+                                    EmployeeId = r["EmployeeId"] != DBNull.Value ? Convert.ToInt32(r["EmployeeId"]) : (int?)null,
+                                    EmployeeName = r["EmployeeName"] == DBNull.Value ? null : r["EmployeeName"].ToString(),
+                                    EmployeeCode = r["EmployeeCode"] == DBNull.Value ? null : r["EmployeeCode"].ToString()
                                 };
                             }
                         }
@@ -473,7 +491,13 @@ namespace QuanLyGiuXe.Services
                 $"RFID_ID_{id}",
                 async conn =>
                 {
-                    using (SqlCommand cmd = new SqlCommand( @"SELECT Id, CardUID, BienSo, CardName, LoaiVeId, LoaiXeId, TrangThai, NgayDangKy, NgayHetHan, GroupId FROM RFIDCards WHERE Id = @id", conn))
+                    string sql = @"
+                        SELECT rc.Id, rc.CardUID, rc.BienSo, rc.CardName, rc.LoaiVeId, rc.LoaiXeId, rc.TrangThai, rc.NgayDangKy, rc.NgayHetHan, rc.GroupId, rc.EmployeeId,
+                               e.FullName AS EmployeeName, e.EmployeeCode AS EmployeeCode
+                        FROM RFIDCards rc
+                        LEFT JOIN Employees e ON rc.EmployeeId = e.Id AND e.IsDeleted = 0
+                        WHERE rc.Id = @id";
+                    using (SqlCommand cmd = new SqlCommand(sql, conn))
                     {
                         cmd.Parameters.AddWithValue("@id", id);
                         using (var r = await cmd.ExecuteReaderAsync())
@@ -491,7 +515,10 @@ namespace QuanLyGiuXe.Services
                                     TrangThai = r["TrangThai"]?.ToString() ?? string.Empty,
                                     NgayTao = r["NgayDangKy"] != DBNull.Value ? Convert.ToDateTime(r["NgayDangKy"]) : DateTime.MinValue,
                                     NgayHetHan = r["NgayHetHan"] != DBNull.Value ? Convert.ToDateTime(r["NgayHetHan"]) : (DateTime?)null,
-                                    GroupId = r["GroupId"] != DBNull.Value ? Convert.ToInt32(r["GroupId"]) : (int?)null
+                                    GroupId = r["GroupId"] != DBNull.Value ? Convert.ToInt32(r["GroupId"]) : (int?)null,
+                                    EmployeeId = r["EmployeeId"] != DBNull.Value ? Convert.ToInt32(r["EmployeeId"]) : (int?)null,
+                                    EmployeeName = r["EmployeeName"] == DBNull.Value ? null : r["EmployeeName"].ToString(),
+                                    EmployeeCode = r["EmployeeCode"] == DBNull.Value ? null : r["EmployeeCode"].ToString()
                                 };
                             }
                         }
@@ -935,7 +962,13 @@ namespace QuanLyGiuXe.Services
                 async conn =>
                 {
                     var list = new List<RFIDCard>();
-                    using (SqlCommand cmd = new SqlCommand( @"SELECT Id, CardUID, BienSo, CardName, LoaiVeId, LoaiXeId, TrangThai, NgayDangKy, NgayHetHan, GroupId FROM RFIDCards", conn))
+                    string sql = @"
+                        SELECT rc.Id, rc.CardUID, rc.BienSo, rc.CardName, rc.LoaiVeId, rc.LoaiXeId, rc.TrangThai, rc.NgayDangKy, rc.NgayHetHan, rc.GroupId, rc.EmployeeId,
+                               e.FullName AS EmployeeName, e.EmployeeCode AS EmployeeCode
+                        FROM RFIDCards rc
+                        LEFT JOIN Employees e ON rc.EmployeeId = e.Id AND e.IsDeleted = 0";
+
+                    using (SqlCommand cmd = new SqlCommand(sql, conn))
                     using (SqlDataReader r = await cmd.ExecuteReaderAsync())
                     {
                         while (await r.ReadAsync())
@@ -951,7 +984,10 @@ namespace QuanLyGiuXe.Services
                                 TrangThai = r["TrangThai"]?.ToString() ?? string.Empty,
                                 NgayTao = r["NgayDangKy"] != DBNull.Value ? Convert.ToDateTime(r["NgayDangKy"]) : DateTime.MinValue,
                                 NgayHetHan = r["NgayHetHan"] != DBNull.Value ? (DateTime?)Convert.ToDateTime(r["NgayHetHan"]) : null,
-                                GroupId = r["GroupId"] != DBNull.Value ? Convert.ToInt32(r["GroupId"]) : (int?)null
+                                GroupId = r["GroupId"] != DBNull.Value ? Convert.ToInt32(r["GroupId"]) : (int?)null,
+                                EmployeeId = r["EmployeeId"] != DBNull.Value ? Convert.ToInt32(r["EmployeeId"]) : (int?)null,
+                                EmployeeName = r["EmployeeName"] == DBNull.Value ? null : r["EmployeeName"].ToString(),
+                                EmployeeCode = r["EmployeeCode"] == DBNull.Value ? null : r["EmployeeCode"].ToString()
                             });
                         }
                     }
@@ -960,20 +996,20 @@ namespace QuanLyGiuXe.Services
             ) ?? new List<RFIDCard>();
         }
 
-        public void InsertRFIDCard(string uid, string bienSo, string cardName, int loaiVeId, int loaiXeId, string trangThai, DateTime ngayTao, DateTime? ngayHetHan)
+        public void InsertRFIDCard(string uid, string bienSo, string cardName, int loaiVeId, int loaiXeId, string trangThai, DateTime ngayTao, DateTime? ngayHetHan, int? employeeId = null)
         {
-            _ = InsertRFIDCardAsync(uid, bienSo, cardName, loaiVeId, loaiXeId, trangThai, ngayTao, ngayHetHan);
+            _ = InsertRFIDCardAsync(uid, bienSo, cardName, loaiVeId, loaiXeId, trangThai, ngayTao, ngayHetHan, employeeId);
         }
 
-        public async Task<bool> InsertRFIDCardAsync(string uid, string bienSo, string cardName, int loaiVeId, int loaiXeId, string trangThai, DateTime ngayTao, DateTime? ngayHetHan)
+        public async Task<bool> InsertRFIDCardAsync(string uid, string bienSo, string cardName, int loaiVeId, int loaiXeId, string trangThai, DateTime ngayTao, DateTime? ngayHetHan, int? employeeId = null)
         {
             return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
                 "CREATE_RFID_CARD",
                 new { UID = uid, BienSo = bienSo, CardName = cardName },
                 async conn =>
                 {
-                    using (SqlCommand cmd = new SqlCommand( @"INSERT INTO RFIDCards (CardUID, BienSo, CardName, LoaiVeId, LoaiXeId, TrangThai, NgayDangKy, NgayHetHan)
-                                   VALUES (@uid, @bien, @card, @loaive, @loaixe, @trang, @ngay, @ngayhh)", conn))
+                    using (SqlCommand cmd = new SqlCommand( @"INSERT INTO RFIDCards (CardUID, BienSo, CardName, LoaiVeId, LoaiXeId, TrangThai, NgayDangKy, NgayHetHan, EmployeeId)
+                                   VALUES (@uid, @bien, @card, @loaive, @loaixe, @trang, @ngay, @ngayhh, @empid)", conn))
                     {
                         cmd.Parameters.AddWithValue("@uid", uid ?? string.Empty);
                         cmd.Parameters.AddWithValue("@bien", bienSo ?? string.Empty);
@@ -983,25 +1019,26 @@ namespace QuanLyGiuXe.Services
                         cmd.Parameters.AddWithValue("@trang", trangThai ?? string.Empty);
                         cmd.Parameters.AddWithValue("@ngay", ngayTao);
                         cmd.Parameters.AddWithValue("@ngayhh", (object?)ngayHetHan ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@empid", (object?)employeeId ?? DBNull.Value);
                         await cmd.ExecuteNonQueryAsync();
                     }
                 }
             );
         }
 
-        public void UpdateRFIDCard(int id, string uid, string bienSo, string cardName, int loaiVeId, int loaiXeId, string trangThai, DateTime? ngayDangKy, DateTime? ngayHetHan)
+        public void UpdateRFIDCard(int id, string uid, string bienSo, string cardName, int loaiVeId, int loaiXeId, string trangThai, DateTime? ngayDangKy, DateTime? ngayHetHan, int? employeeId = null)
         {
-            _ = UpdateRFIDCardAsync(id, uid, bienSo, cardName, loaiVeId, loaiXeId, trangThai, ngayDangKy, ngayHetHan);
+            _ = UpdateRFIDCardAsync(id, uid, bienSo, cardName, loaiVeId, loaiXeId, trangThai, ngayDangKy, ngayHetHan, employeeId);
         }
 
-        public async Task<bool> UpdateRFIDCardAsync(int id, string uid, string bienSo, string cardName, int loaiVeId, int loaiXeId, string trangThai, DateTime? ngayDangKy, DateTime? ngayHetHan)
+        public async Task<bool> UpdateRFIDCardAsync(int id, string uid, string bienSo, string cardName, int loaiVeId, int loaiXeId, string trangThai, DateTime? ngayDangKy, DateTime? ngayHetHan, int? employeeId = null)
         {
             return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
                 "UPDATE_RFID_CARD",
                 new { Id = id, UID = uid, BienSo = bienSo },
                 async conn =>
                 {
-                    using (SqlCommand cmd = new SqlCommand( @"UPDATE RFIDCards SET CardUID=@uid, BienSo=@bien, CardName=@name, LoaiVeId=@loaive, LoaiXeId=@loaixe, TrangThai=@trang, NgayDangKy=@ngay, NgayHetHan=@ngayhh WHERE Id=@id", conn))
+                    using (SqlCommand cmd = new SqlCommand( @"UPDATE RFIDCards SET CardUID=@uid, BienSo=@bien, CardName=@name, LoaiVeId=@loaive, LoaiXeId=@loaixe, TrangThai=@trang, NgayDangKy=@ngay, NgayHetHan=@ngayhh, EmployeeId=@empid WHERE Id=@id", conn))
                     {
                         cmd.Parameters.AddWithValue("@uid", uid ?? string.Empty);
                         cmd.Parameters.AddWithValue("@bien", bienSo ?? string.Empty);
@@ -1011,6 +1048,7 @@ namespace QuanLyGiuXe.Services
                         cmd.Parameters.AddWithValue("@trang", trangThai ?? string.Empty);
                         cmd.Parameters.AddWithValue("@ngay", (object?)ngayDangKy ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("@ngayhh", (object?)ngayHetHan ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@empid", (object?)employeeId ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("@id", id);
                         await cmd.ExecuteNonQueryAsync();
                     }
@@ -1821,16 +1859,32 @@ namespace QuanLyGiuXe.Services
             ) ?? string.Empty;
         }
 
-        public bool AddRFIDCards(string uid, string bienSo, string loaiThe)
+        public bool AddRFIDCards(string uid, string bienSo, string loaiThe, int? employeeId = null)
         {
             string conn_string = GetWorkingConnection();
             using (SqlConnection conn = new SqlConnection(conn_string))
             {
                 conn.Open();
-                SqlCommand cmd = new SqlCommand( @"INSERT INTO RFIDCards(CardUID,BienSo,LoaiThe) VALUES(@uid,@bs,@lt)", conn);
+                int loaiVeId = 1; // Default to Vãng lai
+                int loaiXeId = 1; // Default to Xe máy
+                
+                if (loaiThe != null)
+                {
+                    string normalized = loaiThe.ToLowerInvariant();
+                    if (normalized.Contains("thang") || normalized.Contains("tháng") || normalized.Contains("monthly"))
+                    {
+                        loaiVeId = 2; // Tháng
+                    }
+                }
+
+                SqlCommand cmd = new SqlCommand( @"
+                    INSERT INTO RFIDCards (CardUID, BienSo, LoaiVeId, LoaiXeId, TrangThai, NgayDangKy, EmployeeId)
+                    VALUES (@uid, @bs, @lvId, @lxId, 'Active', GETDATE(), @empid)", conn);
                 cmd.Parameters.AddWithValue("@uid", uid);
                 cmd.Parameters.AddWithValue("@bs", bienSo);
-                cmd.Parameters.AddWithValue("@lt", loaiThe);
+                cmd.Parameters.AddWithValue("@lvId", loaiVeId);
+                cmd.Parameters.AddWithValue("@lxId", loaiXeId);
+                cmd.Parameters.AddWithValue("@empid", (object?)employeeId ?? DBNull.Value);
 
                 try
                 {
@@ -1859,11 +1913,15 @@ namespace QuanLyGiuXe.Services
                         r.CardUID,
                         r.BienSo,
                         r.TrangThai,
+                        r.EmployeeId,
+                        e.FullName AS EmployeeName,
+                        e.EmployeeCode AS EmployeeCode,
                         lx.TenLoai AS LoaiXe,
                         lv.TenLoai AS LoaiVe
                     FROM RFIDCards r
                     LEFT JOIN LoaiXe lx ON r.LoaiXeId = lx.Id
                     LEFT JOIN LoaiVe lv ON r.LoaiVeId = lv.Id
+                    LEFT JOIN Employees e ON r.EmployeeId = e.Id AND e.IsDeleted = 0
                     ", conn))
                 using (SqlDataReader reader = cmd.ExecuteReader())
                 {
@@ -1878,7 +1936,10 @@ namespace QuanLyGiuXe.Services
                             TrangThai = reader["TrangThai"]?.ToString(),
 
                             LoaiXe = reader["LoaiXe"]?.ToString(),
-                            LoaiVe = reader["LoaiVe"]?.ToString()
+                            LoaiVe = reader["LoaiVe"]?.ToString(),
+                            EmployeeId = reader["EmployeeId"] != DBNull.Value ? Convert.ToInt32(reader["EmployeeId"]) : (int?)null,
+                            EmployeeName = reader["EmployeeName"] == DBNull.Value ? null : reader["EmployeeName"].ToString(),
+                            EmployeeCode = reader["EmployeeCode"] == DBNull.Value ? null : reader["EmployeeCode"].ToString()
                         });
                     }
                 }

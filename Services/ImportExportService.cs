@@ -85,6 +85,34 @@ namespace QuanLyGiuXe.Services
             return dict;
         }
 
+        private Dictionary<string, (int Id, string Name)> BuildEmployeeDict()
+        {
+            var dict = new Dictionary<string, (int Id, string Name)>(StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                using (var conn = new System.Data.SqlClient.SqlConnection(_db.GetConnectionString()))
+                {
+                    conn.Open();
+                    using (var cmd = new System.Data.SqlClient.SqlCommand("SELECT Id, EmployeeCode, FullName FROM dbo.Employees WHERE IsDeleted = 0", conn))
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            var id = Convert.ToInt32(reader["Id"]);
+                            var code = reader["EmployeeCode"]?.ToString()?.Trim();
+                            var name = reader["FullName"]?.ToString()?.Trim() ?? string.Empty;
+                            if (!string.IsNullOrEmpty(code) && !dict.ContainsKey(code))
+                            {
+                                dict[code] = (id, name);
+                            }
+                        }
+                    }
+                }
+            }
+            catch { }
+            return dict;
+        }
+
         // Preview excel rows and return list of ImportPreviewRow
         // activeLoaiVeId: when provided (>0) means the import UI was opened from a specific LoaiVe tab
         // - if activeLoaiVeId > 0: all preview rows will be assigned this LoaiVe and any file LoaiVe that differs will be treated as Error
@@ -96,6 +124,7 @@ namespace QuanLyGiuXe.Services
 
             var dictXe = BuildLoaiXeDict();
             var dictVe = BuildLoaiVeDict();
+            var dictEmp = BuildEmployeeDict();
 
             using (var wb = new XLWorkbook(path))
             {
@@ -156,12 +185,37 @@ namespace QuanLyGiuXe.Services
                         string ngaydk = GetCellString(row, headers, "NGAYDANGKY");
                         string ngayhh = GetCellString(row, headers, "NGAYHETHAN");
                         string tt = GetCellString(row, headers, "TRANGTHAI");
+                        string empCode = GetCellString(row, headers, "EMPLOYEECODE");
+                        if (string.IsNullOrWhiteSpace(empCode)) empCode = GetCellString(row, headers, "MANHANVIEN");
+                        string empName = GetCellString(row, headers, "EMPLOYEENAME");
+                        if (string.IsNullOrWhiteSpace(empName)) empName = GetCellString(row, headers, "TENNHANVIEN");
 
                         ipr.CardUID = string.IsNullOrWhiteSpace(card) ? string.Empty : card.Trim();
                         ipr.BienSo = string.IsNullOrWhiteSpace(bien) ? string.Empty : bien.Trim();
                         ipr.CardName = string.IsNullOrWhiteSpace(cardName) ? string.Empty : cardName.Trim();
                         ipr.LoaiXe = loaixe ?? string.Empty;
                         ipr.LoaiVe = loaive ?? string.Empty;
+                        ipr.EmployeeCode = string.IsNullOrWhiteSpace(empCode) ? null : empCode.Trim();
+                        ipr.EmployeeName = string.IsNullOrWhiteSpace(empName) ? null : empName.Trim();
+
+                        if (!string.IsNullOrWhiteSpace(ipr.EmployeeCode))
+                        {
+                            if (dictEmp.TryGetValue(ipr.EmployeeCode, out var empInfo))
+                            {
+                                ipr.MappedEmployeeId = empInfo.Id;
+                                if (string.IsNullOrWhiteSpace(ipr.EmployeeName))
+                                {
+                                    ipr.EmployeeName = empInfo.Name;
+                                }
+                            }
+                            else
+                            {
+                                ipr.Status = "Error";
+                                ipr.Message = $"Employee Code '{ipr.EmployeeCode}' not found in DB";
+                                result.Add(ipr);
+                                continue;
+                            }
+                        }
 
                         // if file provides numeric LoaiVeId, prefer it (useful in All tab)
                         if (!string.IsNullOrWhiteSpace(loaiveIdRaw))
@@ -353,6 +407,7 @@ namespace QuanLyGiuXe.Services
             dt.Columns.Add("NgayDangKy", typeof(DateTime));
             dt.Columns.Add("NgayHetHan", typeof(DateTime));
             dt.Columns.Add("TrangThai", typeof(string));
+            dt.Columns.Add("EmployeeId", typeof(int));
 
             foreach (var r in rows)
             {
@@ -372,6 +427,7 @@ namespace QuanLyGiuXe.Services
                 row["NgayDangKy"] = r.NgayDangKy ?? (object)DBNull.Value;
                 row["NgayHetHan"] = r.NgayHetHan ?? (object)DBNull.Value;
                 row["TrangThai"] = string.IsNullOrWhiteSpace(r.TrangThai) ? "Active" : r.TrangThai;
+                row["EmployeeId"] = r.MappedEmployeeId.HasValue ? (object)r.MappedEmployeeId.Value : DBNull.Value;
                 dt.Rows.Add(row);
             }
 
@@ -397,7 +453,8 @@ namespace QuanLyGiuXe.Services
                     // If source date missing, default to today so DB has a sensible registration date
                     NgayTao = dr.Table.Columns.Contains("NgayDangKy") && dr["NgayDangKy"] != DBNull.Value ? Convert.ToDateTime(dr["NgayDangKy"]) : DateTime.Today,
                     NgayHetHan = dr.Table.Columns.Contains("NgayHetHan") && dr["NgayHetHan"] != DBNull.Value ? (DateTime?)Convert.ToDateTime(dr["NgayHetHan"]) : null,
-                    TrangThai = dr.Table.Columns.Contains("TrangThai") ? (dr["TrangThai"]?.ToString() ?? string.Empty) : string.Empty
+                    TrangThai = dr.Table.Columns.Contains("TrangThai") ? (dr["TrangThai"]?.ToString() ?? string.Empty) : string.Empty,
+                    EmployeeId = dr.Table.Columns.Contains("EmployeeId") && dr["EmployeeId"] != DBNull.Value ? Convert.ToInt32(dr["EmployeeId"]) : (int?)null
                 };
                 models.Add(m);
             }
@@ -437,6 +494,8 @@ namespace QuanLyGiuXe.Services
             const int COL_NGAYDANGKY = 6;
             const int COL_NGAYHETHAN = 7;
             const int COL_TRANGTHAI = 8;
+            const int COL_EMPCODE = 9;
+            const int COL_EMPNAME = 10;
 
             // Get raw RFIDCard records from DB and resolve display names for LoaiXe/LoaiVe
             var raw = _db.GetRFIDCards();
@@ -457,7 +516,9 @@ namespace QuanLyGiuXe.Services
                 LoaiVe = it.LoaiVeId > 0 && loaiVeLookup.TryGetValue(it.LoaiVeId, out var lv) ? lv : string.Empty,
                 NgayDangKy = it.NgayTao == DateTime.MinValue ? (DateTime?)null : it.NgayTao,
                 NgayHetHan = it.NgayHetHan,
-                TrangThai = it.TrangThai
+                TrangThai = it.TrangThai,
+                EmployeeCode = it.EmployeeCode ?? string.Empty,
+                EmployeeName = it.EmployeeName ?? string.Empty
             }).ToList();
 
             // Presentation-only defaults: if DB has no NgayDangKy but LoaiVe is monthly, fill display dates for export
@@ -490,7 +551,9 @@ namespace QuanLyGiuXe.Services
                             LoaiVe = item.LoaiVe,
                             NgayDangKy = dk,
                             NgayHetHan = hh,
-                            TrangThai = item.TrangThai
+                            TrangThai = item.TrangThai,
+                            EmployeeCode = item.EmployeeCode,
+                            EmployeeName = item.EmployeeName
                         };
                     }
                 }
@@ -499,18 +562,18 @@ namespace QuanLyGiuXe.Services
             using (var wb = new XLWorkbook())
             {
                 var ws = wb.Worksheets.Add("RFIDCards");
-                var headers = new[] { "CardUID", "BienSo", "CardName", "LoaiXe", "LoaiVe", "NgayDangKy", "NgayHetHan", "TrangThai" };
+                var headers = new[] { "CardUID", "BienSo", "CardName", "LoaiXe", "LoaiVe", "NgayDangKy", "NgayHetHan", "TrangThai", "EmployeeCode", "EmployeeName" };
                 for (int i = 0; i < headers.Length; i++) ws.Cell(1, i + 1).Value = headers[i];
 
                 int r = 2;
                 foreach (var it in list)
                 {
                     // Always set each cell to preserve schema. Use empty string for nulls.
-                ws.Cell(r, COL_UID).Value = it.CardUID ?? string.Empty;
-                ws.Cell(r, COL_BIENSO).Value = string.IsNullOrWhiteSpace(it.BienSo) ? string.Empty : it.BienSo;
-                ws.Cell(r, COL_CARDNAME).Value = string.IsNullOrWhiteSpace(it.CardName) ? string.Empty : it.CardName;
-                ws.Cell(r, COL_LOAIXE).Value = it.LoaiXe ?? string.Empty;
-                ws.Cell(r, COL_LOAIVE).Value = it.LoaiVe ?? string.Empty;
+                    ws.Cell(r, COL_UID).Value = it.CardUID ?? string.Empty;
+                    ws.Cell(r, COL_BIENSO).Value = string.IsNullOrWhiteSpace(it.BienSo) ? string.Empty : it.BienSo;
+                    ws.Cell(r, COL_CARDNAME).Value = string.IsNullOrWhiteSpace(it.CardName) ? string.Empty : it.CardName;
+                    ws.Cell(r, COL_LOAIXE).Value = it.LoaiXe ?? string.Empty;
+                    ws.Cell(r, COL_LOAIVE).Value = it.LoaiVe ?? string.Empty;
 
                     // NgayDangKy
                     var cNgayDK = ws.Cell(r, COL_NGAYDANGKY);
@@ -538,6 +601,8 @@ namespace QuanLyGiuXe.Services
                     }
 
                     ws.Cell(r, COL_TRANGTHAI).Value = it.TrangThai ?? string.Empty;
+                    ws.Cell(r, COL_EMPCODE).Value = it.EmployeeCode ?? string.Empty;
+                    ws.Cell(r, COL_EMPNAME).Value = it.EmployeeName ?? string.Empty;
                     r++;
                 }
 
@@ -586,7 +651,7 @@ namespace QuanLyGiuXe.Services
             using (var wb = new XLWorkbook())
             {
                 var ws = wb.Worksheets.Add("Template");
-                var headers = new[] { "CardUID", "BienSo", "LoaiXe", "LoaiVe", "NgayDangKy", "NgayHetHan", "TrangThai" };
+                var headers = new[] { "CardUID", "BienSo", "CardName", "LoaiXe", "LoaiVe", "NgayDangKy", "NgayHetHan", "TrangThai", "EmployeeCode" };
                 for (int i = 0; i < headers.Length; i++) ws.Cell(1, i + 1).Value = headers[i];
                 var hdr = ws.Range(1, 1, 1, headers.Length);
                 hdr.Style.Fill.BackgroundColor = XLColor.FromHtml("#1E90FF");
@@ -602,23 +667,27 @@ namespace QuanLyGiuXe.Services
             using (var wb = new XLWorkbook())
             {
                 var ws = wb.Worksheets.Add("Mau");
-                var headers = new[] { "CardUID", "BienSo", "LoaiXe", "LoaiVe", "NgayDangKy", "NgayHetHan", "TrangThai" };
+                var headers = new[] { "CardUID", "BienSo", "CardName", "LoaiXe", "LoaiVe", "NgayDangKy", "NgayHetHan", "TrangThai", "EmployeeCode" };
                 for (int i = 0; i < headers.Length; i++) ws.Cell(1, i + 1).Value = headers[i];
                 ws.Cell(2, 1).Value = "UID001";
                 ws.Cell(2, 2).Value = "59A12345";
-                ws.Cell(2, 3).Value = "XE MAY";
-                ws.Cell(2, 4).Value = "VE LUOT";
-                ws.Cell(2, 5).Value = DateTime.Today.ToString("dd/MM/yyyy");
-                ws.Cell(2, 6).Value = "";
-                ws.Cell(2, 7).Value = "ACTIVE";
+                ws.Cell(2, 3).Value = "Khách vãng lai 1";
+                ws.Cell(2, 4).Value = "XE MAY";
+                ws.Cell(2, 5).Value = "VE LUOT";
+                ws.Cell(2, 6).Value = DateTime.Today.ToString("dd/MM/yyyy");
+                ws.Cell(2, 7).Value = "";
+                ws.Cell(2, 8).Value = "ACTIVE";
+                ws.Cell(2, 9).Value = "";
 
                 ws.Cell(3, 1).Value = "UID002";
                 ws.Cell(3, 2).Value = "51B67890";
-                ws.Cell(3, 3).Value = "OTO";
-                ws.Cell(3, 4).Value = "VE THANG";
-                ws.Cell(3, 5).Value = DateTime.Today.ToString("dd/MM/yyyy");
-                ws.Cell(3, 6).Value = DateTime.Today.AddDays(30).ToString("dd/MM/yyyy");
-                ws.Cell(3, 7).Value = "ACTIVE";
+                ws.Cell(3, 3).Value = "Nguyễn Văn A";
+                ws.Cell(3, 4).Value = "OTO";
+                ws.Cell(3, 5).Value = "VE THANG";
+                ws.Cell(3, 6).Value = DateTime.Today.ToString("dd/MM/yyyy");
+                ws.Cell(3, 7).Value = DateTime.Today.AddDays(30).ToString("dd/MM/yyyy");
+                ws.Cell(3, 8).Value = "ACTIVE";
+                ws.Cell(3, 9).Value = "NV001";
 
                 var hdr = ws.Range(1, 1, 1, headers.Length);
                 hdr.Style.Fill.BackgroundColor = XLColor.FromHtml("#1E90FF");
@@ -634,9 +703,11 @@ namespace QuanLyGiuXe.Services
             var sb = new StringBuilder();
             sb.AppendLine("Hướng dẫn Import RFIDCards:");
             sb.AppendLine("- Không nhập khoảng trắng dư");
+            sb.AppendLine("- CardName: Tên chủ thẻ (tùy chọn)");
             sb.AppendLine("- LoaiXe: XE MAY, OTO");
             sb.AppendLine("- LoaiVe: VE LUOT, VE THANG");
             sb.AppendLine("- Có thể nhập: \"xe may\", \"Xe Máy\" (hệ thống tự hiểu)");
+            sb.AppendLine("- EmployeeCode: Mã nhân viên (tùy chọn, nhân viên phải tồn tại trong DB)");
             File.WriteAllText(guide, sb.ToString(), Encoding.UTF8);
 
             // Audit Log

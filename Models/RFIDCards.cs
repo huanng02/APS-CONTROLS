@@ -23,6 +23,9 @@ namespace QuanLyGiuXe.Models
         public string LoaiXe { get; set; }
         public string LoaiVe { get; set; } // 👉 dùng cái này thay LoaiThe
         public int? GroupId { get; set; }
+        public int? EmployeeId { get; set; }
+        public string EmployeeName { get; set; }
+        public string EmployeeCode { get; set; }
         // UI-only selection flag for DataGrid bulk actions
         public bool IsSelected { get; set; }
     }

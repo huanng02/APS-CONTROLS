@@ -27,6 +27,9 @@ namespace QuanLyGiuXe.Models
         // mapped ids after normalization & lookup
         public int? LoaiXeId { get; set; }
         public int? LoaiVeId { get; set; }
+        public int? MappedEmployeeId { get; set; }
+        public string? EmployeeCode { get; set; }
+        public string? EmployeeName { get; set; }
         // original text values from Excel
         public string LoaiXeTextRaw { get; set; } = string.Empty;
         public string LoaiVeTextRaw { get; set; } = string.Empty;

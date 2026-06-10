@@ -1444,6 +1444,22 @@ namespace QuanLyGiuXe
                         content = new QuanLyGiuXe.Views.BangGiaView();
                         title = "Bảng giá (Quản trị)";
                         break;
+                    case "Company":
+                        content = new QuanLyGiuXe.Views.CompanyView();
+                        title = "Quản lý Công Ty";
+                        break;
+                    case "Department":
+                        content = new QuanLyGiuXe.Views.DepartmentView();
+                        title = "Quản lý Phòng Ban";
+                        break;
+                    case "Position":
+                        content = new QuanLyGiuXe.Views.PositionView();
+                        title = "Quản lý Chức Vụ";
+                        break;
+                    case "Employee":
+                        content = new QuanLyGiuXe.Views.EmployeeView();
+                        title = "Quản lý Nhân Sự";
+                        break;
                 }
 
                 if (content != null)

@@ -118,6 +118,12 @@
                                     <DataGridTextColumn Header="Biển số" Binding="{Binding BienSo}" Width="120"
                                                         Visibility="{Binding DataContext.SelectedTab.Id, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource ColVisConv}, ConverterParameter=MonthlyOnly}"/>
                                     
+                                    <DataGridTextColumn Header="Nhân viên" Binding="{Binding EmployeeName}" Width="150"
+                                                        Visibility="{Binding DataContext.SelectedTab.Id, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource ColVisConv}, ConverterParameter=MonthlyOnly}"/>
+                                    
+                                    <DataGridTextColumn Header="Mã NV" Binding="{Binding EmployeeCode}" Width="100"
+                                                        Visibility="{Binding DataContext.SelectedTab.Id, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource ColVisConv}, ConverterParameter=MonthlyOnly}"/>
+
                                     <DataGridTextColumn Header="Chủ xe/Tên xe" Binding="{Binding CardName}" Width="180"/>
                                     
                                     <DataGridTextColumn Header="Loại xe" Binding="{Binding LoaiXe}" Width="120"

@@ -196,6 +196,20 @@ namespace QuanLyGiuXe.Services
                         LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Camera IP Unique Index migration applied successfully.");
                     }
 
+                    // Execute Enterprise CRUD entities migration (20260610_enterprise_crud_entities.sql)
+                    string scriptPathEnterpriseCrud = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260610_enterprise_crud_entities.sql");
+                    if (File.Exists(scriptPathEnterpriseCrud))
+                    {
+                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Executing Enterprise CRUD entities migration...");
+                        string sqlEnterpriseCrud = await File.ReadAllTextAsync(scriptPathEnterpriseCrud);
+                        using (var cmd = new SqlCommand(sqlEnterpriseCrud, conn))
+                        {
+                            cmd.CommandTimeout = 60;
+                            await cmd.ExecuteNonQueryAsync();
+                        }
+                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Enterprise CRUD entities migration applied successfully.");
+                    }
+
                     _migrationsApplied = true;
                     LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "SQL Server topology migrations applied successfully.");
                 }
@@ -742,6 +756,20 @@ namespace QuanLyGiuXe.Services
                             await cmd.ExecuteNonQueryAsync();
                         }
                         LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Camera IP Unique Index migration applied successfully.");
+                    }
+
+                    // 14. Now run the Enterprise CRUD entities migration script (20260610_enterprise_crud_entities.sql)
+                    string scriptPathEnterpriseCrud = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260610_enterprise_crud_entities.sql");
+                    if (File.Exists(scriptPathEnterpriseCrud))
+                    {
+                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Executing Enterprise CRUD entities migration...");
+                        string sqlEnterpriseCrud = await File.ReadAllTextAsync(scriptPathEnterpriseCrud);
+                        using (var cmd = new SqlCommand(sqlEnterpriseCrud, conn))
+                        {
+                            cmd.CommandTimeout = 60;
+                            await cmd.ExecuteNonQueryAsync();
+                        }
+                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Enterprise CRUD entities migration applied successfully.");
                     }
 
                     _baseSchemaChecked = true;

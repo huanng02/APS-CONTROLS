@@ -20,6 +20,9 @@ namespace QuanLyGiuXe.ViewModels
         private System.Collections.Generic.List<QuanLyGiuXe.Models.LoaiVe> _loaiVeList;
         public System.Collections.Generic.List<QuanLyGiuXe.Models.LoaiVe> LoaiVeList { get => _loaiVeList; set { if (_loaiVeList != value) { _loaiVeList = value; OnPropertyChanged(); OnPropertyChanged(nameof(LoaiVeFiltered)); } } }
 
+        private System.Collections.Generic.List<QuanLyGiuXe.Models.Employee> _employeeList;
+        public System.Collections.Generic.List<QuanLyGiuXe.Models.Employee> EmployeeList { get => _employeeList; set { if (_employeeList != value) { _employeeList = value; OnPropertyChanged(); } } }
+
         // Form mode (Add vs Edit)
         private FormMode _mode = FormMode.Add;
         public FormMode Mode
@@ -232,7 +235,7 @@ namespace QuanLyGiuXe.ViewModels
         }
 
         // Whether LoaiVe can be changed by the user. Only allowed in 'All' tab (index 2).
-        public bool CanChangeLoaiVe => ActiveTabIndex == 2;
+        public bool CanChangeLoaiVe => true;
 
         // Filtered list of LoaiVe according to ActiveTabIndex.
         // ActiveTabIndex: 0 = Guest (show non-monthly), 1 = Monthly (show monthly), 2 = All (show all)
@@ -275,6 +278,9 @@ namespace QuanLyGiuXe.ViewModels
 
         private int? _loaiXeId;
         public int? LoaiXeId { get => _loaiXeId; set { _loaiXeId = value; OnPropertyChanged(nameof(LoaiXeId)); } }
+
+        private int? _employeeId;
+        public int? EmployeeId { get => _employeeId; set { _employeeId = value; OnPropertyChanged(nameof(EmployeeId)); } }
 
         private int? _loaiVeId;
         public int? LoaiVeId
@@ -351,6 +357,14 @@ namespace QuanLyGiuXe.ViewModels
             // load lists first so IsMonthlyTicket can resolve based on TenLoai
             LoaiXeList = new LoaiXeService().GetAll();
             LoaiVeList = new LoaiVeService().GetAll();
+
+            try
+            {
+                var empService = new EnterpriseCrudService();
+                EmployeeList = empService.GetEmployeesPaged(string.Empty, null, null, null, "Active", 0, 1000, out _);
+            }
+            catch { }
+
             // set fields from data (set fields BEFORE switching to Edit mode so CardUID can be assigned)
             // determine whether this is monthly ticket from LoaiVe
             LoaiXeId = data.LoaiXeId;
@@ -360,6 +374,7 @@ namespace QuanLyGiuXe.ViewModels
             NgayDangKy = data.NgayDangKy;
             NgayHetHan = data.NgayHetHan;
             TrangThai = data.TrangThai;
+            EmployeeId = data.EmployeeId;
 
             // set CardUID into proper slot and select active tab based on LoaiVe
             // ensure lists are loaded first
@@ -382,11 +397,13 @@ namespace QuanLyGiuXe.ViewModels
             // notify all
             OnPropertyChanged(nameof(LoaiXeList));
             OnPropertyChanged(nameof(LoaiVeList));
+            OnPropertyChanged(nameof(EmployeeList));
             OnPropertyChanged(nameof(GuestCardUID));
             OnPropertyChanged(nameof(MonthlyCardUID));
             OnPropertyChanged(nameof(CardName));
             OnPropertyChanged(nameof(LoaiXeId));
             OnPropertyChanged(nameof(LoaiVeId));
+            OnPropertyChanged(nameof(EmployeeId));
             OnPropertyChanged(nameof(BienSo));
             OnPropertyChanged(nameof(NgayDangKy));
             OnPropertyChanged(nameof(NgayHetHan));
@@ -433,7 +450,7 @@ namespace QuanLyGiuXe.ViewModels
             }
         }
 
-        public void InitForAdd()
+        public void InitForAdd(int? employeeId = null)
         {
             IsEdit = false;
             Mode = FormMode.Add;
@@ -446,6 +463,7 @@ namespace QuanLyGiuXe.ViewModels
             NgayDangKy = null;
             NgayHetHan = null;
             TrangThai = "Active";
+            EmployeeId = employeeId;
 
             OnPropertyChanged(nameof(GuestCardUID));
             OnPropertyChanged(nameof(MonthlyCardUID));
@@ -456,9 +474,19 @@ namespace QuanLyGiuXe.ViewModels
             OnPropertyChanged(nameof(NgayHetHan));
             OnPropertyChanged(nameof(TrangThai));
             OnPropertyChanged(nameof(IsEdit));
+            OnPropertyChanged(nameof(EmployeeId));
 
             LoaiXeList = new LoaiXeService().GetAll();
             LoaiVeList = new LoaiVeService().GetAll();
+
+            try
+            {
+                var empService = new EnterpriseCrudService();
+                EmployeeList = empService.GetEmployeesPaged(string.Empty, null, null, null, "Active", 0, 1000, out _);
+            }
+            catch { }
+            OnPropertyChanged(nameof(EmployeeList));
+
             CardName = string.Empty;
         }
 

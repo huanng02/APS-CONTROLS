@@ -25,8 +25,8 @@ namespace QuanLyGiuXe.Services
                 using var wb = new XLWorkbook();
                 var ws = wb.Worksheets.Add("RFIDCards");
 
-                // Define headers (do NOT include internal Id column). Include CardName
-                var headers = new[] { "CardUID", "BienSo", "CardName", "LoaiXe", "LoaiVe", "NgayDangKy", "NgayHetHan", "TrangThai" };
+                // Define headers (do NOT include internal Id column). Include CardName and Employee info
+                var headers = new[] { "CardUID", "BienSo", "CardName", "LoaiXe", "LoaiVe", "NgayDangKy", "NgayHetHan", "TrangThai", "EmployeeCode", "EmployeeName" };
                 for (int i = 0; i < headers.Length; i++)
                     ws.Cell(1, i + 1).Value = headers[i];
 
@@ -110,6 +110,12 @@ namespace QuanLyGiuXe.Services
 
                     // TrangThai
                     ws.Cell(r, 8).Value = c?.TrangThai ?? string.Empty;
+
+                    // EmployeeCode
+                    ws.Cell(r, 9).Value = c?.EmployeeCode ?? string.Empty;
+
+                    // EmployeeName
+                    ws.Cell(r, 10).Value = c?.EmployeeName ?? string.Empty;
 
                     r++;
                 }

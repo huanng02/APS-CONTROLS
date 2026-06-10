@@ -11,5 +11,7 @@ namespace QuanLyGiuXe.Models
         public DateTime? NgayDangKy { get; set; }
         public DateTime? NgayHetHan { get; set; }
         public string TrangThai { get; set; } = string.Empty;
+        public string EmployeeCode { get; set; } = string.Empty;
+        public string EmployeeName { get; set; } = string.Empty;
     }
 }

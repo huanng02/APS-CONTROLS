@@ -272,7 +272,8 @@ namespace QuanLyGiuXe.ViewModels
                         LoaiVeId = vm.LoaiVeId ?? (SelectedTab != null ? SelectedTab.Id : 0),
                         NgayDangKy = vm.NgayDangKy,
                         NgayHetHan = vm.NgayHetHan,
-                        TrangThai = vm.TrangThai
+                        TrangThai = vm.TrangThai,
+                        EmployeeId = vm.EmployeeId
                     };
 
                     service.Add(toAdd);
@@ -320,7 +321,8 @@ namespace QuanLyGiuXe.ViewModels
                         LoaiVeId = vm.LoaiVeId ?? (SelectedTab != null && SelectedTab.Id > 0 ? SelectedTab.Id : vm.LoaiVeId ?? 0),
                         NgayDangKy = vm.NgayDangKy,
                         NgayHetHan = vm.NgayHetHan,
-                        TrangThai = vm.TrangThai
+                        TrangThai = vm.TrangThai,
+                        EmployeeId = vm.EmployeeId
                     };
                     // remember previous LoaiVe for refresh decisions
                     int previousLoaiVe = target.LoaiVeId ?? 0;

@@ -23,5 +23,8 @@ namespace QuanLyGiuXe.Models
         // Optional expiry date stored in DB (nullable)
         public DateTime? NgayHetHan { get; set; }
         public int? GroupId { get; set; }
+        public int? EmployeeId { get; set; }
+        public string? EmployeeName { get; set; }
+        public string? EmployeeCode { get; set; }
     }
 }

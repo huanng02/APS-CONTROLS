@@ -13,6 +13,8 @@ namespace QuanLyGiuXe
     /// </summary>
     public partial class App : Application
     {
+        private static readonly Services.HttpApiServer _apiServer = new Services.HttpApiServer();
+
         protected override void OnStartup(StartupEventArgs e)
         {
             try
@@ -20,6 +22,9 @@ namespace QuanLyGiuXe
                 System.Environment.SetEnvironmentVariable("OPENCV_FFMPEG_CAPTURE_OPTIONS", "rtsp_transport;tcp|fflags;nobuffer|flags;low_delay");
                 base.OnStartup(e);
                 this.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+
+                // Start HTTP API Server
+                _apiServer.Start();
 
                 // initialize Serilog via LoggingService
                 var _ = LoggingService.Instance; 
@@ -38,6 +43,7 @@ namespace QuanLyGiuXe
                     {
                         QuanLyGiuXe.Tests.LaneDirectionConsistencyTests.Run();
                         QuanLyGiuXe.Tests.SecurityPermissionMatrixTests.Run();
+                        QuanLyGiuXe.Tests.EnterpriseCrudTests.Run();
                         this.Shutdown(0);
                     }
                     catch (Exception ex)
@@ -223,6 +229,15 @@ namespace QuanLyGiuXe
         {
             LoggingService.Instance.LogInfo("AppExit", "App", $"Application exiting with code: {e.ApplicationExitCode}");
             
+            try
+            {
+                _apiServer.Stop();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error stopping API server: {ex.Message}");
+            }
+
             try
             {
                 // Dừng toàn bộ các dịch vụ chạy nền để giải phóng luồng hoàn toàn

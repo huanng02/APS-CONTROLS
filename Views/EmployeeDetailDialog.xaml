@@ -1,0 +1,184 @@
+<Window x:Class="QuanLyGiuXe.Views.EmployeeDetailDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Employee Details &amp; RFID Management" 
+        Height="480" Width="700"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="{StaticResource BgLightBrush}"
+        FontFamily="Segoe UI">
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,0,0,1" Padding="0,0,0,15" Margin="0,0,0,15">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal">
+                    <Border Background="{StaticResource APSBlueBrush}" CornerRadius="4" Padding="8" Margin="0,0,12,0">
+                        <TextBlock Text="💳" Foreground="White" FontSize="14"/>
+                    </Border>
+                    <StackPanel>
+                        <TextBlock x:Name="lblHeaderName" Text="EMPLOYEE CARD DETAILS" FontSize="16" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}"/>
+                        <TextBlock Text="Detailed records and active RFID assignments" Style="{StaticResource SubTitleStyle}"/>
+                    </StackPanel>
+                </StackPanel>
+                <Border Grid.Column="1" x:Name="badgeStatus" CornerRadius="12" Padding="12,3" VerticalAlignment="Center">
+                    <TextBlock x:Name="lblStatus" Text="Active" FontSize="11" FontWeight="Bold" Foreground="White"/>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- Details Grid (Left/Right) -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="220"/>
+                <ColumnDefinition Width="20"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Left pane: Profile Card -->
+            <Border Grid.Column="0" Style="{StaticResource EnterpriseCardBorder}" Padding="15" Background="White">
+                <StackPanel HorizontalAlignment="Center">
+                    <Border Width="100" Height="100" CornerRadius="50" BorderThickness="2" BorderBrush="{StaticResource APSBlueBrush}" ClipToBounds="True" Margin="0,0,0,10">
+                        <Image x:Name="imgAvatar" Stretch="UniformToFill"/>
+                    </Border>
+
+                    <TextBlock x:Name="lblFullName" Text="Full Name" FontWeight="Bold" FontSize="15" HorizontalAlignment="Center" TextAlignment="Center" Margin="0,0,0,8"/>
+                    <TextBlock x:Name="lblCode" Text="Code" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+
+                    <Separator Margin="0,8" Background="{StaticResource BorderLightBrush}"/>
+
+                    <StackPanel HorizontalAlignment="Stretch">
+                        <TextBlock Text="CONTACTS" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,5"/>
+                        <TextBlock x:Name="lblPhone" Text="📞 Phone" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,5"/>
+                        <TextBlock x:Name="lblEmail" Text="✉️ Email" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,5"/>
+                        <TextBlock x:Name="lblCCCD" Text="🆔 CCCD" FontSize="12" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Right pane: Org & RFID details -->
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="15"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Org Section -->
+                <Border Grid.Row="0" Style="{StaticResource EnterpriseCardBorder}" Padding="15" Background="White">
+                    <StackPanel>
+                        <TextBlock Text="ORGANIZATION" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,10"/>
+                        
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="100"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Company" FontWeight="SemiBold"/>
+                            <TextBlock Grid.Column="1" x:Name="lblCompany" Text="Company Name" Foreground="{StaticResource TextSecondaryBrush}"/>
+                        </Grid>
+
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="100"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Department" FontWeight="SemiBold"/>
+                            <TextBlock Grid.Column="1" x:Name="lblDepartment" Text="Department Name" Foreground="{StaticResource TextSecondaryBrush}"/>
+                        </Grid>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="100"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Position" FontWeight="SemiBold"/>
+                            <TextBlock Grid.Column="1" x:Name="lblPosition" Text="Position Name" Foreground="{StaticResource TextSecondaryBrush}"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- RFID Management Section -->
+                <Border Grid.Row="2" Style="{StaticResource EnterpriseCardBorder}" Padding="15" Background="White">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Text="RFID CARD CONFIGURATION" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,10"/>
+
+                        <!-- Sub-panel: Active Card details -->
+                        <Grid Grid.Row="1" x:Name="panelActiveCard" Visibility="Collapsed">
+                            <StackPanel>
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="100"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Card UID" FontWeight="SemiBold"/>
+                                    <TextBlock Grid.Column="1" x:Name="lblCardUID" Text="UID" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}" FontSize="13"/>
+                                </Grid>
+
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="100"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Card Status" FontWeight="SemiBold"/>
+                                    <Border Grid.Column="1" Background="#E8F5E9" CornerRadius="10" Padding="8,1" HorizontalAlignment="Left">
+                                        <TextBlock x:Name="lblCardStatus" Text="Active" FontSize="10" FontWeight="Bold" Foreground="{StaticResource SuccessBrush}"/>
+                                    </Border>
+                                </Grid>
+
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="100"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Expiration" FontWeight="SemiBold"/>
+                                    <TextBlock Grid.Column="1" x:Name="lblCardExpiration" Text="dd/MM/yyyy" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                </Grid>
+
+                                <Button Content="Remove RFID Card" Click="RemoveCard_Click" Style="{StaticResource DangerButton}" Height="32" Width="150" HorizontalAlignment="Left" Margin="0,10,0,0"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Sub-panel: No Card linked -->
+                        <Grid Grid.Row="1" x:Name="panelNoCard" Visibility="Visible">
+                            <StackPanel>
+                                <TextBlock Text="No active RFID card assigned to this employee." Style="{StaticResource SubTitleStyle}" VerticalAlignment="Center" Margin="0,0,0,10"/>
+                                
+                                <StackPanel Orientation="Horizontal" Margin="0,5,0,10">
+                                    <TextBlock Text="Enter Card UID:" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <TextBox x:Name="txtCardUID" Style="{StaticResource ModernTextBox}" Width="180" Height="32" Padding="5,0"/>
+                                    <Button Content="Assign Card" Click="AssignCard_Click" Style="{StaticResource ModernButton}" Height="32" Width="100" Margin="10,0,0,0"/>
+                                    <Button Content="Register New Card" Click="RegisterNewCard_Click" Style="{StaticResource ModernOutlineButton}" Height="32" Width="150" Margin="10,0,0,0" BorderBrush="{StaticResource APSBlueBrush}" Foreground="{StaticResource APSBlueBrush}"/>
+                                </StackPanel>
+                                
+                                <TextBlock Text="* If the Card UID does not exist, a new card will be created and linked automatically." FontSize="11" Foreground="{StaticResource TextMutedBrush}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
+
+        <!-- Footer Actions -->
+        <Border Grid.Row="2" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,1,0,0" Padding="0,15,0,0" Margin="0,15,0,0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="Close" Click="Close_Click" Style="{StaticResource ModernButton}" Width="95" Height="32"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

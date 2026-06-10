@@ -15,6 +15,35 @@ namespace QuanLyGiuXe.Views
             InitializeComponent();
             RFIDEventRouterService.Instance.SetTerminalContext(Environment.MachineName, RFIDContextType.CardEnrollment);
             CardEnrollmentHandler.OnCardEnrolled += OnCardEnrolledByRouter;
+            LoadEmployees();
+        }
+
+        private void LoadEmployees()
+        {
+            try
+            {
+                var empService = new EnterpriseCrudService();
+                var list = empService.GetEmployeesPaged(string.Empty, null, null, null, "Active", 0, 1000, out _);
+                cbNhanVien.ItemsSource = list;
+            }
+            catch { }
+        }
+
+        private void cbLoaiThe_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (lblNhanVien == null || cbNhanVien == null) return;
+            string? loaiThe = (cbLoaiThe.SelectedItem as ComboBoxItem)?.Content?.ToString();
+            if (loaiThe != null && (loaiThe.ToLowerInvariant().Contains("thang") || loaiThe.ToLowerInvariant().Contains("tháng")))
+            {
+                lblNhanVien.Visibility = Visibility.Visible;
+                cbNhanVien.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                lblNhanVien.Visibility = Visibility.Collapsed;
+                cbNhanVien.Visibility = Visibility.Collapsed;
+                cbNhanVien.SelectedIndex = -1;
+            }
         }
 
         protected override void OnClosed(EventArgs e)
@@ -52,7 +81,13 @@ namespace QuanLyGiuXe.Views
                 if (db.CheckCardExists(uid))
                 { MessageBox.Show("❌ Thẻ này đã được đăng ký!"); return; }
 
-                db.AddRFIDCards(uid, bienSo, loaiThe);
+                int? employeeId = null;
+                if (cbNhanVien.Visibility == Visibility.Visible && cbNhanVien.SelectedValue is int empId)
+                {
+                    employeeId = empId;
+                }
+
+                db.AddRFIDCards(uid, bienSo, loaiThe, employeeId);
                 MessageBox.Show("✅ Đăng ký thẻ thành công");
             }
             catch (SqlException ex) when (ex.Number == 2627)
@@ -67,6 +102,7 @@ namespace QuanLyGiuXe.Views
             txtUID.Clear();
             txtBienSo.Clear();
             cbLoaiThe.SelectedIndex = 0;
+            cbNhanVien.SelectedIndex = -1;
             txtBienSo.Focus();
         }
 
