@@ -379,6 +379,72 @@ namespace QuanLyGiuXe.Services
                     _service.DeleteEmployee(id);
                     result = new { message = "Employee deleted successfully (soft delete) and linked cards disabled" };
                 }
+                else if (method == "GET" && (Regex.IsMatch(rawPath, @"^/api/rfid/[^/]+$") || Regex.IsMatch(rawPath, @"^/api/rfid/[^/]+/lookup$")))
+                {
+                    var segments = rawPath.Split('/');
+                    string cardUid = Uri.UnescapeDataString(segments[3]);
+                    
+                    var db = new DatabaseService();
+                    var card = db.GetRFIDCardByUid(cardUid);
+                    
+                    if (card == null)
+                    {
+                        statusCode = 404;
+                        result = new { message = $"RFID card with UID {cardUid} not found." };
+                    }
+                    else
+                    {
+                        string loaiXeName = "";
+                        string loaiVeName = "";
+                        try
+                        {
+                            var lxList = db.GetLoaiXe();
+                            var lx = lxList.FirstOrDefault(x => x.Id == card.LoaiXeId);
+                            if (lx != null) loaiXeName = lx.TenLoai ?? "";
+                        }
+                        catch { }
+
+                        try
+                        {
+                            var lvList = db.GetLoaiVe();
+                            var lv = lvList.FirstOrDefault(x => x.Id == card.LoaiVeId);
+                            if (lv != null) loaiVeName = lv.TenLoai ?? "";
+                        }
+                        catch { }
+
+                        object? empInfo = null;
+                        if (card.EmployeeId.HasValue)
+                        {
+                            var emp = _service.GetEmployeeById(card.EmployeeId.Value);
+                            if (emp != null)
+                            {
+                                empInfo = new
+                                {
+                                    id = emp.Id,
+                                    employeeCode = emp.EmployeeCode,
+                                    name = emp.FullName,
+                                    phone = emp.Phone,
+                                    email = emp.Email,
+                                    avatar = emp.Avatar,
+                                    company = emp.CompanyName,
+                                    department = emp.DepartmentName,
+                                    position = emp.PositionName
+                                };
+                            }
+                        }
+
+                        result = new
+                        {
+                            cardUID = card.UID,
+                            cardName = card.CardName,
+                            bienSo = card.BienSo,
+                            loaiXe = loaiXeName,
+                            loaiVe = loaiVeName,
+                            trangThai = card.TrangThai,
+                            employee = empInfo
+                        };
+                    }
+                }
                 else if (method == "POST" && Regex.IsMatch(rawPath, @"^/api/rfid/[^/]+/assign/\d+$"))
                 {
                     var segments = rawPath.Split('/');

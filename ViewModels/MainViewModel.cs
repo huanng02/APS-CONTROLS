@@ -19,6 +19,7 @@ namespace QuanLyGiuXe.ViewModels
     public class MainViewModel : INotifyPropertyChanged, IDisposable
     {
         private readonly DatabaseService db = new();
+        private readonly EnterpriseCrudService _crudService = new();
         public event PropertyChangedEventHandler? PropertyChanged;
         private void OnPropertyChanged(string name)
         {
@@ -184,6 +185,222 @@ namespace QuanLyGiuXe.ViewModels
         {
             get => _lane2ThoiGianTrongBai;
             set { _lane2ThoiGianTrongBai = value; OnPropertyChanged(nameof(Lane2ThoiGianTrongBai)); }
+        }
+
+        // --- Lane 1 Card & Owner Details properties ---
+        private string _lane1CardName = "";
+        public string Lane1CardName
+        {
+            get => _lane1CardName;
+            set { _lane1CardName = value; OnPropertyChanged(nameof(Lane1CardName)); }
+        }
+
+        private string _lane1LoaiXe = "";
+        public string Lane1LoaiXe
+        {
+            get => _lane1LoaiXe;
+            set { _lane1LoaiXe = value; OnPropertyChanged(nameof(Lane1LoaiXe)); }
+        }
+
+        private string _lane1LoaiVe = "";
+        public string Lane1LoaiVe
+        {
+            get => _lane1LoaiVe;
+            set { _lane1LoaiVe = value; OnPropertyChanged(nameof(Lane1LoaiVe)); }
+        }
+
+        private string _lane1EmployeeName = "";
+        public string Lane1EmployeeName
+        {
+            get => _lane1EmployeeName;
+            set { _lane1EmployeeName = value; OnPropertyChanged(nameof(Lane1EmployeeName)); }
+        }
+
+        private string _lane1EmployeeCode = "";
+        public string Lane1EmployeeCode
+        {
+            get => _lane1EmployeeCode;
+            set { _lane1EmployeeCode = value; OnPropertyChanged(nameof(Lane1EmployeeCode)); }
+        }
+
+        private string _lane1EmployeeCompany = "";
+        public string Lane1EmployeeCompany
+        {
+            get => _lane1EmployeeCompany;
+            set { _lane1EmployeeCompany = value; OnPropertyChanged(nameof(Lane1EmployeeCompany)); }
+        }
+
+        private string _lane1EmployeeDepartment = "";
+        public string Lane1EmployeeDepartment
+        {
+            get => _lane1EmployeeDepartment;
+            set { _lane1EmployeeDepartment = value; OnPropertyChanged(nameof(Lane1EmployeeDepartment)); }
+        }
+
+        private string _lane1EmployeePosition = "";
+        public string Lane1EmployeePosition
+        {
+            get => _lane1EmployeePosition;
+            set { _lane1EmployeePosition = value; OnPropertyChanged(nameof(Lane1EmployeePosition)); }
+        }
+
+        private string _lane1EmployeePhone = "";
+        public string Lane1EmployeePhone
+        {
+            get => _lane1EmployeePhone;
+            set { _lane1EmployeePhone = value; OnPropertyChanged(nameof(Lane1EmployeePhone)); }
+        }
+
+        private string _lane1EmployeeEmail = "";
+        public string Lane1EmployeeEmail
+        {
+            get => _lane1EmployeeEmail;
+            set { _lane1EmployeeEmail = value; OnPropertyChanged(nameof(Lane1EmployeeEmail)); }
+        }
+
+        private ImageSource? _lane1EmployeeAvatar;
+        public ImageSource? Lane1EmployeeAvatar
+        {
+            get => _lane1EmployeeAvatar;
+            set { _lane1EmployeeAvatar = value; OnPropertyChanged(nameof(Lane1EmployeeAvatar)); }
+        }
+
+        private bool _lane1HasEmployee;
+        public bool Lane1HasEmployee
+        {
+            get => _lane1HasEmployee;
+            set 
+            { 
+                _lane1HasEmployee = value; 
+                OnPropertyChanged(nameof(Lane1HasEmployee)); 
+                OnPropertyChanged(nameof(Lane1HasNoEmployee));
+            }
+        }
+
+        public bool Lane1HasNoEmployee => !Lane1HasEmployee;
+
+        private string _lane1OwnerStatusText = "Chưa cập nhật thông tin chủ thẻ";
+        public string Lane1OwnerStatusText
+        {
+            get => _lane1OwnerStatusText;
+            set { _lane1OwnerStatusText = value; OnPropertyChanged(nameof(Lane1OwnerStatusText)); }
+        }
+
+        // --- Lane 2 Card & Owner Details properties ---
+        private string _lane2CardName = "";
+        public string Lane2CardName
+        {
+            get => _lane2CardName;
+            set { _lane2CardName = value; OnPropertyChanged(nameof(Lane2CardName)); }
+        }
+
+        private string _lane2LoaiXe = "";
+        public string Lane2LoaiXe
+        {
+            get => _lane2LoaiXe;
+            set { _lane2LoaiXe = value; OnPropertyChanged(nameof(Lane2LoaiXe)); }
+        }
+
+        private string _lane2LoaiVe = "";
+        public string Lane2LoaiVe
+        {
+            get => _lane2LoaiVe;
+            set { _lane2LoaiVe = value; OnPropertyChanged(nameof(Lane2LoaiVe)); }
+        }
+
+        private string _lane2EmployeeName = "";
+        public string Lane2EmployeeName
+        {
+            get => _lane2EmployeeName;
+            set { _lane2EmployeeName = value; OnPropertyChanged(nameof(Lane2EmployeeName)); }
+        }
+
+        private string _lane2EmployeeCode = "";
+        public string Lane2EmployeeCode
+        {
+            get => _lane2EmployeeCode;
+            set { _lane2EmployeeCode = value; OnPropertyChanged(nameof(Lane2EmployeeCode)); }
+        }
+
+        private string _lane2EmployeeCompany = "";
+        public string Lane2EmployeeCompany
+        {
+            get => _lane2EmployeeCompany;
+            set { _lane2EmployeeCompany = value; OnPropertyChanged(nameof(Lane2EmployeeCompany)); }
+        }
+
+        private string _lane2EmployeeDepartment = "";
+        public string Lane2EmployeeDepartment
+        {
+            get => _lane2EmployeeDepartment;
+            set { _lane2EmployeeDepartment = value; OnPropertyChanged(nameof(Lane2EmployeeDepartment)); }
+        }
+
+        private string _lane2EmployeePosition = "";
+        public string Lane2EmployeePosition
+        {
+            get => _lane2EmployeePosition;
+            set { _lane2EmployeePosition = value; OnPropertyChanged(nameof(Lane2EmployeePosition)); }
+        }
+
+        private string _lane2EmployeePhone = "";
+        public string Lane2EmployeePhone
+        {
+            get => _lane2EmployeePhone;
+            set { _lane2EmployeePhone = value; OnPropertyChanged(nameof(Lane2EmployeePhone)); }
+        }
+
+        private string _lane2EmployeeEmail = "";
+        public string Lane2EmployeeEmail
+        {
+            get => _lane2EmployeeEmail;
+            set { _lane2EmployeeEmail = value; OnPropertyChanged(nameof(Lane2EmployeeEmail)); }
+        }
+
+        private ImageSource? _lane2EmployeeAvatar;
+        public ImageSource? Lane2EmployeeAvatar
+        {
+            get => _lane2EmployeeAvatar;
+            set { _lane2EmployeeAvatar = value; OnPropertyChanged(nameof(Lane2EmployeeAvatar)); }
+        }
+
+        private bool _lane2HasEmployee;
+        public bool Lane2HasEmployee
+        {
+            get => _lane2HasEmployee;
+            set 
+            { 
+                _lane2HasEmployee = value; 
+                OnPropertyChanged(nameof(Lane2HasEmployee)); 
+                OnPropertyChanged(nameof(Lane2HasNoEmployee));
+            }
+        }
+
+        public bool Lane2HasNoEmployee => !Lane2HasEmployee;
+
+        private string _lane2OwnerStatusText = "Chưa cập nhật thông tin chủ thẻ";
+        public string Lane2OwnerStatusText
+        {
+            get => _lane2OwnerStatusText;
+            set { _lane2OwnerStatusText = value; OnPropertyChanged(nameof(Lane2OwnerStatusText)); }
+        }
+
+        private static ImageSource? ConvertBase64ToImage(string? base64)
+        {
+            if (string.IsNullOrEmpty(base64)) return null;
+            try
+            {
+                byte[] binaryData = Convert.FromBase64String(base64);
+                var bi = new System.Windows.Media.Imaging.BitmapImage();
+                bi.BeginInit();
+                bi.StreamSource = new MemoryStream(binaryData);
+                bi.EndInit();
+                return bi;
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         // ── Lane 1 Notification Overlay ──────────────────────────────────────
@@ -1454,6 +1671,7 @@ namespace QuanLyGiuXe.ViewModels
                 LoggingService.Instance.LogInfo("ProcessAction", "MainViewModel", $"UI_Lane={uiLaneIndex} DB_Lane={dbLaneId} In={isInbound} UID={uid}");
 
                 // Update UI details immediately
+                ResetLaneCardAndOwnerDetails(uiLaneIndex);
                 SetLaneUID(uiLaneIndex, uid);
                 SetLanePlate(uiLaneIndex, ""); 
                 SetLaneStatus(uiLaneIndex, "⏳ Đang xử lý...");
@@ -1481,6 +1699,8 @@ namespace QuanLyGiuXe.ViewModels
                     LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
                     return;
                 }
+
+                LoadOwnerDetailsForLane(uiLaneIndex, card);
 
                 // Get lane config
                 var laneConfig = await ParkingTopologyService.Instance.GetLaneByIdAsync(dbLaneId);
@@ -1696,6 +1916,14 @@ namespace QuanLyGiuXe.ViewModels
                 await db.ThemXeAsync(card.Id, string.IsNullOrEmpty(plate) ? null : plate,
                     imageFolderPath ?? "", siteId, zoneId, laneId);
 
+                try
+                {
+                    string empName = uiLaneIndex == 1 ? Lane1EmployeeName : Lane2EmployeeName;
+                    LoggingService.Instance.LogInfo("RFID_SUCCESS", "MainViewModel",
+                        $"CardUID={card.UID}, EmployeeId={(card.EmployeeId.HasValue ? card.EmployeeId.Value.ToString() : "null")}, EmployeeName={(string.IsNullOrEmpty(empName) ? "null" : empName)}, Lane={laneId ?? 1}, Direction=IN, Timestamp={DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+                }
+                catch { }
+
                 SetLanePlate(uiLaneIndex, plate);
                 SetLaneUID(uiLaneIndex, uid);
 
@@ -1803,6 +2031,14 @@ namespace QuanLyGiuXe.ViewModels
                     exitLaneId: exitLaneId,
                     anhVao: entryImageFolder);
                 await db.XoaXeByCardIdAsync(card.Id);
+
+                try
+                {
+                    string empName = uiLaneIndex == 1 ? Lane1EmployeeName : Lane2EmployeeName;
+                    LoggingService.Instance.LogInfo("RFID_SUCCESS", "MainViewModel",
+                        $"CardUID={card.UID}, EmployeeId={(card.EmployeeId.HasValue ? card.EmployeeId.Value.ToString() : "null")}, EmployeeName={(string.IsNullOrEmpty(empName) ? "null" : empName)}, Lane={exitLaneId ?? 2}, Direction=OUT, Timestamp={DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+                }
+                catch { }
 
                 string displayPlate = !string.IsNullOrEmpty(recognizedPlate) ? recognizedPlate : plate;
                 SetLanePlate(uiLaneIndex, displayPlate);
@@ -1919,6 +2155,8 @@ namespace QuanLyGiuXe.ViewModels
             try
             {
                 // Display UID and temporary status immediately
+                ResetLaneCardAndOwnerDetails(uiLaneIndex);
+                LoadOwnerDetailsForLane(uiLaneIndex, card);
                 SetLaneUID(uiLaneIndex, uid);
                 SetLanePlate(uiLaneIndex, string.IsNullOrEmpty(manualPlate) ? "" : manualPlate);
                 SetLaneStatus(uiLaneIndex, "⏳ Đang xử lý...");
@@ -2578,6 +2816,145 @@ namespace QuanLyGiuXe.ViewModels
                 var role = QuanLyGiuXe.Models.CurrentUser.Role;
                 return string.Equals(role, "SuperAdmin", System.StringComparison.OrdinalIgnoreCase) ||
                        string.Equals(role, "Admin", System.StringComparison.OrdinalIgnoreCase);
+            }
+        }
+
+        private void ResetLaneCardAndOwnerDetails(int lane)
+        {
+            if (lane == 1)
+            {
+                Lane1CardName = "";
+                Lane1LoaiXe = "";
+                Lane1LoaiVe = "";
+                Lane1EmployeeName = "";
+                Lane1EmployeeCode = "";
+                Lane1EmployeeCompany = "";
+                Lane1EmployeeDepartment = "";
+                Lane1EmployeePosition = "";
+                Lane1EmployeePhone = "";
+                Lane1EmployeeEmail = "";
+                Lane1EmployeeAvatar = null;
+                Lane1HasEmployee = false;
+                Lane1OwnerStatusText = "Chờ thẻ...";
+            }
+            else
+            {
+                Lane2CardName = "";
+                Lane2LoaiXe = "";
+                Lane2LoaiVe = "";
+                Lane2EmployeeName = "";
+                Lane2EmployeeCode = "";
+                Lane2EmployeeCompany = "";
+                Lane2EmployeeDepartment = "";
+                Lane2EmployeePosition = "";
+                Lane2EmployeePhone = "";
+                Lane2EmployeeEmail = "";
+                Lane2EmployeeAvatar = null;
+                Lane2HasEmployee = false;
+                Lane2OwnerStatusText = "Chờ thẻ...";
+            }
+        }
+
+        private void LoadOwnerDetailsForLane(int lane, RFIDCard card)
+        {
+            if (card == null) return;
+
+            string loaiXeName = "";
+            string loaiVeName = "";
+            try
+            {
+                var lxList = db.GetLoaiXe();
+                var lx = lxList.FirstOrDefault(x => x.Id == card.LoaiXeId);
+                if (lx != null) loaiXeName = lx.TenLoai ?? "";
+            }
+            catch { }
+
+            try
+            {
+                var lvList = db.GetLoaiVe();
+                var lv = lvList.FirstOrDefault(x => x.Id == card.LoaiVeId);
+                if (lv != null) loaiVeName = lv.TenLoai ?? "";
+            }
+            catch { }
+
+            Employee? emp = null;
+            if (card.EmployeeId.HasValue)
+            {
+                try
+                {
+                    emp = _crudService.GetEmployeeById(card.EmployeeId.Value);
+                }
+                catch (Exception ex)
+                {
+                    LoggingService.Instance.LogError("LoadOwnerDetails", "MainViewModel", $"Error loading employee {card.EmployeeId}", ex);
+                }
+            }
+
+            if (lane == 1)
+            {
+                Lane1CardName = card.CardName ?? "";
+                Lane1LoaiXe = loaiXeName;
+                Lane1LoaiVe = loaiVeName;
+
+                if (emp != null)
+                {
+                    Lane1EmployeeName = emp.FullName ?? "";
+                    Lane1EmployeeCode = emp.EmployeeCode ?? "";
+                    Lane1EmployeeCompany = emp.CompanyName ?? "";
+                    Lane1EmployeeDepartment = emp.DepartmentName ?? "";
+                    Lane1EmployeePosition = emp.PositionName ?? "";
+                    Lane1EmployeePhone = emp.Phone ?? "";
+                    Lane1EmployeeEmail = emp.Email ?? "";
+                    Lane1EmployeeAvatar = ConvertBase64ToImage(emp.Avatar);
+                    Lane1HasEmployee = true;
+                    Lane1OwnerStatusText = "";
+                }
+                else
+                {
+                    Lane1EmployeeName = "";
+                    Lane1EmployeeCode = "";
+                    Lane1EmployeeCompany = "";
+                    Lane1EmployeeDepartment = "";
+                    Lane1EmployeePosition = "";
+                    Lane1EmployeePhone = "";
+                    Lane1EmployeeEmail = "";
+                    Lane1EmployeeAvatar = null;
+                    Lane1HasEmployee = false;
+                    Lane1OwnerStatusText = "Chưa cập nhật thông tin chủ thẻ";
+                }
+            }
+            else
+            {
+                Lane2CardName = card.CardName ?? "";
+                Lane2LoaiXe = loaiXeName;
+                Lane2LoaiVe = loaiVeName;
+
+                if (emp != null)
+                {
+                    Lane2EmployeeName = emp.FullName ?? "";
+                    Lane2EmployeeCode = emp.EmployeeCode ?? "";
+                    Lane2EmployeeCompany = emp.CompanyName ?? "";
+                    Lane2EmployeeDepartment = emp.DepartmentName ?? "";
+                    Lane2EmployeePosition = emp.PositionName ?? "";
+                    Lane2EmployeePhone = emp.Phone ?? "";
+                    Lane2EmployeeEmail = emp.Email ?? "";
+                    Lane2EmployeeAvatar = ConvertBase64ToImage(emp.Avatar);
+                    Lane2HasEmployee = true;
+                    Lane2OwnerStatusText = "";
+                }
+                else
+                {
+                    Lane2EmployeeName = "";
+                    Lane2EmployeeCode = "";
+                    Lane2EmployeeCompany = "";
+                    Lane2EmployeeDepartment = "";
+                    Lane2EmployeePosition = "";
+                    Lane2EmployeePhone = "";
+                    Lane2EmployeeEmail = "";
+                    Lane2EmployeeAvatar = null;
+                    Lane2HasEmployee = false;
+                    Lane2OwnerStatusText = "Chưa cập nhật thông tin chủ thẻ";
+                }
             }
         }
 

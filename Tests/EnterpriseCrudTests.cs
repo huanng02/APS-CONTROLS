@@ -263,6 +263,52 @@ namespace QuanLyGiuXe.Tests
                         var delRes = http.DeleteAsync($"http://localhost:5050/api/companies/{postResult.Id}").Result;
                         Assert(delRes.IsSuccessStatusCode, "DELETE /api/companies/{id} failed");
                     }
+
+                    // 4. Test RFID Card & Owner combined lookup via API
+                    Console.WriteLine("Testing RFID Card & Owner API endpoints...");
+                    var testComp = new Company { Code = "TEST_API_CMP2", Name = "TEST API Company 2", Status = "Active" };
+                    int apiCompId = service.InsertCompany(testComp);
+
+                    var testPos = new Position { PositionName = "TEST API Position", Status = "Active" };
+                    int apiPosId = service.InsertPosition(testPos);
+
+                    var testEmp = new Employee
+                    {
+                        EmployeeCode = "TEST_API_EMP",
+                        FullName = "TEST API Employee",
+                        CompanyId = apiCompId,
+                        PositionId = apiPosId,
+                        Status = "Active",
+                        Phone = "555-1234",
+                        Email = "api_test@example.com"
+                    };
+                    int apiEmpId = service.InsertEmployee(testEmp);
+
+                    service.AssignRFIDCard("TEST_CARD_API_999", apiEmpId);
+
+                    var rfidRes = http.GetAsync("http://localhost:5050/api/rfid/TEST_CARD_API_999").Result;
+                    Assert(rfidRes.IsSuccessStatusCode, "GET /api/rfid/{uid} failed");
+                    string rfidJson = rfidRes.Content.ReadAsStringAsync().Result;
+
+                    Assert(rfidJson.Contains("TEST_CARD_API_999"), "RFID API response should contain card UID");
+                    Assert(rfidJson.Contains("TEST API Employee"), "RFID API response should contain owner name");
+                    Assert(rfidJson.Contains("TEST API Company 2"), "RFID API response should contain company name");
+                    Assert(rfidJson.Contains("TEST API Position"), "RFID API response should contain position name");
+
+                    var rfidLookupRes = http.GetAsync("http://localhost:5050/api/rfid/TEST_CARD_API_999/lookup").Result;
+                    Assert(rfidLookupRes.IsSuccessStatusCode, "GET /api/rfid/{uid}/lookup failed");
+                    string rfidLookupJson = rfidLookupRes.Content.ReadAsStringAsync().Result;
+                    Assert(rfidLookupJson.Contains("TEST_CARD_API_999"), "RFID lookup API response should contain card UID");
+
+                    var rfid404Res = http.GetAsync("http://localhost:5050/api/rfid/NON_EXISTENT_CARD_UID").Result;
+                    Assert(rfid404Res.StatusCode == System.Net.HttpStatusCode.NotFound, "GET /api/rfid/{uid} for non-existent card should return 404");
+
+                    // Clean up test data explicitly
+                    service.RemoveRFIDCard("TEST_CARD_API_999");
+                    service.DeleteEmployee(apiEmpId);
+                    string errStr;
+                    service.DeletePosition(apiPosId, out errStr);
+                    service.DeleteCompany(apiCompId, out errStr);
                 }
             }
             finally
