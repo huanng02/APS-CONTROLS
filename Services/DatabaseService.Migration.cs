@@ -210,6 +210,20 @@ namespace QuanLyGiuXe.Services
                         LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Enterprise CRUD entities migration applied successfully.");
                     }
 
+                    // Execute Camera Resolution migration (20260611_add_camera_resolution.sql)
+                    string scriptPathCameraResolution = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260611_add_camera_resolution.sql");
+                    if (File.Exists(scriptPathCameraResolution))
+                    {
+                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Executing Camera Resolution migration...");
+                        string sqlCameraResolution = await File.ReadAllTextAsync(scriptPathCameraResolution);
+                        using (var cmd = new SqlCommand(sqlCameraResolution, conn))
+                        {
+                            cmd.CommandTimeout = 60;
+                            await cmd.ExecuteNonQueryAsync();
+                        }
+                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Camera Resolution migration applied successfully.");
+                    }
+
                     _migrationsApplied = true;
                     LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "SQL Server topology migrations applied successfully.");
                 }
@@ -770,6 +784,20 @@ namespace QuanLyGiuXe.Services
                             await cmd.ExecuteNonQueryAsync();
                         }
                         LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Enterprise CRUD entities migration applied successfully.");
+                    }
+
+                    // 15. Now run the Camera Resolution migration script (20260611_add_camera_resolution.sql)
+                    string scriptPathCameraResolution = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260611_add_camera_resolution.sql");
+                    if (File.Exists(scriptPathCameraResolution))
+                    {
+                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Executing Camera Resolution migration...");
+                        string sqlCameraResolution = await File.ReadAllTextAsync(scriptPathCameraResolution);
+                        using (var cmd = new SqlCommand(sqlCameraResolution, conn))
+                        {
+                            cmd.CommandTimeout = 60;
+                            await cmd.ExecuteNonQueryAsync();
+                        }
+                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Camera Resolution migration applied successfully.");
                     }
 
                     _baseSchemaChecked = true;

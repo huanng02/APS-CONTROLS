@@ -209,6 +209,7 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
                             <!-- Camera Name -->
@@ -328,9 +329,24 @@
                                               IsEnabled="{Binding IsFormEditable}" Foreground="#374151"/>
                                 </StackPanel>
                             </Grid>
+                            
+                            <!-- Resolution -->
+                            <Grid Grid.Row="6" Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="2*"/>
+                                    <ColumnDefinition Width="15"/>
+                                    <ColumnDefinition Width="3.5*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="Độ phân giải" Foreground="#4B5563" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                                    <ComboBox ItemsSource="{Binding ResolutionOptions}" SelectedValue="{Binding ResolutionOption}"
+                                              Style="{StaticResource ModernComboBox}" IsEnabled="{Binding IsFormEditable}" Height="32"/>
+                                </StackPanel>
+                            </Grid>
 
                             <!-- Test Connection -->
-                            <Border Grid.Row="6" Background="#F9FAFB" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,10,0,0">
+                            <Border Grid.Row="7" Background="#F9FAFB" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,10,0,0">
                                 <Grid>
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto"/>

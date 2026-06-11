@@ -24,6 +24,7 @@ namespace QuanLyGiuXe.ViewModels
         public List<string> StatusFilterOptions { get; } = new() { "Tất cả", "Online", "Offline" };
         public List<string> ProtocolOptions { get; } = new() { "RTSP", "ONVIF" };
         public List<string> DirectionOptions { get; } = new() { "Entry", "Exit", "Overview" };
+        public List<string> ResolutionOptions { get; } = new() { "Mặc định", "1920x1080", "1280x720", "640x480" };
 
         public CameraManagementViewModel() : this(null, null)
         {
@@ -272,6 +273,13 @@ namespace QuanLyGiuXe.ViewModels
             set { _isActive = value; OnPropertyChanged(); }
         }
 
+        private string _resolutionOption = "Mặc định";
+        public string ResolutionOption
+        {
+            get => _resolutionOption;
+            set { _resolutionOption = value; OnPropertyChanged(); }
+        }
+
         // Connection Test status
         private string _testConnectionResult = string.Empty;
         public string TestConnectionResult
@@ -459,6 +467,14 @@ namespace QuanLyGiuXe.ViewModels
                     SelectedLane = Lanes.FirstOrDefault(l => l.Id == SelectedCamera.LaneId);
                     Direction = SelectedCamera.Direction;
                     IsActive = SelectedCamera.IsActive;
+                    if (SelectedCamera.ResolutionWidth.HasValue && SelectedCamera.ResolutionHeight.HasValue)
+                    {
+                        ResolutionOption = $"{SelectedCamera.ResolutionWidth}x{SelectedCamera.ResolutionHeight}";
+                    }
+                    else
+                    {
+                        ResolutionOption = "Mặc định";
+                    }
                 }
                 else
                 {
@@ -487,6 +503,7 @@ namespace QuanLyGiuXe.ViewModels
                 SelectedLane = null;
                 Direction = "Overview";
                 IsActive = true;
+                ResolutionOption = "Mặc định";
                 TestConnectionResult = string.Empty;
             }
             finally
@@ -704,6 +721,18 @@ namespace QuanLyGiuXe.ViewModels
             var confirmResult = MessageBox.Show(confirmMsg, confirmTitle, MessageBoxButton.YesNo, MessageBoxImage.Question);
             if (confirmResult != MessageBoxResult.Yes) return;
 
+            int? width = null;
+            int? height = null;
+            if (!string.IsNullOrEmpty(ResolutionOption) && ResolutionOption != "Mặc định")
+            {
+                var parts = ResolutionOption.Split('x');
+                if (parts.Length == 2 && int.TryParse(parts[0], out int w) && int.TryParse(parts[1], out int h))
+                {
+                    width = w;
+                    height = h;
+                }
+            }
+
             var entity = new CameraEntity
             {
                 CameraName = CameraName.Trim(),
@@ -717,6 +746,8 @@ namespace QuanLyGiuXe.ViewModels
                 LaneId = SelectedLane?.Id,
                 Direction = Direction,
                 IsActive = IsActive,
+                ResolutionWidth = width,
+                ResolutionHeight = height,
                 CreatedUtc = DateTime.UtcNow
             };
 
@@ -853,6 +884,8 @@ namespace QuanLyGiuXe.ViewModels
         public int? LaneId => Entity.LaneId;
         public string Direction => Entity.Direction;
         public bool IsActive => Entity.IsActive;
+        public int? ResolutionWidth => Entity.ResolutionWidth;
+        public int? ResolutionHeight => Entity.ResolutionHeight;
         public DateTime CreatedUtc => Entity.CreatedUtc;
         public string LaneName => Entity.LaneName;
 

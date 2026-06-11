@@ -16,6 +16,8 @@ namespace QuanLyGiuXe.Models
         public int? LaneId { get; set; }
         public string Direction { get; set; } = "Overview"; // Entry / Exit / Overview
         public bool IsActive { get; set; } = true;
+        public int? ResolutionWidth { get; set; }
+        public int? ResolutionHeight { get; set; }
         public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
 
         // Display helper

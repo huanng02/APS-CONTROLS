@@ -165,15 +165,44 @@ namespace QuanLyGiuXe.Services
             int maxFps = config.MaxRenderFps;
             if (maxFps <= 0) maxFps = 10;
 
+            // Synchronously ensure cache is loaded or updated
+            try
+            {
+                Task.Run(() => EnsureCacheLoadedAsync()).GetAwaiter().GetResult();
+            }
+            catch { }
+
+            // Find specific resolution for this camera from the database cache
+            var dbCam = _cachedDbCameras.FirstOrDefault(c => c.CameraKey.Equals(actualKey, StringComparison.OrdinalIgnoreCase) || 
+                                                            (c.LaneId.HasValue && actualKey.Equals($"Lane_{c.LaneId.Value}_ToanCanh", StringComparison.OrdinalIgnoreCase) && c.Direction == "Overview") ||
+                                                            (c.LaneId.HasValue && actualKey.Equals($"Lane_{c.LaneId.Value}_BienSo", StringComparison.OrdinalIgnoreCase) && c.Direction != "Overview"));
+            
+            // Or fallback match by normalized URL
+            if (dbCam == null && !string.IsNullOrEmpty(url))
+            {
+                string normUrl = NormalizeRtspUrl(url);
+                dbCam = _cachedDbCameras.FirstOrDefault(c => !string.IsNullOrEmpty(c.RtspUrl) && NormalizeRtspUrl(c.RtspUrl) == normUrl);
+            }
+
             int targetWidth = 640;
             int targetHeight = 480;
-            if (!string.IsNullOrEmpty(config.TargetResolution))
+
+            if (dbCam != null && dbCam.ResolutionWidth.HasValue && dbCam.ResolutionHeight.HasValue)
             {
-                var parts = config.TargetResolution.Split('x');
-                if (parts.Length == 2 && int.TryParse(parts[0], out int w) && int.TryParse(parts[1], out int h))
+                targetWidth = dbCam.ResolutionWidth.Value;
+                targetHeight = dbCam.ResolutionHeight.Value;
+            }
+            else
+            {
+                // Fallback to config.json target resolution
+                if (!string.IsNullOrEmpty(config.TargetResolution))
                 {
-                    targetWidth = w;
-                    targetHeight = h;
+                    var parts = config.TargetResolution.Split('x');
+                    if (parts.Length == 2 && int.TryParse(parts[0], out int w) && int.TryParse(parts[1], out int h))
+                    {
+                        targetWidth = w;
+                        targetHeight = h;
+                    }
                 }
             }
 

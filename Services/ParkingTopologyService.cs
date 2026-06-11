@@ -1769,7 +1769,7 @@ namespace QuanLyGiuXe.Services
                     {
                         string sql = @"
                             SELECT c.Id, c.CameraName, c.CameraKey, c.IpAddress, c.RtspUrl, c.LaneId, c.Direction, c.IsActive, c.CreatedUtc,
-                                   l.LaneName
+                                   l.LaneName, c.ResolutionWidth, c.ResolutionHeight
                             FROM dbo.Cameras c
                             LEFT JOIN dbo.Lanes l ON c.LaneId = l.Id
                             ORDER BY c.CameraName";
@@ -1789,7 +1789,9 @@ namespace QuanLyGiuXe.Services
                                     Direction = r.IsDBNull(6) ? "IN" : r.GetString(6),
                                     IsActive = r.GetBoolean(7),
                                     CreatedUtc = r.GetDateTime(8),
-                                    LaneName = r.IsDBNull(9) ? string.Empty : r.GetString(9)
+                                    LaneName = r.IsDBNull(9) ? string.Empty : r.GetString(9),
+                                    ResolutionWidth = r.IsDBNull(10) ? null : (int?)r.GetInt32(10),
+                                    ResolutionHeight = r.IsDBNull(11) ? null : (int?)r.GetInt32(11)
                                 });
                             }
                         }
@@ -1823,12 +1825,13 @@ namespace QuanLyGiuXe.Services
                 async conn =>
                 {
                     string sql = isNew
-                        ? @"INSERT INTO dbo.Cameras (CameraName, CameraKey, IpAddress, RtspUrl, LaneId, Direction, IsActive, CreatedUtc)
+                        ? @"INSERT INTO dbo.Cameras (CameraName, CameraKey, IpAddress, RtspUrl, LaneId, Direction, IsActive, CreatedUtc, ResolutionWidth, ResolutionHeight)
                             OUTPUT INSERTED.Id
-                            VALUES (@name, @key, @ip, @rtsp, @laneId, @dir, @active, @created)"
+                            VALUES (@name, @key, @ip, @rtsp, @laneId, @dir, @active, @created, @width, @height)"
                         : @"UPDATE dbo.Cameras 
                             SET CameraName = @name, CameraKey = @key, IpAddress = @ip, RtspUrl = @rtsp, 
-                                LaneId = @laneId, Direction = @dir, IsActive = @active 
+                                LaneId = @laneId, Direction = @dir, IsActive = @active,
+                                ResolutionWidth = @width, ResolutionHeight = @height
                             WHERE Id = @id";
 
                     using (var cmd = new SqlCommand(sql, conn))
@@ -1842,6 +1845,8 @@ namespace QuanLyGiuXe.Services
                         cmd.Parameters.AddWithValue("@dir", camera.Direction ?? "IN");
                         cmd.Parameters.AddWithValue("@active", camera.IsActive);
                         cmd.Parameters.AddWithValue("@created", camera.CreatedUtc);
+                        cmd.Parameters.AddWithValue("@width", camera.ResolutionWidth ?? (object)DBNull.Value);
+                        cmd.Parameters.AddWithValue("@height", camera.ResolutionHeight ?? (object)DBNull.Value);
 
                         if (isNew)
                         {
@@ -1877,6 +1882,8 @@ namespace QuanLyGiuXe.Services
                             existing.LaneId = camera.LaneId;
                             existing.Direction = camera.Direction;
                             existing.IsActive = camera.IsActive;
+                            existing.ResolutionWidth = camera.ResolutionWidth;
+                            existing.ResolutionHeight = camera.ResolutionHeight;
                             var lanes = await GetLanesAsync();
                             var lane = lanes.FirstOrDefault(l => l.Id == camera.LaneId);
                             existing.LaneName = lane?.LaneName ?? string.Empty;

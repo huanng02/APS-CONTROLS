@@ -25,7 +25,7 @@ namespace QuanLyGiuXe.Services
                     string sql = @"
                         SELECT c.Id, c.CameraName, c.CameraKey, c.IpAddress, c.Port, c.Protocol, 
                                c.Username, c.Password, c.RtspUrl, c.LaneId, c.Direction, c.IsActive, 
-                               c.CreatedUtc, l.LaneName
+                               c.CreatedUtc, l.LaneName, c.ResolutionWidth, c.ResolutionHeight
                         FROM dbo.Cameras c
                         LEFT JOIN dbo.Lanes l ON c.LaneId = l.Id
                         ORDER BY c.CameraName";
@@ -50,7 +50,9 @@ namespace QuanLyGiuXe.Services
                                 Direction = r.IsDBNull(10) ? "Overview" : r.GetString(10),
                                 IsActive = r.GetBoolean(11),
                                 CreatedUtc = r.GetDateTime(12),
-                                LaneName = r.IsDBNull(13) ? string.Empty : r.GetString(13)
+                                LaneName = r.IsDBNull(13) ? string.Empty : r.GetString(13),
+                                ResolutionWidth = r.IsDBNull(14) ? null : (int?)r.GetInt32(14),
+                                ResolutionHeight = r.IsDBNull(15) ? null : (int?)r.GetInt32(15)
                             });
                         }
                     }
@@ -80,9 +82,9 @@ namespace QuanLyGiuXe.Services
                     async conn =>
                     {
                         string sql = @"
-                            INSERT INTO dbo.Cameras (CameraName, CameraKey, IpAddress, Port, Protocol, Username, Password, RtspUrl, LaneId, Direction, IsActive, CreatedUtc)
+                            INSERT INTO dbo.Cameras (CameraName, CameraKey, IpAddress, Port, Protocol, Username, Password, RtspUrl, LaneId, Direction, IsActive, CreatedUtc, ResolutionWidth, ResolutionHeight)
                             OUTPUT INSERTED.Id
-                            VALUES (@name, @key, @ip, @port, @protocol, @username, @password, @rtsp, @laneId, @dir, @active, @created)";
+                            VALUES (@name, @key, @ip, @port, @protocol, @username, @password, @rtsp, @laneId, @dir, @active, @created, @width, @height)";
 
                         using (var cmd = new SqlCommand(sql, conn))
                         {
@@ -98,6 +100,8 @@ namespace QuanLyGiuXe.Services
                             cmd.Parameters.AddWithValue("@dir", camera.Direction ?? "Overview");
                             cmd.Parameters.AddWithValue("@active", camera.IsActive);
                             cmd.Parameters.AddWithValue("@created", camera.CreatedUtc);
+                            cmd.Parameters.AddWithValue("@width", camera.ResolutionWidth ?? (object)DBNull.Value);
+                            cmd.Parameters.AddWithValue("@height", camera.ResolutionHeight ?? (object)DBNull.Value);
 
                             var newId = await cmd.ExecuteScalarAsync();
                             if (newId != null) camera.Id = Convert.ToInt32(newId);
@@ -130,7 +134,8 @@ namespace QuanLyGiuXe.Services
                             UPDATE dbo.Cameras 
                             SET CameraName = @name, CameraKey = @key, IpAddress = @ip, Port = @port, 
                                 Protocol = @protocol, Username = @username, Password = @password, 
-                                RtspUrl = @rtsp, LaneId = @laneId, Direction = @dir, IsActive = @active 
+                                RtspUrl = @rtsp, LaneId = @laneId, Direction = @dir, IsActive = @active,
+                                ResolutionWidth = @width, ResolutionHeight = @height
                             WHERE Id = @id";
 
                         using (var cmd = new SqlCommand(sql, conn))
@@ -147,6 +152,8 @@ namespace QuanLyGiuXe.Services
                             cmd.Parameters.AddWithValue("@laneId", camera.LaneId ?? (object)DBNull.Value);
                             cmd.Parameters.AddWithValue("@dir", camera.Direction ?? "Overview");
                             cmd.Parameters.AddWithValue("@active", camera.IsActive);
+                            cmd.Parameters.AddWithValue("@width", camera.ResolutionWidth ?? (object)DBNull.Value);
+                            cmd.Parameters.AddWithValue("@height", camera.ResolutionHeight ?? (object)DBNull.Value);
 
                             await cmd.ExecuteNonQueryAsync();
                         }
