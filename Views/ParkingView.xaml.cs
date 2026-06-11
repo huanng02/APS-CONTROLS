@@ -102,21 +102,7 @@ namespace QuanLyGiuXe.Views
             }
         }
 
-        private void ShowCardInfo_Click(object sender, RoutedEventArgs e)
-        {
-            if (Window.GetWindow(this) is MainWindow main)
-            {
-                // Tag set to lane number (1 or 2)
-                if (sender is FrameworkElement fe && int.TryParse(fe.Tag?.ToString(), out int lane))
-                {
-                    main.ShowCardInfoForLane(lane);
-                }
-                else
-                {
-                    main.ShowCardInfoForLane(1);
-                }
-            }
-        }
+
 
         // Show session overlay inside lane area
         public void ShowLaneSession(int laneIndex, QuanLyGiuXe.Models.LichSuXe session)

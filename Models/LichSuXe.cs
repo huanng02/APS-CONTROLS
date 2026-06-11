@@ -35,5 +35,11 @@ namespace QuanLyGiuXe.Models
         public string ExitLaneName { get; set; } = string.Empty;
         public string LoaiVeName { get; set; } = string.Empty;
         public string LoaiXeName { get; set; } = string.Empty;
+
+        // Cardholder / Owner properties
+        public string EmployeeName { get; set; } = string.Empty;
+        public string EmployeeCode { get; set; } = string.Empty;
+        public string CompanyName { get; set; } = string.Empty;
+        public string DepartmentName { get; set; } = string.Empty;
     }
 }

@@ -34,6 +34,8 @@ namespace QuanLyGiuXe
         private ParkingView? _parkingViewCache = null;
         private bool _isProcessingAuto = false;
         private DateTime _lastAutoScanTime = DateTime.MinValue;
+        private DateTime _lastAutoScanTime1 = DateTime.MinValue;
+        private DateTime _lastAutoScanTime2 = DateTime.MinValue;
         private readonly GateControlService _gateControlService = new GateControlService();
         private readonly Dictionary<string, Window> _activeModuleWindows = new();
         private readonly MainViewModel _mainViewModel;
@@ -83,7 +85,7 @@ namespace QuanLyGiuXe
             var vehicleAccessHandler = new VehicleAccessHandler();
             vehicleAccessHandler.OnVehicleAccessTriggered += async (readerNo, uid) =>
             {
-                await Dispatcher.InvokeAsync(() => XuLyQuetThe(uid, readerNo));
+                XuLyQuetThe(uid, readerNo);
             };
             RFIDEventRouterService.Instance.RegisterHandler(vehicleAccessHandler);
             RFIDEventRouterService.Instance.RegisterHandler(new CardEnrollmentHandler());
@@ -209,47 +211,7 @@ namespace QuanLyGiuXe
 
 
 
-        public void ShowCardInfoForLane(int laneNumber)
-        {
-            try
-            {
-                if (DataContext is not MainViewModel vm) return;
 
-                string uid = laneNumber == 1 ? vm.Lane1UID : vm.Lane2UID;
-                string plate = laneNumber == 1 ? vm.Lane1BienSo : vm.Lane2BienSo;
-
-                var db = new DatabaseService();
-                QuanLyGiuXe.Models.RFIDCard card = null;
-
-                if (!string.IsNullOrWhiteSpace(plate))
-                {
-                    card = db.GetRFIDCardByBienSo(plate);
-                }
-
-                // If still null and uid present, try scanning offline cache
-                if (card == null && !string.IsNullOrWhiteSpace(uid))
-                {
-                    var list = QuanLyGiuXe.Services.OfflineCache.OfflineCacheService.Instance.GetCacheAsync<System.Collections.Generic.List<QuanLyGiuXe.Models.RFIDCard>>("LIST_RFID_CARDS").GetAwaiter().GetResult();
-                    if (list != null)
-                        card = list.Find(c => string.Equals(c.UID, uid, StringComparison.OrdinalIgnoreCase) || string.Equals(c.BienSo, plate, StringComparison.OrdinalIgnoreCase));
-                }
-
-                var dlg = new CardInfoDialog { Owner = this };
-                if (card != null)
-                {
-                    dlg.SetCard(card);
-                }
-                else
-                {
-                    dlg.SetCard(new QuanLyGiuXe.Models.RFIDCard { UID = uid ?? "-", BienSo = plate ?? "-", CardName = "Không tìm thấy trong DB" });
-                }
-                dlg.ShowDialog();
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Lỗi khi hiển thị thông tin thẻ: " + ex.Message, "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
 
         // Show session UI anchored to lane layout inside ParkingView
         public void ShowScanSessionForLane(int laneIndex, QuanLyGiuXe.Models.LichSuXe session)
@@ -488,9 +450,10 @@ namespace QuanLyGiuXe
 
         private void XuLyQuetThe(string uid, int readerNo = 1)
         {
-            Dispatcher.BeginInvoke(new Action(async () =>
+            Task.Run(async () =>
             {
-                if (DataContext is not MainViewModel vm)
+                var vm = _mainViewModel;
+                if (vm == null)
                     return;
 
                 try
@@ -503,13 +466,18 @@ namespace QuanLyGiuXe
                         ? cfg.ZKTeco.CardCooldownMs
                         : 2000;
 
-                    if (!_lastScanByUid.TryGetValue(uid, out var last))
-                        last = DateTime.MinValue;
+                    bool skip = false;
+                    lock (_lastScanByUid)
+                    {
+                        if (!_lastScanByUid.TryGetValue(uid, out var last))
+                            last = DateTime.MinValue;
 
-                    if ((DateTime.Now - last).TotalMilliseconds < cooldown)
-                        return;
-
-                    _lastScanByUid[uid] = DateTime.Now;
+                        if ((DateTime.Now - last).TotalMilliseconds < cooldown)
+                            skip = true;
+                        else
+                            _lastScanByUid[uid] = DateTime.Now;
+                    }
+                    if (skip) return;
                 }
                 catch
                 {
@@ -530,7 +498,7 @@ namespace QuanLyGiuXe
                 }
 
                 await vm.ProcessScanFromReaderAsync(readerNo, uid);
-            }));
+            });
         }
 
 
@@ -896,68 +864,84 @@ namespace QuanLyGiuXe
         {
             if (_isProcessingAuto) return;
 
-            // Chặn 1 giây 1 lần
-            if ((DateTime.Now - _lastAutoScanTime).TotalMilliseconds < 1000) return;
+            var vm = _mainViewModel;
+            if (vm == null) return;
+
+            // Get DB lane ID
+            int? dbLaneId = vm.GetDbLaneIdForUiIndex(uiLaneIndex);
+            if (!dbLaneId.HasValue) return;
+
+            // Check if lane is locked
+            var laneState = LaneRuntimeManager.Instance.GetLaneState(dbLaneId.Value);
+            if (laneState != null && laneState.IsLocked)
+            {
+                // Skip background LPR if lane is busy processing card scan
+                return;
+            }
+
+            // Throttling: 1 second per lane
+            DateTime now = DateTime.Now;
+            if (uiLaneIndex == 1)
+            {
+                if ((now - _lastAutoScanTime1).TotalMilliseconds < 1000) return;
+                _lastAutoScanTime1 = now;
+            }
+            else
+            {
+                if ((now - _lastAutoScanTime2).TotalMilliseconds < 1000) return;
+                _lastAutoScanTime2 = now;
+            }
 
             _isProcessingAuto = true;
             try
             {
-                Bitmap bmpToProcess = null;
+                Mat frameClone;
                 lock (originalMat)
                 {
-                    bmpToProcess = OpenCvSharp.Extensions.BitmapConverter.ToBitmap(originalMat);
+                    frameClone = originalMat.Clone();
                 }
 
-                // 1. Gửi ảnh lên server lấy biển số
-                string plate = await ApiService.SendImageAsync(bmpToProcess);
-                bmpToProcess.Dispose();
-
-                _lastAutoScanTime = DateTime.Now;
-
-                // 2. Kiểm tra nếu có biển số trả về hợp lệ
-                if (!string.IsNullOrEmpty(plate) && plate.Length > 4 && !plate.Contains("Lỗi"))
+                using (frameClone)
                 {
-                    // LPR success
+                    // Call the high-performance OpenCV-based RecognizePlateAsync directly
+                    var lprResult = await PlateRecognitionService.Instance.RecognizePlateAsync(frameClone);
+                    string plate = lprResult.Plate;
+
                     this.Dispatcher.BeginInvoke(new Action(() =>
                     {
-                        if (this.DataContext is MainViewModel vm)
+                        var mainVm = _mainViewModel;
+                        if (mainVm != null)
                         {
-                            string formattedPlate = plate.Trim().ToUpper();
-                            vm.BienSoNhap = formattedPlate;
-                            vm.IsLprAvailable = true;
+                            if (!string.IsNullOrEmpty(plate) && plate.Length > 4)
+                            {
+                                string formattedPlate = plate.Trim().ToUpper();
+                                mainVm.BienSoNhap = formattedPlate;
+                                mainVm.IsLprAvailable = true;
 
-                            if (uiLaneIndex == 1)
-                            {
-                                vm.Lane1BienSo = formattedPlate;
-                                vm.Lane1TrangThai = "Đã nhận diện: " + formattedPlate;
+                                if (uiLaneIndex == 1)
+                                {
+                                    mainVm.Lane1BienSo = formattedPlate;
+                                    mainVm.Lane1TrangThai = "Đã nhận diện: " + formattedPlate;
+                                }
+                                else if (uiLaneIndex == 2)
+                                {
+                                    mainVm.Lane2BienSo = formattedPlate;
+                                    mainVm.Lane2TrangThai = "Đã nhận diện: " + formattedPlate;
+                                }
                             }
-                            else if (uiLaneIndex == 2)
+                            else
                             {
-                                vm.Lane2BienSo = formattedPlate;
-                                vm.Lane2TrangThai = "Đã nhận diện: " + formattedPlate;
-                            }
-                        }
-                    }));
-                }
-                else
-                {
-                    // LPR failed or returned nothing -> mark unavailable and clear plate input
-                    this.Dispatcher.BeginInvoke(new Action(() =>
-                    {
-                        if (this.DataContext is MainViewModel vm)
-                        {
-                            vm.BienSoNhap = string.Empty;
-                            vm.IsLprAvailable = false;
-
-                            if (uiLaneIndex == 1)
-                            {
-                                vm.Lane1BienSo = string.Empty;
-                                vm.Lane1TrangThai = "Chưa nhận diện biển số";
-                            }
-                            else if (uiLaneIndex == 2)
-                            {
-                                vm.Lane2BienSo = string.Empty;
-                                vm.Lane2TrangThai = "Chưa nhận diện biển số";
+                                mainVm.BienSoNhap = string.Empty;
+                                if (uiLaneIndex == 1)
+                                {
+                                    if (string.IsNullOrEmpty(mainVm.Lane1BienSo))
+                                        mainVm.Lane1TrangThai = "Chưa nhận diện biển số";
+                                }
+                                else if (uiLaneIndex == 2)
+                                {
+                                    if (string.IsNullOrEmpty(mainVm.Lane2BienSo))
+                                        mainVm.Lane2TrangThai = "Chưa nhận diện biển số";
+                                }
                             }
                         }
                     }));

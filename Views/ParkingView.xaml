@@ -238,11 +238,6 @@
                                     
                                     <!-- Action Button -->
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                        <Button Style="{StaticResource ModernOutlineButton}" 
-                                                Width="32" Height="28" Margin="0,0,6,0"
-                                                ToolTip="Chi tiết thẻ" Click="ShowCardInfo_Click" Tag="1">
-                                            <TextBlock Text="ℹ" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Button>
                                         <Button Style="{StaticResource ModernButton}" 
                                                 Background="{Binding DataContext.Lane1Color, RelativeSource={RelativeSource AncestorType=Window}}" 
                                                 Click="OpenGateIn_Click" 
@@ -536,11 +531,6 @@
                                     
                                     <!-- Action Button -->
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                                        <Button Style="{StaticResource ModernOutlineButton}" 
-                                                Width="32" Height="28" Margin="0,0,6,0"
-                                                ToolTip="Chi tiết thẻ" Click="ShowCardInfo_Click" Tag="2">
-                                            <TextBlock Text="ℹ" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                        </Button>
                                         <Button Style="{StaticResource ModernButton}" 
                                                 Background="{Binding DataContext.Lane2Color, RelativeSource={RelativeSource AncestorType=Window}}" 
                                                 Click="OpenGateOut_Click" 

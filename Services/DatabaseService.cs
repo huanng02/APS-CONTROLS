@@ -1770,7 +1770,9 @@ namespace QuanLyGiuXe.Services
                             ls.Id, ls.CardId, ls.BienSo, ls.ThoiGianVao, ls.ThoiGianRa, ls.Tien, ls.TrangThai, ls.AnhVao, ls.AnhRa,
                             ls.SiteId, ls.ZoneId, ls.EntryLaneId, ls.ExitLaneId,
                             s.SiteName, z.ZoneName, el.LaneName AS EntryLaneName, exl.LaneName AS ExitLaneName,
-                            lv.TenLoai AS LoaiVeName, lx.TenLoai AS LoaiXeName
+                            lv.TenLoai AS LoaiVeName, lx.TenLoai AS LoaiXeName,
+                            emp.FullName AS EmployeeName, emp.EmployeeCode,
+                            comp.Name AS CompanyName, dept.DepartmentName
                         FROM LichSuXe ls
                         LEFT JOIN ParkingSites s ON ls.SiteId = s.Id
                         LEFT JOIN ParkingZones z ON ls.ZoneId = z.Id
@@ -1779,6 +1781,9 @@ namespace QuanLyGiuXe.Services
                         LEFT JOIN RFIDCards r ON ls.CardId = r.Id
                         LEFT JOIN LoaiVe lv ON r.LoaiVeId = lv.Id
                         LEFT JOIN LoaiXe lx ON r.LoaiXeId = lx.Id
+                        LEFT JOIN Employees emp ON r.EmployeeId = emp.Id AND emp.IsDeleted = 0
+                        LEFT JOIN Companies comp ON emp.CompanyId = comp.Id
+                        LEFT JOIN Departments dept ON emp.DepartmentId = dept.Id
                         ORDER BY ls.ThoiGianVao DESC";
 
                     using (SqlCommand cmd = new SqlCommand(sql, conn))
@@ -1808,7 +1813,12 @@ namespace QuanLyGiuXe.Services
                                 EntryLaneName = reader["EntryLaneName"]?.ToString() ?? string.Empty,
                                 ExitLaneName = reader["ExitLaneName"]?.ToString() ?? string.Empty,
                                 LoaiVeName = reader["LoaiVeName"]?.ToString() ?? string.Empty,
-                                LoaiXeName = reader["LoaiXeName"]?.ToString() ?? string.Empty
+                                LoaiXeName = reader["LoaiXeName"]?.ToString() ?? string.Empty,
+
+                                EmployeeName = reader["EmployeeName"]?.ToString() ?? string.Empty,
+                                EmployeeCode = reader["EmployeeCode"]?.ToString() ?? string.Empty,
+                                CompanyName = reader["CompanyName"]?.ToString() ?? string.Empty,
+                                DepartmentName = reader["DepartmentName"]?.ToString() ?? string.Empty
                             });
                         }
                     }

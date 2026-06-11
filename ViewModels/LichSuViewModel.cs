@@ -352,7 +352,11 @@ namespace QuanLyGiuXe.ViewModels
             {
                 var keyword = TuKhoaTimKiem.ToLower();
                 query = query.Where(x =>
-                    (!string.IsNullOrEmpty(x.BienSo) && x.BienSo.ToLower().Contains(keyword)));
+                    (!string.IsNullOrEmpty(x.BienSo) && x.BienSo.ToLower().Contains(keyword)) ||
+                    (!string.IsNullOrEmpty(x.EmployeeName) && x.EmployeeName.ToLower().Contains(keyword)) ||
+                    (!string.IsNullOrEmpty(x.EmployeeCode) && x.EmployeeCode.ToLower().Contains(keyword)) ||
+                    (!string.IsNullOrEmpty(x.CompanyName) && x.CompanyName.ToLower().Contains(keyword)) ||
+                    (!string.IsNullOrEmpty(x.DepartmentName) && x.DepartmentName.ToLower().Contains(keyword)));
             }
 
             if (TuNgay.HasValue)
@@ -480,14 +484,14 @@ namespace QuanLyGiuXe.ViewModels
                         
                         // Report Title
                         ws.Cell(1, 1).Value = "BÁO CÁO CHI TIẾT LỊCH SỬ XE RA VÀO";
-                        var titleRange = ws.Range(1, 1, 1, 14);
+                        var titleRange = ws.Range(1, 1, 1, 18);
                         titleRange.Merge();
                         titleRange.Style.Font.Bold = true;
                         titleRange.Style.Font.FontSize = 16;
                         titleRange.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
                         
                         ws.Cell(2, 1).Value = $"Thời gian xuất file: {DateTime.Now:dd/MM/yyyy HH:mm:ss}";
-                        var subTitleRange = ws.Range(2, 1, 2, 14);
+                        var subTitleRange = ws.Range(2, 1, 2, 18);
                         subTitleRange.Merge();
                         subTitleRange.Style.Font.Italic = true;
                         subTitleRange.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
@@ -497,7 +501,8 @@ namespace QuanLyGiuXe.ViewModels
                             "ID", "Biển số", "Loại vé", "Loại xe", 
                             "Thời gian vào", "Thời gian ra", "Thời gian đỗ", 
                             "Tiền (VNĐ)", "Mã thẻ", "Khu vực (Site)", 
-                            "Vùng (Zone)", "Làn vào (Entry)", "Làn ra (Exit)", "Trạng thái"
+                            "Vùng (Zone)", "Làn vào (Entry)", "Làn ra (Exit)", "Trạng thái",
+                            "Chủ thẻ", "Mã nhân viên", "Công ty", "Phòng ban"
                         };
                         
                         for (int i = 0; i < headers.Length; i++)
@@ -559,6 +564,10 @@ namespace QuanLyGiuXe.ViewModels
                             ws.Cell(row, 12).Value = item.EntryLaneName;
                             ws.Cell(row, 13).Value = item.ExitLaneName;
                             ws.Cell(row, 14).Value = item.TrangThai;
+                            ws.Cell(row, 15).Value = item.EmployeeName;
+                            ws.Cell(row, 16).Value = item.EmployeeCode;
+                            ws.Cell(row, 17).Value = item.CompanyName;
+                            ws.Cell(row, 18).Value = item.DepartmentName;
                         }
                         
                         // Summary Row
@@ -578,7 +587,7 @@ namespace QuanLyGiuXe.ViewModels
                         totalTienCell.Style.NumberFormat.Format = "#,##0";
                         
                         // Styling borders for entire table
-                        var tableRange = ws.Range(4, 1, summaryRow, 14);
+                        var tableRange = ws.Range(4, 1, summaryRow, 18);
                         tableRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
                         tableRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
 
@@ -586,7 +595,7 @@ namespace QuanLyGiuXe.ViewModels
                         // Title for stats section
                         var statsTitleRow = summaryRow + 3;
                         ws.Cell(statsTitleRow, 1).Value = "BẢNG THỐNG KÊ CHI TIẾT THEO BỘ LỌC / FILTERED ANALYTICS BREAKDOWN";
-                        var statsTitleRange = ws.Range(statsTitleRow, 1, statsTitleRow, 14);
+                        var statsTitleRange = ws.Range(statsTitleRow, 1, statsTitleRow, 18);
                         statsTitleRange.Merge();
                         statsTitleRange.Style.Font.Bold = true;
                         statsTitleRange.Style.Font.FontSize = 12;

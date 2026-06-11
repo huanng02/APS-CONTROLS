@@ -15,6 +15,38 @@ namespace QuanLyGiuXe.Services
 
         private readonly DatabaseService _db = new DatabaseService();
 
+        private List<CardGroupLanePermission>? _cachedLanePerms;
+        private List<AccessSchedule>? _cachedSchedules;
+        private List<RFIDAccessRule>? _cachedRfidRules;
+        private DateTime _lastCacheTime = DateTime.MinValue;
+        private readonly object _cacheLock = new object();
+
+        private async Task<(List<CardGroupLanePermission> lanePerms, List<AccessSchedule> schedules, List<RFIDAccessRule> rfidRules)> GetAccessPoliciesWithCacheAsync()
+        {
+            var now = DateTime.Now;
+            lock (_cacheLock)
+            {
+                if (_cachedLanePerms != null && _cachedSchedules != null && _cachedRfidRules != null && (now - _lastCacheTime).TotalSeconds < 10)
+                {
+                    return (_cachedLanePerms, _cachedSchedules, _cachedRfidRules);
+                }
+            }
+
+            var lanePerms = await GetCardGroupLanePermissionsFromSqlAsync();
+            var schedules = await GetAccessSchedulesFromSqlAsync();
+            var rfidRules = await GetRFIDAccessRulesFromSqlAsync();
+
+            lock (_cacheLock)
+            {
+                _cachedLanePerms = lanePerms;
+                _cachedSchedules = schedules;
+                _cachedRfidRules = rfidRules;
+                _lastCacheTime = now;
+            }
+
+            return (lanePerms, schedules, rfidRules);
+        }
+
         private CardAccessPolicyService() { }
 
         /// <summary>
@@ -23,29 +55,32 @@ namespace QuanLyGiuXe.Services
         /// </summary>
         public async Task<(bool Allowed, string Reason)> ValidatePhysicalAccessAsync(string cardUid, int laneId)
         {
+            RFIDCard? card = await _db.GetRFIDCardByUidAsync(cardUid);
+            if (card == null)
+            {
+                LoggingService.Instance.LogSecurity("ACCESS_DENIED", "RFID", cardUid, $"Card UID: {cardUid} not found in database.", "CardAccessPolicyService");
+                return (false, "Thẻ không tồn tại");
+            }
+            return await ValidatePhysicalAccessAsync(card, laneId);
+        }
+
+        public async Task<(bool Allowed, string Reason)> ValidatePhysicalAccessAsync(RFIDCard card, int laneId)
+        {
             try
             {
-                LoggingService.Instance.LogInfo("PHYSICAL_ACCESS", "Validate", $"Checking physical access for Card UID: {cardUid} at Lane ID: {laneId}");
-
-                // 1. Fetch Card Details (handles online/offline state automatically inside GetRFIDCardByUidAsync)
-                RFIDCard? card = await _db.GetRFIDCardByUidAsync(cardUid);
-                if (card == null)
-                {
-                    LoggingService.Instance.LogSecurity("ACCESS_DENIED", "RFID", cardUid, $"Card UID: {cardUid} not found in database.", "CardAccessPolicyService");
-                    return (false, "Thẻ không tồn tại");
-                }
+                LoggingService.Instance.LogInfo("PHYSICAL_ACCESS", "Validate", $"Checking physical access for Card UID: {card.UID} at Lane ID: {laneId}");
 
                 // 2. Check Card Status
                 if (string.IsNullOrWhiteSpace(card.TrangThai) || !string.Equals(card.TrangThai, "Active", StringComparison.OrdinalIgnoreCase))
                 {
-                    LoggingService.Instance.LogSecurity("ACCESS_DENIED", "RFID", cardUid, $"Card UID: {cardUid} is inactive (TrangThai: {card.TrangThai}).", "CardAccessPolicyService");
+                    LoggingService.Instance.LogSecurity("ACCESS_DENIED", "RFID", card.UID, $"Card UID: {card.UID} is inactive (TrangThai: {card.TrangThai}).", "CardAccessPolicyService");
                     return (false, "Thẻ bị khóa hoặc không hoạt động");
                 }
 
                 // 3. Check Expiry
                 if (card.NgayHetHan.HasValue && card.NgayHetHan.Value < DateTime.Now)
                 {
-                    LoggingService.Instance.LogSecurity("ACCESS_DENIED", "RFID", cardUid, $"Card UID: {cardUid} expired on {card.NgayHetHan.Value}.", "CardAccessPolicyService");
+                    LoggingService.Instance.LogSecurity("ACCESS_DENIED", "RFID", card.UID, $"Card UID: {card.UID} expired on {card.NgayHetHan.Value}.", "CardAccessPolicyService");
                     return (false, "Thẻ đã hết hạn");
                 }
 
@@ -53,7 +88,7 @@ namespace QuanLyGiuXe.Services
                 if (!card.GroupId.HasValue || card.GroupId.Value == 0)
                 {
                     // Fallback to standard validation (if no group is assigned, bypass schedule checks)
-                    LoggingService.Instance.LogInfo("PHYSICAL_ACCESS", "Validate", $"Card UID: {cardUid} has no Card Group assigned. Standard fallback allowed.");
+                    LoggingService.Instance.LogInfo("PHYSICAL_ACCESS", "Validate", $"Card UID: {card.UID} has no Card Group assigned. Standard fallback allowed.");
                     return (true, "Hợp lệ (Không phân nhóm)");
                 }
 
@@ -73,35 +108,36 @@ namespace QuanLyGiuXe.Services
                 }
                 else
                 {
-                    // Query directly from SQL Server
-                    lanePerms = await GetCardGroupLanePermissionsFromSqlAsync();
-                    schedules = await GetAccessSchedulesFromSqlAsync();
-                    rfidRules = await GetRFIDAccessRulesFromSqlAsync();
+                    // Query directly from SQL Server with in-memory cache
+                    var policies = await GetAccessPoliciesWithCacheAsync();
+                    lanePerms = policies.lanePerms;
+                    schedules = policies.schedules;
+                    rfidRules = policies.rfidRules;
                 }
 
                 // 6. Check explicit card-level RFID rules first
-                var explicitRules = rfidRules.Where(r => string.Equals(r.CardUID, cardUid, StringComparison.OrdinalIgnoreCase) && r.LaneId == laneId && string.Equals(r.TrangThai, "Active", StringComparison.OrdinalIgnoreCase)).ToList();
+                var explicitRules = rfidRules.Where(r => string.Equals(r.CardUID, card.UID, StringComparison.OrdinalIgnoreCase) && r.LaneId == laneId && string.Equals(r.TrangThai, "Active", StringComparison.OrdinalIgnoreCase)).ToList();
                 if (explicitRules.Any())
                 {
                     foreach (var rule in explicitRules)
                     {
                         if (string.Equals(rule.RuleType, "Deny", StringComparison.OrdinalIgnoreCase))
                         {
-                            LoggingService.Instance.LogSecurity("ACCESS_DENIED", "RFID", cardUid, $"Card UID: {cardUid} explicitly blocked by RFID rule on Lane {laneId}.", "CardAccessPolicyService");
+                            LoggingService.Instance.LogSecurity("ACCESS_DENIED", "RFID", card.UID, $"Card UID: {card.UID} explicitly blocked by RFID rule on Lane {laneId}.", "CardAccessPolicyService");
                             return (false, "Bị chặn theo thiết lập riêng");
                         }
                         if (string.Equals(rule.RuleType, "Allow", StringComparison.OrdinalIgnoreCase))
                         {
                             if (!rule.ScheduleId.HasValue)
                             {
-                                LoggingService.Instance.LogInfo("PHYSICAL_ACCESS", "Validate", $"Card UID: {cardUid} explicitly allowed by RFID rule on Lane {laneId}.");
+                                LoggingService.Instance.LogInfo("PHYSICAL_ACCESS", "Validate", $"Card UID: {card.UID} explicitly allowed by RFID rule on Lane {laneId}.");
                                 return (true, "Cho phép theo thiết lập riêng");
                             }
 
                             var ruleSched = schedules.FirstOrDefault(s => s.Id == rule.ScheduleId.Value && string.Equals(s.TrangThai, "Active", StringComparison.OrdinalIgnoreCase));
                             if (ruleSched != null && IsTimeWithinSchedule(ruleSched))
                             {
-                                LoggingService.Instance.LogInfo("PHYSICAL_ACCESS", "Validate", $"Card UID: {cardUid} allowed by RFID rule schedule '{ruleSched.ScheduleName}' on Lane {laneId}.");
+                                LoggingService.Instance.LogInfo("PHYSICAL_ACCESS", "Validate", $"Card UID: {card.UID} allowed by RFID rule schedule '{ruleSched.ScheduleName}' on Lane {laneId}.");
                                 return (true, "Cho phép theo thiết lập riêng");
                             }
                         }
@@ -112,7 +148,7 @@ namespace QuanLyGiuXe.Services
                 var groupPerms = lanePerms.Where(p => p.GroupId == card.GroupId.Value && p.LaneId == laneId && string.Equals(p.TrangThai, "Active", StringComparison.OrdinalIgnoreCase)).ToList();
                 if (!groupPerms.Any())
                 {
-                    LoggingService.Instance.LogSecurity("ACCESS_DENIED", "RFID", cardUid, $"Card UID: {cardUid} (Group: {card.GroupId.Value}) does not have permission on Lane ID: {laneId}.", "CardAccessPolicyService");
+                    LoggingService.Instance.LogSecurity("ACCESS_DENIED", "RFID", card.UID, $"Card UID: {card.UID} (Group: {card.GroupId.Value}) does not have permission on Lane ID: {laneId}.", "CardAccessPolicyService");
                     return (false, "Sai phân làn thẻ (Không có quyền vào cổng này)");
                 }
 
@@ -122,38 +158,36 @@ namespace QuanLyGiuXe.Services
                     if (!perm.ScheduleId.HasValue)
                     {
                         // Unlimited access for this group on this lane
-                        LoggingService.Instance.LogInfo("PHYSICAL_ACCESS", "Validate", $"Card UID: {cardUid} allowed (Unlimited access) on Lane ID: {laneId}.");
+                        LoggingService.Instance.LogInfo("PHYSICAL_ACCESS", "Validate", $"Card UID: {card.UID} allowed (Unlimited access) on Lane ID: {laneId}.");
                         return (true, "Hợp lệ (Không giới hạn giờ)");
                     }
 
                     var sched = schedules.FirstOrDefault(s => s.Id == perm.ScheduleId.Value && string.Equals(s.TrangThai, "Active", StringComparison.OrdinalIgnoreCase));
                     if (sched == null)
                     {
-                        // Schedule configured but not found, skip or block? Let's check next permission or block
                         continue;
                     }
 
                     // Emergency Override Bypass
                     if (sched.IsEmergencyOverride)
                     {
-                        LoggingService.Instance.LogWarning("PHYSICAL_ACCESS", "Validate", $"Card UID: {cardUid} allowed on Lane ID: {laneId} due to active Emergency Override schedule '{sched.ScheduleName}'");
+                        LoggingService.Instance.LogWarning("PHYSICAL_ACCESS", "Validate", $"Card UID: {card.UID} allowed on Lane ID: {laneId} due to active Emergency Override schedule '{sched.ScheduleName}'");
                         return (true, "Bypass khẩn cấp");
                     }
 
                     if (IsTimeWithinSchedule(sched))
                     {
-                        LoggingService.Instance.LogInfo("PHYSICAL_ACCESS", "Validate", $"Card UID: {cardUid} allowed on Lane ID: {laneId} matching schedule '{sched.ScheduleName}'");
+                        LoggingService.Instance.LogInfo("PHYSICAL_ACCESS", "Validate", $"Card UID: {card.UID} allowed on Lane ID: {laneId} matching schedule '{sched.ScheduleName}'");
                         return (true, "Hợp lệ");
                     }
                 }
 
-                LoggingService.Instance.LogSecurity("ACCESS_DENIED", "RFID", cardUid, $"Card UID: {cardUid} swiped outside of scheduled active hours on Lane ID: {laneId}.", "CardAccessPolicyService");
+                LoggingService.Instance.LogSecurity("ACCESS_DENIED", "RFID", card.UID, $"Card UID: {card.UID} swiped outside of scheduled active hours on Lane ID: {laneId}.", "CardAccessPolicyService");
                 return (false, "Ngoài khung giờ truy cập");
             }
             catch (Exception ex)
             {
-                LoggingService.Instance.LogError("PHYSICAL_ACCESS_ERROR", "Validate", $"Error validating physical access for {cardUid}", ex);
-                // Fail-secure: Deny access if check encounters error
+                LoggingService.Instance.LogError("PHYSICAL_ACCESS_ERROR", "Validate", $"Error validating physical access for {card.UID}", ex);
                 return (false, "Lỗi kiểm tra quyền truy cập");
             }
         }

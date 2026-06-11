@@ -82,6 +82,7 @@ namespace QuanLyGiuXe.Views
                 bi.BeginInit();
                 bi.StreamSource = new MemoryStream(binaryData);
                 bi.EndInit();
+                bi.Freeze();
                 return bi;
             }
             catch

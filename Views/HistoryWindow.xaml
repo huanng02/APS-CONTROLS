@@ -253,6 +253,10 @@
                             <DataGridTextColumn Header="BIỂN SỐ / PLATE" Binding="{Binding BienSo}" Width="100" FontWeight="Bold"/>
                             <DataGridTextColumn Header="LOẠI VÉ / TICKET" Binding="{Binding LoaiVeName}" Width="90"/>
                             <DataGridTextColumn Header="LOẠI XE / VEHICLE" Binding="{Binding LoaiXeName}" Width="90"/>
+                            <DataGridTextColumn Header="CHỦ THẺ" Binding="{Binding EmployeeName}" Width="120"/>
+                            <DataGridTextColumn Header="MÃ NV" Binding="{Binding EmployeeCode}" Width="80"/>
+                            <DataGridTextColumn Header="CÔNG TY" Binding="{Binding CompanyName}" Width="120"/>
+                            <DataGridTextColumn Header="PHÒNG BAN" Binding="{Binding DepartmentName}" Width="120"/>
                             <DataGridTextColumn Header="GIỜ VÀO / ENTRY" Binding="{Binding ThoiGianVao, StringFormat='dd/MM/yyyy HH:mm'}" Width="120"/>
                             <DataGridTextColumn Header="GIỜ RA / EXIT" Binding="{Binding ThoiGianRa, StringFormat='dd/MM/yyyy HH:mm'}" Width="120"/>
                             <DataGridTemplateColumn Header="DOANH THU" Width="90">
