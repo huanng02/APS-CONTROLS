@@ -56,6 +56,33 @@ namespace QuanLyGiuXe.Services
             return false;
         }
 
+        /// <summary>
+        /// Marks that there are pending (draft) configuration changes that need to be deployed.
+        /// </summary>
+        public async Task MarkPendingChangesAsync()
+        {
+            string connStr = _db.GetConnectionString();
+            if (string.IsNullOrEmpty(connStr)) return;
+
+            try
+            {
+                using (var conn = new SqlConnection(connStr))
+                {
+                    await conn.OpenAsync();
+                    string sql = "UPDATE dbo.ConfigurationState SET HasPendingChanges = 1 WHERE Id = 1";
+                    using (var cmd = new SqlCommand(sql, conn))
+                    {
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+                }
+                LoggingService.Instance.LogInfo("DeploymentService", "MarkPendingChangesAsync", "Marked configuration as having pending changes.");
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("DeploymentService", "MarkPendingChangesAsync", "Error marking pending changes", ex);
+            }
+        }
+
         public async Task<string> GetCurrentVersionAsync()
         {
             string connStr = _db.GetConnectionString();

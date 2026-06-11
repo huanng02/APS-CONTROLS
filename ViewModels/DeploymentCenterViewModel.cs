@@ -381,15 +381,8 @@ namespace QuanLyGiuXe.ViewModels
 
             if (success)
             {
-                // Sync database cameras to config.json and reload streams
-                await CameraService.Instance.SyncCamerasToConfigAsync();
-                Application.Current?.Dispatcher?.Invoke(() =>
-                {
-                    if (Application.Current.MainWindow is MainWindow mainWin)
-                    {
-                        mainWin.ReloadCameras();
-                    }
-                });
+                // Apply deployed configuration: sync config.json, diff old vs new, stop/start affected streams
+                await CameraService.Instance.ApplyDeployedConfigurationAsync();
 
                 MessageBox.Show("Triển khai cấu hình mới thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
                 Notes = string.Empty;

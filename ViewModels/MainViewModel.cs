@@ -1684,495 +1684,544 @@ namespace QuanLyGiuXe.ViewModels
                 uid);
         }
 
-        public async Task ProcessActionAsync(int uiLaneIndex, int dbLaneId, bool isInbound, string uid)
-        {
-            DateTime rfidReceived = DateTime.Now;
-            DateTime? validationCompleted = null;
-            DateTime? lprCompleted = null;
-            DateTime? barrierTriggered = null;
-
-            // Save recently recognized plate before resetting UI
-            string preRecognized = uiLaneIndex == 1 ? Lane1BienSo : Lane2BienSo;
-
-            if (string.IsNullOrEmpty(uid))
+            public async Task ProcessActionAsync(int uiLaneIndex, int dbLaneId, bool isInbound, string uid)
             {
-                SetLaneStatus(uiLaneIndex, "❌ Vui lòng quét thẻ RFID!");
-                LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
-                return;
-            }
+                DateTime rfidReceived = DateTime.Now;
+                DateTime? validationCompleted = null;
+                DateTime? lprCompleted = null;
+                DateTime? barrierTriggered = null;
 
-            string recognizedPlate = string.Empty;
-            byte[]? plateCropBytes = null;
-            Mat? plateRawFrame = null;
-            Mat? fullFrame = null;
+                // Save recently recognized plate before resetting UI
+                string preRecognized = uiLaneIndex == 1 ? Lane1BienSo : Lane2BienSo;
 
-            try
-            {
-                LoggingService.Instance.LogInfo("ProcessAction", "MainViewModel", $"UI_Lane={uiLaneIndex} DB_Lane={dbLaneId} In={isInbound} UID={uid}");
-
-                // Get lane config immediately at the start of scan
-                var laneConfig = await ParkingTopologyService.Instance.GetLaneByIdAsync(dbLaneId);
-                if (laneConfig == null)
+                if (string.IsNullOrEmpty(uid))
                 {
-                    SetLaneStatus(uiLaneIndex, "❌ Lỗi: Cấu hình làn không tồn tại!");
+                    SetLaneStatus(uiLaneIndex, "❌ Vui lòng quét thẻ RFID!");
                     LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
                     return;
                 }
 
-                // Capture snapshots immediately upon scanning
-                string direction = laneConfig.Direction ?? (isInbound ? "IN" : "OUT");
-                string plateCamKey = direction.ToUpper() == "IN" ? "Vao2" : "Ra2";
-                string overviewCamKey = direction.ToUpper() == "IN" ? "Vao1" : "Ra1";
+                string recognizedPlate = string.Empty;
+                byte[]? plateCropBytes = null;
+                Mat? plateRawFrame = null;
+                Mat? fullFrame = null;
+
                 try
                 {
-                    var cfg = AppConfig.Load().Cameras;
-                    var lc = cfg.LaneCameras?.FirstOrDefault(c => c.LaneId == dbLaneId);
-                    if (lc != null)
+                    LoggingService.Instance.LogInfo("ProcessAction", "MainViewModel", $"UI_Lane={uiLaneIndex} DB_Lane={dbLaneId} In={isInbound} UID={uid}");
+
+                    // Get lane config immediately at the start of scan
+                    var laneConfig = await ParkingTopologyService.Instance.GetLaneByIdAsync(dbLaneId);
+                    if (laneConfig == null)
                     {
-                        if (!string.IsNullOrEmpty(lc.ToanCanh)) overviewCamKey = $"Lane_{dbLaneId}_ToanCanh";
-                        if (!string.IsNullOrEmpty(lc.BienSo)) plateCamKey = $"Lane_{dbLaneId}_BienSo";
-                    }
-                }
-                catch { }
-
-                plateRawFrame = CameraService.Instance.GetLatestFrame(plateCamKey);
-                fullFrame = CameraService.Instance.GetLatestFrame(overviewCamKey);
-
-                // Reset UI details immediately (Marshal to UI thread)
-                Application.Current?.Dispatcher?.Invoke(() =>
-                {
-                    ResetLaneCardAndOwnerDetails(uiLaneIndex);
-                    if (uiLaneIndex == 1)
-                    {
-                        Lane1UID = uid;
-                        Lane1BienSo = "";
-                        Lane1TrangThai = "⏳ Đang xử lý...";
-                        Lane1ManualInput = uid;
-                        Lane1ThoiGianVao = "";
-                        Lane1ThoiGianTrongBai = "";
-                        Lane1Tien = "";
-                    }
-                    else
-                    {
-                        Lane2UID = uid;
-                        Lane2BienSo = "";
-                        Lane2TrangThai = "⏳ Đang xử lý...";
-                        Lane2ManualInput = uid;
-                        Lane2ThoiGianVao = "";
-                        Lane2ThoiGianTrongBai = "";
-                        Lane2Tien = "";
-                    }
-                });
-
-                // ─── 1. VALIDATE CARD ───
-                var card = await db.GetRFIDCardByUidAsync(uid);
-                if (card == null || card.Id == 0)
-                {
-                    SetLaneStatus(uiLaneIndex, $"❌ Thẻ {uid} chưa đăng ký!");
-                    LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
-                    return;
-                }
-
-                // Load owner details on UI thread
-                Application.Current?.Dispatcher?.Invoke(() => LoadOwnerDetailsForLane(uiLaneIndex, card));
-
-                bool isMonthly = IsMonthlyTicket(card.LoaiVeId);
-
-                // ─── 2. CHECK ACCESS ───
-                
-                // Get active vehicle session in lot (once, async)
-                var xeTrongBai = await db.GetXeTrongBaiEntityByCardIdAsync(card.Id);
-
-                if (isInbound)
-                {
-                    if (xeTrongBai != null)
-                    {
-                        SetLaneStatus(uiLaneIndex, "⚠ Thẻ này đang ở trong bãi!");
+                        SetLaneStatus(uiLaneIndex, "❌ Lỗi: Cấu hình làn không tồn tại!");
                         LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
                         return;
                     }
-                }
-                else
-                {
-                    if (xeTrongBai == null)
-                    {
-                        SetLaneStatus(uiLaneIndex, "⚠ Không tìm thấy xe trong bãi");
-                        LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
-                        return;
-                    }
-                }
 
-                // ─── LICENSE PLATE RECOGNITION (LPR) ───
-                // preRecognized is pre-saved at the start of ProcessActionAsync to avoid UI reset clearing it
-                
-                if (!string.IsNullOrEmpty(preRecognized) && preRecognized != "Chưa nhận diện biển số" && !preRecognized.Contains("❌") && !preRecognized.Contains("Lỗi"))
-                {
-                    recognizedPlate = preRecognized;
-                    lprCompleted = DateTime.Now;
-                    LoggingService.Instance.LogInfo("LprSkip", "MainViewModel", $"Reusing recently recognized plate from VM: {recognizedPlate}");
-                }
-                else
-                {
+                    // Capture snapshots immediately upon scanning
+                    string direction = laneConfig.Direction ?? (isInbound ? "IN" : "OUT");
+                    string plateCamKey = direction.ToUpper() == "IN" ? "Vao2" : "Ra2";
+                    string overviewCamKey = direction.ToUpper() == "IN" ? "Vao1" : "Ra1";
                     try
                     {
-                        if (plateRawFrame != null && !plateRawFrame.Empty())
+                        var cfg = AppConfig.Load().Cameras;
+                        var lc = cfg.LaneCameras?.FirstOrDefault(c => c.LaneId == dbLaneId);
+                        if (lc != null)
                         {
-                            var lprResult = await PlateRecognitionService.Instance.RecognizePlateAsync(plateRawFrame);
-                            recognizedPlate = lprResult.Plate;
-                            plateCropBytes = lprResult.PlateCropBytes;
+                            if (!string.IsNullOrEmpty(lc.ToanCanh)) overviewCamKey = $"Lane_{dbLaneId}_ToanCanh";
+                            if (!string.IsNullOrEmpty(lc.BienSo)) plateCamKey = $"Lane_{dbLaneId}_BienSo";
                         }
                     }
-                    catch (Exception lprEx)
-                    {
-                        LoggingService.Instance.LogError("LprError", "MainViewModel", $"Failed to run LPR on captured frame", lprEx);
-                    }
-                    lprCompleted = DateTime.Now;
-                }
+                    catch { }
 
-                if (!string.IsNullOrEmpty(recognizedPlate))
-                {
-                    SetLanePlate(uiLaneIndex, recognizedPlate);
-                }
+                    plateRawFrame = CameraService.Instance.GetLatestFrame(plateCamKey);
+                    fullFrame = CameraService.Instance.GetLatestFrame(overviewCamKey);
 
-                // ─── COMBINED RFID & LPR DECISION LOGIC ───
-                if (isMonthly)
-                {
-                    string registeredPlate = card.BienSo ?? string.Empty;
-                    if (string.IsNullOrEmpty(registeredPlate))
+                    // Reset UI details immediately (Marshal to UI thread)
+                    Application.Current?.Dispatcher?.Invoke(() =>
                     {
-                        SetLaneStatus(uiLaneIndex, "❌ Thẻ tháng chưa đăng ký biển số!");
+                        ResetLaneCardAndOwnerDetails(uiLaneIndex);
+                        if (uiLaneIndex == 1)
+                        {
+                            Lane1UID = uid;
+                            Lane1BienSo = "";
+                            Lane1TrangThai = "⏳ Đang xử lý...";
+                            Lane1ManualInput = uid;
+                            Lane1ThoiGianVao = "";
+                            Lane1ThoiGianTrongBai = "";
+                            Lane1Tien = "";
+                        }
+                        else
+                        {
+                            Lane2UID = uid;
+                            Lane2BienSo = "";
+                            Lane2TrangThai = "⏳ Đang xử lý...";
+                            Lane2ManualInput = uid;
+                            Lane2ThoiGianVao = "";
+                            Lane2ThoiGianTrongBai = "";
+                            Lane2Tien = "";
+                        }
+                    });
+
+                    // ─── 1. VALIDATE CARD ───
+                    var card = await db.GetRFIDCardByUidAsync(uid);
+                    if (card == null || card.Id == 0)
+                    {
+                        SetLaneStatus(uiLaneIndex, $"❌ Thẻ {uid} chưa đăng ký!");
                         LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
                         return;
                     }
 
-                    if (!string.IsNullOrEmpty(recognizedPlate))
+                    // Load owner details on UI thread
+                    Application.Current?.Dispatcher?.Invoke(() => LoadOwnerDetailsForLane(uiLaneIndex, card));
+
+                    // ─── CHECK EMPLOYEE INFO ───
+                    if (!card.EmployeeId.HasValue)
                     {
-                        if (!ComparePlates(recognizedPlate, registeredPlate))
+                        SetLaneStatus(uiLaneIndex, $"❌ Thẻ {uid} chưa đăng ký thông tin nhân viên!");
+                        SetLanePlate(uiLaneIndex, ""); // Clear auto-detected plate
+                        LoggingService.Instance.LogSecurity("ACCESS_DENIED", "NO_EMPLOYEE", uid, $"Card UID: {uid} has no employee info registered.", "MainViewModel");
+                        LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
+                        return;
+                    }
+
+                    bool isMonthly = IsMonthlyTicket(card.LoaiVeId);
+
+                    // ─── 2. CHECK ACCESS ───
+                
+                    // Get active vehicle session in lot (once, async)
+                    var xeTrongBai = await db.GetXeTrongBaiEntityByCardIdAsync(card.Id);
+
+                    if (isInbound)
+                    {
+                        if (xeTrongBai != null)
                         {
-                            SetLaneStatus(uiLaneIndex, $"❌ Sai biển số! Xe: {recognizedPlate} vs Đăng ký: {registeredPlate}");
-                            LoggingService.Instance.LogSecurity("ACCESS_DENIED", "LPR_MISMATCH", uid, $"Plate mismatch: Recognized {recognizedPlate} vs Registered {registeredPlate}", "MainViewModel");
+                            SetLaneStatus(uiLaneIndex, "⚠ Thẻ này đang ở trong bãi!");
                             LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
                             return;
                         }
                     }
                     else
                     {
-                        recognizedPlate = registeredPlate;
+                        if (xeTrongBai == null)
+                        {
+                            SetLaneStatus(uiLaneIndex, "⚠ Không tìm thấy xe trong bãi");
+                            LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
+                            return;
+                        }
+                    }
+
+                    // ─── LICENSE PLATE RECOGNITION (LPR) ───
+                    // preRecognized is pre-saved at the start of ProcessActionAsync to avoid UI reset clearing it
+                
+                    if (!string.IsNullOrEmpty(preRecognized) && preRecognized != "Chưa nhận diện biển số" && !preRecognized.Contains("❌") && !preRecognized.Contains("Lỗi"))
+                    {
+                        recognizedPlate = preRecognized;
+                        lprCompleted = DateTime.Now;
+                        LoggingService.Instance.LogInfo("LprSkip", "MainViewModel", $"Reusing recently recognized plate from VM: {recognizedPlate}");
+                    }
+                    else
+                    {
+                        try
+                        {
+                            if (plateRawFrame != null && !plateRawFrame.Empty())
+                            {
+                                var lprResult = await PlateRecognitionService.Instance.RecognizePlateAsync(plateRawFrame);
+                                recognizedPlate = lprResult.Plate;
+                                plateCropBytes = lprResult.PlateCropBytes;
+                            }
+                        }
+                        catch (Exception lprEx)
+                        {
+                            LoggingService.Instance.LogError("LprError", "MainViewModel", $"Failed to run LPR on captured frame", lprEx);
+                        }
+                        lprCompleted = DateTime.Now;
+                    }
+
+                    if (!string.IsNullOrEmpty(recognizedPlate))
+                    {
                         SetLanePlate(uiLaneIndex, recognizedPlate);
                     }
+
+                // ─── COMBINED RFID & LPR DECISION LOGIC ───
+                if (isMonthly)
+                {
+                    string registeredPlate = card.BienSo ?? string.Empty;
+
+                    if (string.IsNullOrEmpty(registeredPlate))
+                    {
+                        SetLaneStatus(uiLaneIndex, "❌ Thẻ chưa đăng ký biển số!");
+                        LoggingService.Instance.LogSecurity(
+                            "ACCESS_DENIED",
+                            "NO_REGISTERED_PLATE",
+                            uid,
+                            "RFID card has no registered plate",
+                            "MainViewModel"
+                        );
+
+                        LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
+                        return;
+                    }
+
+
+                    // BẮT BUỘC PHẢI CÓ LPR
+                    if (string.IsNullOrEmpty(recognizedPlate))
+                    {
+                        SetLaneStatus(
+                            uiLaneIndex,
+                            "❌ Không nhận diện được biển số!"
+                        );
+
+                        LoggingService.Instance.LogSecurity(
+                            "ACCESS_DENIED",
+                            "LPR_EMPTY",
+                            uid,
+                            $"Cannot recognize plate. Registered={registeredPlate}",
+                            "MainViewModel"
+                        );
+
+                        LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
+                        return;
+                    }
+
+
+                    // SO SÁNH BIỂN SỐ
+                    if (!ComparePlates(recognizedPlate, registeredPlate))
+                    {
+                        SetLaneStatus(
+                            uiLaneIndex,
+                            $"❌ Sai biển số! Xe: {recognizedPlate} vs Đăng ký: {registeredPlate}"
+                        );
+
+                        LoggingService.Instance.LogSecurity(
+                            "ACCESS_DENIED",
+                            "LPR_MISMATCH",
+                            uid,
+                            $"Plate mismatch: Recognized={recognizedPlate}, Registered={registeredPlate}",
+                            "MainViewModel"
+                        );
+
+                        LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
+                        return;
+                    }
+
+
+                    // Match OK
+                    SetLanePlate(uiLaneIndex, recognizedPlate);
                 }
                 else
-                {
-                    // Daily Ticket
-                    if (!isInbound)
                     {
-                        string entryPlate = xeTrongBai.BienSo ?? string.Empty;
-                        if (!string.IsNullOrEmpty(entryPlate) && !string.IsNullOrEmpty(recognizedPlate))
+                        // Daily Ticket
+                        if (!isInbound)
                         {
-                            if (!ComparePlates(recognizedPlate, entryPlate))
+                            string entryPlate = xeTrongBai.BienSo ?? string.Empty;
+                            if (!string.IsNullOrEmpty(entryPlate) && !string.IsNullOrEmpty(recognizedPlate))
                             {
-                                SetLaneStatus(uiLaneIndex, $"❌ Sai biển số lúc vào! Ra: {recognizedPlate} vs Vào: {entryPlate}");
-                                LoggingService.Instance.LogSecurity("ACCESS_DENIED", "LPR_MISMATCH", uid, $"Plate mismatch on exit: Recognized {recognizedPlate} vs Entry {entryPlate}", "MainViewModel");
-                                LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
-                                return;
+                                if (!ComparePlates(recognizedPlate, entryPlate))
+                                {
+                                    SetLaneStatus(uiLaneIndex, $"❌ Sai biển số lúc vào! Ra: {recognizedPlate} vs Vào: {entryPlate}");
+                                    LoggingService.Instance.LogSecurity("ACCESS_DENIED", "LPR_MISMATCH", uid, $"Plate mismatch on exit: Recognized {recognizedPlate} vs Entry {entryPlate}", "MainViewModel");
+                                    LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
+                                    return;
+                                }
                             }
                         }
                     }
-                }
 
-                // Physical Access Check (using optimized overload that takes card)
-                var (allowed, reason) = await CardAccessPolicyService.Instance.ValidatePhysicalAccessAsync(card, dbLaneId);
-                if (!allowed)
-                {
-                    SetLaneStatus(uiLaneIndex, $"❌ Từ chối: {reason}");
-                    LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
-                    return;
-                }
-
-                // Vehicle Type Check
-                if (laneConfig.LoaiXeId.HasValue && card.LoaiXeId != laneConfig.LoaiXeId.Value)
-                {
-                    string laneTypeName = !string.IsNullOrEmpty(laneConfig.LoaiXeName) ? laneConfig.LoaiXeName : $"ID={laneConfig.LoaiXeId.Value}";
-                    SetLaneStatus(uiLaneIndex, $"❌ Sai loại xe! Làn này chỉ dành cho {laneTypeName}");
-                    LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
-                    return;
-                }
-
-                validationCompleted = DateTime.Now;
-
-                // Resolve topology
-                var (siteId, zoneId, laneId, _, _, _, _, _) = await ResolveTopologyForLaneAsync(dbLaneId);
-                if (siteId.HasValue)
-                {
-                    int? dynamicZoneId = await db.GetZoneBySiteAndVehicleTypeAsync(siteId.Value, card.LoaiXeId);
-                    if (dynamicZoneId.HasValue)
+                    // Physical Access Check (using optimized overload that takes card)
+                    var (allowed, reason) = await CardAccessPolicyService.Instance.ValidatePhysicalAccessAsync(card, dbLaneId);
+                    if (!allowed)
                     {
-                        zoneId = dynamicZoneId.Value;
+                        SetLaneStatus(uiLaneIndex, $"❌ Từ chối: {reason}");
+                        LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
+                        return;
                     }
-                }
 
-                // ─── 3. TRIGGER BARRIER ───
-                bool opened = await C3200Service.Instance.OpenBarrierAsync(uiLaneIndex);
-                barrierTriggered = DateTime.Now;
+                    // Vehicle Type Check
+                    if (laneConfig.LoaiXeId.HasValue && card.LoaiXeId != laneConfig.LoaiXeId.Value)
+                    {
+                        string laneTypeName = !string.IsNullOrEmpty(laneConfig.LoaiXeName) ? laneConfig.LoaiXeName : $"ID={laneConfig.LoaiXeId.Value}";
+                        SetLaneStatus(uiLaneIndex, $"❌ Sai loại xe! Làn này chỉ dành cho {laneTypeName}");
+                        LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
+                        return;
+                    }
 
-                double totalMs = (DateTime.Now - rfidReceived).TotalMilliseconds;
-                double lprMs = lprCompleted.HasValue ? (lprCompleted.Value - rfidReceived).TotalMilliseconds : 0;
-                double valMs = validationCompleted.HasValue ? (validationCompleted.Value - rfidReceived).TotalMilliseconds : 0;
-                double barMs = barrierTriggered.HasValue ? (barrierTriggered.Value - rfidReceived).TotalMilliseconds : 0;
+                    validationCompleted = DateTime.Now;
 
-                string perfMsg = $"[PERF] RFID Scan Processed: Received={rfidReceived:HH:mm:ss.fff}, LPR={(lprCompleted.HasValue ? lprCompleted.Value.ToString("HH:mm:ss.fff") : "N/A")} ({lprMs:N0}ms), Validation={validationCompleted:HH:mm:ss.fff} ({valMs:N0}ms), BarrierTrigger={barrierTriggered:HH:mm:ss.fff} ({barMs:N0}ms), Total={totalMs:N0}ms";
-                System.Diagnostics.Debug.WriteLine(perfMsg);
-                Console.WriteLine(perfMsg);
-                try { LoggingService.Instance.LogInfo("RFID_PERF_STATS", "MainViewModel", perfMsg); } catch { }
+                    // Resolve topology
+                    var (siteId, zoneId, laneId, _, _, _, _, _) = await ResolveTopologyForLaneAsync(dbLaneId);
+                    if (siteId.HasValue)
+                    {
+                        int? dynamicZoneId = await db.GetZoneBySiteAndVehicleTypeAsync(siteId.Value, card.LoaiXeId);
+                        if (dynamicZoneId.HasValue)
+                        {
+                            zoneId = dynamicZoneId.Value;
+                        }
+                    }
 
-                // Deep copy mats for background thread safety
-                Mat? plateRawFrameClone = plateRawFrame?.Clone();
-                Mat? fullFrameClone = fullFrame?.Clone();
+                    // ─── 3. TRIGGER BARRIER ───
+                    bool opened = await C3200Service.Instance.OpenBarrierAsync(uiLaneIndex);
+                    barrierTriggered = DateTime.Now;
 
-                // ─── 4. UPDATE UI & WRITE TO DB (Post-processing background task) ───
-                if (isInbound)
-                {
-                    string plate = IsMonthlyTicket(card.LoaiVeId) ? (card.BienSo ?? string.Empty) : (!string.IsNullOrEmpty(recognizedPlate) ? recognizedPlate : string.Empty);
+                    double totalMs = (DateTime.Now - rfidReceived).TotalMilliseconds;
+                    double lprMs = lprCompleted.HasValue ? (lprCompleted.Value - rfidReceived).TotalMilliseconds : 0;
+                    double valMs = validationCompleted.HasValue ? (validationCompleted.Value - rfidReceived).TotalMilliseconds : 0;
+                    double barMs = barrierTriggered.HasValue ? (barrierTriggered.Value - rfidReceived).TotalMilliseconds : 0;
+
+                    string perfMsg = $"[PERF] RFID Scan Processed: Received={rfidReceived:HH:mm:ss.fff}, LPR={(lprCompleted.HasValue ? lprCompleted.Value.ToString("HH:mm:ss.fff") : "N/A")} ({lprMs:N0}ms), Validation={validationCompleted:HH:mm:ss.fff} ({valMs:N0}ms), BarrierTrigger={barrierTriggered:HH:mm:ss.fff} ({barMs:N0}ms), Total={totalMs:N0}ms";
+                    System.Diagnostics.Debug.WriteLine(perfMsg);
+                    Console.WriteLine(perfMsg);
+                    try { LoggingService.Instance.LogInfo("RFID_PERF_STATS", "MainViewModel", perfMsg); } catch { }
+
+                    // Deep copy mats for background thread safety
+                    Mat? plateRawFrameClone = plateRawFrame?.Clone();
+                    Mat? fullFrameClone = fullFrame?.Clone();
+
+                    // ─── 4. UPDATE UI & WRITE TO DB (Post-processing background task) ───
+                    if (isInbound)
+                    {
+                        string plate = IsMonthlyTicket(card.LoaiVeId) ? (card.BienSo ?? string.Empty) : (!string.IsNullOrEmpty(recognizedPlate) ? recognizedPlate : string.Empty);
                     
-                    _ = Task.Run(async () =>
-                    {
-                        try
+                        _ = Task.Run(async () =>
                         {
-                            if (opened)
-                             {
-                                 if (fullFrameClone != null && !fullFrameClone.Empty())
-                                 {
-                                     try
-                                     {
-                                         var img1 = OpenCvSharp.WpfExtensions.BitmapSourceConverter.ToBitmapSource(fullFrameClone);
-                                         img1.Freeze();
-                                         Application.Current?.Dispatcher?.Invoke(() => UpdateLaneSnapshot(uiLaneIndex, 1, img1));
-                                     }
-                                     catch (Exception snapEx) { LoggingService.Instance.LogError("Snap1Error", "MainViewModel", "Inbound overview snap show failed", snapEx); }
-                                 }
-                                 if (plateRawFrameClone != null && !plateRawFrameClone.Empty())
-                                 {
-                                     try
-                                     {
-                                         var img2 = OpenCvSharp.WpfExtensions.BitmapSourceConverter.ToBitmapSource(plateRawFrameClone);
-                                         img2.Freeze();
-                                         Application.Current?.Dispatcher?.Invoke(() => UpdateLaneSnapshot(uiLaneIndex, 2, img2));
-                                     }
-                                     catch (Exception snapEx) { LoggingService.Instance.LogError("Snap2Error", "MainViewModel", "Inbound plate snap show failed", snapEx); }
-                                 }
-                             }
-                            string? imageFolderPath = null;
                             try
                             {
-                                var timestamp = DateTime.Now;
-                                var (siteName, zoneName, gateName, laneName) = await ParkingImageService.ResolveTopologyNamesAsync(siteId, zoneId, laneId);
-                                imageFolderPath = await ParkingImageService.Instance.SaveSnapshotsAsync(
-                                    siteName, zoneName, gateName, laneName,
-                                    plate, "IN", timestamp,
-                                    fullFrameClone,
-                                    plateRawFrameClone,
-                                    plateCropBytes);
-                            }
-                            catch (Exception imgEx)
-                            {
-                                LoggingService.Instance.LogError("ImageSaveInbound", "MainViewModel", "Lỗi lưu ảnh vào", imgEx);
-                            }
+                                if (opened)
+                                 {
+                                     if (fullFrameClone != null && !fullFrameClone.Empty())
+                                     {
+                                         try
+                                         {
+                                             var img1 = OpenCvSharp.WpfExtensions.BitmapSourceConverter.ToBitmapSource(fullFrameClone);
+                                             img1.Freeze();
+                                             Application.Current?.Dispatcher?.Invoke(() => UpdateLaneSnapshot(uiLaneIndex, 1, img1));
+                                         }
+                                         catch (Exception snapEx) { LoggingService.Instance.LogError("Snap1Error", "MainViewModel", "Inbound overview snap show failed", snapEx); }
+                                     }
+                                     if (plateRawFrameClone != null && !plateRawFrameClone.Empty())
+                                     {
+                                         try
+                                         {
+                                             var img2 = OpenCvSharp.WpfExtensions.BitmapSourceConverter.ToBitmapSource(plateRawFrameClone);
+                                             img2.Freeze();
+                                             Application.Current?.Dispatcher?.Invoke(() => UpdateLaneSnapshot(uiLaneIndex, 2, img2));
+                                         }
+                                         catch (Exception snapEx) { LoggingService.Instance.LogError("Snap2Error", "MainViewModel", "Inbound plate snap show failed", snapEx); }
+                                     }
+                                 }
+                                string? imageFolderPath = null;
+                                try
+                                {
+                                    var timestamp = DateTime.Now;
+                                    var (siteName, zoneName, gateName, laneName) = await ParkingImageService.ResolveTopologyNamesAsync(siteId, zoneId, laneId);
+                                    imageFolderPath = await ParkingImageService.Instance.SaveSnapshotsAsync(
+                                        siteName, zoneName, gateName, laneName,
+                                        plate, "IN", timestamp,
+                                        fullFrameClone,
+                                        plateRawFrameClone,
+                                        plateCropBytes);
+                                }
+                                catch (Exception imgEx)
+                                {
+                                    LoggingService.Instance.LogError("ImageSaveInbound", "MainViewModel", "Lỗi lưu ảnh vào", imgEx);
+                                }
 
-                            await db.ThemXeAsync(card.Id, string.IsNullOrEmpty(plate) ? null : plate, imageFolderPath ?? "", siteId, zoneId, laneId);
+                                await db.ThemXeAsync(card.Id, string.IsNullOrEmpty(plate) ? null : plate, imageFolderPath ?? "", siteId, zoneId, laneId);
 
-                            try
-                            {
-                                string empName = string.Empty;
+                                try
+                                {
+                                    string empName = string.Empty;
+                                    Application.Current?.Dispatcher?.Invoke(() =>
+                                    {
+                                        empName = uiLaneIndex == 1 ? Lane1EmployeeName : Lane2EmployeeName;
+                                    });
+                                    LoggingService.Instance.LogInfo("RFID_SUCCESS", "MainViewModel",
+                                        $"CardUID={card.UID}, EmployeeId={(card.EmployeeId.HasValue ? card.EmployeeId.Value.ToString() : "null")}, EmployeeName={(string.IsNullOrEmpty(empName) ? "null" : empName)}, Lane={laneId ?? 1}, Direction=IN, Timestamp={DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+                                }
+                                catch { }
+
+                                SetLanePlate(uiLaneIndex, plate);
+                                SetLaneUID(uiLaneIndex, uid);
+                                SetLaneStatus(uiLaneIndex, opened ? $"✅ Xe vào lúc {DateTime.Now:HH:mm}" : "⚠ Xe vào – barrier lỗi");
+
                                 Application.Current?.Dispatcher?.Invoke(() =>
                                 {
-                                    empName = uiLaneIndex == 1 ? Lane1EmployeeName : Lane2EmployeeName;
-                                });
-                                LoggingService.Instance.LogInfo("RFID_SUCCESS", "MainViewModel",
-                                    $"CardUID={card.UID}, EmployeeId={(card.EmployeeId.HasValue ? card.EmployeeId.Value.ToString() : "null")}, EmployeeName={(string.IsNullOrEmpty(empName) ? "null" : empName)}, Lane={laneId ?? 1}, Direction=IN, Timestamp={DateTime.Now:yyyy-MM-dd HH:mm:ss}");
-                            }
-                            catch { }
-
-                            SetLanePlate(uiLaneIndex, plate);
-                            SetLaneUID(uiLaneIndex, uid);
-                            SetLaneStatus(uiLaneIndex, opened ? $"✅ Xe vào lúc {DateTime.Now:HH:mm}" : "⚠ Xe vào – barrier lỗi");
-
-                            Application.Current?.Dispatcher?.Invoke(() =>
-                            {
-                                DanhSachXe.Add(new Xe { BienSo = plate, ThoiGianVao = DateTime.Now });
+                                    DanhSachXe.Add(new Xe { BienSo = plate, ThoiGianVao = DateTime.Now });
                                 
-                                var mainWin = Application.Current?.MainWindow as QuanLyGiuXe.MainWindow;
-                                if (mainWin != null && mainWin.AllowShowSession)
-                                {
-                                    var session = new QuanLyGiuXe.Models.LichSuXe
+                                    var mainWin = Application.Current?.MainWindow as QuanLyGiuXe.MainWindow;
+                                    if (mainWin != null && mainWin.AllowShowSession)
                                     {
-                                        CardId = card.Id,
-                                        BienSo = plate,
-                                        ThoiGianVao = DateTime.Now,
-                                        ThoiGianRa = null,
-                                        Tien = null,
-                                        AnhVao = imageFolderPath ?? string.Empty
-                                    };
-                                    mainWin.ShowScanSessionForLane(uiLaneIndex, session);
+                                        var session = new QuanLyGiuXe.Models.LichSuXe
+                                        {
+                                            CardId = card.Id,
+                                            BienSo = plate,
+                                            ThoiGianVao = DateTime.Now,
+                                            ThoiGianRa = null,
+                                            Tien = null,
+                                            AnhVao = imageFolderPath ?? string.Empty
+                                        };
+                                        mainWin.ShowScanSessionForLane(uiLaneIndex, session);
+                                    }
+                                });
+
+                                UpdateVehicleCount();
+                            }
+                            catch (Exception bgEx)
+                            {
+                                LoggingService.Instance.LogError("InboundBackgroundProcessing", "MainViewModel", "Lỗi hậu xử lý xe vào", bgEx);
+                            }
+                            finally
+                            {
+                                plateRawFrameClone?.Dispose();
+                                fullFrameClone?.Dispose();
+                            }
+                        });
+                    }
+                    else
+                    {
+                        string plate = xeTrongBai.BienSo ?? string.Empty;
+                        DateTime timeIn = xeTrongBai.ThoiGianVao ?? DateTime.Now;
+                        var duration = DateTime.Now - timeIn;
+                        double fee = db.TinhTien(card.LoaiXeId, card.LoaiVeId, timeIn, DateTime.Now);
+
+                        int? entrySiteId = xeTrongBai.SiteId;
+                        int? entryZoneId = xeTrongBai.ZoneId;
+                        int? entryLaneId = xeTrongBai.EntryLaneId;
+                        string? entryImageFolder = xeTrongBai.AnhXe;
+
+                        _ = Task.Run(async () =>
+                        {
+                            try
+                            {
+                                if (opened)
+                                {
+                                    if (fullFrameClone != null && !fullFrameClone.Empty())
+                                    {
+                                        try
+                                        {
+                                            var img1 = OpenCvSharp.WpfExtensions.BitmapSourceConverter.ToBitmapSource(fullFrameClone);
+                                            img1.Freeze();
+                                            Application.Current?.Dispatcher?.Invoke(() => UpdateLaneSnapshot(uiLaneIndex, 1, img1));
+                                        }
+                                        catch (Exception snapEx) { LoggingService.Instance.LogError("Snap1Error", "MainViewModel", "Outbound overview snap show failed", snapEx); }
+                                    }
+                                    if (plateRawFrameClone != null && !plateRawFrameClone.Empty())
+                                    {
+                                        try
+                                        {
+                                            var img2 = OpenCvSharp.WpfExtensions.BitmapSourceConverter.ToBitmapSource(plateRawFrameClone);
+                                            img2.Freeze();
+                                            Application.Current?.Dispatcher?.Invoke(() => UpdateLaneSnapshot(uiLaneIndex, 2, img2));
+                                        }
+                                        catch (Exception snapEx) { LoggingService.Instance.LogError("Snap2Error", "MainViewModel", "Outbound plate snap show failed", snapEx); }
+                                    }
                                 }
-                            });
+                                string? exitImageFolderPath = null;
+                                try
+                                {
+                                    var timestamp = DateTime.Now;
+                                    var (siteName, zoneName, gateName, laneName) = await ParkingImageService.ResolveTopologyNamesAsync(siteId ?? entrySiteId, zoneId ?? entryZoneId, laneId);
+                                    exitImageFolderPath = await ParkingImageService.Instance.SaveSnapshotsAsync(
+                                        siteName, zoneName, gateName, laneName,
+                                        !string.IsNullOrEmpty(recognizedPlate) ? recognizedPlate : plate,
+                                        "OUT", timestamp,
+                                        fullFrameClone,
+                                        plateRawFrameClone,
+                                        plateCropBytes);
+                                }
+                                catch (Exception imgEx)
+                                {
+                                    LoggingService.Instance.LogError("ImageSaveOutbound", "MainViewModel", "Lỗi lưu ảnh ra", imgEx);
+                                }
 
-                            UpdateVehicleCount();
-                        }
-                        catch (Exception bgEx)
-                        {
-                            LoggingService.Instance.LogError("InboundBackgroundProcessing", "MainViewModel", "Lỗi hậu xử lý xe vào", bgEx);
-                        }
-                        finally
-                        {
-                            plateRawFrameClone?.Dispose();
-                            fullFrameClone?.Dispose();
-                        }
-                    });
-                }
-                else
-                {
-                    string plate = xeTrongBai.BienSo ?? string.Empty;
-                    DateTime timeIn = xeTrongBai.ThoiGianVao ?? DateTime.Now;
-                    var duration = DateTime.Now - timeIn;
-                    double fee = db.TinhTien(card.LoaiXeId, card.LoaiVeId, timeIn, DateTime.Now);
+                                await db.UpdateXeRaByIdAsync(xeTrongBai.Id, DateTime.Now);
+                                await db.LuuLichSuAsync(
+                                    plate, timeIn, DateTime.Now, fee,
+                                    exitImageFolderPath ?? "",
+                                    uid,
+                                    siteId: entrySiteId ?? siteId,
+                                    zoneId: entryZoneId ?? zoneId,
+                                    entryLaneId: entryLaneId,
+                                    exitLaneId: laneId,
+                                    anhVao: entryImageFolder);
+                                await db.XoaXeByCardIdAsync(card.Id);
 
-                    int? entrySiteId = xeTrongBai.SiteId;
-                    int? entryZoneId = xeTrongBai.ZoneId;
-                    int? entryLaneId = xeTrongBai.EntryLaneId;
-                    string? entryImageFolder = xeTrongBai.AnhXe;
+                                try
+                                {
+                                    string empName = string.Empty;
+                                    Application.Current?.Dispatcher?.Invoke(() =>
+                                    {
+                                        empName = uiLaneIndex == 1 ? Lane1EmployeeName : Lane2EmployeeName;
+                                    });
+                                    LoggingService.Instance.LogInfo("RFID_SUCCESS", "MainViewModel",
+                                        $"CardUID={card.UID}, EmployeeId={(card.EmployeeId.HasValue ? card.EmployeeId.Value.ToString() : "null")}, EmployeeName={(string.IsNullOrEmpty(empName) ? "null" : empName)}, Lane={laneId ?? 2}, Direction=OUT, Timestamp={DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+                                }
+                                catch { }
+
+                                string displayPlate = !string.IsNullOrEmpty(recognizedPlate) ? recognizedPlate : plate;
+                                SetLanePlate(uiLaneIndex, displayPlate);
+                                SetLaneUID(uiLaneIndex, uid);
+                                SetLaneTimeInfo(uiLaneIndex, timeIn, duration);
+                                SetLaneFee(uiLaneIndex, fee);
+                                SetLaneStatus(uiLaneIndex, opened ? $"✅ Xe ra lúc {DateTime.Now:HH:mm}" : "⚠ Xe ra – barrier lỗi");
+
+                                Application.Current?.Dispatcher?.Invoke(() =>
+                                {
+                                    var match = DanhSachXe.FirstOrDefault(x => x.BienSo == plate);
+                                    if (match != null) DanhSachXe.Remove(match);
+
+                                    var mainWin = Application.Current?.MainWindow as QuanLyGiuXe.MainWindow;
+                                    if (mainWin != null && mainWin.AllowShowSession)
+                                    {
+                                        var session = new QuanLyGiuXe.Models.LichSuXe
+                                        {
+                                            CardId = card.Id,
+                                            BienSo = plate,
+                                            ThoiGianVao = timeIn,
+                                            ThoiGianRa = DateTime.Now,
+                                            Tien = fee,
+                                            AnhVao = entryImageFolder ?? string.Empty,
+                                            AnhRa = exitImageFolderPath ?? string.Empty
+                                        };
+                                        mainWin.ShowScanSessionForLane(uiLaneIndex, session);
+                                    }
+                                });
+
+                                UpdateVehicleCount();
+                            }
+                            catch (Exception bgEx)
+                            {
+                                LoggingService.Instance.LogError("OutboundBackgroundProcessing", "MainViewModel", "Lỗi hậu xử lý xe ra", bgEx);
+                            }
+                            finally
+                            {
+                                plateRawFrameClone?.Dispose();
+                                fullFrameClone?.Dispose();
+                            }
+                        });
+                    }
+
+                    LastScannedUID = string.Empty;
 
                     _ = Task.Run(async () =>
                     {
-                        try
-                        {
-                            if (opened)
-                            {
-                                if (fullFrameClone != null && !fullFrameClone.Empty())
-                                {
-                                    try
-                                    {
-                                        var img1 = OpenCvSharp.WpfExtensions.BitmapSourceConverter.ToBitmapSource(fullFrameClone);
-                                        img1.Freeze();
-                                        Application.Current?.Dispatcher?.Invoke(() => UpdateLaneSnapshot(uiLaneIndex, 1, img1));
-                                    }
-                                    catch (Exception snapEx) { LoggingService.Instance.LogError("Snap1Error", "MainViewModel", "Outbound overview snap show failed", snapEx); }
-                                }
-                                if (plateRawFrameClone != null && !plateRawFrameClone.Empty())
-                                {
-                                    try
-                                    {
-                                        var img2 = OpenCvSharp.WpfExtensions.BitmapSourceConverter.ToBitmapSource(plateRawFrameClone);
-                                        img2.Freeze();
-                                        Application.Current?.Dispatcher?.Invoke(() => UpdateLaneSnapshot(uiLaneIndex, 2, img2));
-                                    }
-                                    catch (Exception snapEx) { LoggingService.Instance.LogError("Snap2Error", "MainViewModel", "Outbound plate snap show failed", snapEx); }
-                                }
-                            }
-                            string? exitImageFolderPath = null;
-                            try
-                            {
-                                var timestamp = DateTime.Now;
-                                var (siteName, zoneName, gateName, laneName) = await ParkingImageService.ResolveTopologyNamesAsync(siteId ?? entrySiteId, zoneId ?? entryZoneId, laneId);
-                                exitImageFolderPath = await ParkingImageService.Instance.SaveSnapshotsAsync(
-                                    siteName, zoneName, gateName, laneName,
-                                    !string.IsNullOrEmpty(recognizedPlate) ? recognizedPlate : plate,
-                                    "OUT", timestamp,
-                                    fullFrameClone,
-                                    plateRawFrameClone,
-                                    plateCropBytes);
-                            }
-                            catch (Exception imgEx)
-                            {
-                                LoggingService.Instance.LogError("ImageSaveOutbound", "MainViewModel", "Lỗi lưu ảnh ra", imgEx);
-                            }
-
-                            await db.UpdateXeRaByIdAsync(xeTrongBai.Id, DateTime.Now);
-                            await db.LuuLichSuAsync(
-                                plate, timeIn, DateTime.Now, fee,
-                                exitImageFolderPath ?? "",
-                                uid,
-                                siteId: entrySiteId ?? siteId,
-                                zoneId: entryZoneId ?? zoneId,
-                                entryLaneId: entryLaneId,
-                                exitLaneId: laneId,
-                                anhVao: entryImageFolder);
-                            await db.XoaXeByCardIdAsync(card.Id);
-
-                            try
-                            {
-                                string empName = string.Empty;
-                                Application.Current?.Dispatcher?.Invoke(() =>
-                                {
-                                    empName = uiLaneIndex == 1 ? Lane1EmployeeName : Lane2EmployeeName;
-                                });
-                                LoggingService.Instance.LogInfo("RFID_SUCCESS", "MainViewModel",
-                                    $"CardUID={card.UID}, EmployeeId={(card.EmployeeId.HasValue ? card.EmployeeId.Value.ToString() : "null")}, EmployeeName={(string.IsNullOrEmpty(empName) ? "null" : empName)}, Lane={laneId ?? 2}, Direction=OUT, Timestamp={DateTime.Now:yyyy-MM-dd HH:mm:ss}");
-                            }
-                            catch { }
-
-                            string displayPlate = !string.IsNullOrEmpty(recognizedPlate) ? recognizedPlate : plate;
-                            SetLanePlate(uiLaneIndex, displayPlate);
-                            SetLaneUID(uiLaneIndex, uid);
-                            SetLaneTimeInfo(uiLaneIndex, timeIn, duration);
-                            SetLaneFee(uiLaneIndex, fee);
-                            SetLaneStatus(uiLaneIndex, opened ? $"✅ Xe ra lúc {DateTime.Now:HH:mm}" : "⚠ Xe ra – barrier lỗi");
-
-                            Application.Current?.Dispatcher?.Invoke(() =>
-                            {
-                                var match = DanhSachXe.FirstOrDefault(x => x.BienSo == plate);
-                                if (match != null) DanhSachXe.Remove(match);
-
-                                var mainWin = Application.Current?.MainWindow as QuanLyGiuXe.MainWindow;
-                                if (mainWin != null && mainWin.AllowShowSession)
-                                {
-                                    var session = new QuanLyGiuXe.Models.LichSuXe
-                                    {
-                                        CardId = card.Id,
-                                        BienSo = plate,
-                                        ThoiGianVao = timeIn,
-                                        ThoiGianRa = DateTime.Now,
-                                        Tien = fee,
-                                        AnhVao = entryImageFolder ?? string.Empty,
-                                        AnhRa = exitImageFolderPath ?? string.Empty
-                                    };
-                                    mainWin.ShowScanSessionForLane(uiLaneIndex, session);
-                                }
-                            });
-
-                            UpdateVehicleCount();
-                        }
-                        catch (Exception bgEx)
-                        {
-                            LoggingService.Instance.LogError("OutboundBackgroundProcessing", "MainViewModel", "Lỗi hậu xử lý xe ra", bgEx);
-                        }
-                        finally
-                        {
-                            plateRawFrameClone?.Dispose();
-                            fullFrameClone?.Dispose();
-                        }
+                        await Task.Delay(2000);
+                        LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
                     });
                 }
-
-                LastScannedUID = string.Empty;
-
-                _ = Task.Run(async () =>
+                catch (Exception ex)
                 {
-                    await Task.Delay(2000);
+                    SetLaneStatus(uiLaneIndex, $"❌ Lỗi xử lý: {ex.Message}");
+                    LoggingService.Instance.LogError("ProcessActionError", "MainViewModel", $"DB_Lane={dbLaneId}", ex);
                     LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
-                });
+                }
+                finally
+                {
+                    fullFrame?.Dispose();
+                    plateRawFrame?.Dispose();
+                }
             }
-            catch (Exception ex)
-            {
-                SetLaneStatus(uiLaneIndex, $"❌ Lỗi xử lý: {ex.Message}");
-                LoggingService.Instance.LogError("ProcessActionError", "MainViewModel", $"DB_Lane={dbLaneId}", ex);
-                LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
-            }
-            finally
-            {
-                fullFrame?.Dispose();
-                plateRawFrame?.Dispose();
-            }
-        }
 
         private async Task<bool> ProcessInboundAsync(
             int uiLaneIndex, RFIDCard card, string uid,
@@ -2475,6 +2524,16 @@ namespace QuanLyGiuXe.ViewModels
                 // Display UID and temporary status immediately
                 ResetLaneCardAndOwnerDetails(uiLaneIndex);
                 LoadOwnerDetailsForLane(uiLaneIndex, card);
+
+                // ─── CHECK EMPLOYEE INFO ───
+                if (!card.EmployeeId.HasValue)
+                {
+                    SetLaneStatus(uiLaneIndex, $"❌ Thẻ {uid} chưa đăng ký thông tin nhân viên!");
+                    SetLanePlate(uiLaneIndex, "");
+                    LoggingService.Instance.LogSecurity("ACCESS_DENIED", "NO_EMPLOYEE", uid, $"Card UID: {uid} has no employee info registered (manual).", "MainViewModel");
+                    return;
+                }
+
                 SetLaneUID(uiLaneIndex, uid);
                 SetLanePlate(uiLaneIndex, string.IsNullOrEmpty(manualPlate) ? "" : manualPlate);
                 SetLaneStatus(uiLaneIndex, "⏳ Đang xử lý...");
@@ -2504,22 +2563,57 @@ namespace QuanLyGiuXe.ViewModels
                 bool isInbound = laneConfig.Direction == "IN";
 
                 // Determine recognized plate
-                string recognizedPlate = manualPlate;
-                string lprCamKey2 = GetLicensePlateCameraKey(dbLaneId, laneConfig.Direction);
+                // ─── FORCE LPR RECOGNITION ───
+                string recognizedPlate = string.Empty;
+
+                string lprCamKey2 = GetLicensePlateCameraKey(
+                    dbLaneId,
+                    laneConfig.Direction
+                );
+
                 try
                 {
                     plateRawFrame = CameraService.Instance.GetLatestFrame(lprCamKey2);
+
                     if (plateRawFrame != null && !plateRawFrame.Empty())
                     {
-                        var lprResult = await PlateRecognitionService.Instance.RecognizePlateAsync(plateRawFrame);
-                        if (string.IsNullOrEmpty(recognizedPlate))
-                        {
-                            recognizedPlate = lprResult.Plate;
-                        }
+                        var lprResult =
+                            await PlateRecognitionService.Instance
+                            .RecognizePlateAsync(plateRawFrame);
+
+                        recognizedPlate = lprResult.Plate;
                         plateCropBytes = lprResult.PlateCropBytes;
                     }
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    LoggingService.Instance.LogError(
+                        "ManualLprError",
+                        "MainViewModel",
+                        "LPR failed in manual process",
+                        ex
+                    );
+                }
+
+
+                // Không nhận diện được thì chặn
+                if (string.IsNullOrEmpty(recognizedPlate))
+                {
+                    SetLaneStatus(
+                        uiLaneIndex,
+                        "❌ Không nhận diện được biển số!"
+                    );
+
+                    LoggingService.Instance.LogSecurity(
+                        "ACCESS_DENIED",
+                        "LPR_EMPTY",
+                        uid,
+                        "Manual flow: no plate detected",
+                        "MainViewModel"
+                    );
+
+                    return;
+                }
 
                 // If we got a plate, update UI
                 if (!string.IsNullOrEmpty(recognizedPlate))

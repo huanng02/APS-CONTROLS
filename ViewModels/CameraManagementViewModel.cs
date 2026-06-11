@@ -775,19 +775,6 @@ namespace QuanLyGiuXe.ViewModels
 
             if (success)
             {
-                // Sync to config.json
-                await SyncCamerasToConfigAsync();
-
-                // Manage stream state in CameraService
-                if (entity.IsActive)
-                {
-                    CameraService.Instance.StartIpCamera(entity.CameraKey, entity.RtspUrl);
-                }
-                else
-                {
-                    CameraService.Instance.StopIpCamera(entity.CameraKey);
-                }
-
                 string successMsg = isCreate ? "Thêm camera mới thành công!" : "Lưu cấu hình camera thành công!";
 
                 IsCreateMode = false;
@@ -796,23 +783,15 @@ namespace QuanLyGiuXe.ViewModels
                 
                 // Select the saved camera
                 SelectedCamera = Cameras.FirstOrDefault(c => c.CameraKey == entity.CameraKey);
-                // Try to auto-deploy the configuration so camera changes take effect immediately
-                bool deploySuccess = false;
+
+                // Mark pending changes so Development Center knows there are draft changes
                 try
                 {
-                    var deployer = CurrentUser.Username ?? "System";
-                    deploySuccess = await DeploymentService.Instance.DeployAsync(deployer, "Auto-deploy camera configuration");
+                    await DeploymentService.Instance.MarkPendingChangesAsync();
                 }
-                catch { deploySuccess = false; }
+                catch { /* Best effort */ }
 
-                if (deploySuccess)
-                {
-                    MessageBox.Show(successMsg + "\nCấu hình đã được triển khai.", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-                else
-                {
-                    MessageBox.Show(successMsg + "\nLưu nhưng không thể tự động triển khai. Vui lòng vào Development Center để kiểm tra.", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Warning);
-                }
+                MessageBox.Show(successMsg + "\nVui lòng vào Development Center để triển khai cấu hình mới.", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             else
             {
@@ -840,15 +819,17 @@ namespace QuanLyGiuXe.ViewModels
                 bool deleted = await CameraRepository.Instance.DeleteAsync(SelectedCamera.Id);
                 if (deleted)
                 {
-                    // Remove from config.json
-                    await SyncCamerasToConfigAsync();
-
-                    // Stop streaming
-                    CameraService.Instance.StopIpCamera(SelectedCamera.CameraKey);
-                    
                     await LoadDataAsync();
                     SelectedCamera = null;
-                    MessageBox.Show("Xóa camera thành công!", "Thông báo");
+
+                    // Mark pending changes so Development Center knows there are draft changes
+                    try
+                    {
+                        await DeploymentService.Instance.MarkPendingChangesAsync();
+                    }
+                    catch { /* Best effort */ }
+
+                    MessageBox.Show("Xóa camera thành công!\nVui lòng vào Development Center để triển khai thay đổi.", "Thông báo");
                 }
                 else
                 {

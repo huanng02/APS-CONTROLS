@@ -161,6 +161,7 @@ namespace QuanLyGiuXe.Services
 
             _cameraUrls[actualKey] = url;
 
+            AppConfig.ClearCache();
             var config = AppConfig.Load().Cameras;
             int maxFps = config.MaxRenderFps;
             if (maxFps <= 0) maxFps = 10;
@@ -581,6 +582,311 @@ namespace QuanLyGiuXe.Services
                     LoggingService.Instance.LogError("SyncCamerasToConfig", "CameraService", "Lỗi đồng bộ cấu hình camera vào config.json", ex);
                 }
                 catch { }
+            }
+        }
+
+        public async Task ApplyDeployedConfigurationAsync()
+        {
+            // 1. Keep a copy of the current cached config (the "old" config before deployment)
+            await EnsureCacheLoadedAsync();
+            List<CameraEntity> oldCams;
+            await _cacheLock.WaitAsync();
+            try
+            {
+                oldCams = _cachedDbCameras.ToList();
+            }
+            finally
+            {
+                _cacheLock.Release();
+            }
+
+            // 2. Fetch the latest deployed config from database
+            List<CameraEntity> newCams;
+            try
+            {
+                newCams = await CameraRepository.Instance.GetAllAsync();
+            }
+            catch (Exception ex)
+            {
+                try { LoggingService.Instance.LogError("CameraService", "ApplyDeployedConfiguration", "Failed to reload cameras from DB", ex); } catch { }
+                return;
+            }
+
+            // 3. Update the cache
+            await _cacheLock.WaitAsync();
+            try
+            {
+                _cachedDbCameras = newCams ?? new List<CameraEntity>();
+                _lastCacheUpdate = DateTime.UtcNow;
+            }
+            finally
+            {
+                _cacheLock.Release();
+            }
+
+            // 4. Sync database cameras to config.json
+            await SyncCamerasToConfigAsync();
+
+            // 5. Compare old and new configs to apply changes
+            var allCameraIds = oldCams.Select(c => c.Id).Union(_cachedDbCameras.Select(c => c.Id)).Distinct().ToList();
+
+            foreach (var id in allCameraIds)
+            {
+                var oldCam = oldCams.FirstOrDefault(c => c.Id == id);
+                var newCam = _cachedDbCameras.FirstOrDefault(c => c.Id == id);
+
+                if (oldCam == null && newCam != null)
+                {
+                    // Newly added camera
+                    LogConfigChange(null, newCam);
+                    if (newCam.IsActive)
+                    {
+                        StartCameraStreamForConfig(newCam);
+                    }
+                }
+                else if (oldCam != null && newCam == null)
+                {
+                    // Deleted camera
+                    HandleCameraDeletedInternal(oldCam);
+                }
+                else if (oldCam != null && newCam != null)
+                {
+                    // Modified camera or unchanged camera
+                    bool isChanged = oldCam.CameraName != newCam.CameraName ||
+                                     oldCam.CameraKey != newCam.CameraKey ||
+                                     oldCam.IpAddress != newCam.IpAddress ||
+                                     oldCam.Port != newCam.Port ||
+                                     oldCam.Protocol != newCam.Protocol ||
+                                     oldCam.Username != newCam.Username ||
+                                     oldCam.Password != newCam.Password ||
+                                     oldCam.RtspUrl != newCam.RtspUrl ||
+                                     oldCam.LaneId != newCam.LaneId ||
+                                     oldCam.Direction != newCam.Direction ||
+                                     oldCam.IsActive != newCam.IsActive ||
+                                     oldCam.ResolutionWidth != newCam.ResolutionWidth ||
+                                     oldCam.ResolutionHeight != newCam.ResolutionHeight;
+
+                    if (isChanged)
+                    {
+                        LogConfigChange(oldCam, newCam);
+                        ApplyConfigChangeToRunningStreams(oldCam, newCam);
+                    }
+                }
+            }
+        }
+
+        private void StartCameraStreamForConfig(CameraEntity newCam)
+        {
+            var keysToStart = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            keysToStart.Add(newCam.CameraKey);
+            if (newCam.LaneId.HasValue)
+            {
+                string newRoleKey = newCam.Direction == "Overview" ? $"Lane_{newCam.LaneId}_ToanCanh" : $"Lane_{newCam.LaneId}_BienSo";
+                keysToStart.Add(newRoleKey);
+            }
+
+            foreach (var key in keysToStart)
+            {
+                try { LoggingService.Instance.LogInfo("CameraService", "StartCameraStreamForConfig", $"Starting stream key '{key}' for new camera"); } catch { }
+                StartIpCamera(key, newCam.RtspUrl);
+                var state = GetRuntimeState(key);
+                try { LoggingService.Instance.LogInfo("CameraService", "StartCameraStreamForConfig", $"Reconnect status for key '{key}': Connected={state.IsConnected}, Reconnects={state.ReconnectCount}"); } catch { }
+            }
+        }
+
+        public async Task HandleCameraConfigChangedAsync(int cameraId)
+        {
+            // 1. Get old configuration from cache before reloading
+            await EnsureCacheLoadedAsync();
+            CameraEntity? oldCam = null;
+            await _cacheLock.WaitAsync();
+            try
+            {
+                oldCam = _cachedDbCameras.FirstOrDefault(c => c.Id == cameraId);
+            }
+            finally
+            {
+                _cacheLock.Release();
+            }
+
+            // 2. Fetch the latest from database to update cache
+            List<CameraEntity> dbCams;
+            try
+            {
+                dbCams = await CameraRepository.Instance.GetAllAsync();
+            }
+            catch (Exception ex)
+            {
+                try { LoggingService.Instance.LogError("CameraService", "HandleCameraConfigChanged", "Failed to reload cameras from DB", ex); } catch { }
+                return;
+            }
+
+            // 3. Update cache
+            await _cacheLock.WaitAsync();
+            try
+            {
+                _cachedDbCameras = dbCams ?? new List<CameraEntity>();
+                _lastCacheUpdate = DateTime.UtcNow;
+            }
+            finally
+            {
+                _cacheLock.Release();
+            }
+
+            // 4. Find new configuration
+            CameraEntity? newCam = null;
+            await _cacheLock.WaitAsync();
+            try
+            {
+                newCam = _cachedDbCameras.FirstOrDefault(c => c.Id == cameraId);
+            }
+            finally
+            {
+                _cacheLock.Release();
+            }
+
+            if (newCam == null)
+            {
+                // If the camera is not found, it might have been deleted
+                if (oldCam != null)
+                {
+                    HandleCameraDeletedInternal(oldCam);
+                }
+                return;
+            }
+
+            // 5. Log changes
+            LogConfigChange(oldCam, newCam);
+
+            // 6. Stop and restart streams immediately
+            ApplyConfigChangeToRunningStreams(oldCam, newCam);
+        }
+
+        private void LogConfigChange(CameraEntity? oldCam, CameraEntity newCam)
+        {
+            string oldConfigStr = oldCam != null 
+                ? $"Name={oldCam.CameraName}, Key={oldCam.CameraKey}, IP={oldCam.IpAddress}, URL={oldCam.RtspUrl}, Lane={oldCam.LaneId}, Role={oldCam.Direction}, Res={oldCam.ResolutionWidth}x{oldCam.ResolutionHeight}, Active={oldCam.IsActive}"
+                : "None";
+
+            string newConfigStr = $"Name={newCam.CameraName}, Key={newCam.CameraKey}, IP={newCam.IpAddress}, URL={newCam.RtspUrl}, Lane={newCam.LaneId}, Role={newCam.Direction}, Res={newCam.ResolutionWidth}x{newCam.ResolutionHeight}, Active={newCam.IsActive}";
+
+            try
+            {
+                LoggingService.Instance.LogInfo("CameraService", "CameraConfigChanged", $"Camera Config Updated.\nOld Config: {oldConfigStr}\nNew Config: {newConfigStr}");
+            }
+            catch { }
+        }
+
+        private void ApplyConfigChangeToRunningStreams(CameraEntity? oldCam, CameraEntity newCam)
+        {
+            // Collect all consumer keys (active stream keys) that were/are associated with this camera
+            var keysToRestart = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            if (oldCam != null)
+            {
+                keysToRestart.Add(oldCam.CameraKey);
+                if (oldCam.LaneId.HasValue)
+                {
+                    string oldRoleKey = oldCam.Direction == "Overview" ? $"Lane_{oldCam.LaneId}_ToanCanh" : $"Lane_{oldCam.LaneId}_BienSo";
+                    keysToRestart.Add(oldRoleKey);
+                }
+            }
+
+            keysToRestart.Add(newCam.CameraKey);
+            if (newCam.LaneId.HasValue)
+            {
+                string newRoleKey = newCam.Direction == "Overview" ? $"Lane_{newCam.LaneId}_ToanCanh" : $"Lane_{newCam.LaneId}_BienSo";
+                keysToRestart.Add(newRoleKey);
+            }
+
+            // Also check connections in CameraConnectionManager to see if any are using the old URL or old key
+            string oldNormUrl = oldCam != null ? NormalizeRtspUrl(oldCam.RtspUrl) : "";
+            string newNormUrl = NormalizeRtspUrl(newCam.RtspUrl);
+
+            var connections = CameraConnectionManager.Instance.GetConnections();
+            foreach (var kvp in connections)
+            {
+                string connUrlNorm = kvp.Key; // normalized URL
+                var conn = kvp.Value;
+
+                bool urlMatch = (!string.IsNullOrEmpty(oldNormUrl) && connUrlNorm == oldNormUrl) ||
+                                (connUrlNorm == newNormUrl);
+
+                if (urlMatch)
+                {
+                    foreach (var consumer in conn.Consumers)
+                    {
+                        keysToRestart.Add(consumer);
+                    }
+                }
+                else
+                {
+                    // Also check if consumer list contains any of our known keys
+                    foreach (var consumer in conn.Consumers)
+                    {
+                        if (oldCam != null && (consumer.Equals(oldCam.CameraKey, StringComparison.OrdinalIgnoreCase) || 
+                                               (oldCam.LaneId.HasValue && consumer.Equals($"Lane_{oldCam.LaneId}_ToanCanh", StringComparison.OrdinalIgnoreCase) && oldCam.Direction == "Overview") ||
+                                               (oldCam.LaneId.HasValue && consumer.Equals($"Lane_{oldCam.LaneId}_BienSo", StringComparison.OrdinalIgnoreCase) && oldCam.Direction != "Overview")))
+                        {
+                            keysToRestart.Add(consumer);
+                        }
+                    }
+                }
+            }
+
+            // For all found keys, if they are currently streaming:
+            // 1. Stop the current stream.
+            // 2. If the camera is active, start the stream again (which will apply the new URL, resolution, etc.).
+            foreach (var key in keysToRestart)
+            {
+                bool isCurrentlyStreaming = CameraConnectionManager.Instance.GetConnectionByKey(key) != null;
+                if (isCurrentlyStreaming)
+                {
+                    try { LoggingService.Instance.LogInfo("CameraService", "ApplyConfigChange", $"Stopping running stream key '{key}' for config update"); } catch { }
+                    StopIpCamera(key);
+                    
+                    if (newCam.IsActive)
+                    {
+                        try { LoggingService.Instance.LogInfo("CameraService", "ApplyConfigChange", $"Restarting stream key '{key}' with new configuration"); } catch { }
+                        
+                        StartIpCamera(key, newCam.RtspUrl);
+                        
+                        var state = GetRuntimeState(key);
+                        try { LoggingService.Instance.LogInfo("CameraService", "ApplyConfigChange", $"Reconnect status for key '{key}': Connected={state.IsConnected}, Reconnects={state.ReconnectCount}"); } catch { }
+                    }
+                }
+            }
+        }
+
+        private void HandleCameraDeletedInternal(CameraEntity oldCam)
+        {
+            try { LoggingService.Instance.LogInfo("CameraService", "CameraDeleted", $"Camera deleted: Name={oldCam.CameraName}, Key={oldCam.CameraKey}"); } catch { }
+            
+            var keysToStop = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            keysToStop.Add(oldCam.CameraKey);
+            if (oldCam.LaneId.HasValue)
+            {
+                string oldRoleKey = oldCam.Direction == "Overview" ? $"Lane_{oldCam.LaneId}_ToanCanh" : $"Lane_{oldCam.LaneId}_BienSo";
+                keysToStop.Add(oldRoleKey);
+            }
+
+            string oldNormUrl = NormalizeRtspUrl(oldCam.RtspUrl);
+            var connections = CameraConnectionManager.Instance.GetConnections();
+            foreach (var kvp in connections)
+            {
+                if (kvp.Key == oldNormUrl)
+                {
+                    foreach (var consumer in kvp.Value.Consumers)
+                    {
+                        keysToStop.Add(consumer);
+                    }
+                }
+            }
+
+            foreach (var key in keysToStop)
+            {
+                try { LoggingService.Instance.LogInfo("CameraService", "ApplyConfigChange", $"Stopping running stream key '{key}' due to camera deletion"); } catch { }
+                StopIpCamera(key);
             }
         }
 
