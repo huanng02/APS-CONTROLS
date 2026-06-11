@@ -1691,8 +1691,7 @@ namespace QuanLyGiuXe.ViewModels
                 DateTime? lprCompleted = null;
                 DateTime? barrierTriggered = null;
 
-                // Save recently recognized plate before resetting UI
-                string preRecognized = uiLaneIndex == 1 ? Lane1BienSo : Lane2BienSo;
+                // We always run LPR on captured frame at the moment of swipe, so preRecognized is not needed
 
                 if (string.IsNullOrEmpty(uid))
                 {
@@ -1773,6 +1772,20 @@ namespace QuanLyGiuXe.ViewModels
                         return;
                     }
 
+                    if (string.IsNullOrEmpty(card.UID) || card.LoaiVeId <= 0 || card.LoaiXeId <= 0)
+                    {
+                        SetLaneStatus(uiLaneIndex, $"❌ Thông tin thẻ {uid} chưa đầy đủ (loại vé, loại xe hoặc UID trống)!");
+                        LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
+                        return;
+                    }
+
+                    if (!string.Equals(card.TrangThai, "Active", StringComparison.OrdinalIgnoreCase))
+                    {
+                        SetLaneStatus(uiLaneIndex, $"❌ Thẻ {uid} đang ở trạng thái không hoạt động ({card.TrangThai})!");
+                        LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
+                        return;
+                    }
+
                     // Load owner details on UI thread
                     Application.Current?.Dispatcher?.Invoke(() => LoadOwnerDetailsForLane(uiLaneIndex, card));
 
@@ -1813,31 +1826,20 @@ namespace QuanLyGiuXe.ViewModels
                     }
 
                     // ─── LICENSE PLATE RECOGNITION (LPR) ───
-                    // preRecognized is pre-saved at the start of ProcessActionAsync to avoid UI reset clearing it
-                
-                    if (!string.IsNullOrEmpty(preRecognized) && preRecognized != "Chưa nhận diện biển số" && !preRecognized.Contains("❌") && !preRecognized.Contains("Lỗi"))
+                    try
                     {
-                        recognizedPlate = preRecognized;
-                        lprCompleted = DateTime.Now;
-                        LoggingService.Instance.LogInfo("LprSkip", "MainViewModel", $"Reusing recently recognized plate from VM: {recognizedPlate}");
+                        if (plateRawFrame != null && !plateRawFrame.Empty())
+                        {
+                            var lprResult = await PlateRecognitionService.Instance.RecognizePlateAsync(plateRawFrame);
+                            recognizedPlate = lprResult.Plate;
+                            plateCropBytes = lprResult.PlateCropBytes;
+                        }
                     }
-                    else
+                    catch (Exception lprEx)
                     {
-                        try
-                        {
-                            if (plateRawFrame != null && !plateRawFrame.Empty())
-                            {
-                                var lprResult = await PlateRecognitionService.Instance.RecognizePlateAsync(plateRawFrame);
-                                recognizedPlate = lprResult.Plate;
-                                plateCropBytes = lprResult.PlateCropBytes;
-                            }
-                        }
-                        catch (Exception lprEx)
-                        {
-                            LoggingService.Instance.LogError("LprError", "MainViewModel", $"Failed to run LPR on captured frame", lprEx);
-                        }
-                        lprCompleted = DateTime.Now;
+                        LoggingService.Instance.LogError("LprError", "MainViewModel", $"Failed to run LPR on captured frame", lprEx);
                     }
+                    lprCompleted = DateTime.Now;
 
                     if (!string.IsNullOrEmpty(recognizedPlate))
                     {
@@ -1911,23 +1913,44 @@ namespace QuanLyGiuXe.ViewModels
                     SetLanePlate(uiLaneIndex, recognizedPlate);
                 }
                 else
+                {
+                    // Daily Ticket
+                    if (isInbound)
                     {
-                        // Daily Ticket
-                        if (!isInbound)
+                        if (string.IsNullOrEmpty(recognizedPlate))
                         {
-                            string entryPlate = xeTrongBai.BienSo ?? string.Empty;
-                            if (!string.IsNullOrEmpty(entryPlate) && !string.IsNullOrEmpty(recognizedPlate))
-                            {
-                                if (!ComparePlates(recognizedPlate, entryPlate))
-                                {
-                                    SetLaneStatus(uiLaneIndex, $"❌ Sai biển số lúc vào! Ra: {recognizedPlate} vs Vào: {entryPlate}");
-                                    LoggingService.Instance.LogSecurity("ACCESS_DENIED", "LPR_MISMATCH", uid, $"Plate mismatch on exit: Recognized {recognizedPlate} vs Entry {entryPlate}", "MainViewModel");
-                                    LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
-                                    return;
-                                }
-                            }
+                            SetLaneStatus(uiLaneIndex, "❌ Không nhận diện được biển số!");
+                            LoggingService.Instance.LogSecurity("ACCESS_DENIED", "LPR_EMPTY", uid, "Daily card entry: no plate recognized by AI", "MainViewModel");
+                            LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
+                            return;
                         }
                     }
+                    else
+                    {
+                        if (string.IsNullOrEmpty(recognizedPlate))
+                        {
+                            SetLaneStatus(uiLaneIndex, "❌ Không nhận diện được biển số!");
+                            LoggingService.Instance.LogSecurity("ACCESS_DENIED", "LPR_EMPTY", uid, "Daily card exit: no plate recognized by AI", "MainViewModel");
+                            LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
+                            return;
+                        }
+                        string entryPlate = xeTrongBai.BienSo ?? string.Empty;
+                        if (string.IsNullOrEmpty(entryPlate))
+                        {
+                            SetLaneStatus(uiLaneIndex, "❌ Không tìm thấy biển số lúc vào trong database!");
+                            LoggingService.Instance.LogSecurity("ACCESS_DENIED", "ENTRY_PLATE_EMPTY", uid, "Daily card exit: entry plate is empty in database", "MainViewModel");
+                            LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
+                            return;
+                        }
+                        if (!ComparePlates(recognizedPlate, entryPlate))
+                        {
+                            SetLaneStatus(uiLaneIndex, $"❌ Sai biển số lúc vào! Ra: {recognizedPlate} vs Vào: {entryPlate}");
+                            LoggingService.Instance.LogSecurity("ACCESS_DENIED", "LPR_MISMATCH", uid, $"Daily card exit: Plate mismatch: Recognized={recognizedPlate}, Entry={entryPlate}", "MainViewModel");
+                            LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
+                            return;
+                        }
+                    }
+                }
 
                     // Physical Access Check (using optimized overload that takes card)
                     var (allowed, reason) = await CardAccessPolicyService.Instance.ValidatePhysicalAccessAsync(card, dbLaneId);
@@ -1981,7 +2004,7 @@ namespace QuanLyGiuXe.ViewModels
                     // ─── 4. UPDATE UI & WRITE TO DB (Post-processing background task) ───
                     if (isInbound)
                     {
-                        string plate = IsMonthlyTicket(card.LoaiVeId) ? (card.BienSo ?? string.Empty) : (!string.IsNullOrEmpty(recognizedPlate) ? recognizedPlate : string.Empty);
+                        string plate = recognizedPlate;
                     
                         _ = Task.Run(async () =>
                         {
@@ -1993,9 +2016,11 @@ namespace QuanLyGiuXe.ViewModels
                                      {
                                          try
                                          {
-                                             var img1 = OpenCvSharp.WpfExtensions.BitmapSourceConverter.ToBitmapSource(fullFrameClone);
-                                             img1.Freeze();
-                                             Application.Current?.Dispatcher?.Invoke(() => UpdateLaneSnapshot(uiLaneIndex, 1, img1));
+                                             var img1 = MatToBitmapSource(fullFrameClone);
+                                             if (img1 != null)
+                                             {
+                                                 Application.Current?.Dispatcher?.Invoke(() => UpdateLaneSnapshot(uiLaneIndex, 1, img1));
+                                             }
                                          }
                                          catch (Exception snapEx) { LoggingService.Instance.LogError("Snap1Error", "MainViewModel", "Inbound overview snap show failed", snapEx); }
                                      }
@@ -2003,9 +2028,11 @@ namespace QuanLyGiuXe.ViewModels
                                      {
                                          try
                                          {
-                                             var img2 = OpenCvSharp.WpfExtensions.BitmapSourceConverter.ToBitmapSource(plateRawFrameClone);
-                                             img2.Freeze();
-                                             Application.Current?.Dispatcher?.Invoke(() => UpdateLaneSnapshot(uiLaneIndex, 2, img2));
+                                             var img2 = MatToBitmapSource(plateRawFrameClone);
+                                             if (img2 != null)
+                                             {
+                                                 Application.Current?.Dispatcher?.Invoke(() => UpdateLaneSnapshot(uiLaneIndex, 2, img2));
+                                             }
                                          }
                                          catch (Exception snapEx) { LoggingService.Instance.LogError("Snap2Error", "MainViewModel", "Inbound plate snap show failed", snapEx); }
                                      }
@@ -2080,7 +2107,7 @@ namespace QuanLyGiuXe.ViewModels
                     }
                     else
                     {
-                        string plate = xeTrongBai.BienSo ?? string.Empty;
+                        string plate = recognizedPlate;
                         DateTime timeIn = xeTrongBai.ThoiGianVao ?? DateTime.Now;
                         var duration = DateTime.Now - timeIn;
                         double fee = db.TinhTien(card.LoaiXeId, card.LoaiVeId, timeIn, DateTime.Now);
@@ -2096,26 +2123,30 @@ namespace QuanLyGiuXe.ViewModels
                             {
                                 if (opened)
                                 {
-                                    if (fullFrameClone != null && !fullFrameClone.Empty())
-                                    {
-                                        try
-                                        {
-                                            var img1 = OpenCvSharp.WpfExtensions.BitmapSourceConverter.ToBitmapSource(fullFrameClone);
-                                            img1.Freeze();
-                                            Application.Current?.Dispatcher?.Invoke(() => UpdateLaneSnapshot(uiLaneIndex, 1, img1));
-                                        }
-                                        catch (Exception snapEx) { LoggingService.Instance.LogError("Snap1Error", "MainViewModel", "Outbound overview snap show failed", snapEx); }
-                                    }
-                                    if (plateRawFrameClone != null && !plateRawFrameClone.Empty())
-                                    {
-                                        try
-                                        {
-                                            var img2 = OpenCvSharp.WpfExtensions.BitmapSourceConverter.ToBitmapSource(plateRawFrameClone);
-                                            img2.Freeze();
-                                            Application.Current?.Dispatcher?.Invoke(() => UpdateLaneSnapshot(uiLaneIndex, 2, img2));
-                                        }
-                                        catch (Exception snapEx) { LoggingService.Instance.LogError("Snap2Error", "MainViewModel", "Outbound plate snap show failed", snapEx); }
-                                    }
+                                     if (fullFrameClone != null && !fullFrameClone.Empty())
+                                     {
+                                         try
+                                         {
+                                             var img1 = MatToBitmapSource(fullFrameClone);
+                                             if (img1 != null)
+                                             {
+                                                 Application.Current?.Dispatcher?.Invoke(() => UpdateLaneSnapshot(uiLaneIndex, 1, img1));
+                                             }
+                                         }
+                                         catch (Exception snapEx) { LoggingService.Instance.LogError("Snap1Error", "MainViewModel", "Outbound overview snap show failed", snapEx); }
+                                     }
+                                     if (plateRawFrameClone != null && !plateRawFrameClone.Empty())
+                                     {
+                                         try
+                                         {
+                                             var img2 = MatToBitmapSource(plateRawFrameClone);
+                                             if (img2 != null)
+                                             {
+                                                 Application.Current?.Dispatcher?.Invoke(() => UpdateLaneSnapshot(uiLaneIndex, 2, img2));
+                                             }
+                                         }
+                                         catch (Exception snapEx) { LoggingService.Instance.LogError("Snap2Error", "MainViewModel", "Outbound plate snap show failed", snapEx); }
+                                     }
                                 }
                                 string? exitImageFolderPath = null;
                                 try
@@ -2238,9 +2269,7 @@ namespace QuanLyGiuXe.ViewModels
                 return false;
             }
 
-            string plate = IsMonthlyTicket(card.LoaiVeId)
-                ? (card.BienSo ?? string.Empty)
-                : (!string.IsNullOrEmpty(recognizedPlate) ? recognizedPlate : string.Empty);
+            string plate = recognizedPlate;
 
             try
             {
@@ -2284,26 +2313,30 @@ namespace QuanLyGiuXe.ViewModels
 
                 if (opened)
                 {
-                     if (fullFrame != null && !fullFrame.Empty())
-                     {
-                         try
-                         {
-                             var img1 = OpenCvSharp.WpfExtensions.BitmapSourceConverter.ToBitmapSource(fullFrame);
-                             img1.Freeze();
-                             Application.Current?.Dispatcher?.Invoke(() => UpdateLaneSnapshot(uiLaneIndex, 1, img1));
-                         }
-                         catch (Exception snapEx) { LoggingService.Instance.LogError("Snap1Error", "MainViewModel", "Manual inbound overview snap show failed", snapEx); }
-                     }
-                     if (plateRawFrame != null && !plateRawFrame.Empty())
-                     {
-                         try
-                         {
-                             var img2 = OpenCvSharp.WpfExtensions.BitmapSourceConverter.ToBitmapSource(plateRawFrame);
-                             img2.Freeze();
-                             Application.Current?.Dispatcher?.Invoke(() => UpdateLaneSnapshot(uiLaneIndex, 2, img2));
-                         }
-                         catch (Exception snapEx) { LoggingService.Instance.LogError("Snap2Error", "MainViewModel", "Manual inbound plate snap show failed", snapEx); }
-                     }
+                      if (fullFrame != null && !fullFrame.Empty())
+                      {
+                          try
+                          {
+                              var img1 = MatToBitmapSource(fullFrame);
+                              if (img1 != null)
+                              {
+                                  Application.Current?.Dispatcher?.Invoke(() => UpdateLaneSnapshot(uiLaneIndex, 1, img1));
+                              }
+                          }
+                          catch (Exception snapEx) { LoggingService.Instance.LogError("Snap1Error", "MainViewModel", "Manual inbound overview snap show failed", snapEx); }
+                      }
+                      if (plateRawFrame != null && !plateRawFrame.Empty())
+                      {
+                          try
+                          {
+                              var img2 = MatToBitmapSource(plateRawFrame);
+                              if (img2 != null)
+                              {
+                                  Application.Current?.Dispatcher?.Invoke(() => UpdateLaneSnapshot(uiLaneIndex, 2, img2));
+                              }
+                          }
+                          catch (Exception snapEx) { LoggingService.Instance.LogError("Snap2Error", "MainViewModel", "Manual inbound plate snap show failed", snapEx); }
+                      }
                 }
 
                 DanhSachXe.Add(new Xe { BienSo = plate, ThoiGianVao = DateTime.Now });
@@ -2389,7 +2422,7 @@ namespace QuanLyGiuXe.ViewModels
 
                 await db.UpdateXeRaByIdAsync(id, DateTime.Now);
                 await db.LuuLichSuAsync(
-                    plate, timeIn, DateTime.Now, fee,
+                    recognizedPlate, timeIn, DateTime.Now, fee,
                     exitImageFolderPath ?? "",
                     uid,
                     siteId: entrySiteId ?? exitSiteId,
@@ -2525,6 +2558,24 @@ namespace QuanLyGiuXe.ViewModels
                 ResetLaneCardAndOwnerDetails(uiLaneIndex);
                 LoadOwnerDetailsForLane(uiLaneIndex, card);
 
+                if (card == null || card.Id == 0)
+                {
+                    SetLaneStatus(uiLaneIndex, $"❌ Thẻ {uid} chưa đăng ký!");
+                    return;
+                }
+
+                if (string.IsNullOrEmpty(card.UID) || card.LoaiVeId <= 0 || card.LoaiXeId <= 0)
+                {
+                    SetLaneStatus(uiLaneIndex, $"❌ Thông tin thẻ {uid} chưa đầy đủ (loại vé, loại xe hoặc UID trống)!");
+                    return;
+                }
+
+                if (!string.Equals(card.TrangThai, "Active", StringComparison.OrdinalIgnoreCase))
+                {
+                    SetLaneStatus(uiLaneIndex, $"❌ Thẻ {uid} đang ở trạng thái không hoạt động ({card.TrangThai})!");
+                    return;
+                }
+
                 // ─── CHECK EMPLOYEE INFO ───
                 if (!card.EmployeeId.HasValue)
                 {
@@ -2650,27 +2701,44 @@ namespace QuanLyGiuXe.ViewModels
                 else
                 {
                     // Daily/Guest ticket
-                    if (!isInbound)
+                    if (isInbound)
+                    {
+                        if (string.IsNullOrEmpty(recognizedPlate))
+                        {
+                            SetLaneStatus(uiLaneIndex, "❌ Không nhận diện được biển số lúc vào!");
+                            LoggingService.Instance.LogSecurity("ACCESS_DENIED", "LPR_EMPTY", uid, "Manual entry: no plate recognized by AI", "MainViewModel");
+                            return;
+                        }
+                    }
+                    else
                     {
                         var rec = db.GetXeTrongBaiRecordByCardId(card.Id);
-                        if (rec != null)
+                        if (rec == null)
                         {
-                            string entryPlate = rec.Value.BienSo ?? string.Empty;
-                            if (!string.IsNullOrEmpty(entryPlate))
-                            {
-                                if (string.IsNullOrEmpty(recognizedPlate))
-                                {
-                                    SetLaneStatus(uiLaneIndex, "❌ Không nhận diện được biển số lúc ra!");
-                                    return;
-                                }
+                            SetLaneStatus(uiLaneIndex, "⚠ Không tìm thấy xe trong bãi");
+                            return;
+                        }
+                        string entryPlate = rec.Value.BienSo ?? string.Empty;
 
-                                if (!ComparePlates(recognizedPlate, entryPlate))
-                                {
-                                    SetLaneStatus(uiLaneIndex, $"❌ Sai biển số lúc vào! Ra: {recognizedPlate} vs Vào: {entryPlate}");
-                                    LoggingService.Instance.LogSecurity("ACCESS_DENIED", "LPR_MISMATCH", uid, $"Manual mismatch on exit: {recognizedPlate} vs {entryPlate}", "MainViewModel");
-                                    return;
-                                }
-                            }
+                        if (string.IsNullOrEmpty(recognizedPlate))
+                        {
+                            SetLaneStatus(uiLaneIndex, "❌ Không nhận diện được biển số lúc ra!");
+                            LoggingService.Instance.LogSecurity("ACCESS_DENIED", "LPR_EMPTY", uid, "Manual exit: no plate recognized by AI", "MainViewModel");
+                            return;
+                        }
+
+                        if (string.IsNullOrEmpty(entryPlate))
+                        {
+                            SetLaneStatus(uiLaneIndex, "❌ Không tìm thấy biển số lúc vào!");
+                            LoggingService.Instance.LogSecurity("ACCESS_DENIED", "ENTRY_PLATE_EMPTY", uid, "Manual exit: entry plate is empty in database", "MainViewModel");
+                            return;
+                        }
+
+                        if (!ComparePlates(recognizedPlate, entryPlate))
+                        {
+                            SetLaneStatus(uiLaneIndex, $"❌ Sai biển số lúc vào! Ra: {recognizedPlate} vs Vào: {entryPlate}");
+                            LoggingService.Instance.LogSecurity("ACCESS_DENIED", "LPR_MISMATCH", uid, $"Manual exit: Plate mismatch: Recognized={recognizedPlate}, Entry={entryPlate}", "MainViewModel");
+                            return;
                         }
                     }
                 }
@@ -3065,12 +3133,14 @@ namespace QuanLyGiuXe.ViewModels
                     {
                         if (mat1 != null && !mat1.Empty())
                         {
-                            var img1 = OpenCvSharp.WpfExtensions.BitmapSourceConverter.ToBitmapSource(mat1);
-                            img1.Freeze();
-                            Application.Current.Dispatcher.Invoke(() =>
+                            var img1 = MatToBitmapSource(mat1);
+                            if (img1 != null)
                             {
-                                UpdateLaneSnapshot(uiLaneIndex, 1, img1);
-                            });
+                                Application.Current.Dispatcher.Invoke(() =>
+                                {
+                                    UpdateLaneSnapshot(uiLaneIndex, 1, img1);
+                                });
+                            }
                         }
                     }
                 }
@@ -3086,12 +3156,14 @@ namespace QuanLyGiuXe.ViewModels
                     {
                         if (mat2 != null && !mat2.Empty())
                         {
-                            var img2 = OpenCvSharp.WpfExtensions.BitmapSourceConverter.ToBitmapSource(mat2);
-                            img2.Freeze();
-                            Application.Current.Dispatcher.Invoke(() =>
+                            var img2 = MatToBitmapSource(mat2);
+                            if (img2 != null)
                             {
-                                UpdateLaneSnapshot(uiLaneIndex, 2, img2);
-                            });
+                                Application.Current.Dispatcher.Invoke(() =>
+                                {
+                                    UpdateLaneSnapshot(uiLaneIndex, 2, img2);
+                                });
+                            }
                         }
                     }
                 }
@@ -3338,16 +3410,16 @@ namespace QuanLyGiuXe.ViewModels
                 }
                 else
                 {
-                    Lane1EmployeeName = "";
-                    Lane1EmployeeCode = "";
+                    Lane1EmployeeName = card.EmployeeName ?? "";
+                    Lane1EmployeeCode = card.EmployeeCode ?? "";
                     Lane1EmployeeCompany = "";
                     Lane1EmployeeDepartment = "";
                     Lane1EmployeePosition = "";
                     Lane1EmployeePhone = "";
                     Lane1EmployeeEmail = "";
                     Lane1EmployeeAvatar = null;
-                    Lane1HasEmployee = false;
-                    Lane1OwnerStatusText = "Chưa cập nhật thông tin chủ thẻ";
+                    Lane1HasEmployee = !string.IsNullOrEmpty(card.EmployeeName);
+                    Lane1OwnerStatusText = !string.IsNullOrEmpty(card.EmployeeName) ? "" : "Chưa cập nhật thông tin chủ thẻ";
                 }
             }
             else
@@ -3371,16 +3443,16 @@ namespace QuanLyGiuXe.ViewModels
                 }
                 else
                 {
-                    Lane2EmployeeName = "";
-                    Lane2EmployeeCode = "";
+                    Lane2EmployeeName = card.EmployeeName ?? "";
+                    Lane2EmployeeCode = card.EmployeeCode ?? "";
                     Lane2EmployeeCompany = "";
                     Lane2EmployeeDepartment = "";
                     Lane2EmployeePosition = "";
                     Lane2EmployeePhone = "";
                     Lane2EmployeeEmail = "";
                     Lane2EmployeeAvatar = null;
-                    Lane2HasEmployee = false;
-                    Lane2OwnerStatusText = "Chưa cập nhật thông tin chủ thẻ";
+                    Lane2HasEmployee = !string.IsNullOrEmpty(card.EmployeeName);
+                    Lane2OwnerStatusText = !string.IsNullOrEmpty(card.EmployeeName) ? "" : "Chưa cập nhật thông tin chủ thẻ";
                 }
             }
         }
@@ -3391,6 +3463,61 @@ namespace QuanLyGiuXe.ViewModels
             OnPropertyChanged(nameof(CurrentUserUsername));
             OnPropertyChanged(nameof(CurrentUserRole));
             OnPropertyChanged(nameof(IsDeploymentCenterVisible));
+        }
+
+        private static System.Windows.Media.ImageSource? MatToBitmapSource(OpenCvSharp.Mat? mat)
+        {
+            if (mat == null || mat.Empty()) return null;
+            try
+            {
+                using (var bmp = OpenCvSharp.Extensions.BitmapConverter.ToBitmap(mat))
+                {
+                    var rect = new System.Drawing.Rectangle(0, 0, bmp.Width, bmp.Height);
+                    var bmpData = bmp.LockBits(rect, System.Drawing.Imaging.ImageLockMode.ReadOnly, bmp.PixelFormat);
+                    try
+                    {
+                        System.Windows.Media.PixelFormat wpfFormat;
+                        switch (bmp.PixelFormat)
+                        {
+                            case System.Drawing.Imaging.PixelFormat.Format24bppRgb:
+                                wpfFormat = System.Windows.Media.PixelFormats.Bgr24;
+                                break;
+                            case System.Drawing.Imaging.PixelFormat.Format32bppArgb:
+                            case System.Drawing.Imaging.PixelFormat.Format32bppPArgb:
+                            case System.Drawing.Imaging.PixelFormat.Format32bppRgb:
+                                wpfFormat = System.Windows.Media.PixelFormats.Bgr32;
+                                break;
+                            case System.Drawing.Imaging.PixelFormat.Format8bppIndexed:
+                                wpfFormat = System.Windows.Media.PixelFormats.Gray8;
+                                break;
+                            default:
+                                wpfFormat = System.Windows.Media.PixelFormats.Bgr24;
+                                break;
+                        }
+
+                        var bitmapSource = System.Windows.Media.Imaging.BitmapSource.Create(
+                            bmpData.Width, bmpData.Height,
+                            bmp.HorizontalResolution, bmp.VerticalResolution,
+                            wpfFormat,
+                            null,
+                            bmpData.Scan0,
+                            bmpData.Stride * bmpData.Height,
+                            bmpData.Stride);
+
+                        bitmapSource.Freeze();
+                        return bitmapSource;
+                    }
+                    finally
+                    {
+                        bmp.UnlockBits(bmpData);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                try { LoggingService.Instance.LogError("MatToBitmapSource", "MainViewModel", "Custom convert Mat to BitmapSource failed", ex); } catch { }
+                return null;
+            }
         }
 
         public void Dispose()

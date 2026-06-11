@@ -45,7 +45,13 @@ namespace QuanLyGiuXe.Views
                     if (card.EmployeeId.HasValue)
                     {
                         var service = new EnterpriseCrudService();
-                        var emp = await Task.Run(() => service.GetEmployeeById(card.EmployeeId.Value));
+                        Employee? emp = null;
+                        try
+                        {
+                            emp = await Task.Run(() => service.GetEmployeeById(card.EmployeeId.Value));
+                        }
+                        catch { }
+
                         if (emp != null)
                         {
                             brdEmployeeInfo.Visibility = Visibility.Visible;
@@ -65,6 +71,18 @@ namespace QuanLyGiuXe.Views
                             {
                                 imgAvatar.Source = null;
                             }
+                        }
+                        else if (!string.IsNullOrEmpty(card.EmployeeName))
+                        {
+                            brdEmployeeInfo.Visibility = Visibility.Visible;
+                            brdNoEmployee.Visibility = Visibility.Collapsed;
+
+                            txtEmpName.Text = card.EmployeeName;
+                            txtEmpCode.Text = card.EmployeeCode ?? "-";
+                            txtEmpCompany.Text = "-";
+                            txtEmpDept.Text = "-";
+                            txtEmpPos.Text = "-";
+                            imgAvatar.Source = null;
                         }
                     }
                 }
