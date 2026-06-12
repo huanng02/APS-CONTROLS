@@ -251,19 +251,30 @@
                             </Style>
                         </DataGrid.Resources>
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Thiết bị" Binding="{Binding FingerprintShort}" Width="120"/>
-                            <DataGridTextColumn Header="Mã Fingerprint phần cứng" Binding="{Binding MachineFingerprint}" Width="350"/>
+                            <DataGridTextColumn Header="Thiết bị" Binding="{Binding FingerprintShort}" Width="90"/>
+                            <DataGridTextColumn Header="Trạng thái" Binding="{Binding Status}" Width="90"/>
+                            <DataGridTextColumn Header="Mã Fingerprint" Binding="{Binding MachineFingerprint}" Width="250"/>
                             <DataGridTextColumn Header="Ngày kích hoạt" Binding="{Binding CreatedAtFormatted}" Width="150"/>
-                            <DataGridTemplateColumn Header="Thao tác" Width="120">
+                            <DataGridTextColumn Header="Heartbeat cuối" Binding="{Binding LastSeenAtFormatted}" Width="150"/>
+                            <DataGridTemplateColumn Header="Thao tác" Width="140">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <Button Content="Thu hồi máy" Click="RevokeMachineFromRow_Click" Padding="8,4" FontSize="11" Background="#FF4D4D" Foreground="#FFFFFF" BorderThickness="0" Cursor="Hand">
-                                            <Button.Resources>
-                                                <Style TargetType="Border">
-                                                    <Setter Property="CornerRadius" Value="4"/>
-                                                </Style>
-                                            </Button.Resources>
-                                        </Button>
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <Button Content="Thu hồi" Click="RevokeMachineFromRow_Click" Margin="0,0,6,0" Padding="6,3" FontSize="11" Background="#FF4D4D" Foreground="#FFFFFF" BorderThickness="0" Cursor="Hand">
+                                                <Button.Resources>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="CornerRadius" Value="4"/>
+                                                    </Style>
+                                                </Button.Resources>
+                                            </Button>
+                                            <Button Content="Reset" Click="ResetMachineFromRow_Click" Padding="6,3" FontSize="11" Background="#2F3342" Foreground="#FFFFFF" BorderThickness="0" Cursor="Hand">
+                                                <Button.Resources>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="CornerRadius" Value="4"/>
+                                                    </Style>
+                                                </Button.Resources>
+                                            </Button>
+                                        </StackPanel>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>

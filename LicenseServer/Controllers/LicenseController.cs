@@ -49,7 +49,8 @@ namespace LicenseServer.Controllers
                 LicenseKey = key,
                 MaxMachines = request.MaxMachines <= 0 ? 4 : request.MaxMachines,
                 Status = "NOT_ACTIVATED",
-                ExpireAt = expireAt
+                ExpireDate = expireAt,
+                CreatedAt = DateTime.UtcNow
             };
 
             _context.Licenses.Add(license);
@@ -61,7 +62,7 @@ namespace LicenseServer.Controllers
                 LicenseKey = license.LicenseKey,
                 MaxMachines = license.MaxMachines,
                 Status = license.Status,
-                ExpireAt = license.ExpireAt
+                ExpireAt = license.ExpireDate
             });
         }
 
@@ -88,28 +89,30 @@ namespace LicenseServer.Controllers
                 return BadRequest(new { Message = "License key has been revoked." });
             }
 
-            if (license.ExpireAt < DateTime.UtcNow)
+            if (license.ExpireDate < DateTime.UtcNow)
             {
                 return BadRequest(new { Message = "License key has expired." });
             }
 
             // Check if machine fingerprint is already registered
-            var existingMachine = license.Machines.FirstOrDefault(m => m.MachineFingerprint == request.MachineFingerprint);
+            var existingMachine = license.Machines.FirstOrDefault(m => m.Fingerprint == request.MachineFingerprint);
             if (existingMachine == null)
             {
-                // Verify max limits
-                if (license.Machines.Count >= license.MaxMachines)
+                // Verify max limits (only count ACTIVE machines)
+                var activeCount = license.Machines.Count(m => m.Status == "ACTIVE");
+                if (activeCount >= license.MaxMachines)
                 {
-                    return BadRequest(new { Message = "LICENSE EXCEEDED: Maximum machine limit reached (max 4)." });
+                    return BadRequest(new { Message = $"LICENSE EXCEEDED: Maximum active machine limit reached (max {license.MaxMachines})." });
                 }
 
                 // Register new machine
                 var newMachine = new Machine
                 {
                     LicenseId = license.Id,
-                    MachineFingerprint = request.MachineFingerprint,
-                    CreatedAt = DateTime.UtcNow,
-                    LastSeenAt = DateTime.UtcNow
+                    Fingerprint = request.MachineFingerprint,
+                    Status = "ACTIVE",
+                    ActivatedAt = DateTime.UtcNow,
+                    LastHeartbeat = DateTime.UtcNow
                 };
                 license.Machines.Add(newMachine);
 
@@ -122,20 +125,29 @@ namespace LicenseServer.Controllers
             }
             else
             {
-                existingMachine.LastSeenAt = DateTime.UtcNow;
+                if (existingMachine.Status == "REVOKED")
+                {
+                    return BadRequest(new { Message = "DEVICE_REVOKED: This device has been revoked and cannot use this license." });
+                }
+
+                existingMachine.LastHeartbeat = DateTime.UtcNow;
                 await _context.SaveChangesAsync();
             }
 
             // Generate signed license response
-            var fingerprints = license.Machines.Select(m => m.MachineFingerprint).OrderBy(f => f).ToList();
-            var payload = $"{license.Id}|{license.LicenseKey}|{license.ExpireAt:yyyy-MM-ddTHH:mm:ssZ}|{license.MaxMachines}|{string.Join(",", fingerprints)}";
+            var fingerprints = license.Machines
+                .Where(m => m.Status == "ACTIVE")
+                .Select(m => m.Fingerprint)
+                .OrderBy(f => f)
+                .ToList();
+            var payload = $"{license.Id}|{license.LicenseKey}|{license.ExpireDate:yyyy-MM-ddTHH:mm:ssZ}|{license.MaxMachines}|{string.Join(",", fingerprints)}";
             var signature = _rsaService.SignData(payload);
 
             return Ok(new
             {
                 LicenseId = license.Id,
                 LicenseKey = license.LicenseKey,
-                ExpireAt = license.ExpireAt.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                ExpireAt = license.ExpireDate.ToString("yyyy-MM-ddTHH:mm:ssZ"),
                 MaxMachines = license.MaxMachines,
                 RegisteredFingerprints = fingerprints,
                 Signature = signature
@@ -160,18 +172,68 @@ namespace LicenseServer.Controllers
                 return Ok(new { IsValid = false, Message = "License key has been revoked." });
             }
 
-            if (license.ExpireAt < DateTime.UtcNow)
+            if (license.ExpireDate < DateTime.UtcNow)
             {
                 return Ok(new { IsValid = false, Message = "License key has expired." });
             }
 
-            var isRegistered = license.Machines.Any(m => m.MachineFingerprint == request.MachineFingerprint);
-            if (!isRegistered)
+            var machine = license.Machines.FirstOrDefault(m => m.Fingerprint == request.MachineFingerprint);
+            if (machine == null)
             {
                 return Ok(new { IsValid = false, Message = "Machine is not registered for this license." });
             }
 
+            if (machine.Status == "REVOKED")
+            {
+                return Ok(new { IsValid = false, Message = "This machine registration has been revoked." });
+            }
+
             return Ok(new { IsValid = true, Message = "License is valid." });
+        }
+
+        // POST /api/license/heartbeat
+        [HttpPost("heartbeat")]
+        public async Task<IActionResult> Heartbeat([FromBody] HeartbeatRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.LicenseKey) || string.IsNullOrWhiteSpace(request.MachineFingerprint))
+            {
+                return BadRequest(new { Valid = false, Reason = "BAD_REQUEST", Message = "License key and machine fingerprint are required." });
+            }
+
+            var license = await _context.Licenses
+                .Include(l => l.Machines)
+                .FirstOrDefaultAsync(l => l.LicenseKey == request.LicenseKey);
+
+            if (license == null)
+            {
+                return Ok(new { Valid = false, Reason = "LICENSE_NOT_FOUND" });
+            }
+
+            if (license.Status == "REVOKED")
+            {
+                return Ok(new { Valid = false, Reason = "LICENSE_REVOKED" });
+            }
+
+            if (license.ExpireDate < DateTime.UtcNow)
+            {
+                return Ok(new { Valid = false, Reason = "EXPIRED" });
+            }
+
+            var machine = license.Machines.FirstOrDefault(m => m.Fingerprint == request.MachineFingerprint);
+            if (machine == null)
+            {
+                return Ok(new { Valid = false, Reason = "MACHINE_NOT_FOUND" });
+            }
+
+            if (machine.Status == "REVOKED")
+            {
+                return Ok(new { Valid = false, Reason = "MACHINE_REVOKED" });
+            }
+
+            machine.LastHeartbeat = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { Valid = true });
         }
 
         // POST /api/license/revoke
@@ -197,21 +259,50 @@ namespace LicenseServer.Controllers
             }
             else
             {
-                // Revoke specific machine
-                var machine = license.Machines.FirstOrDefault(m => m.MachineFingerprint == request.MachineFingerprint);
+                // Revoke specific machine (change its status to REVOKED instead of deleting it)
+                var machine = license.Machines.FirstOrDefault(m => m.Fingerprint == request.MachineFingerprint);
                 if (machine == null)
                 {
                     return NotFound(new { Message = "Machine fingerprint not found on this license." });
                 }
 
-                license.Machines.Remove(machine);
-                if (license.Machines.Count == 0 && license.Status == "ACTIVE")
-                {
-                    license.Status = "NOT_ACTIVATED";
-                }
+                machine.Status = "REVOKED";
                 await _context.SaveChangesAsync();
                 return Ok(new { Message = "Machine registration revoked successfully." });
             }
+        }
+
+        // POST /api/license/reset-machine
+        [HttpPost("reset-machine")]
+        public async Task<IActionResult> ResetMachine([FromBody] ResetMachineRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.LicenseKey) || string.IsNullOrWhiteSpace(request.MachineFingerprint))
+            {
+                return BadRequest(new { Message = "License key and machine fingerprint are required." });
+            }
+
+            var license = await _context.Licenses
+                .Include(l => l.Machines)
+                .FirstOrDefaultAsync(l => l.LicenseKey == request.LicenseKey);
+
+            if (license == null)
+            {
+                return NotFound(new { Message = "License key not found." });
+            }
+
+            var machine = license.Machines.FirstOrDefault(m => m.Fingerprint == request.MachineFingerprint);
+            if (machine == null)
+            {
+                return NotFound(new { Message = "Machine fingerprint not found on this license." });
+            }
+
+            license.Machines.Remove(machine);
+            if (license.Machines.Count == 0 && license.Status == "ACTIVE")
+            {
+                license.Status = "NOT_ACTIVATED";
+            }
+            await _context.SaveChangesAsync();
+            return Ok(new { Message = "Machine registration reset successfully." });
         }
 
         // GET /api/license/list
@@ -226,8 +317,14 @@ namespace LicenseServer.Controllers
                     l.LicenseKey,
                     l.MaxMachines,
                     l.Status,
-                    l.ExpireAt,
-                    ActiveMachines = l.Machines.Select(m => new { m.MachineFingerprint, m.CreatedAt, m.LastSeenAt }).ToList()
+                    ExpireAt = l.ExpireDate,
+                    ActiveMachines = l.Machines.Select(m => new
+                    {
+                        MachineFingerprint = m.Fingerprint,
+                        m.Status,
+                        CreatedAt = m.ActivatedAt,
+                        LastSeenAt = m.LastHeartbeat
+                    }).ToList()
                 })
                 .ToListAsync();
 
@@ -269,6 +366,18 @@ namespace LicenseServer.Controllers
     }
 
     public class RevokeLicenseRequest
+    {
+        public string LicenseKey { get; set; } = string.Empty;
+        public string MachineFingerprint { get; set; } = string.Empty;
+    }
+
+    public class HeartbeatRequest
+    {
+        public string LicenseKey { get; set; } = string.Empty;
+        public string MachineFingerprint { get; set; } = string.Empty;
+    }
+
+    public class ResetMachineRequest
     {
         public string LicenseKey { get; set; } = string.Empty;
         public string MachineFingerprint { get; set; } = string.Empty;

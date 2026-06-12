@@ -25,7 +25,7 @@ namespace LicenseServer.Data
             modelBuilder.Entity<Machine>(entity =>
             {
                 entity.HasKey(e => e.Id);
-                entity.HasIndex(e => new { e.LicenseId, e.MachineFingerprint }).IsUnique();
+                entity.HasIndex(e => new { e.LicenseId, e.Fingerprint }).IsUnique();
             });
         }
     }

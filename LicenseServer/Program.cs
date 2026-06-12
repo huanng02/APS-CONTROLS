@@ -8,9 +8,10 @@ builder.Host.UseWindowsService();
 // Add services to the container.
 builder.Services.AddControllers();
 
-// Configure SQLite DbContext
+// Configure SQLite DbContext relative to assembly location
+var dbPath = Path.Combine(AppContext.BaseDirectory, "licenses.db");
 builder.Services.AddDbContext<LicenseDbContext>(options =>
-    options.UseSqlite("Data Source=licenses.db"));
+    options.UseSqlite($"Data Source={dbPath}"));
 
 // Register RSA Signing Service as a singleton
 builder.Services.AddSingleton<IRsaSigningService, RsaSigningService>();

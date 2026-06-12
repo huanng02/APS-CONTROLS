@@ -134,6 +134,7 @@ namespace LicenseTool
                 var machineList = selectedLicense.ActiveMachines.Select(m => new MachineViewModel
                 {
                     MachineFingerprint = m.MachineFingerprint,
+                    Status = m.Status,
                     CreatedAt = m.CreatedAt,
                     LastSeenAt = m.LastSeenAt
                 }).ToList();
@@ -147,6 +148,46 @@ namespace LicenseTool
                 MachinesGrid.ItemsSource = null;
                 SelectedKeyLabel.Text = string.Empty;
                 RevokeLicenseBtn.IsEnabled = false;
+            }
+        }
+
+        private async void ResetMachineFromRow_Click(object sender, RoutedEventArgs e)
+        {
+            var selectedLicense = LicensesGrid.SelectedItem as LicenseViewModel;
+            var button = sender as Button;
+            var selectedMachine = button?.DataContext as MachineViewModel;
+
+            if (selectedLicense == null || selectedMachine == null) return;
+
+            var confirm = MessageBox.Show($"Bạn có chắc chắn muốn RESET (xóa đăng ký) cho máy này?\nThao tác này sẽ giải phóng 1 slot của key để máy khác có thể kích hoạt.\n\nFingerprint: {selectedMachine.MachineFingerprint}", 
+                "Xác nhận Reset máy", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+            if (confirm != MessageBoxResult.Yes) return;
+
+            StatusBlock.Text = "Đang reset máy...";
+            try
+            {
+                var url = $"{GetServerUrl()}/api/license/reset-machine";
+                var requestBody = new 
+                { 
+                    LicenseKey = selectedLicense.LicenseKey, 
+                    MachineFingerprint = selectedMachine.MachineFingerprint 
+                };
+                var content = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
+
+                var response = await _httpClient.PostAsync(url, content);
+                if (!response.IsSuccessStatusCode)
+                {
+                    StatusBlock.Text = $"Lỗi reset máy: {response.StatusCode}";
+                    return;
+                }
+
+                MessageBox.Show("Reset đăng ký máy thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                LoadData();
+            }
+            catch (Exception ex)
+            {
+                StatusBlock.Text = $"Lỗi kết nối khi reset máy: {ex.Message}";
             }
         }
 
@@ -260,6 +301,7 @@ namespace LicenseTool
     public class MachineDto
     {
         public string MachineFingerprint { get; set; } = string.Empty;
+        public string Status { get; set; } = "ACTIVE";
         public DateTime CreatedAt { get; set; }
         public DateTime LastSeenAt { get; set; }
     }
@@ -267,9 +309,11 @@ namespace LicenseTool
     public class MachineViewModel
     {
         public string MachineFingerprint { get; set; } = string.Empty;
+        public string Status { get; set; } = "ACTIVE";
         public string FingerprintShort => MachineFingerprint.Length > 8 ? $"Device #{MachineFingerprint.Substring(0, 8)}" : "Device";
         public DateTime CreatedAt { get; set; }
         public string CreatedAtFormatted => $"Kích hoạt: {CreatedAt.ToLocalTime():yyyy-MM-dd HH:mm}";
         public DateTime LastSeenAt { get; set; }
+        public string LastSeenAtFormatted => LastSeenAt.Year < 2000 ? "Chưa nhận" : LastSeenAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
     }
 }

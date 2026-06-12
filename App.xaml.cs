@@ -40,7 +40,7 @@ namespace QuanLyGiuXe
                 }
 
                 // Start background periodic check for live revocation detection
-                LicenseValidationService.Instance.StartPeriodicLicenseCheck(errorMsg =>
+                LicenseMonitorService.Instance.Start(errorMsg =>
                 {
                     System.Windows.Application.Current.Dispatcher.Invoke(() =>
                     {
@@ -282,7 +282,7 @@ namespace QuanLyGiuXe
         {
             try
             {
-                LicenseValidationService.Instance.StopPeriodicLicenseCheck();
+                LicenseMonitorService.Instance.Stop();
             }
             catch { }
 

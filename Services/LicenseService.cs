@@ -96,6 +96,7 @@ namespace QuanLyGiuXe.Services
         public int MaxMachines { get; set; } = 4;
         public List<string> RegisteredFingerprints { get; set; } = new();
         public string Signature { get; set; } = string.Empty;
+        public string? LastServerCheckEncrypted { get; set; }
     }
 
     public class LicenseValidationService
@@ -131,6 +132,65 @@ namespace QuanLyGiuXe.Services
         public string GetLocalFingerprint()
         {
             return MachineFingerprint.GetFingerprint();
+        }
+
+        private static readonly byte[] Entropy = new byte[] { 67, 51, 80, 97, 114, 107, 105, 110, 103, 76, 105, 99, 101, 110, 115, 101 }; // "C3ParkingLicense"
+
+        public string EncryptDate(DateTime date)
+        {
+            try
+            {
+                string dateStr = date.ToString("O");
+                byte[] plaintextBytes = Encoding.UTF8.GetBytes(dateStr);
+                byte[] ciphertextBytes = ProtectedData.Protect(plaintextBytes, Entropy, DataProtectionScope.LocalMachine);
+                return Convert.ToBase64String(ciphertextBytes);
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Error($"DPAPI Protect failed: {ex.Message}");
+                return string.Empty;
+            }
+        }
+
+        public DateTime? DecryptDate(string encryptedBase64)
+        {
+            if (string.IsNullOrEmpty(encryptedBase64)) return null;
+            try
+            {
+                byte[] ciphertextBytes = Convert.FromBase64String(encryptedBase64);
+                byte[] plaintextBytes = ProtectedData.Unprotect(ciphertextBytes, Entropy, DataProtectionScope.LocalMachine);
+                string dateStr = Encoding.UTF8.GetString(plaintextBytes);
+                if (DateTime.TryParse(dateStr, out var date))
+                {
+                    return date.ToUniversalTime();
+                }
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Error($"DPAPI Unprotect failed: {ex.Message}");
+            }
+            return null;
+        }
+
+        public void UpdateLastServerCheckTime()
+        {
+            try
+            {
+                if (!File.Exists(_licenseFilePath)) return;
+                var json = File.ReadAllText(_licenseFilePath);
+                var settings = new JsonSerializerSettings { DateParseHandling = DateParseHandling.None };
+                var license = JsonConvert.DeserializeObject<LicenseBlock>(json, settings);
+                if (license != null)
+                {
+                    license.LastServerCheckEncrypted = EncryptDate(DateTime.UtcNow);
+                    var updatedJson = JsonConvert.SerializeObject(license, Formatting.Indented);
+                    File.WriteAllText(_licenseFilePath, updatedJson, Encoding.UTF8);
+                }
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Error($"Failed to update last server check time: {ex.Message}");
+            }
         }
 
         public bool CheckLicenseOffline(out string errorMsg)
@@ -211,19 +271,51 @@ namespace QuanLyGiuXe.Services
                     return false;
                 }
 
-                // 6. Online validation check (only triggers if server is reachable)
-                if (!TryCheckServerValidation(license.LicenseKey, out var serverError))
+                // 6. Decrypt and check Offline Grace Period
+                DateTime? lastCheck = DecryptDate(license.LastServerCheckEncrypted ?? string.Empty);
+                
+                bool isServerOnline = TryCheckServerValidation(license.LicenseKey, out var serverError, out var wasContacted);
+                
+                if (wasContacted)
                 {
-                    errorMsg = serverError;
-                    try
+                    if (!isServerOnline)
                     {
-                        if (File.Exists(_licenseFilePath))
+                        errorMsg = serverError;
+                        try
                         {
-                            File.Delete(_licenseFilePath);
+                            if (File.Exists(_licenseFilePath))
+                            {
+                                File.Delete(_licenseFilePath);
+                            }
                         }
+                        catch { }
+                        return false;
                     }
-                    catch { }
-                    return false;
+                    
+                    // Server is online and verified -> update the timestamp!
+                    UpdateLastServerCheckTime();
+                }
+                else
+                {
+                    // Server is offline/unreachable -> perform grace check
+                    if (lastCheck == null)
+                    {
+                        errorMsg = "Hệ thống đang ngoại tuyến và không tìm thấy thông tin xác thực an toàn trước đó. Vui lòng kết nối Internet.";
+                        return false;
+                    }
+
+                    if (DateTime.UtcNow < lastCheck.Value - TimeSpan.FromMinutes(10))
+                    {
+                        errorMsg = "Lỗi đồng hồ hệ thống: Thời gian hiện tại nhỏ hơn thời gian xác thực an toàn cuối cùng. Vui lòng cập nhật thời gian chính xác.";
+                        return false;
+                    }
+
+                    var offlineDuration = DateTime.UtcNow - lastCheck.Value;
+                    if (offlineDuration > TimeSpan.FromHours(24))
+                    {
+                        errorMsg = $"Đã quá giới hạn hoạt động ngoại tuyến (24 giờ). Thời gian ngoại tuyến hiện tại: {offlineDuration.TotalHours:F1} giờ. Vui lòng kết nối Internet.";
+                        return false;
+                    }
                 }
 
                 return true;
@@ -235,9 +327,10 @@ namespace QuanLyGiuXe.Services
             }
         }
 
-        private bool TryCheckServerValidation(string licenseKey, out string serverError)
+        private bool TryCheckServerValidation(string licenseKey, out string serverError, out bool wasContacted)
         {
             serverError = string.Empty;
+            wasContacted = false;
             try
             {
                 var localFingerprint = GetLocalFingerprint();
@@ -250,12 +343,13 @@ namespace QuanLyGiuXe.Services
                 var url = $"{GetServerUrl()}/api/license/validate";
                 var content = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
 
-                using (var cts = new System.Threading.CancellationTokenSource(1500))
+                using (var cts = new System.Threading.CancellationTokenSource(2000))
                 {
                     var responseTask = _httpClient.PostAsync(url, content, cts.Token);
                     responseTask.Wait(cts.Token);
                     var response = responseTask.Result;
 
+                    wasContacted = true;
                     if (response.IsSuccessStatusCode)
                     {
                         var responseString = response.Content.ReadAsStringAsync().Result;
@@ -268,12 +362,17 @@ namespace QuanLyGiuXe.Services
                             return false;
                         }
                     }
+                    else
+                    {
+                        serverError = $"Máy chủ bản quyền báo lỗi: {response.StatusCode}";
+                        return false;
+                    }
                 }
             }
             catch
             {
-                // Gracefully fallback to offline validation if server is offline/unreachable
-                return true;
+                wasContacted = false;
+                return true; // Fallback to true, meaning we check offline grace period
             }
             return true;
         }
@@ -311,7 +410,6 @@ namespace QuanLyGiuXe.Services
                     return (false, serverMsg);
                 }
 
-                // Verify the response is a valid license block
                 var settings = new JsonSerializerSettings { DateParseHandling = DateParseHandling.None };
                 var licenseBlock = JsonConvert.DeserializeObject<LicenseBlock>(responseString, settings);
                 if (licenseBlock == null || string.IsNullOrEmpty(licenseBlock.Signature))
@@ -319,42 +417,16 @@ namespace QuanLyGiuXe.Services
                     return (false, "Không thể giải mã bản quyền trả về từ máy chủ.");
                 }
 
-                // Save to file
-                File.WriteAllText(_licenseFilePath, responseString, Encoding.UTF8);
+                licenseBlock.LastServerCheckEncrypted = EncryptDate(DateTime.UtcNow);
+                var updatedJson = JsonConvert.SerializeObject(licenseBlock, Formatting.Indented);
+
+                File.WriteAllText(_licenseFilePath, updatedJson, Encoding.UTF8);
                 return (true, string.Empty);
             }
             catch (Exception ex)
             {
                 return (false, $"Lỗi kết nối máy chủ kích hoạt: {ex.Message}");
             }
-        }
-
-        private System.Threading.Timer? _periodicCheckTimer;
-
-        public void StartPeriodicLicenseCheck(Action<string> onLicenseInvalidated)
-        {
-            _periodicCheckTimer?.Dispose();
-
-            // Run check every 1 minute (60,000 ms), starting after 1 minute for fast testing
-            _periodicCheckTimer = new System.Threading.Timer(state =>
-            {
-                try
-                {
-                    string errorMsg;
-                    bool isValid = CheckLicenseOffline(out errorMsg);
-                    if (!isValid)
-                    {
-                        onLicenseInvalidated?.Invoke(errorMsg);
-                    }
-                }
-                catch { }
-            }, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
-        }
-
-        public void StopPeriodicLicenseCheck()
-        {
-            _periodicCheckTimer?.Dispose();
-            _periodicCheckTimer = null;
         }
     }
 }
