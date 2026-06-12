@@ -211,6 +211,21 @@ namespace QuanLyGiuXe.Services
                     return false;
                 }
 
+                // 6. Online validation check (only triggers if server is reachable)
+                if (!TryCheckServerValidation(license.LicenseKey, out var serverError))
+                {
+                    errorMsg = serverError;
+                    try
+                    {
+                        if (File.Exists(_licenseFilePath))
+                        {
+                            File.Delete(_licenseFilePath);
+                        }
+                    }
+                    catch { }
+                    return false;
+                }
+
                 return true;
             }
             catch (Exception ex)
@@ -218,6 +233,49 @@ namespace QuanLyGiuXe.Services
                 errorMsg = $"Lỗi kiểm tra bản quyền: {ex.Message}";
                 return false;
             }
+        }
+
+        private bool TryCheckServerValidation(string licenseKey, out string serverError)
+        {
+            serverError = string.Empty;
+            try
+            {
+                var localFingerprint = GetLocalFingerprint();
+                var requestBody = new
+                {
+                    LicenseKey = licenseKey,
+                    MachineFingerprint = localFingerprint
+                };
+
+                var url = $"{GetServerUrl()}/api/license/validate";
+                var content = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
+
+                using (var cts = new System.Threading.CancellationTokenSource(1500))
+                {
+                    var responseTask = _httpClient.PostAsync(url, content, cts.Token);
+                    responseTask.Wait(cts.Token);
+                    var response = responseTask.Result;
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        var responseString = response.Content.ReadAsStringAsync().Result;
+                        var result = JsonConvert.DeserializeAnonymousType(responseString, new { IsValid = false, Message = "" });
+                        if (result != null && !result.IsValid)
+                        {
+                            serverError = !string.IsNullOrEmpty(result.Message)
+                                ? $"Bản quyền bị từ chối từ máy chủ: {result.Message}"
+                                : "Bản quyền đã bị thu hồi hoặc thiết bị này đã bị xóa khỏi hệ thống.";
+                            return false;
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // Gracefully fallback to offline validation if server is offline/unreachable
+                return true;
+            }
+            return true;
         }
 
         public async Task<(bool Success, string ErrorMsg)> ActivateOnlineAsync(string licenseKey)
