@@ -328,5 +328,33 @@ namespace QuanLyGiuXe.Services
                 return (false, $"Lỗi kết nối máy chủ kích hoạt: {ex.Message}");
             }
         }
+
+        private System.Threading.Timer? _periodicCheckTimer;
+
+        public void StartPeriodicLicenseCheck(Action<string> onLicenseInvalidated)
+        {
+            _periodicCheckTimer?.Dispose();
+
+            // Run check every 1 minute (60,000 ms), starting after 1 minute for fast testing
+            _periodicCheckTimer = new System.Threading.Timer(state =>
+            {
+                try
+                {
+                    string errorMsg;
+                    bool isValid = CheckLicenseOffline(out errorMsg);
+                    if (!isValid)
+                    {
+                        onLicenseInvalidated?.Invoke(errorMsg);
+                    }
+                }
+                catch { }
+            }, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
+        }
+
+        public void StopPeriodicLicenseCheck()
+        {
+            _periodicCheckTimer?.Dispose();
+            _periodicCheckTimer = null;
+        }
     }
 }

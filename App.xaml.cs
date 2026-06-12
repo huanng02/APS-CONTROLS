@@ -39,6 +39,28 @@ namespace QuanLyGiuXe
                     }
                 }
 
+                // Start background periodic check for live revocation detection
+                LicenseValidationService.Instance.StartPeriodicLicenseCheck(errorMsg =>
+                {
+                    System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        System.Windows.MessageBox.Show(
+                            $"CẢNH BÁO BẢN QUYỀN:\n\n{errorMsg}\n\nỨng dụng sẽ tự động đóng để bảo vệ hệ thống.",
+                            "Bản Quyền Bị Thu Hồi",
+                            System.Windows.MessageBoxButton.OK,
+                            System.Windows.MessageBoxImage.Error);
+
+                        try
+                        {
+                            System.Diagnostics.Process.GetCurrentProcess().Kill();
+                        }
+                        catch
+                        {
+                            System.Windows.Application.Current.Shutdown(1);
+                        }
+                    });
+                });
+
                 // Start HTTP API Server
                 _apiServer.Start();
 
@@ -258,6 +280,12 @@ namespace QuanLyGiuXe
 
         protected override void OnExit(ExitEventArgs e)
         {
+            try
+            {
+                LicenseValidationService.Instance.StopPeriodicLicenseCheck();
+            }
+            catch { }
+
             // Start a thread-pool timer to force exit the process if it hangs for more than 2 seconds
             var watchdogTimer = new System.Threading.Timer(_ =>
             {
