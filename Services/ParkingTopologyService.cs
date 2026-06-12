@@ -29,8 +29,7 @@ namespace QuanLyGiuXe.Services
                 async conn =>
                 {
                     var list = new List<ParkingSite>();
-                    string sql = "SELECT Id, SiteCode, SiteName, Description, IsActive, CreatedUtc FROM dbo.ParkingSites ORDER BY SiteCode";
-                    using (var cmd = new SqlCommand(sql, conn))
+                    using (var cmd = new SqlCommand(@"SELECT Id, SiteCode, SiteName, Description, IsActive, CreatedUtc FROM dbo.ParkingSites ORDER BY SiteCode", conn))
                     using (var r = await cmd.ExecuteReaderAsync())
                     {
                         while (await r.ReadAsync())
@@ -60,13 +59,12 @@ namespace QuanLyGiuXe.Services
                 async conn =>
                 {
                     var list = new List<ParkingZone>();
-                    string sql = @"
+                    using (var cmd = new SqlCommand(@"
                         SELECT z.Id, z.SiteId, z.ZoneCode, z.ZoneName, z.Description, z.MaxCapacity, z.IsActive, z.CreatedUtc,
                                s.SiteCode, s.SiteName
                         FROM dbo.ParkingZones z
                         JOIN dbo.ParkingSites s ON z.SiteId = s.Id
-                        ORDER BY z.ZoneCode";
-                    using (var cmd = new SqlCommand(sql, conn))
+                        ORDER BY z.ZoneCode", conn))
                     using (var r = await cmd.ExecuteReaderAsync())
                     {
                         while (await r.ReadAsync())
@@ -100,13 +98,12 @@ namespace QuanLyGiuXe.Services
                 async conn =>
                 {
                     var list = new List<ParkingGate>();
-                    string sql = @"
+                    using (var cmd = new SqlCommand(@"
                         SELECT g.Id, g.SiteId, g.GateCode, g.GateName, g.Description, g.IsActive, g.CreatedUtc,
                                s.SiteCode, s.SiteName
                         FROM dbo.ParkingGates g
                         JOIN dbo.ParkingSites s ON g.SiteId = s.Id
-                        ORDER BY g.GateCode";
-                    using (var cmd = new SqlCommand(sql, conn))
+                        ORDER BY g.GateCode", conn))
                     using (var r = await cmd.ExecuteReaderAsync())
                     {
                         while (await r.ReadAsync())
@@ -139,13 +136,12 @@ namespace QuanLyGiuXe.Services
                 async conn =>
                 {
                     var list = new List<C3ControllerConfig>();
-                    string sql = @"
+                    using (var cmd = new SqlCommand(@"
                         SELECT c.Id, c.ControllerName, c.IpAddress, c.GateId, c.IsActive, c.CreatedUtc,
                                g.GateName, c.ServerIp, c.PcIp
                         FROM dbo.C3Controllers c
                         JOIN dbo.ParkingGates g ON c.GateId = g.Id
-                        ORDER BY c.ControllerName";
-                    using (var cmd = new SqlCommand(sql, conn))
+                        ORDER BY c.ControllerName", conn))
                     using (var r = await cmd.ExecuteReaderAsync())
                     {
                         while (await r.ReadAsync())
@@ -178,15 +174,14 @@ namespace QuanLyGiuXe.Services
                 async conn =>
                 {
                     var list = new List<LaneConfig>();
-                    string sql = @"
+                    using (var cmd = new SqlCommand(@"
                         SELECT l.Id, l.LaneCode, l.LaneName, l.Direction, l.ZoneId, l.GateId, l.IsActive, l.CreatedUtc,
                                z.ZoneName, g.GateName, l.LoaiXeId, lx.TenLoai
                         FROM dbo.Lanes l
                         LEFT JOIN dbo.ParkingZones z ON l.ZoneId = z.Id
                         LEFT JOIN dbo.ParkingGates g ON l.GateId = g.Id
                         LEFT JOIN dbo.LoaiXe lx ON l.LoaiXeId = lx.Id
-                        ORDER BY l.LaneCode";
-                    using (var cmd = new SqlCommand(sql, conn))
+                        ORDER BY l.LaneCode", conn))
                     using (var r = await cmd.ExecuteReaderAsync())
                     {
                         while (await r.ReadAsync())
@@ -446,7 +441,7 @@ namespace QuanLyGiuXe.Services
                 async conn =>
                 {
                     // 1. Clean up legacy ParkingTopologies table if it exists
-                    string dropLegacyFkSql = @"
+                    using (var cmd = new SqlCommand(@"
                         IF OBJECT_ID('dbo.ParkingTopologies', 'U') IS NOT NULL
                         BEGIN
                             BEGIN TRY
@@ -465,27 +460,24 @@ namespace QuanLyGiuXe.Services
                                 BEGIN CATCH
                                 END CATCH
                             END CATCH
-                        END";
-                    using (var cmd = new SqlCommand(dropLegacyFkSql, conn))
+                        END", conn))
                     {
                         cmd.Parameters.AddWithValue("@id", id);
                         await cmd.ExecuteNonQueryAsync();
                     }
 
                     // 2. Nullify references in transaction tables
-                    string updateSql = @"
+                    using (var cmd = new SqlCommand(@"
                         UPDATE dbo.VehicleSessions SET SiteId = NULL WHERE SiteId = @id;
                         UPDATE dbo.XeTrongBai SET SiteId = NULL WHERE SiteId = @id;
-                        UPDATE dbo.LichSuXe SET SiteId = NULL WHERE SiteId = @id;";
-                    using (var cmd = new SqlCommand(updateSql, conn))
+                        UPDATE dbo.LichSuXe SET SiteId = NULL WHERE SiteId = @id;", conn))
                     {
                         cmd.Parameters.AddWithValue("@id", id);
                         await cmd.ExecuteNonQueryAsync();
                     }
 
                     // 3. Delete the site
-                    string sql = "DELETE FROM dbo.ParkingSites WHERE Id = @id";
-                    using (var cmd = new SqlCommand(sql, conn))
+                    using (var cmd = new SqlCommand(@"DELETE FROM dbo.ParkingSites WHERE Id = @id", conn))
                     {
                         cmd.Parameters.AddWithValue("@id", id);
                         await cmd.ExecuteNonQueryAsync();
@@ -498,11 +490,10 @@ namespace QuanLyGiuXe.Services
                     using (var conn = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={dbPath};Default Timeout=5;"))
                     {
                         await conn.OpenAsync();
-                        string updateSql = @"
+                        using (var cmd = new Microsoft.Data.Sqlite.SqliteCommand(@"
                             UPDATE VehicleSessions SET SiteId = NULL WHERE SiteId = @id;
                             UPDATE XeTrongBai SET SiteId = NULL WHERE SiteId = @id;
-                            UPDATE LichSuXe SET SiteId = NULL WHERE SiteId = @id;";
-                        using (var cmd = new Microsoft.Data.Sqlite.SqliteCommand(updateSql, conn))
+                            UPDATE LichSuXe SET SiteId = NULL WHERE SiteId = @id;", conn))
                         {
                             cmd.Parameters.AddWithValue("@id", id);
                             await cmd.ExecuteNonQueryAsync();
@@ -704,7 +695,7 @@ namespace QuanLyGiuXe.Services
                 async conn =>
                 {
                     // 1. Clean up legacy ParkingTopologies table if it exists (for 'BaiXe' DB)
-                    string dropLegacyFkSql = @"
+                    using (var cmd = new SqlCommand(@"
                         IF OBJECT_ID('dbo.ParkingTopologies', 'U') IS NOT NULL
                         BEGIN
                             BEGIN TRY
@@ -723,27 +714,24 @@ namespace QuanLyGiuXe.Services
                                 BEGIN CATCH
                                 END CATCH
                             END CATCH
-                        END";
-                    using (var cmd = new SqlCommand(dropLegacyFkSql, conn))
+                        END", conn))
                     {
                         cmd.Parameters.AddWithValue("@id", id);
                         await cmd.ExecuteNonQueryAsync();
                     }
 
                     // 2. Nullify references in transaction tables
-                    string updateSql = @"
+                    using (var cmd = new SqlCommand(@"
                         UPDATE dbo.VehicleSessions SET ZoneId = NULL WHERE ZoneId = @id;
                         UPDATE dbo.XeTrongBai SET ZoneId = NULL WHERE ZoneId = @id;
-                        UPDATE dbo.LichSuXe SET ZoneId = NULL WHERE ZoneId = @id;";
-                    using (var cmd = new SqlCommand(updateSql, conn))
+                        UPDATE dbo.LichSuXe SET ZoneId = NULL WHERE ZoneId = @id;", conn))
                     {
                         cmd.Parameters.AddWithValue("@id", id);
                         await cmd.ExecuteNonQueryAsync();
                     }
 
                     // 3. Delete the zone
-                    string sql = "DELETE FROM dbo.ParkingZones WHERE Id = @id";
-                    using (var cmd = new SqlCommand(sql, conn))
+                    using (var cmd = new SqlCommand(@"DELETE FROM dbo.ParkingZones WHERE Id = @id", conn))
                     {
                         cmd.Parameters.AddWithValue("@id", id);
                         await cmd.ExecuteNonQueryAsync();
@@ -756,11 +744,10 @@ namespace QuanLyGiuXe.Services
                     using (var conn = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={dbPath};Default Timeout=5;"))
                     {
                         await conn.OpenAsync();
-                        string updateSql = @"
+                        using (var cmd = new Microsoft.Data.Sqlite.SqliteCommand(@"
                             UPDATE VehicleSessions SET ZoneId = NULL WHERE ZoneId = @id;
                             UPDATE XeTrongBai SET ZoneId = NULL WHERE ZoneId = @id;
-                            UPDATE LichSuXe SET ZoneId = NULL WHERE ZoneId = @id;";
-                        using (var cmd = new Microsoft.Data.Sqlite.SqliteCommand(updateSql, conn))
+                            UPDATE LichSuXe SET ZoneId = NULL WHERE ZoneId = @id;", conn))
                         {
                             cmd.Parameters.AddWithValue("@id", id);
                             await cmd.ExecuteNonQueryAsync();
@@ -1405,21 +1392,19 @@ namespace QuanLyGiuXe.Services
                 async conn =>
                 {
                     // 1. Nullify references in transaction tables
-                    string updateSql = @"
+                    using (var cmd = new SqlCommand(@"
                         UPDATE dbo.VehicleSessions SET EntryLaneId = NULL WHERE EntryLaneId = @id;
                         UPDATE dbo.VehicleSessions SET ExitLaneId = NULL WHERE ExitLaneId = @id;
                         UPDATE dbo.XeTrongBai SET EntryLaneId = NULL WHERE EntryLaneId = @id;
                         UPDATE dbo.LichSuXe SET EntryLaneId = NULL WHERE EntryLaneId = @id;
-                        UPDATE dbo.LichSuXe SET ExitLaneId = NULL WHERE ExitLaneId = @id;";
-                    using (var cmd = new SqlCommand(updateSql, conn))
+                        UPDATE dbo.LichSuXe SET ExitLaneId = NULL WHERE ExitLaneId = @id;", conn))
                     {
                         cmd.Parameters.AddWithValue("@id", id);
                         await cmd.ExecuteNonQueryAsync();
                     }
 
                     // 2. Delete the lane
-                    string sql = "DELETE FROM dbo.Lanes WHERE Id = @id";
-                    using (var cmd = new SqlCommand(sql, conn))
+                    using (var cmd = new SqlCommand("DELETE FROM dbo.Lanes WHERE Id = @id", conn))
                     {
                         cmd.Parameters.AddWithValue("@id", id);
                         await cmd.ExecuteNonQueryAsync();
@@ -1432,13 +1417,12 @@ namespace QuanLyGiuXe.Services
                     using (var conn = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={dbPath};Default Timeout=5;"))
                     {
                         await conn.OpenAsync();
-                        string updateSql = @"
+                        using (var cmd = new Microsoft.Data.Sqlite.SqliteCommand(@"
                             UPDATE VehicleSessions SET EntryLaneId = NULL WHERE EntryLaneId = @id;
                             UPDATE VehicleSessions SET ExitLaneId = NULL WHERE ExitLaneId = @id;
                             UPDATE XeTrongBai SET EntryLaneId = NULL WHERE EntryLaneId = @id;
                             UPDATE LichSuXe SET EntryLaneId = NULL WHERE EntryLaneId = @id;
-                            UPDATE LichSuXe SET ExitLaneId = NULL WHERE ExitLaneId = @id;";
-                        using (var cmd = new Microsoft.Data.Sqlite.SqliteCommand(updateSql, conn))
+                            UPDATE LichSuXe SET ExitLaneId = NULL WHERE ExitLaneId = @id;", conn))
                         {
                             cmd.Parameters.AddWithValue("@id", id);
                             await cmd.ExecuteNonQueryAsync();
@@ -1492,8 +1476,7 @@ namespace QuanLyGiuXe.Services
                 new { LaneId = laneId, ZoneId = zoneId },
                 async conn =>
                 {
-                    string sql = "UPDATE dbo.Lanes SET ZoneId = @zoneId WHERE Id = @laneId";
-                    using (var cmd = new SqlCommand(sql, conn))
+                    using (var cmd = new SqlCommand(@"UPDATE dbo.Lanes SET ZoneId = @zoneId WHERE Id = @laneId", conn))
                     {
                         cmd.Parameters.AddWithValue("@laneId", laneId);
                         cmd.Parameters.AddWithValue("@zoneId", (object?)zoneId ?? DBNull.Value);
@@ -1559,8 +1542,7 @@ namespace QuanLyGiuXe.Services
                 new { LaneId = laneId, GateId = gateId },
                 async conn =>
                 {
-                    string sql = "UPDATE dbo.Lanes SET GateId = @gateId WHERE Id = @laneId";
-                    using (var cmd = new SqlCommand(sql, conn))
+                    using (var cmd = new SqlCommand(@"UPDATE dbo.Lanes SET GateId = @gateId WHERE Id = @laneId", conn))
                     {
                         cmd.Parameters.AddWithValue("@laneId", laneId);
                         cmd.Parameters.AddWithValue("@gateId", (object?)gateId ?? DBNull.Value);
@@ -1669,10 +1651,9 @@ namespace QuanLyGiuXe.Services
                 session,
                 async conn =>
                 {
-                    string sql = @"
+                    using (var cmd = new SqlCommand(@"
                         INSERT INTO dbo.VehicleSessions (CardId, BienSo, ThoiGianVao, SiteId, ZoneId, EntryLaneId, TrangThai)
-                        VALUES (@cardId, @plate, @time, @siteId, @zoneId, @laneId, 'Active')";
-                    using (var cmd = new SqlCommand(sql, conn))
+                        VALUES (@cardId, @plate, @time, @siteId, @zoneId, @laneId, 'Active')", conn))
                     {
                         cmd.Parameters.AddWithValue("@cardId", session.CardId);
                         cmd.Parameters.AddWithValue("@plate", session.BienSo);
@@ -1690,10 +1671,9 @@ namespace QuanLyGiuXe.Services
                     using (var conn = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={dbPath};Default Timeout=5;"))
                     {
                         await conn.OpenAsync();
-                        string sql = @"
+                        using (var cmd = new Microsoft.Data.Sqlite.SqliteCommand(@"
                             INSERT INTO VehicleSessions (CardId, BienSo, ThoiGianVao, SiteId, ZoneId, EntryLaneId, TrangThai)
-                            VALUES (@cardId, @plate, @time, @siteId, @zoneId, @laneId, 'Active')";
-                        using (var cmd = new Microsoft.Data.Sqlite.SqliteCommand(sql, conn))
+                            VALUES (@cardId, @plate, @time, @siteId, @zoneId, @laneId, 'Active')", conn))
                         {
                             cmd.Parameters.AddWithValue("@cardId", session.CardId);
                             cmd.Parameters.AddWithValue("@plate", session.BienSo);
@@ -1719,11 +1699,10 @@ namespace QuanLyGiuXe.Services
                 new { CardId = cardId, ExitLaneId = lane.Id },
                 async conn =>
                 {
-                    string sql = @"
+                    using (var cmd = new SqlCommand(@"
                         UPDATE dbo.VehicleSessions 
                         SET ThoiGianRa = GETUTCDATE(), ExitLaneId = @laneId, TrangThai = 'Closed'
-                        WHERE CardId = @cardId AND ThoiGianRa IS NULL";
-                    using (var cmd = new SqlCommand(sql, conn))
+                        WHERE CardId = @cardId AND ThoiGianRa IS NULL", conn))
                     {
                         cmd.Parameters.AddWithValue("@cardId", cardId);
                         cmd.Parameters.AddWithValue("@laneId", lane.Id);
@@ -1737,11 +1716,10 @@ namespace QuanLyGiuXe.Services
                     using (var conn = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={dbPath};Default Timeout=5;"))
                     {
                         await conn.OpenAsync();
-                        string sql = @"
+                        using (var cmd = new Microsoft.Data.Sqlite.SqliteCommand(@"
                             UPDATE VehicleSessions 
                             SET ThoiGianRa = CURRENT_TIMESTAMP, ExitLaneId = @laneId, TrangThai = 'Closed'
-                            WHERE CardId = @cardId AND ThoiGianRa IS NULL";
-                        using (var cmd = new Microsoft.Data.Sqlite.SqliteCommand(sql, conn))
+                            WHERE CardId = @cardId AND ThoiGianRa IS NULL", conn))
                         {
                             cmd.Parameters.AddWithValue("@cardId", cardId);
                             cmd.Parameters.AddWithValue("@laneId", lane.Id);
@@ -1767,13 +1745,12 @@ namespace QuanLyGiuXe.Services
                     var list = new List<QuanLyGiuXe.Models.CameraConfig>();
                     try
                     {
-                        string sql = @"
+                        using (var cmd = new SqlCommand(@"
                             SELECT c.Id, c.CameraName, c.CameraKey, c.IpAddress, c.RtspUrl, c.LaneId, c.Direction, c.IsActive, c.CreatedUtc,
                                    l.LaneName, c.ResolutionWidth, c.ResolutionHeight
                             FROM dbo.Cameras c
                             LEFT JOIN dbo.Lanes l ON c.LaneId = l.Id
-                            ORDER BY c.CameraName";
-                        using (var cmd = new SqlCommand(sql, conn))
+                            ORDER BY c.CameraName", conn))
                         using (var r = await cmd.ExecuteReaderAsync())
                         {
                             while (await r.ReadAsync())
@@ -1952,14 +1929,13 @@ namespace QuanLyGiuXe.Services
                     var list = new List<QuanLyGiuXe.Models.BarrierConfig>();
                     try
                     {
-                        string sql = @"
+                        using (var cmd = new SqlCommand(@"
                             SELECT b.Id, b.BarrierName, b.ControllerId, b.RelayNumber, b.LaneId, b.Direction, b.IsActive, b.CreatedUtc,
                                    c.ControllerName, l.LaneName
                             FROM dbo.Barriers b
                             LEFT JOIN dbo.C3Controllers c ON b.ControllerId = c.Id
                             LEFT JOIN dbo.Lanes l ON b.LaneId = l.Id
-                            ORDER BY b.BarrierName";
-                        using (var cmd = new SqlCommand(sql, conn))
+                            ORDER BY b.BarrierName", conn))
                         using (var r = await cmd.ExecuteReaderAsync())
                         {
                             while (await r.ReadAsync())

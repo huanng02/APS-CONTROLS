@@ -14,14 +14,13 @@ namespace QuanLyGiuXe.Services
         public List<string> GetTables()
         {
             var tables = new List<string>();
-            string sql = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME != 'sysdiagrams' ORDER BY TABLE_NAME";
             
             try
             {
                 using (var conn = new SqlConnection(ConnectionString))
                 {
                     conn.Open();
-                    using (var cmd = new SqlCommand(sql, conn))
+                    using (var cmd = new SqlCommand(@"SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME != 'sysdiagrams' ORDER BY TABLE_NAME", conn))
                     using (var reader = cmd.ExecuteReader())
                     {
                         while (reader.Read())
@@ -40,7 +39,13 @@ namespace QuanLyGiuXe.Services
 
         public DataTable GetTableSchema(string tableName)
         {
-            string sql = @"
+            var dataTable = new DataTable();
+            try
+            {
+                using (var conn = new SqlConnection(ConnectionString))
+                {
+                    conn.Open();
+                    using (var cmd = new SqlCommand(@"
                 SELECT 
                     c.COLUMN_NAME as 'Tên Cột', 
                     c.DATA_TYPE as 'Kiểu Dữ Liệu', 
@@ -54,15 +59,7 @@ namespace QuanLyGiuXe.Services
                     ) as 'Khóa Chính'
                 FROM INFORMATION_SCHEMA.COLUMNS c
                 WHERE c.TABLE_NAME = @TableName AND c.TABLE_SCHEMA = 'dbo'
-                ORDER BY c.ORDINAL_POSITION;";
-
-            var dataTable = new DataTable();
-            try
-            {
-                using (var conn = new SqlConnection(ConnectionString))
-                {
-                    conn.Open();
-                    using (var cmd = new SqlCommand(sql, conn))
+                ORDER BY c.ORDINAL_POSITION;", conn))
                     {
                         cmd.Parameters.AddWithValue("@TableName", tableName);
                         using (var adapter = new SqlDataAdapter(cmd))

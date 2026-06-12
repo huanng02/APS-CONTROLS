@@ -24,16 +24,15 @@ namespace QuanLyGiuXe.Services
         public async Task<List<string>> GetTablesAsync(CancellationToken ct = default)
         {
             var tables = new List<string>();
-            const string sql = @"
-                SELECT TABLE_NAME 
-                FROM INFORMATION_SCHEMA.TABLES 
-                WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME != 'sysdiagrams' 
-                ORDER BY TABLE_NAME";
 
             using (var conn = new SqlConnection(ConnectionString))
             {
                 await conn.OpenAsync(ct);
-                using (var cmd = new SqlCommand(sql, conn) { CommandTimeout = DefaultCommandTimeout })
+                using (var cmd = new SqlCommand(@"
+                SELECT TABLE_NAME 
+                FROM INFORMATION_SCHEMA.TABLES 
+                WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME != 'sysdiagrams' 
+                ORDER BY TABLE_NAME", conn) { CommandTimeout = DefaultCommandTimeout })
                 using (var reader = await cmd.ExecuteReaderAsync(ct))
                 {
                     while (await reader.ReadAsync(ct))
@@ -49,7 +48,11 @@ namespace QuanLyGiuXe.Services
 
         public async Task<DataTable> GetTableSchemaAsync(string tableName, CancellationToken ct = default)
         {
-            const string sql = @"
+            var dt = new DataTable();
+            using (var conn = new SqlConnection(ConnectionString))
+            {
+                await conn.OpenAsync(ct);
+                using (var cmd = new SqlCommand(@"
                 SELECT 
                     c.COLUMN_NAME       AS N'Tên Cột', 
                     c.DATA_TYPE         AS N'Kiểu Dữ Liệu', 
@@ -66,13 +69,7 @@ namespace QuanLyGiuXe.Services
                     ) AS N'Khóa Chính'
                 FROM INFORMATION_SCHEMA.COLUMNS c
                 WHERE c.TABLE_NAME = @TableName AND c.TABLE_SCHEMA = 'dbo'
-                ORDER BY c.ORDINAL_POSITION;";
-
-            var dt = new DataTable();
-            using (var conn = new SqlConnection(ConnectionString))
-            {
-                await conn.OpenAsync(ct);
-                using (var cmd = new SqlCommand(sql, conn) { CommandTimeout = DefaultCommandTimeout })
+                ORDER BY c.ORDINAL_POSITION;", conn) { CommandTimeout = DefaultCommandTimeout })
                 {
                     cmd.Parameters.AddWithValue("@TableName", tableName);
                     using (var reader = await cmd.ExecuteReaderAsync(ct))
@@ -89,16 +86,14 @@ namespace QuanLyGiuXe.Services
         public async Task<List<string>> GetColumnNamesAsync(string tableName, CancellationToken ct = default)
         {
             var cols = new List<string>();
-            const string sql = @"
-                SELECT COLUMN_NAME 
-                FROM INFORMATION_SCHEMA.COLUMNS 
-                WHERE TABLE_NAME = @TableName AND TABLE_SCHEMA = 'dbo'
-                ORDER BY ORDINAL_POSITION";
-
             using (var conn = new SqlConnection(ConnectionString))
             {
                 await conn.OpenAsync(ct);
-                using (var cmd = new SqlCommand(sql, conn) { CommandTimeout = DefaultCommandTimeout })
+                using (var cmd = new SqlCommand(@"
+                SELECT COLUMN_NAME 
+                FROM INFORMATION_SCHEMA.COLUMNS 
+                WHERE TABLE_NAME = @TableName AND TABLE_SCHEMA = 'dbo'
+                ORDER BY ORDINAL_POSITION", conn) { CommandTimeout = DefaultCommandTimeout })
                 {
                     cmd.Parameters.AddWithValue("@TableName", tableName);
                     using (var reader = await cmd.ExecuteReaderAsync(ct))
@@ -345,17 +340,15 @@ namespace QuanLyGiuXe.Services
         /// </summary>
         public async Task<bool> HasIndexOnColumnAsync(string tableName, string columnName, CancellationToken ct = default)
         {
-            const string sql = @"
+            using (var conn = new SqlConnection(ConnectionString))
+            {
+                await conn.OpenAsync(ct);
+                using (var cmd = new SqlCommand(@"
                 SELECT COUNT(1) 
                 FROM sys.indexes i
                 JOIN sys.index_columns ic ON i.object_id = ic.object_id AND i.index_id = ic.index_id
                 JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id
-                WHERE OBJECT_NAME(i.object_id) = @table AND c.name = @col";
-
-            using (var conn = new SqlConnection(ConnectionString))
-            {
-                await conn.OpenAsync(ct);
-                using (var cmd = new SqlCommand(sql, conn) { CommandTimeout = DefaultCommandTimeout })
+                WHERE OBJECT_NAME(i.object_id) = @table AND c.name = @col", conn) { CommandTimeout = DefaultCommandTimeout })
                 {
                     cmd.Parameters.AddWithValue("@table", tableName);
                     cmd.Parameters.AddWithValue("@col", columnName);

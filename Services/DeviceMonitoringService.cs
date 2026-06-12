@@ -376,11 +376,10 @@ namespace QuanLyGiuXe.Services
                 using (var conn = new SqlConnection(connStr))
                 {
                     await conn.OpenAsync();
-                    string sql = @"
+                    using (var cmd = new SqlCommand(@"
                         SELECT TOP (@MaxCount) Id, Timestamp, DeviceType, DeviceName, EventType, Severity, Description
                         FROM dbo.DeviceEvents
-                        ORDER BY Timestamp DESC";
-                    using (var cmd = new SqlCommand(sql, conn))
+                        ORDER BY Timestamp DESC", conn))
                     {
                         cmd.Parameters.AddWithValue("@MaxCount", maxCount);
                         using (var r = await cmd.ExecuteReaderAsync())
@@ -423,10 +422,9 @@ namespace QuanLyGiuXe.Services
                     await conn.OpenAsync();
 
                     // Insert
-                    string insertSql = @"
+                    using (var cmd = new SqlCommand(@"
                         INSERT INTO dbo.DeviceEvents (Timestamp, DeviceType, DeviceName, EventType, Severity, Description)
-                        VALUES (@Timestamp, @DeviceType, @DeviceName, @EventType, @Severity, @Description)";
-                    using (var cmd = new SqlCommand(insertSql, conn))
+                        VALUES (@Timestamp, @DeviceType, @DeviceName, @EventType, @Severity, @Description)", conn))
                     {
                         cmd.Parameters.AddWithValue("@Timestamp", evt.Timestamp);
                         cmd.Parameters.AddWithValue("@DeviceType", evt.DeviceType);
@@ -438,14 +436,13 @@ namespace QuanLyGiuXe.Services
                     }
 
                     // Auto Purge (keep last 1000)
-                    string purgeSql = @"
+                    using (var cmd = new SqlCommand(@"
                         DELETE FROM dbo.DeviceEvents
                         WHERE Id NOT IN (
                             SELECT TOP (1000) Id 
                             FROM dbo.DeviceEvents 
                             ORDER BY Timestamp DESC
-                        )";
-                    using (var cmd = new SqlCommand(purgeSql, conn))
+                        )", conn))
                     {
                         await cmd.ExecuteNonQueryAsync();
                     }
@@ -647,12 +644,11 @@ namespace QuanLyGiuXe.Services
                     using (var conn = new SqlConnection(connStr))
                     {
                         await conn.OpenAsync();
-                        string sql = @"
+                        using (var cmd = new SqlCommand(@"
                             SELECT TOP (20) Id, Timestamp, DeviceType, DeviceName, EventType, Severity, Description
                             FROM dbo.DeviceEvents
                             WHERE DeviceName = @DeviceName
-                            ORDER BY Timestamp DESC";
-                        using (var cmd = new SqlCommand(sql, conn))
+                            ORDER BY Timestamp DESC", conn))
                         {
                             cmd.Parameters.AddWithValue("@DeviceName", deviceName);
                             using (var r = await cmd.ExecuteReaderAsync())

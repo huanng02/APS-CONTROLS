@@ -21,8 +21,7 @@ namespace QuanLyGiuXe.Services
                 async conn =>
                 {
                     var list = new List<KhungGio>();
-                    string q = "SELECT Id, TenKhungGio, GioBatDau, GioKetThuc, QuaDem, TrangThai FROM dbo.KhungGio ORDER BY Id";
-                    using (var cmd = new SqlCommand(q, conn))
+                    using (var cmd = new SqlCommand(@"SELECT Id, TenKhungGio, GioBatDau, GioKetThuc, QuaDem, TrangThai FROM dbo.KhungGio ORDER BY Id", conn))
                     using (var r = await cmd.ExecuteReaderAsync())
                     {
                         while (await r.ReadAsync())
@@ -53,8 +52,7 @@ namespace QuanLyGiuXe.Services
                 using (var sql = new SqlConnection(conn))
                 {
                     sql.Open();
-                    string q = "UPDATE dbo.KhungGio SET TenKhungGio=@name, GioBatDau=@gb, GioKetThuc=@gk, QuaDem=@qd, TrangThai=@tt WHERE Id=@id";
-                    using (var cmd = new SqlCommand(q, sql))
+                    using (var cmd = new SqlCommand(@"UPDATE dbo.KhungGio SET TenKhungGio=@name, GioBatDau=@gb, GioKetThuc=@gk, QuaDem=@qd, TrangThai=@tt WHERE Id=@id", sql))
                     {
                         cmd.Parameters.AddWithValue("@name", (object?)entity.TenKhungGio ?? string.Empty);
                         cmd.Parameters.AddWithValue("@gb", entity.GioBatDau.ToString());
@@ -83,8 +81,7 @@ namespace QuanLyGiuXe.Services
                 using (var sql = new SqlConnection(conn))
                 {
                     sql.Open();
-                    string q = "INSERT INTO dbo.KhungGio (TenKhungGio, GioBatDau, GioKetThuc, QuaDem, TrangThai) VALUES (@name,@gb,@gk,@qd,@tt); SELECT SCOPE_IDENTITY();";
-                    using (var cmd = new SqlCommand(q, sql))
+                    using (var cmd = new SqlCommand(@"INSERT INTO dbo.KhungGio (TenKhungGio, GioBatDau, GioKetThuc, QuaDem, TrangThai) VALUES (@name,@gb,@gk,@qd,@tt); SELECT SCOPE_IDENTITY();", sql))
                     {
                         cmd.Parameters.AddWithValue("@name", (object?)entity.TenKhungGio ?? string.Empty);
                         cmd.Parameters.AddWithValue("@gb", entity.GioBatDau.ToString());
@@ -113,8 +110,7 @@ namespace QuanLyGiuXe.Services
                 using (var sql = new SqlConnection(conn))
                 {
                     sql.Open();
-                    string q = "DELETE FROM dbo.KhungGio WHERE Id=@id";
-                    using (var cmd = new SqlCommand(q, sql))
+                    using (var cmd = new SqlCommand(@"DELETE FROM dbo.KhungGio WHERE Id=@id", sql))
                     {
                         cmd.Parameters.AddWithValue("@id", id);
                         cmd.ExecuteNonQuery();

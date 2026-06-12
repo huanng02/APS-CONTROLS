@@ -19,7 +19,7 @@ namespace QuanLyGiuXe.Services
                 // 2. Tạo bảng SystemInfo và ghi nhận SchemaVersion v2
                 using var conn = await SqlConnectionService.GetConnectionAsync(config);
                 
-                string systemInfoSql = @"
+                using var cmd = new SqlCommand(@"
                 IF OBJECT_ID(N'dbo.SystemInfo', N'U') IS NULL
                 BEGIN
                     CREATE TABLE dbo.SystemInfo (
@@ -40,9 +40,7 @@ namespace QuanLyGiuXe.Services
                     SET SchemaVersion = 2, CreatedDate = GETUTCDATE()
                     WHERE ProjectName = 'QuanLyGiuXe-Enterprise';
                 END
-                ";
-
-                using var cmd = new SqlCommand(systemInfoSql, conn);
+                ", conn);
                 await cmd.ExecuteNonQueryAsync();
                 LoggingService.Instance.LogInfo("DB_INIT", "Init", "Database và bảng SystemInfo đã được khởi tạo thành công với version 2.");
             }

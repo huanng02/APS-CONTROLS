@@ -39,8 +39,7 @@ namespace QuanLyGiuXe.Services
                 using (var conn = new SqlConnection(connStr))
                 {
                     await conn.OpenAsync();
-                    string sql = "SELECT HasPendingChanges FROM dbo.ConfigurationState WHERE Id = 1";
-                    using (var cmd = new SqlCommand(sql, conn))
+                    using (var cmd = new SqlCommand(@"SELECT HasPendingChanges FROM dbo.ConfigurationState WHERE Id = 1", conn))
                     {
                         var res = await cmd.ExecuteScalarAsync();
                         if (res != null && res != DBNull.Value)
@@ -70,8 +69,7 @@ namespace QuanLyGiuXe.Services
                 using (var conn = new SqlConnection(connStr))
                 {
                     await conn.OpenAsync();
-                    string sql = "UPDATE dbo.ConfigurationState SET HasPendingChanges = 1 WHERE Id = 1";
-                    using (var cmd = new SqlCommand(sql, conn))
+                    using (var cmd = new SqlCommand(@"UPDATE dbo.ConfigurationState SET HasPendingChanges = 1 WHERE Id = 1", conn))
                     {
                         await cmd.ExecuteNonQueryAsync();
                     }
@@ -122,8 +120,7 @@ namespace QuanLyGiuXe.Services
                 using (var conn = new SqlConnection(connStr))
                 {
                     await conn.OpenAsync();
-                    string sql = "SELECT TOP 1 Id, ActiveVersion, LastDeployedAt, LastDeployedBy FROM dbo.ConfigurationState WHERE Id = 1";
-                    using (var cmd = new SqlCommand(sql, conn))
+                    using (var cmd = new SqlCommand(@"SELECT TOP 1 Id, ActiveVersion, LastDeployedAt, LastDeployedBy FROM dbo.ConfigurationState WHERE Id = 1", conn))
                     {
                         using (var reader = await cmd.ExecuteReaderAsync())
                         {
@@ -166,8 +163,7 @@ namespace QuanLyGiuXe.Services
 
                     // Get current version to either increment or reference
                     int currentVersion = 1;
-                    string getVerSql = "SELECT ActiveVersion FROM dbo.ConfigurationState WHERE Id = 1";
-                    using (var cmd = new SqlCommand(getVerSql, conn))
+                    using (var cmd = new SqlCommand(@"SELECT ActiveVersion FROM dbo.ConfigurationState WHERE Id = 1", conn))
                     {
                         var res = await cmd.ExecuteScalarAsync();
                         if (res != null && res != DBNull.Value)
@@ -179,10 +175,9 @@ namespace QuanLyGiuXe.Services
                     if (!isValid)
                     {
                         // 1. Save FAILED DeploymentRecord
-                        string failLogSql = @"
+                        using (var cmd = new SqlCommand(@"
                             INSERT INTO dbo.DeploymentHistory (Version, DeployTime, DeployBy, Status, Notes)
-                            VALUES (@version, @deployTime, @deployBy, @status, @notes)";
-                        using (var cmd = new SqlCommand(failLogSql, conn))
+                            VALUES (@version, @deployTime, @deployBy, @status, @notes)", conn))
                         {
                             cmd.Parameters.AddWithValue("@version", currentVersion);
                             cmd.Parameters.AddWithValue("@deployTime", DateTime.Now);
@@ -198,14 +193,13 @@ namespace QuanLyGiuXe.Services
                     int newVersion = currentVersion + 1;
 
                     // 1. Update configuration state
-                    string updateStateSql = @"
+                    using (var cmd = new SqlCommand(@"
                         UPDATE dbo.ConfigurationState 
                         SET ActiveVersion = @newVersion, 
                             HasPendingChanges = 0, 
                             LastDeployedAt = @deployTime, 
                             LastDeployedBy = @deployBy
-                        WHERE Id = 1";
-                    using (var cmd = new SqlCommand(updateStateSql, conn))
+                        WHERE Id = 1", conn))
                     {
                         cmd.Parameters.AddWithValue("@newVersion", newVersion);
                         cmd.Parameters.AddWithValue("@deployTime", DateTime.Now);
@@ -214,10 +208,9 @@ namespace QuanLyGiuXe.Services
                     }
 
                     // 2. Add success deployment history log
-                    string successLogSql = @"
+                    using (var cmd = new SqlCommand(@"
                         INSERT INTO dbo.DeploymentHistory (Version, DeployTime, DeployBy, Status, Notes)
-                        VALUES (@version, @deployTime, @deployBy, @status, @notes)";
-                    using (var cmd = new SqlCommand(successLogSql, conn))
+                        VALUES (@version, @deployTime, @deployBy, @status, @notes)", conn))
                     {
                         cmd.Parameters.AddWithValue("@version", newVersion);
                         cmd.Parameters.AddWithValue("@deployTime", DateTime.Now);
@@ -271,12 +264,10 @@ namespace QuanLyGiuXe.Services
                 using (var conn = new SqlConnection(connStr))
                 {
                     await conn.OpenAsync();
-                    string query = @"
+                    using (var cmd = new SqlCommand(@"
                         SELECT Id, Version, DeployTime, DeployBy, Status, Notes 
                         FROM dbo.DeploymentHistory 
-                        ORDER BY DeployTime DESC, Id DESC";
-
-                    using (var cmd = new SqlCommand(query, conn))
+                        ORDER BY DeployTime DESC, Id DESC", conn))
                     {
                         using (var reader = await cmd.ExecuteReaderAsync())
                         {

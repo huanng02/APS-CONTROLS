@@ -25,9 +25,7 @@ namespace QuanLyGiuXe.Services
             try
             {
                 using var conn = await SqlConnectionService.GetConnectionAsync(masterConfig, timeout: 5, cancellationToken);
-                string query = "SELECT name FROM sys.databases WHERE HAS_DBACCESS(name) = 1 ORDER BY name;";
-                
-                using var cmd = new SqlCommand(query, conn);
+                using var cmd = new SqlCommand(@"SELECT name FROM sys.databases WHERE HAS_DBACCESS(name) = 1 ORDER BY name;", conn);
                 using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
                 while (await reader.ReadAsync(cancellationToken))
                 {

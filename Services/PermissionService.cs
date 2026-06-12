@@ -26,7 +26,7 @@ namespace QuanLyGiuXe.Services
                     await conn.OpenAsync();
                     
                     // Load permissions via RolePermissions and UserRoles (or legacy RoleId link)
-                    string query = @"
+                    using (var cmd = new SqlCommand(@"
                         SELECT DISTINCT p.Code 
                         FROM dbo.Permissions p
                         INNER JOIN dbo.RolePermissions rp ON p.Id = rp.PermissionId
@@ -35,9 +35,7 @@ namespace QuanLyGiuXe.Services
                             SELECT RoleId FROM dbo.NhanVien WHERE Id = @UserId
                             UNION
                             SELECT RoleId FROM dbo.UserRoles WHERE UserId = @UserId
-                        )";
-
-                    using (var cmd = new SqlCommand(query, conn))
+                        )", conn))
                     {
                         cmd.Parameters.AddWithValue("@UserId", userId);
                         using (var reader = await cmd.ExecuteReaderAsync())

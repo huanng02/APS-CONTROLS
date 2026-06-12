@@ -22,15 +22,14 @@ namespace QuanLyGiuXe.Services
                 async conn =>
                 {
                     var list = new List<CameraEntity>();
-                    string sql = @"
+
+                    using (var cmd = new SqlCommand(@"
                         SELECT c.Id, c.CameraName, c.CameraKey, c.IpAddress, c.Port, c.Protocol, 
                                c.Username, c.Password, c.RtspUrl, c.LaneId, c.Direction, c.IsActive, 
                                c.CreatedUtc, l.LaneName, c.ResolutionWidth, c.ResolutionHeight
                         FROM dbo.Cameras c
                         LEFT JOIN dbo.Lanes l ON c.LaneId = l.Id
-                        ORDER BY c.CameraName";
-
-                    using (var cmd = new SqlCommand(sql, conn))
+                        ORDER BY c.CameraName", conn))
                     using (var r = await cmd.ExecuteReaderAsync())
                     {
                         while (await r.ReadAsync())
@@ -81,12 +80,10 @@ namespace QuanLyGiuXe.Services
                     camera,
                     async conn =>
                     {
-                        string sql = @"
+                        using (var cmd = new SqlCommand(@"
                             INSERT INTO dbo.Cameras (CameraName, CameraKey, IpAddress, Port, Protocol, Username, Password, RtspUrl, LaneId, Direction, IsActive, CreatedUtc, ResolutionWidth, ResolutionHeight)
                             OUTPUT INSERTED.Id
-                            VALUES (@name, @key, @ip, @port, @protocol, @username, @password, @rtsp, @laneId, @dir, @active, @created, @width, @height)";
-
-                        using (var cmd = new SqlCommand(sql, conn))
+                            VALUES (@name, @key, @ip, @port, @protocol, @username, @password, @rtsp, @laneId, @dir, @active, @created, @width, @height)", conn))
                         {
                             cmd.Parameters.AddWithValue("@name", camera.CameraName);
                             cmd.Parameters.AddWithValue("@key", camera.CameraKey);
@@ -130,15 +127,13 @@ namespace QuanLyGiuXe.Services
                     camera,
                     async conn =>
                     {
-                        string sql = @"
+                        using (var cmd = new SqlCommand(@"
                             UPDATE dbo.Cameras 
                             SET CameraName = @name, CameraKey = @key, IpAddress = @ip, Port = @port, 
                                 Protocol = @protocol, Username = @username, Password = @password, 
                                 RtspUrl = @rtsp, LaneId = @laneId, Direction = @dir, IsActive = @active,
                                 ResolutionWidth = @width, ResolutionHeight = @height
-                            WHERE Id = @id";
-
-                        using (var cmd = new SqlCommand(sql, conn))
+                            WHERE Id = @id", conn))
                         {
                             cmd.Parameters.AddWithValue("@id", camera.Id);
                             cmd.Parameters.AddWithValue("@name", camera.CameraName);
@@ -174,8 +169,7 @@ namespace QuanLyGiuXe.Services
                 id,
                 async conn =>
                 {
-                    string sql = "DELETE FROM dbo.Cameras WHERE Id = @id";
-                    using (var cmd = new SqlCommand(sql, conn))
+                    using (var cmd = new SqlCommand(@"DELETE FROM dbo.Cameras WHERE Id = @id", conn))
                     {
                         cmd.Parameters.AddWithValue("@id", id);
                         await cmd.ExecuteNonQueryAsync();
@@ -192,8 +186,7 @@ namespace QuanLyGiuXe.Services
                 "CHECK_CAMERA_ASSIGNMENT",
                 async conn =>
                 {
-                    string sql = "SELECT COUNT(*) FROM dbo.Cameras WHERE Id = @id AND LaneId IS NOT NULL";
-                    using (var cmd = new SqlCommand(sql, conn))
+                    using (var cmd = new SqlCommand(@"SELECT COUNT(*) FROM dbo.Cameras WHERE Id = @id AND LaneId IS NOT NULL", conn))
                     {
                         cmd.Parameters.AddWithValue("@id", id);
                         var count = (int?)await cmd.ExecuteScalarAsync() ?? 0;

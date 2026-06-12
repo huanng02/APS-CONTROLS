@@ -17,7 +17,7 @@ namespace QuanLyGiuXe.Services
                 // 2. Đồng thời, nâng cấp hoặc bổ sung bảng SystemInfo lên schema version 2
                 using var conn = await SqlConnectionService.GetConnectionAsync(config);
                 
-                string ensureSystemInfo = @"
+                using var cmd = new SqlCommand(@"
                 IF OBJECT_ID(N'dbo.SystemInfo', N'U') IS NULL
                 BEGIN
                     CREATE TABLE dbo.SystemInfo (
@@ -38,9 +38,7 @@ namespace QuanLyGiuXe.Services
                     SET SchemaVersion = 2, CreatedDate = GETUTCDATE()
                     WHERE ProjectName = 'QuanLyGiuXe-Enterprise';
                 END
-                ";
-
-                using var cmd = new SqlCommand(ensureSystemInfo, conn);
+                ", conn);
                 await cmd.ExecuteNonQueryAsync();
                 LoggingService.Instance.LogInfo("DB_MIGRATION", "Migrate", "Database đã được nâng cấp lên version 2 thành công.");
             }

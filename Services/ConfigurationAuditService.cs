@@ -40,11 +40,9 @@ namespace QuanLyGiuXe.Services
                     await conn.OpenAsync();
                     
                     // 1. Insert audit record
-                    string insertSql = @"
+                    using (var cmd = new SqlCommand(@"
                         INSERT INTO dbo.ConfigurationAudit (Timestamp, UserName, EntityType, EntityName, PropertyName, OldValue, NewValue)
-                        VALUES (@timestamp, @username, @entityType, @entityName, @propertyName, @oldValue, @newValue)";
-                    
-                    using (var cmd = new SqlCommand(insertSql, conn))
+                        VALUES (@timestamp, @username, @entityType, @entityName, @propertyName, @oldValue, @newValue)", conn))
                     {
                         cmd.Parameters.AddWithValue("@timestamp", DateTime.Now);
                         cmd.Parameters.AddWithValue("@username", user);
@@ -57,8 +55,7 @@ namespace QuanLyGiuXe.Services
                     }
 
                     // 2. Mark HasPendingChanges = 1
-                    string updateStateSql = "UPDATE dbo.ConfigurationState SET HasPendingChanges = 1 WHERE Id = 1";
-                    using (var cmd = new SqlCommand(updateStateSql, conn))
+                    using (var cmd = new SqlCommand(@"UPDATE dbo.ConfigurationState SET HasPendingChanges = 1 WHERE Id = 1", conn))
                     {
                         await cmd.ExecuteNonQueryAsync();
                     }
@@ -221,13 +218,11 @@ namespace QuanLyGiuXe.Services
                 using (var conn = new SqlConnection(connStr))
                 {
                     await conn.OpenAsync();
-                    string query = @"
+                    using (var cmd = new SqlCommand(@"
                         SELECT Id, Timestamp, UserName, EntityType, EntityName, PropertyName, OldValue, NewValue
                         FROM dbo.ConfigurationAudit
                         WHERE Timestamp > @since
-                        ORDER BY Timestamp DESC, Id DESC";
-
-                    using (var cmd = new SqlCommand(query, conn))
+                        ORDER BY Timestamp DESC, Id DESC", conn))
                     {
                         cmd.Parameters.AddWithValue("@since", since ?? new DateTime(1970, 1, 1));
                         using (var reader = await cmd.ExecuteReaderAsync())
@@ -269,13 +264,11 @@ namespace QuanLyGiuXe.Services
                 using (var conn = new SqlConnection(connStr))
                 {
                     await conn.OpenAsync();
-                    string query = @"
+                    using (var cmd = new SqlCommand(@"
                         SELECT Id, Timestamp, UserName, EntityType, EntityName, PropertyName, OldValue, NewValue
                         FROM dbo.ConfigurationAudit
                         WHERE Timestamp > @start AND Timestamp <= @end
-                        ORDER BY Timestamp DESC, Id DESC";
-
-                    using (var cmd = new SqlCommand(query, conn))
+                        ORDER BY Timestamp DESC, Id DESC", conn))
                     {
                         cmd.Parameters.AddWithValue("@start", start ?? new DateTime(1970, 1, 1));
                         cmd.Parameters.AddWithValue("@end", end);
@@ -327,13 +320,11 @@ namespace QuanLyGiuXe.Services
                 using (var conn = new SqlConnection(connStr))
                 {
                     await conn.OpenAsync();
-                    string sql = @"
+                    using (var cmd = new SqlCommand(@"
                         SELECT EntityType, COUNT(DISTINCT EntityName) as ItemCount
                         FROM dbo.ConfigurationAudit
                         WHERE Timestamp > @since
-                        GROUP BY EntityType";
-
-                    using (var cmd = new SqlCommand(sql, conn))
+                        GROUP BY EntityType", conn))
                     {
                         cmd.Parameters.AddWithValue("@since", since ?? new DateTime(1970, 1, 1));
                         using (var reader = await cmd.ExecuteReaderAsync())

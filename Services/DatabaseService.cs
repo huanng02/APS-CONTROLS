@@ -1765,7 +1765,8 @@ namespace QuanLyGiuXe.Services
                 async conn =>
                 {
                     var list = new List<LichSuXe>();
-                    string sql = @"
+
+                    using (SqlCommand cmd = new SqlCommand(@"
                         SELECT TOP 1000 
                             ls.Id, ls.CardId, ls.BienSo, ls.ThoiGianVao, ls.ThoiGianRa, ls.Tien, ls.TrangThai, ls.AnhVao, ls.AnhRa,
                             ls.SiteId, ls.ZoneId, ls.EntryLaneId, ls.ExitLaneId,
@@ -1784,9 +1785,7 @@ namespace QuanLyGiuXe.Services
                         LEFT JOIN Employees emp ON r.EmployeeId = emp.Id AND emp.IsDeleted = 0
                         LEFT JOIN Companies comp ON emp.CompanyId = comp.Id
                         LEFT JOIN Departments dept ON emp.DepartmentId = dept.Id
-                        ORDER BY ls.ThoiGianVao DESC";
-
-                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                        ORDER BY ls.ThoiGianVao DESC", conn))
                     using (SqlDataReader reader = await cmd.ExecuteReaderAsync())
                     {
                         while (await reader.ReadAsync())

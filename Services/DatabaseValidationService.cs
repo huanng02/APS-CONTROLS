@@ -95,8 +95,7 @@ namespace QuanLyGiuXe.Services
         private static async Task<HashSet<string>> GetDatabaseTablesAsync(SqlConnection conn, CancellationToken cancellationToken)
         {
             var tables = new HashSet<string>();
-            string query = "SELECT LOWER(TABLE_NAME) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE';";
-            using var cmd = new SqlCommand(query, conn);
+            using var cmd = new SqlCommand(@"SELECT LOWER(TABLE_NAME) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE';", conn);
             using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
             while (await reader.ReadAsync(cancellationToken))
             {
@@ -109,8 +108,7 @@ namespace QuanLyGiuXe.Services
         {
             try
             {
-                string query = "SELECT TOP 1 SchemaVersion FROM dbo.SystemInfo ORDER BY CreatedDate DESC;";
-                using var cmd = new SqlCommand(query, conn);
+                using var cmd = new SqlCommand(@"SELECT TOP 1 SchemaVersion FROM dbo.SystemInfo ORDER BY CreatedDate DESC;", conn);
                 var result = await cmd.ExecuteScalarAsync(cancellationToken);
                 return result != null ? Convert.ToInt32(result) : 0;
             }

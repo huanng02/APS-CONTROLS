@@ -14,11 +14,9 @@ namespace QuanLyGiuXe.Services
         {
             if (log == null) throw new ArgumentNullException(nameof(log));
 
-            const string sql = @"
+            using (var cmd = new SqlCommand(@"
                 INSERT INTO dbo.AuditLogs (UserId, Username, ActionType, EntityType, EntityId, OldValue, NewValue, Description, CreatedAt)
-                VALUES (@UserId, @Username, @ActionType, @EntityType, @EntityId, @OldValue, @NewValue, @Description, @CreatedAt);";
-
-            using (var cmd = new SqlCommand(sql, conn, transaction))
+                VALUES (@UserId, @Username, @ActionType, @EntityType, @EntityId, @OldValue, @NewValue, @Description, @CreatedAt);", conn, transaction))
             {
                 cmd.Parameters.AddWithValue("@UserId", (object?)log.UserId ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@Username", (object?)log.Username ?? DBNull.Value);
