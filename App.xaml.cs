@@ -23,6 +23,22 @@ namespace QuanLyGiuXe
                 base.OnStartup(e);
                 this.ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
+                // Check License
+                string licenseError;
+                bool isLicenseValid = LicenseValidationService.Instance.CheckLicenseOffline(out licenseError);
+                if (!isLicenseValid)
+                {
+                    // Show friendly notice first or launch activation directly
+                    var activationWin = new Views.LicenseActivationWindow();
+                    var activated = activationWin.ShowDialog();
+                    if (activated != true && !activationWin.IsActivated)
+                    {
+                        System.Windows.MessageBox.Show("Ứng dụng bị từ chối khởi động do không có bản quyền hợp lệ.", "Lỗi Bản Quyền", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                        this.Shutdown(1);
+                        return;
+                    }
+                }
+
                 // Start HTTP API Server
                 _apiServer.Start();
 
