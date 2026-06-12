@@ -27,7 +27,7 @@ namespace QuanLyGiuXe
         public C3200SettingsWindow()
         {
             InitializeComponent();
-            _cfg = AppConfig.Load();
+            _cfg = AppConfig.LoadDraft();
 
             _cameras = new FilterInfoCollection(FilterCategory.VideoInputDevice);
 
@@ -783,7 +783,7 @@ namespace QuanLyGiuXe
 
         private void LoadReaderSelection()
         {
-            var mappings = ReaderLaneMappingService.Instance.GetAll();
+            var mappings = ReaderLaneMappingService.Instance.GetAllDraft();
  
             _isSyncingCombos = true;
  
@@ -983,7 +983,7 @@ namespace QuanLyGiuXe
         {
             try
             {
-                var prevMappings = ReaderLaneMappingService.Instance.GetAll();
+                var prevMappings = ReaderLaneMappingService.Instance.GetAllDraft();
                 var prevControllerType = _cfg.ZKTeco.ControllerType;
                 var prevIp = _cfg.ZKTeco.IpAddress;
                 var prevPort = _cfg.ZKTeco.TcpPort;
@@ -1119,7 +1119,7 @@ namespace QuanLyGiuXe
                 }
 
                 _cfg.ZKTeco.ControllerType = activeType;
-                ReaderLaneMappingService.Instance.UpdateMappings(newMappings);
+                ReaderLaneMappingService.Instance.UpdateDraftMappings(newMappings);
 
                 // Auto-sync lane direction based on consistency analysis
                 try
@@ -1348,7 +1348,7 @@ namespace QuanLyGiuXe
                     _cfg.Cameras.RaBienSo = PickCamera(firstOutLane.cbBienSo);
                 }
 
-                _cfg.Save();
+                _cfg.SaveDraft();
 
                 // Sync camera assignments to SQLite database
                 try
@@ -1407,24 +1407,26 @@ namespace QuanLyGiuXe
                     try { LoggingService.Instance.LogError("Save_Click_CameraSync", "C3200Settings", "Failed to sync camera assignments to DB", ex); } catch { }
                 }
 
-                C3200Service.Instance.Configure(_cfg.ZKTeco.IpAddress, _cfg.ZKTeco.TcpPort,
-                    _cfg.ZKTeco.Password, _cfg.ZKTeco.Timeout, _cfg.ZKTeco.BarrierDuration);
-
-                // Reset the connection monitor status cache to discard the old IP address cache immediately
-                ConnectionMonitorService.Instance.ResetState();
-
-                // Reconnect to C3-200 Controller immediately in the background with the new configuration
-                _ = Task.Run(async () =>
+                // Restore active configuration in the service since we only saved to draft
+                try
                 {
-                    try
+                    var activeConfig = AppConfig.Load();
+                    C3200Service.Instance.Configure(
+                        activeConfig.ZKTeco.IpAddress,
+                        activeConfig.ZKTeco.TcpPort,
+                        activeConfig.ZKTeco.Password,
+                        activeConfig.ZKTeco.Timeout,
+                        activeConfig.ZKTeco.BarrierDuration
+                    );
+                    _ = Task.Run(async () =>
                     {
-                        await C3200Service.Instance.ConnectAsync();
-                    }
-                    catch (Exception connEx)
-                    {
-                        try { LoggingService.Instance.LogError("ConfigChangeReconnect", "C3200Settings", "Failed to reconnect to C3200 after config change", connEx); } catch { }
-                    }
-                });
+                        try { await C3200Service.Instance.ConnectAsync(); } catch { }
+                    });
+                }
+                catch (Exception ex)
+                {
+                    try { LoggingService.Instance.LogError("Save_Click_RestoreActive", "C3200Settings", "Failed to restore active controller config", ex); } catch { }
+                }
 
                 if (changes.Length > 0)
                 {
@@ -1438,7 +1440,7 @@ namespace QuanLyGiuXe
                         LoggingService.Instance.LogAudit(
                             "CONFIG_CHANGED_UI", 
                             "C3200Settings", 
-                            "config.json", 
+                            "config_draft.json", 
                             null, 
                             new { Diffs = changes.ToString() }, 
                             source: "C3200SettingsWindow", 
@@ -1448,37 +1450,19 @@ namespace QuanLyGiuXe
                     catch { }
                 }
 
+                // Mark pending changes in deployment service so Development Center knows there are new changes
+                try
+                {
+                    await DeploymentService.Instance.MarkPendingChangesAsync();
+                }
+                catch (Exception depEx)
+                {
+                    try { LoggingService.Instance.LogError("Save_Click_MarkPending", "C3200Settings", "Failed to mark pending changes", depEx); } catch { }
+                }
+
                 await RefreshSiteSelectionAsync();
 
-                // Invalidate EventBus topology cache so it reloads fresh data from DB/SQLite
-                try
-                {
-                    EventBus.Instance.InvalidateTopologyCache();
-                }
-                catch { }
-
-                // Refresh main view model settings immediately so UI is updated in real-time
-                try
-                {
-                    if (Application.Current.MainWindow?.DataContext is MainViewModel vm)
-                    {
-                        vm.RefreshSettings();
-                    }
-                }
-                catch { }
-
-                // Reload camera streams dynamically if settings were saved from the main view
-                try
-                {
-                    var mainWin = Owner as MainWindow ?? Application.Current.MainWindow as MainWindow;
-                    if (mainWin != null)
-                    {
-                        mainWin.ReloadCameras();
-                    }
-                }
-                catch { }
-
-                MessageBox.Show("Saved", "Settings", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show("Đã lưu cấu hình vào bản nháp thành công!\n\nLưu ý: Cấu hình mới chưa được áp dụng ngay vào ứng dụng hiện tại. Bạn cần vào mục Development Center (Trung tâm phát triển) để tiến hành triển khai (Deploy) thì cấu hình mới có hiệu lực.", "Lưu cấu hình", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
@@ -1581,6 +1565,30 @@ namespace QuanLyGiuXe
             }
         }
         private void Close_Click(object sender, RoutedEventArgs e) => Close();
+
+        protected override void OnClosed(EventArgs e)
+        {
+            base.OnClosed(e);
+            
+            // Restore active config to service when window is closed
+            try
+            {
+                var activeConfig = AppConfig.Load();
+                C3200Service.Instance.Configure(
+                    activeConfig.ZKTeco.IpAddress,
+                    activeConfig.ZKTeco.TcpPort,
+                    activeConfig.ZKTeco.Password,
+                    activeConfig.ZKTeco.Timeout,
+                    activeConfig.ZKTeco.BarrierDuration
+                );
+                
+                _ = Task.Run(async () =>
+                {
+                    try { await C3200Service.Instance.ConnectAsync(); } catch { }
+                });
+            }
+            catch { }
+        }
 
         private async Task SaveLaneVehicleType(ComboBox laneCombo, ComboBox vehicleTypeCombo)
         {

@@ -13,6 +13,7 @@ namespace QuanLyGiuXe.Services
         public bool ShowLog { get; set; } = true;
 
         private static AppConfig? _cached;
+        private static AppConfig? _draftCached;
         private static readonly object _lock = new();
 
         public static AppConfig Load(string fileName = "config.json")
@@ -48,11 +49,67 @@ namespace QuanLyGiuXe.Services
             }
         }
 
+        public static AppConfig LoadDraft(string fileName = "config_draft.json")
+        {
+            lock (_lock)
+            {
+                if (_draftCached != null) return _draftCached;
+
+                var draftPath = Path.Combine(AppContext.BaseDirectory, fileName);
+                var activePath = Path.Combine(AppContext.BaseDirectory, "config.json");
+
+                if (!File.Exists(draftPath))
+                {
+                    if (File.Exists(activePath))
+                    {
+                        try
+                        {
+                            File.Copy(activePath, draftPath, true);
+                        }
+                        catch { }
+                    }
+                }
+
+                var paths = new[]
+                {
+                    draftPath,
+                    fileName
+                };
+
+                foreach (var path in paths)
+                {
+                    if (!File.Exists(path)) continue;
+                    try
+                    {
+                        var json = File.ReadAllText(path);
+                        var cfg = JsonConvert.DeserializeObject<AppConfig>(json) ?? new AppConfig();
+                        try { LoggingService.Instance.LogInfo("ConfigLoaded", "AppConfig", $"Loaded draft config from {path}"); } catch { }
+                        _draftCached = cfg;
+                        return cfg;
+                    }
+                    catch
+                    {
+                    }
+                }
+
+                _draftCached = new AppConfig();
+                return _draftCached;
+            }
+        }
+
         public static void ClearCache()
         {
             lock (_lock)
             {
                 _cached = null;
+            }
+        }
+
+        public static void ClearDraftCache()
+        {
+            lock (_lock)
+            {
+                _draftCached = null;
             }
         }
 
@@ -73,6 +130,27 @@ namespace QuanLyGiuXe.Services
             try 
             { 
                 LoggingService.Instance.LogAudit("SAVE_CONFIG", "AppConfig", Path.GetFileName(path), null, this, source: "AppConfig", details: $"Saved system configuration to {path}");
+            } 
+            catch { }
+        }
+
+        public void SaveDraft(string fileName = "config_draft.json")
+        {
+            var path = File.Exists(fileName)
+                ? fileName
+                : Path.Combine(AppContext.BaseDirectory, fileName);
+
+            var json = JsonConvert.SerializeObject(this, Formatting.Indented);
+            File.WriteAllText(path, json);
+            
+            lock (_lock)
+            {
+                _draftCached = this;
+            }
+
+            try 
+            { 
+                LoggingService.Instance.LogAudit("SAVE_DRAFT_CONFIG", "AppConfig", Path.GetFileName(path), null, this, source: "AppConfig", details: $"Saved system configuration draft to {path}");
             } 
             catch { }
         }

@@ -381,8 +381,55 @@ namespace QuanLyGiuXe.ViewModels
 
             if (success)
             {
-                // Apply deployed configuration: sync config.json, diff old vs new, stop/start affected streams
+                // 1. Clear cached active configs and load the newly copied files
+                AppConfig.ClearCache();
+                ReaderLaneMappingService.Instance.Load();
+
+                // 2. Configure and reconnect ZKTeco controller service with new active settings
+                try
+                {
+                    var activeCfg = AppConfig.Load();
+                    C3200Service.Instance.Configure(
+                        activeCfg.ZKTeco.IpAddress, 
+                        activeCfg.ZKTeco.TcpPort,
+                        activeCfg.ZKTeco.Password, 
+                        activeCfg.ZKTeco.Timeout, 
+                        activeCfg.ZKTeco.BarrierDuration
+                    );
+                    ConnectionMonitorService.Instance.ResetState();
+                    _ = Task.Run(async () =>
+                    {
+                        try { await C3200Service.Instance.ConnectAsync(); } catch { }
+                    });
+                }
+                catch (Exception ex)
+                {
+                    LoggingService.Instance.LogError("ExecuteDeploy", "DeploymentCenterViewModel", "Failed to configure/reconnect C3200 after deployment", ex);
+                }
+
+                // 3. Apply deployed camera configuration: sync config.json, diff old vs new, stop/start affected streams
                 await CameraService.Instance.ApplyDeployedConfigurationAsync();
+
+                // 4. Refresh main view model settings immediately so UI is updated in real-time
+                try
+                {
+                    if (Application.Current.MainWindow?.DataContext is MainViewModel vm)
+                    {
+                        vm.RefreshSettings();
+                    }
+                }
+                catch { }
+
+                // 5. Reload camera streams dynamically
+                try
+                {
+                    var mainWin = Application.Current.MainWindow as MainWindow;
+                    if (mainWin != null)
+                    {
+                        mainWin.ReloadCameras();
+                    }
+                }
+                catch { }
 
                 MessageBox.Show("Triển khai cấu hình mới thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
                 Notes = string.Empty;

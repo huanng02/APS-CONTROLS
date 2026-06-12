@@ -24,13 +24,126 @@ namespace QuanLyGiuXe.Services
         private static readonly string FilePath =
             Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "reader_mappings.json");
 
+        private static readonly string DraftFilePath =
+            Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "reader_mappings_draft.json");
+
         private List<ReaderLaneMapping> _mappings = new();
+        private List<ReaderLaneMapping> _draftMappings = new();
 
         public static ReaderLaneMappingService Instance { get; } = new();
 
         private ReaderLaneMappingService()
         {
             Load();
+            LoadDraft();
+        }
+
+        public void LoadDraft()
+        {
+            try
+            {
+                if (!File.Exists(DraftFilePath))
+                {
+                    if (File.Exists(FilePath))
+                    {
+                        try
+                        {
+                            File.Copy(FilePath, DraftFilePath, true);
+                        }
+                        catch { }
+                    }
+                    else
+                    {
+                        _draftMappings = new List<ReaderLaneMapping>();
+                        SaveDraftInternal();
+                        return;
+                    }
+                }
+
+                string json = File.ReadAllText(DraftFilePath);
+
+                _draftMappings =
+                    System.Text.Json.JsonSerializer.Deserialize<List<ReaderLaneMapping>>(json)
+                    ?? new List<ReaderLaneMapping>();
+            }
+            catch
+            {
+                _draftMappings = new List<ReaderLaneMapping>();
+            }
+        }
+
+        private void SaveDraftInternal()
+        {
+            try
+            {
+                string json = System.Text.Json.JsonSerializer.Serialize(
+                    _draftMappings,
+                    new System.Text.Json.JsonSerializerOptions
+                    {
+                        WriteIndented = true
+                    });
+
+                File.WriteAllText(DraftFilePath, json);
+            }
+            catch
+            {
+            }
+        }
+
+        public List<ReaderLaneMapping> GetAllDraft()
+        {
+            LoadDraft();
+            return _draftMappings;
+        }
+
+        public void UpdateDraftMappings(List<ReaderLaneMapping> mappings)
+        {
+            LoadDraft();
+            var oldMappings = new List<ReaderLaneMapping>(_draftMappings);
+            _draftMappings = mappings ?? new List<ReaderLaneMapping>();
+
+            SaveDraftInternal();
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    string GetLaneName(int lId)
+                    {
+                        var l = ParkingTopologyService.Instance.GetLanes()?.FirstOrDefault(x => x.Id == lId);
+                        return l != null ? l.LaneName : $"Làn ID {lId}";
+                    }
+
+                    for (int r = 1; r <= 4; r++)
+                    {
+                        var oldM = oldMappings.FirstOrDefault(x => x.ReaderNo == r);
+                        var newM = _draftMappings.FirstOrDefault(x => x.ReaderNo == r);
+                        if (newM != null)
+                        {
+                            bool isChanged = oldM == null ||
+                                             oldM.LaneId != newM.LaneId ||
+                                             oldM.Direction != newM.Direction ||
+                                             oldM.IsEnabled != newM.IsEnabled;
+                            if (isChanged)
+                            {
+                                string oldValStr = oldM != null 
+                                    ? $"{GetLaneName(oldM.LaneId)} ({oldM.Direction}, {(oldM.IsEnabled ? "Bật" : "Tắt")})" 
+                                    : "Chưa gán";
+                                string newValStr = $"{GetLaneName(newM.LaneId)} ({newM.Direction}, {(newM.IsEnabled ? "Bật" : "Tắt")})";
+
+                                await ConfigurationAuditService.Instance.RecordChangeAsync(
+                                    "Reader Mapping",
+                                    $"Đầu đọc {r}",
+                                    "Lane Mapping",
+                                    oldValStr,
+                                    newValStr
+                                );
+                            }
+                        }
+                    }
+                }
+                catch { }
+            });
         }
 
         public void Load()

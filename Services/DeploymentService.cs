@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
+using System.IO;
 using System.Threading.Tasks;
 using QuanLyGiuXe.Models;
 
@@ -224,6 +225,28 @@ namespace QuanLyGiuXe.Services
                         cmd.Parameters.AddWithValue("@status", "SUCCESS");
                         cmd.Parameters.AddWithValue("@notes", notes ?? string.Empty);
                         await cmd.ExecuteNonQueryAsync();
+                    }
+
+                    // Copy draft config files to active config files
+                    try
+                    {
+                        var activeConfigPath = Path.Combine(AppContext.BaseDirectory, "config.json");
+                        var draftConfigPath = Path.Combine(AppContext.BaseDirectory, "config_draft.json");
+                        if (File.Exists(draftConfigPath))
+                        {
+                            File.Copy(draftConfigPath, activeConfigPath, true);
+                        }
+
+                        var activeMappingsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "reader_mappings.json");
+                        var draftMappingsPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "reader_mappings_draft.json");
+                        if (File.Exists(draftMappingsPath))
+                        {
+                            File.Copy(draftMappingsPath, activeMappingsPath, true);
+                        }
+                    }
+                    catch (Exception fileEx)
+                    {
+                        LoggingService.Instance.LogError("DeploymentService", "DeployAsync", "Error copying configuration draft files", fileEx);
                     }
 
                     LoggingService.Instance.LogInfo("DEPLOY", "DeployAsync", $"Configuration successfully deployed to version V{newVersion} by {deployBy}");
