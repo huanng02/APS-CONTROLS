@@ -1470,7 +1470,8 @@ namespace QuanLyGiuXe
                 // Reload camera streams dynamically if settings were saved from the main view
                 try
                 {
-                    if (Owner is MainWindow mainWin)
+                    var mainWin = Owner as MainWindow ?? Application.Current.MainWindow as MainWindow;
+                    if (mainWin != null)
                     {
                         mainWin.ReloadCameras();
                     }

@@ -32,6 +32,7 @@ namespace QuanLyGiuXe
         private readonly Dictionary<string, WriteableBitmap> _writeableBitmaps = new();
         private readonly Dictionary<string, byte[]> _pixelBuffers = new();
         private ParkingView? _parkingViewCache = null;
+        private ParkingView? _lastBoundParkingView = null;
         private bool _isProcessingAuto = false;
         private DateTime _lastAutoScanTime = DateTime.MinValue;
         private DateTime _lastAutoScanTime1 = DateTime.MinValue;
@@ -137,6 +138,17 @@ namespace QuanLyGiuXe
             RFIDService.Instance.OnCardScanned -= RawRfidScanned;
             C3200Service.Instance.OnCardScanned -= RawC3200Scanned;
             C3200Service.Instance.OnEvent -= OnC3200Event;
+
+            // Stop LPR process if running
+            try
+            {
+                if (_lprProcess != null && !_lprProcess.HasExited)
+                {
+                    _lprProcess.Kill();
+                    _lprProcess.Dispose();
+                }
+            }
+            catch { }
 
             // Stop camera to release resources
             try { _cameraService.StopAll(); } catch { }
@@ -367,7 +379,9 @@ namespace QuanLyGiuXe
                 return;
             }
 
-            new C3200SettingsWindow().ShowDialog();
+            var settingsWin = new C3200SettingsWindow { Owner = this };
+            settingsWin.ShowDialog();
+            ReloadCameras();
             if (DataContext is MainViewModel vm)
             {
                 vm.RefreshSettings();
@@ -799,56 +813,80 @@ namespace QuanLyGiuXe
         {
             try
             {
+                _cameraService.ClearCache();
                 AppConfig.ClearCache();
                 var cfg = AppConfig.Load().Cameras;
                 
-                // Stop all cameras first
-                _cameraService.StopAll();
-
-                // Clear UI camera streams so old static frames are not kept
-                Dispatcher.BeginInvoke(new Action(() =>
-                {
-                    var parkingView = FindVisualChild<ParkingView>(MainContentHost);
-                    if (parkingView != null)
-                    {
-                        parkingView.UpdateCamera("Vao1", null);
-                        parkingView.UpdateCamera("Vao2", null);
-                        parkingView.UpdateCamera("Ra1", null);
-                        parkingView.UpdateCamera("Ra2", null);
-                    }
-                }));
-
-                // Start dynamic lane cameras if any are configured
+                // Build target camera configuration list (key -> url)
+                var targetConfigs = new System.Collections.Generic.Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                 bool startedAnyDynamic = false;
-                var activeKeys = new System.Collections.Generic.List<string>();
+
                 if (cfg.LaneCameras != null && cfg.LaneCameras.Count > 0)
                 {
                     foreach (var lc in cfg.LaneCameras)
                     {
                         if (!string.IsNullOrEmpty(lc.ToanCanh))
                         {
-                            string key = $"Lane_{lc.LaneId}_ToanCanh";
-                            _cameraService.StartIpCamera(key, lc.ToanCanh);
-                            activeKeys.Add(key);
+                            targetConfigs[$"Lane_{lc.LaneId}_ToanCanh"] = lc.ToanCanh;
                             startedAnyDynamic = true;
                         }
                         if (!string.IsNullOrEmpty(lc.BienSo))
                         {
-                            string key = $"Lane_{lc.LaneId}_BienSo";
-                            _cameraService.StartIpCamera(key, lc.BienSo);
-                            activeKeys.Add(key);
+                            targetConfigs[$"Lane_{lc.LaneId}_BienSo"] = lc.BienSo;
                             startedAnyDynamic = true;
                         }
                     }
                 }
 
-                // Fallback to legacy cameras if no dynamic camera was started
+                // Fallback to legacy cameras if no dynamic camera was configured
                 if (!startedAnyDynamic)
                 {
-                    if (!string.IsNullOrEmpty(cfg.VaoToanCanh)) { _cameraService.StartIpCamera("Vao1", cfg.VaoToanCanh); activeKeys.Add("Vao1"); }
-                    if (!string.IsNullOrEmpty(cfg.VaoBienSo)) { _cameraService.StartIpCamera("Vao2", cfg.VaoBienSo); activeKeys.Add("Vao2"); }
-                    if (!string.IsNullOrEmpty(cfg.RaToanCanh)) { _cameraService.StartIpCamera("Ra1", cfg.RaToanCanh); activeKeys.Add("Ra1"); }
-                    if (!string.IsNullOrEmpty(cfg.RaBienSo)) { _cameraService.StartIpCamera("Ra2", cfg.RaBienSo); activeKeys.Add("Ra2"); }
+                    if (!string.IsNullOrEmpty(cfg.VaoToanCanh)) targetConfigs["Vao1"] = cfg.VaoToanCanh;
+                    if (!string.IsNullOrEmpty(cfg.VaoBienSo)) targetConfigs["Vao2"] = cfg.VaoBienSo;
+                    if (!string.IsNullOrEmpty(cfg.RaToanCanh)) targetConfigs["Ra1"] = cfg.RaToanCanh;
+                    if (!string.IsNullOrEmpty(cfg.RaBienSo)) targetConfigs["Ra2"] = cfg.RaBienSo;
+                }
+
+                // Get currently running camera keys and their active URLs
+                var runningStates = _cameraService.GetAllRuntimeStates();
+                var runningKeys = runningStates.Select(s => s.CameraKey).ToList();
+
+                // 1. Stop cameras that are no longer in the target config or whose URLs have changed
+                foreach (var key in runningKeys)
+                {
+                    string activeUrl = _cameraService.GetUrl(key);
+                    if (!targetConfigs.TryGetValue(key, out string targetUrl) || 
+                        !string.Equals(activeUrl, targetUrl, StringComparison.OrdinalIgnoreCase))
+                    {
+                        _cameraService.StopIpCamera(key);
+                        
+                        // Clear the UI frame for this camera
+                        string uiCamKey = MapCameraKeyToUi(key);
+                        if (!string.IsNullOrEmpty(uiCamKey))
+                        {
+                            Dispatcher.BeginInvoke(new Action(() =>
+                            {
+                                var parkingView = GetParkingView();
+                                parkingView?.UpdateCamera(uiCamKey, null);
+                            }));
+                        }
+                    }
+                }
+
+                // 2. Start new cameras or apply changed URLs
+                var activeKeys = new System.Collections.Generic.List<string>();
+                foreach (var kvp in targetConfigs)
+                {
+                    string key = kvp.Key;
+                    string url = kvp.Value;
+                    activeKeys.Add(key);
+
+                    // Only start if not already running with the exact same URL
+                    string activeUrl = _cameraService.GetUrl(key);
+                    if (string.IsNullOrEmpty(activeUrl) || !string.Equals(activeUrl, url, StringComparison.OrdinalIgnoreCase))
+                    {
+                        _cameraService.StartIpCamera(key, url);
+                    }
                 }
 
                 Services.Connection.AutoReconnectService.Instance.UpdateCameraResources(activeKeys, _cameraService);
@@ -1043,6 +1081,13 @@ namespace QuanLyGiuXe
                         var parkingView = GetParkingView();
                         if (parkingView == null) return;
 
+                        bool needBind = false;
+                        if (parkingView != _lastBoundParkingView)
+                        {
+                            _lastBoundParkingView = parkingView;
+                            needBind = true;
+                        }
+
                         if (!_writeableBitmaps.TryGetValue(uiCamKey, out var wBmp) ||
                             wBmp.PixelWidth != width ||
                             wBmp.PixelHeight != height ||
@@ -1050,6 +1095,11 @@ namespace QuanLyGiuXe
                         {
                             wBmp = new WriteableBitmap(width, height, 96, 96, wpfFormat, null);
                             _writeableBitmaps[uiCamKey] = wBmp;
+                            needBind = true;
+                        }
+
+                        if (needBind)
+                        {
                             parkingView.UpdateCamera(uiCamKey, wBmp);
                         }
 

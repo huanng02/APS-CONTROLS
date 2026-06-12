@@ -87,6 +87,11 @@ namespace QuanLyGiuXe.Services
             // Không cần khởi tạo AForge nữa
         }
 
+        public void ClearCache()
+        {
+            _lastCacheUpdate = DateTime.MinValue;
+        }
+
         public CameraRuntimeState GetRuntimeState(string key)
         {
             string resolvedKey = ResolveActiveKey(key);

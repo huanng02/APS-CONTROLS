@@ -81,9 +81,24 @@ namespace QuanLyGiuXe
 
         private void SafeShutdown(string reason)
         {
-            LoggingService.Instance.LogInfo("App", "App", $"SAFE SHUTDOWN REQUESTED: {reason}");
-            try { this.Shutdown(); } catch { }
-            Environment.Exit(0);
+            try
+            {
+                LoggingService.Instance.LogInfo("App", "App", $"SAFE SHUTDOWN REQUESTED: {reason}");
+            }
+            catch { }
+            
+            try
+            {
+                this.Shutdown();
+            }
+            catch
+            {
+                try
+                {
+                    System.Diagnostics.Process.GetCurrentProcess().Kill();
+                }
+                catch { }
+            }
         }
 
         public void PerformLogout()
@@ -227,7 +242,21 @@ namespace QuanLyGiuXe
 
         protected override void OnExit(ExitEventArgs e)
         {
-            LoggingService.Instance.LogInfo("AppExit", "App", $"Application exiting with code: {e.ApplicationExitCode}");
+            // Start a thread-pool timer to force exit the process if it hangs for more than 2 seconds
+            var watchdogTimer = new System.Threading.Timer(_ =>
+            {
+                try
+                {
+                    System.Diagnostics.Process.GetCurrentProcess().Kill();
+                }
+                catch { }
+            }, null, 2000, System.Threading.Timeout.Infinite);
+
+            try
+            {
+                LoggingService.Instance.LogInfo("AppExit", "App", $"Application exiting with code: {e.ApplicationExitCode}");
+            }
+            catch { }
             
             try
             {
@@ -264,8 +293,30 @@ namespace QuanLyGiuXe
             }
             catch { }
             
-            base.OnExit(e);
-            Environment.Exit(e.ApplicationExitCode);
+            try
+            {
+                base.OnExit(e);
+            }
+            catch { }
+            
+            try
+            {
+                watchdogTimer.Dispose();
+            }
+            catch { }
+            
+            try
+            {
+                Environment.Exit(e.ApplicationExitCode);
+            }
+            catch
+            {
+                try
+                {
+                    System.Diagnostics.Process.GetCurrentProcess().Kill();
+                }
+                catch { }
+            }
         }
     }
 

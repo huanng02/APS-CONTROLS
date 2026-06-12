@@ -28,7 +28,8 @@ namespace QuanLyGiuXe.Services.Connection
             string url = _cameraService.GetUrl(_camKey);
             if (string.IsNullOrEmpty(url)) return false;
 
-            // Restart camera stream
+            // Force restart camera stream by stopping it first to clear the failed connection
+            _cameraService.StopIpCamera(_camKey);
             _cameraService.StartIpCamera(_camKey, url);
             
             // Đợi một chút để xem có lên không
