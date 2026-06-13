@@ -90,7 +90,7 @@ namespace QuanLyGiuXe.ViewModels
 
                 try
                 {
-                    service.Add(model.TenLoai, model.TrangThai, model.Detail);
+                    service.Add(model.TenLoai, model.TrangThai, model.Detail, model.CoTheGiaHan);
                     System.Windows.MessageBox.Show("Thêm loại vé thành công", "Thông báo", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
                 }
                 catch (Exception)
@@ -110,7 +110,7 @@ namespace QuanLyGiuXe.ViewModels
             else if (SelectedItem != null) target = SelectedItem;
             if (target == null) return;
 
-            var model = new LoaiVe { Id = target.Id, TenLoai = target.TenLoai, TrangThai = target.TrangThai, Detail = target.Detail };
+            var model = new LoaiVe { Id = target.Id, TenLoai = target.TenLoai, TrangThai = target.TrangThai, Detail = target.Detail, CoTheGiaHan = target.CoTheGiaHan };
             var dlg = new Views.GenericAddEditWindow(model) { Owner = System.Windows.Application.Current.MainWindow };
             var result = dlg.ShowDialog();
             if (result == true)
@@ -128,7 +128,7 @@ namespace QuanLyGiuXe.ViewModels
 
                 try
                 {
-                    service.Update(model.Id, model.TenLoai, model.TrangThai, model.Detail);
+                    service.Update(model.Id, model.TenLoai, model.TrangThai, model.Detail, model.CoTheGiaHan);
                     System.Windows.MessageBox.Show("Cập nhật thành công", "Thông báo", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Information);
                 }
                 catch (Exception)

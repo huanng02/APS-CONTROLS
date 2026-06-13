@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using System.Linq;
 using System.Windows;
 using System.Windows.Data;
 
@@ -17,16 +18,27 @@ namespace QuanLyGiuXe.Services
 
             if (tabId == 0) return Visibility.Visible; // Show all in 'Tất cả' tab
 
+            bool coTheGiaHan = false;
+            try
+            {
+                var db = new DatabaseService();
+                var loaiVeList = db.GetLoaiVe();
+                var lv = loaiVeList.FirstOrDefault(x => x.Id == tabId);
+                if (lv != null)
+                {
+                    coTheGiaHan = lv.CoTheGiaHan;
+                }
+            }
+            catch { }
+
             if (mode == "MonthlyOnly")
             {
-                // tabId == 2 (Monthly)
-                return (tabId == 2) ? Visibility.Visible : Visibility.Collapsed;
+                return coTheGiaHan ? Visibility.Visible : Visibility.Collapsed;
             }
             
             if (mode == "TransientOnly")
             {
-                // tabId == 1 (Transient) or others
-                return (tabId == 1) ? Visibility.Visible : Visibility.Collapsed;
+                return !coTheGiaHan ? Visibility.Visible : Visibility.Collapsed;
             }
 
             return Visibility.Visible;

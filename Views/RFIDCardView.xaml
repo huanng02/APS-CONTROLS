@@ -11,10 +11,6 @@
         <svc:LoaiVeToVisibilityConverter x:Key="LoaiVeToVis"/>
     </UserControl.Resources>
 
-    <UserControl.DataContext>
-        <vm:RFIDCardViewModel />
-    </UserControl.DataContext>
-
     <Grid Margin="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>

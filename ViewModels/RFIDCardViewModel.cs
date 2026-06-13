@@ -111,8 +111,15 @@ namespace QuanLyGiuXe.ViewModels
         public ICommand ExportCommand { get; }
         public ICommand GiaHanCommand { get; }
 
-        public RFIDCardViewModel()
+        private readonly bool _showOnlyNonRenewable;
+
+        public RFIDCardViewModel() : this(false)
         {
+        }
+
+        public RFIDCardViewModel(bool showOnlyNonRenewable)
+        {
+            _showOnlyNonRenewable = showOnlyNonRenewable;
             LoadCommand = new RelayCommand(_ => Load());
             // initialize tabs
             InitTabs();
@@ -132,7 +139,7 @@ namespace QuanLyGiuXe.ViewModels
         {
             Tabs.Clear();
             // 'Tất cả' tab id=0
-            Tabs.Add(new LoaiVeTabViewModel { Id = 0, Title = "Tất cả" });
+            Tabs.Add(new LoaiVeTabViewModel { Id = 0, Title = "Tất cả", ShowOnlyNonRenewable = _showOnlyNonRenewable });
             
             // Dynamically load tabs from LoaiVe DB table
             try
@@ -143,7 +150,11 @@ namespace QuanLyGiuXe.ViewModels
                 {
                     if (lv.Id > 0 && !string.IsNullOrEmpty(lv.TenLoai))
                     {
-                        Tabs.Add(new LoaiVeTabViewModel { Id = lv.Id, Title = lv.TenLoai });
+                        if (_showOnlyNonRenewable && lv.CoTheGiaHan)
+                        {
+                            continue;
+                        }
+                        Tabs.Add(new LoaiVeTabViewModel { Id = lv.Id, Title = lv.TenLoai, ShowOnlyNonRenewable = _showOnlyNonRenewable });
                     }
                 }
             }
@@ -244,7 +255,7 @@ namespace QuanLyGiuXe.ViewModels
             // open wizard (multi-step) add dialog
             var model = new QuanLyGiuXe.Models.RFIDCards { CardUID = string.Empty, BienSo = string.Empty, TrangThai = "Active" };
 
-            var vm = new RFIDCardWizardViewModel();
+            var vm = new RFIDCardWizardViewModel(_showOnlyNonRenewable);
             vm.InitForAdd();
             // seed initial values from model (if any)
             vm.CardUID = model.CardUID;
@@ -298,7 +309,7 @@ namespace QuanLyGiuXe.ViewModels
             else if (SelectedItem != null) target = SelectedItem;
             if (target == null) return;
             // Use wizard ViewModel for edit flow: load data BEFORE showing window
-            var vm = new RFIDCardWizardViewModel();
+            var vm = new RFIDCardWizardViewModel(_showOnlyNonRenewable);
             vm.LoadForEdit(target.Id);
 
             var window = new Views.RFIDCardAddEditWindow(null) { Owner = System.Windows.Application.Current.MainWindow };

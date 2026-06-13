@@ -5,9 +5,14 @@ namespace QuanLyGiuXe.Views
 {
     public partial class RFIDCardView : UserControl
     {
-        public RFIDCardView()
+        public RFIDCardView() : this(false)
+        {
+        }
+
+        public RFIDCardView(bool showOnlyNonRenewable)
         {
             InitializeComponent();
+            DataContext = new ViewModels.RFIDCardViewModel(showOnlyNonRenewable);
         }
 
         private void OpenImportExport_Click(object sender, RoutedEventArgs e)

@@ -289,6 +289,13 @@ namespace QuanLyGiuXe
                 ? Visibility.Visible 
                 : Visibility.Collapsed;
 
+            btnRFIDNonRenewable.Visibility = (PermissionService.Instance.CheckPermission("MANAGE_PRICING") ||
+                                              PermissionService.Instance.CheckPermission("RFID_CREATE") ||
+                                              PermissionService.Instance.CheckPermission("RFID_UPDATE") ||
+                                              PermissionService.Instance.CheckPermission("RFID_DELETE")) 
+                ? Visibility.Visible 
+                : Visibility.Collapsed;
+
             btnDashboard.Visibility = PermissionService.Instance.CheckPermission("VIEW_DASHBOARD") ? Visibility.Visible : Visibility.Collapsed;
             btnTopologySettings.Visibility = PermissionService.Instance.CheckPermission("CONFIG_SYSTEM") ? Visibility.Visible : Visibility.Collapsed;
             btnTopologyValidation.Visibility = PermissionService.Instance.CheckPermission("CONFIG_SYSTEM") ? Visibility.Visible : Visibility.Collapsed;
@@ -1483,8 +1490,12 @@ namespace QuanLyGiuXe
                         title = "Quản lý Loại Vé";
                         break;
                     case "RFID":
-                        content = new QuanLyGiuXe.Views.RFIDCardView();
+                        content = new QuanLyGiuXe.Views.RFIDCardView(false);
                         title = "Quản lý RFID";
+                        break;
+                    case "RFID_NonRenewable":
+                        content = new QuanLyGiuXe.Views.RFIDCardView(true);
+                        title = "Quản lý Thẻ Không Gia Hạn";
                         break;
                     case "BangGia":
                         content = new QuanLyGiuXe.Views.BangGiaView();

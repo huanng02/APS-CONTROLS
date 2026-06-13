@@ -58,12 +58,13 @@ namespace QuanLyGiuXe.Services
                 lv,
                 async conn =>
                 {
-                    using (var cmd = new SqlCommand( @"INSERT INTO LoaiVe (TenLoai, TrangThai, Detail) VALUES (@ten, @trang, @detail)", conn))
+                    using (var cmd = new SqlCommand( @"INSERT INTO LoaiVe (TenLoai, TrangThai, Detail, CoTheGiaHan) VALUES (@ten, @trang, @detail, @coTheGiaHan)", conn))
                     {
                         cmd.Parameters.AddWithValue("@ten", lv.TenLoai ?? string.Empty);
                         cmd.Parameters.AddWithValue("@trang", lv.TrangThai ?? string.Empty);
                         string detail = string.IsNullOrWhiteSpace(lv.Detail) ? "Chưa có mô tả" : lv.Detail;
                         cmd.Parameters.AddWithValue("@detail", (object)detail ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@coTheGiaHan", lv.CoTheGiaHan);
                         await cmd.ExecuteNonQueryAsync();
                     }
                 }
@@ -84,11 +85,12 @@ namespace QuanLyGiuXe.Services
                 lv,
                 async conn =>
                 {
-                    using (var cmd = new SqlCommand( @"UPDATE LoaiVe SET TenLoai=@ten, TrangThai=@trang, Detail=@detail WHERE Id=@id", conn))
+                    using (var cmd = new SqlCommand( @"UPDATE LoaiVe SET TenLoai=@ten, TrangThai=@trang, Detail=@detail, CoTheGiaHan=@coTheGiaHan WHERE Id=@id", conn))
                     {
                         cmd.Parameters.AddWithValue("@ten", lv.TenLoai ?? string.Empty);
                         cmd.Parameters.AddWithValue("@trang", lv.TrangThai ?? string.Empty);
                         cmd.Parameters.AddWithValue("@detail", string.IsNullOrWhiteSpace(lv.Detail) ? (object)DBNull.Value : lv.Detail);
+                        cmd.Parameters.AddWithValue("@coTheGiaHan", lv.CoTheGiaHan);
                         cmd.Parameters.AddWithValue("@id", lv.Id);
                         await cmd.ExecuteNonQueryAsync();
                     }

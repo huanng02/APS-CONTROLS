@@ -57,8 +57,15 @@ namespace QuanLyGiuXe.ViewModels
         // RequestClose event allows ViewModel to request the View to close (true = saved, false = canceled)
         public event Action<bool?> RequestClose;
 
-        public RFIDCardWizardViewModel()
+        private readonly bool _showOnlyNonRenewable;
+
+        public RFIDCardWizardViewModel() : this(false)
         {
+        }
+
+        public RFIDCardWizardViewModel(bool showOnlyNonRenewable)
+        {
+            _showOnlyNonRenewable = showOnlyNonRenewable;
             // subscribe to centralized enrollment event
             try
             {
@@ -246,11 +253,15 @@ namespace QuanLyGiuXe.ViewModels
                 try
                 {
                     if (LoaiVeList == null) return null;
-                    if (ActiveTabIndex == 2) return LoaiVeList;
-                    var isMonthly = ActiveTabIndex == 1;
                     var res = LoaiVeList.FindAll(x =>
                     {
                         var monthly = x.CoTheGiaHan;
+                        if (_showOnlyNonRenewable)
+                        {
+                            return !monthly;
+                        }
+                        if (ActiveTabIndex == 2) return true;
+                        var isMonthly = ActiveTabIndex == 1;
                         return isMonthly ? monthly : !monthly;
                     });
                     return res;

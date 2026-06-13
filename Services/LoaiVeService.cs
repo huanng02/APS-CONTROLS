@@ -14,19 +14,19 @@ namespace QuanLyGiuXe.Services
             return await _repo.GetAllAsync();
         }
 
-        public async System.Threading.Tasks.Task AddAsync(string ten, string trangThai, string detail = null)
+        public async System.Threading.Tasks.Task AddAsync(string ten, string trangThai, string detail = null, bool coTheGiaHan = false)
         {
             if (string.IsNullOrWhiteSpace(ten)) throw new ArgumentException("Tên loại vé không được rỗng", nameof(ten));
-            var lv = new LoaiVe { TenLoai = ten, TrangThai = trangThai ?? string.Empty, Detail = detail };
+            var lv = new LoaiVe { TenLoai = ten, TrangThai = trangThai ?? string.Empty, Detail = detail, CoTheGiaHan = coTheGiaHan };
             await _repo.InsertAsync(lv);
             LoggingService.Instance.LogCrud("CREATE_LOAIVE", "LoaiVe", details: $"Thêm loại vé: {ten} ({trangThai})", source: "LoaiVeService");
         }
 
-        public async System.Threading.Tasks.Task UpdateAsync(int id, string ten, string trangThai, string detail = null)
+        public async System.Threading.Tasks.Task UpdateAsync(int id, string ten, string trangThai, string detail = null, bool coTheGiaHan = false)
         {
             if (id <= 0) throw new ArgumentException("ID không hợp lệ", nameof(id));
             if (string.IsNullOrWhiteSpace(ten)) throw new ArgumentException("Tên loại vé không được rỗng", nameof(ten));
-            var lv = new LoaiVe { Id = id, TenLoai = ten, TrangThai = trangThai ?? string.Empty, Detail = detail };
+            var lv = new LoaiVe { Id = id, TenLoai = ten, TrangThai = trangThai ?? string.Empty, Detail = detail, CoTheGiaHan = coTheGiaHan };
             await _repo.UpdateAsync(lv);
             LoggingService.Instance.LogCrud("UPDATE_LOAIVE", "LoaiVe", id.ToString(), details: $"Cập nhật loại vé ID: {id} thành: {ten} ({trangThai})", source: "LoaiVeService");
         }
@@ -40,8 +40,8 @@ namespace QuanLyGiuXe.Services
 
         // Legacy synchronous wrappers for UI compatibility
         public List<LoaiVe> GetAll() => Task.Run(() => GetAllAsync()).GetAwaiter().GetResult();
-        public void Add(string ten, string trangThai, string detail = null) => Task.Run(() => AddAsync(ten, trangThai, detail)).GetAwaiter().GetResult();
-        public void Update(int id, string ten, string trangThai, string detail = null) => Task.Run(() => UpdateAsync(id, ten, trangThai, detail)).GetAwaiter().GetResult();
+        public void Add(string ten, string trangThai, string detail = null, bool coTheGiaHan = false) => Task.Run(() => AddAsync(ten, trangThai, detail, coTheGiaHan)).GetAwaiter().GetResult();
+        public void Update(int id, string ten, string trangThai, string detail = null, bool coTheGiaHan = false) => Task.Run(() => UpdateAsync(id, ten, trangThai, detail, coTheGiaHan)).GetAwaiter().GetResult();
         public void Delete(int id) => Task.Run(() => DeleteAsync(id)).GetAwaiter().GetResult();
     }
 }
