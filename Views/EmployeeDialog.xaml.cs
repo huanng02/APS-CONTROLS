@@ -14,6 +14,7 @@ namespace QuanLyGiuXe.Views
         private readonly Employee _employee;
         private readonly EnterpriseCrudService _service = new EnterpriseCrudService();
         private string? _base64Avatar;
+        private string? _oldCardUID;
 
         public EmployeeDialog(Employee employee)
         {
@@ -22,6 +23,30 @@ namespace QuanLyGiuXe.Views
 
             LoadDropdowns();
             PopulateEmployeeData();
+
+            try
+            {
+                RFIDEventRouterService.Instance.SetTerminalContext(Environment.MachineName, RFIDContextType.CardEnrollment);
+                CardEnrollmentHandler.OnCardEnrolled += OnCardEnrolledByRouter;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Error subscribing to RFID events: " + ex.Message);
+            }
+        }
+
+        private void OnCardEnrolledByRouter(string uid) =>
+            Dispatcher.BeginInvoke(new Action(() => txtCardUID.Text = RFIDEventRouterService.ChuanHoaUID(uid)));
+
+        protected override void OnClosed(EventArgs e)
+        {
+            try
+            {
+                CardEnrollmentHandler.OnCardEnrolled -= OnCardEnrolledByRouter;
+                RFIDEventRouterService.Instance.ResetTerminalToDefault(Environment.MachineName);
+            }
+            catch { }
+            base.OnClosed(e);
         }
 
         private void LoadDropdowns()
@@ -35,6 +60,14 @@ namespace QuanLyGiuXe.Views
                 // Positions
                 var poss = _service.GetPositions();
                 cbPosition.ItemsSource = poss;
+
+                // Card Ticket Types
+                var ticketTypes = new LoaiVeService().GetAll();
+                cbCardLoaiVe.ItemsSource = ticketTypes;
+
+                // Card Vehicle Types
+                var vehicleTypes = new LoaiXeService().GetAll();
+                cbCardLoaiXe.ItemsSource = vehicleTypes;
             }
             catch (Exception ex)
             {
@@ -80,6 +113,38 @@ namespace QuanLyGiuXe.Views
             if (_employee.Id > 0)
             {
                 txtEmployeeCode.IsEnabled = false;
+
+                // Reload employee from database to get active card info (since VM clone doesn't include it)
+                var dbEmp = _service.GetEmployeeById(_employee.Id);
+                if (dbEmp != null)
+                {
+                    _employee.CardUID = dbEmp.CardUID;
+                    _employee.CardStatus = dbEmp.CardStatus;
+                    _employee.CardExpiration = dbEmp.CardExpiration;
+                }
+            }
+
+            // Fill card info if employee has an active card
+            if (!string.IsNullOrEmpty(_employee.CardUID))
+            {
+                txtCardUID.Text = _employee.CardUID;
+                _oldCardUID = _employee.CardUID;
+
+                var card = _service.GetRFIDCardByUidOrId(_employee.CardUID);
+                if (card != null)
+                {
+                    txtCardBienSo.Text = card.BienSo;
+                    cbCardLoaiVe.SelectedValue = card.LoaiVeId;
+                    cbCardLoaiXe.SelectedValue = card.LoaiXeId;
+                    dpCardExpiration.SelectedDate = card.NgayHetHan;
+                }
+            }
+            else
+            {
+                // defaults for new card
+                dpCardExpiration.SelectedDate = DateTime.Now.AddYears(1);
+                if (cbCardLoaiVe.Items.Count > 0) cbCardLoaiVe.SelectedIndex = 0;
+                if (cbCardLoaiXe.Items.Count > 0) cbCardLoaiXe.SelectedIndex = 0;
             }
 
             // Preview Avatar
@@ -172,6 +237,7 @@ namespace QuanLyGiuXe.Views
             string phone = txtPhone.Text.Trim();
             string email = txtEmail.Text.Trim();
             string cccd = txtCCCD.Text.Trim();
+            string cardUid = txtCardUID.Text.Trim();
 
             if (string.IsNullOrWhiteSpace(fullName))
             {
@@ -208,6 +274,52 @@ namespace QuanLyGiuXe.Views
 
             string status = ((ComboBoxItem)cbStatus.SelectedItem).Content.ToString() ?? "Active";
 
+            // RFID properties verification
+            int veId = cbCardLoaiVe.SelectedValue != null ? Convert.ToInt32(cbCardLoaiVe.SelectedValue) : 0;
+            int xeId = cbCardLoaiXe.SelectedValue != null ? Convert.ToInt32(cbCardLoaiXe.SelectedValue) : 0;
+            string bienSo = txtCardBienSo.Text.Trim();
+            DateTime? ngayHetHan = dpCardExpiration.SelectedDate;
+
+            if (!string.IsNullOrWhiteSpace(cardUid))
+            {
+                if (veId == 0)
+                {
+                    MessageBox.Show("Vui lòng chọn loại vé cho thẻ RFID.", "Lỗi nhập liệu", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    cbCardLoaiVe.Focus();
+                    return;
+                }
+                if (xeId == 0)
+                {
+                    MessageBox.Show("Vui lòng chọn loại xe cho thẻ RFID.", "Lỗi nhập liệu", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    cbCardLoaiXe.Focus();
+                    return;
+                }
+
+                // Check card assignment
+                try
+                {
+                    var existingCard = _service.GetRFIDCardByUidOrId(cardUid);
+                    if (existingCard != null && existingCard.EmployeeId.HasValue && existingCard.EmployeeId.Value > 0)
+                    {
+                        if (existingCard.EmployeeId.Value != _employee.Id)
+                        {
+                            var confirm = MessageBox.Show(
+                                $"Thẻ '{cardUid}' hiện đang được gán cho nhân viên khác. Bạn có muốn CHUYỂN thẻ này sang cho nhân viên '{fullName}'?",
+                                "Xác nhận chuyển thẻ", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                            if (confirm == MessageBoxResult.No)
+                            {
+                                return;
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Lỗi kiểm tra thẻ RFID: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+            }
+
             try
             {
                 _employee.FullName = fullName;
@@ -229,11 +341,53 @@ namespace QuanLyGiuXe.Views
                         txtEmployeeCode.Focus();
                         return;
                     }
-                    _service.InsertEmployee(_employee);
+                    _employee.Id = _service.InsertEmployee(_employee);
                 }
                 else
                 {
                     _service.UpdateEmployee(_employee);
+                }
+
+                // Save/update RFID Card association
+                if (string.IsNullOrWhiteSpace(cardUid))
+                {
+                    // De-assign if there was an old card
+                    if (!string.IsNullOrEmpty(_oldCardUID))
+                    {
+                        _service.RemoveRFIDCard(_oldCardUID);
+                    }
+                }
+                else
+                {
+                    // If card UID changed
+                    if (cardUid != _oldCardUID)
+                    {
+                        if (!string.IsNullOrEmpty(_oldCardUID))
+                        {
+                            _service.RemoveRFIDCard(_oldCardUID);
+                        }
+                        _service.AssignRFIDCard(cardUid, _employee.Id);
+                    }
+
+                    // Query the card and update custom details
+                    var assignedCard = _service.GetRFIDCardByUidOrId(cardUid);
+                    if (assignedCard != null)
+                    {
+                        var cardToUpdate = new Models.RFIDCards
+                        {
+                            Id = assignedCard.Id,
+                            CardUID = cardUid,
+                            CardName = string.IsNullOrEmpty(assignedCard.CardName) ? ("Employee Card " + cardUid) : assignedCard.CardName,
+                            BienSo = bienSo,
+                            LoaiXeId = xeId,
+                            LoaiVeId = veId,
+                            NgayDangKy = assignedCard.NgayTao == DateTime.MinValue ? DateTime.Now : assignedCard.NgayTao,
+                            NgayHetHan = ngayHetHan,
+                            TrangThai = "Active",
+                            EmployeeId = _employee.Id
+                        };
+                        new RFIDCardService().Update(cardToUpdate);
+                    }
                 }
 
                 DialogResult = true;
