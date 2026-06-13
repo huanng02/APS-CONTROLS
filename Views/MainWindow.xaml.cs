@@ -281,11 +281,11 @@ namespace QuanLyGiuXe
             btnLoaiVe.Visibility = PermissionService.Instance.CheckPermission("MANAGE_PRICING") ? Visibility.Visible : Visibility.Collapsed;
             btnBangGia.Visibility = PermissionService.Instance.CheckPermission("MANAGE_PRICING") ? Visibility.Visible : Visibility.Collapsed;
 
-            btnRFID.Visibility = (PermissionService.Instance.CheckPermission("MANAGE_PRICING") ||
-                                  PermissionService.Instance.CheckPermission("RFID_CREATE") ||
-                                  PermissionService.Instance.CheckPermission("RFID_UPDATE") ||
-                                  PermissionService.Instance.CheckPermission("RFID_DELETE") ||
-                                  PermissionService.Instance.CheckPermission("RFID_RENEW")) 
+            btnPersonnelExplorer.Visibility = (PermissionService.Instance.CheckPermission("MANAGE_PRICING") ||
+                                               PermissionService.Instance.CheckPermission("RFID_CREATE") ||
+                                               PermissionService.Instance.CheckPermission("RFID_UPDATE") ||
+                                               PermissionService.Instance.CheckPermission("RFID_DELETE") ||
+                                               PermissionService.Instance.CheckPermission("RFID_RENEW")) 
                 ? Visibility.Visible 
                 : Visibility.Collapsed;
 
@@ -582,6 +582,10 @@ namespace QuanLyGiuXe
                 else if (vm.CurrentView is TopologyValidationViewModel)
                 {
                     btnTopologyValidation.IsChecked = true;
+                }
+                else if (vm.CurrentView is PersonnelExplorerViewModel)
+                {
+                    btnPersonnelExplorer.IsChecked = true;
                 }
                 else
                 {
@@ -1411,6 +1415,14 @@ namespace QuanLyGiuXe
             if (DataContext is MainViewModel vm)
             {
                 vm.SetView(new ParkingTopologyViewModel());
+            }
+        }
+
+        private void MoPersonnelExplorer_Click(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is MainViewModel vm)
+            {
+                vm.SetView(new PersonnelExplorerViewModel());
             }
         }
 

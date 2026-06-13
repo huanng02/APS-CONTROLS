@@ -226,11 +226,11 @@
                             <StackPanel x:Name="MenuAdmin">
                                 <TextBlock Text="MANAGEMENT" Style="{StaticResource Heading2Style}" Foreground="#B0C4DE" FontSize="11" Margin="20,20,0,10"
                                            Visibility="{Binding IsSidebarExpanded, Converter={StaticResource BoolToVis}}"/>
-                                <RadioButton x:Name="btnRFID" Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Tag="RFID" Click="OpenModule_Click" ToolTip="Thẻ RFID">
+                                <RadioButton x:Name="btnPersonnelExplorer" Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Tag="PersonnelExplorer" Click="MoPersonnelExplorer_Click" ToolTip="Nhân sự &amp; Thẻ">
                                     <StackPanel Orientation="Horizontal">
-                                        <Path Data="M20,4H4C2.89,4 2,4.89 2,6V18C2,19.11 2.89,20 4,20H20C21.11,20 22,19.11 22,18V6C22,4.89 21.11,4 20,4M20,18H4V6H20V18M6,10H18V12H6V10M6,14H14V16H6V14Z" 
+                                        <Path Data="M12,5.5A3.5,3.5 0 0,1 15.5,9A3.5,3.5 0 0,1 12,12.5A3.5,3.5 0 0,1 8.5,9A3.5,3.5 0 0,1 12,5.5M5,8C5.56,8 6,8.44 6,9V15H7V22H5V15H4V9C4,8.44 4.44,8 5,8M19,8C19.56,8 20,8.44 20,9V15H21V22H19V15H18V9C18,8.44 18.44,8 19,8M12,14C14.76,14 17,15.12 17,16.5V22H7V16.5C7,15.12 9.24,14 12,14Z" 
                                               Fill="White" Width="18" Height="18" Stretch="Uniform" VerticalAlignment="Center"/>
-                                        <TextBlock Text=" Thẻ RFID" Margin="10,0,0,0">
+                                        <TextBlock Text=" Nhân sự &amp; Thẻ" Margin="10,0,0,0">
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock">
                                                     <Setter Property="Visibility" Value="Visible"/>
@@ -316,78 +316,7 @@
                                         </TextBlock>
                                     </StackPanel>
                                 </RadioButton>
-                                <RadioButton x:Name="btnCompany" Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Tag="Company" Click="OpenModule_Click" ToolTip="Công ty">
-                                    <StackPanel Orientation="Horizontal">
-                                        <Path Data="M12,7V3H2V21H22V7H12M6,19H4V17H6V19M6,15H4V13H6V15M6,11H4V9H6V11M6,7H4V5H6V7M10,19H8V17H10V19M10,15H8V13H10V15M10,11H8V9H10V11M10,7H8V5H10V7M20,19H12V9H20V19M18,11H14V13H18V11M18,15H14V17H18V15Z" 
-                                              Fill="White" Width="18" Height="18" Stretch="Uniform" VerticalAlignment="Center"/>
-                                        <TextBlock Text=" Công ty" Margin="10,0,0,0">
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsSidebarExpanded}" Value="False">
-                                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
-                                        </TextBlock>
-                                    </StackPanel>
-                                </RadioButton>
-                                <RadioButton x:Name="btnDepartment" Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Tag="Department" Click="OpenModule_Click" ToolTip="Phòng ban">
-                                    <StackPanel Orientation="Horizontal">
-                                        <Path Data="M10,4H4C2.89,4 2,4.89 2,6V18C2,19.1 2.9,20 4,20H20C21.1,20 22,19.1 22,18V8C22,6.9 21.1,6 20,6H12L10,4M4,8H20V18H4V8Z" 
-                                              Fill="White" Width="18" Height="18" Stretch="Uniform" VerticalAlignment="Center"/>
-                                        <TextBlock Text=" Phòng ban" Margin="10,0,0,0">
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsSidebarExpanded}" Value="False">
-                                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
-                                        </TextBlock>
-                                    </StackPanel>
-                                </RadioButton>
-                                <RadioButton x:Name="btnPosition" Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Tag="Position" Click="OpenModule_Click" ToolTip="Chức vụ">
-                                    <StackPanel Orientation="Horizontal">
-                                        <Path Data="M12.79,21L21,12.79V5H13.21L5,13.21L12.79,21M20,7A1,1 0 0,1 19,8A1,1 0 0,1 18,7A1,1 0 0,1 19,6A1,1 0 0,1 20,7M10.3,5.7L11.7,7.1L10.3,8.5L8.9,7.1L10.3,5.7M7.1,8.9L8.5,10.3L7.1,11.7L5.7,10.3L7.1,8.9Z" 
-                                              Fill="White" Width="18" Height="18" Stretch="Uniform" VerticalAlignment="Center"/>
-                                        <TextBlock Text=" Chức vụ" Margin="10,0,0,0">
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsSidebarExpanded}" Value="False">
-                                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
-                                        </TextBlock>
-                                    </StackPanel>
-                                </RadioButton>
-                                <RadioButton x:Name="btnEmployee" Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Tag="Employee" Click="OpenModule_Click" ToolTip="Nhân sự">
-                                    <StackPanel Orientation="Horizontal">
-                                        <Path Data="M12,5.5A3.5,3.5 0 0,1 15.5,9A3.5,3.5 0 0,1 12,12.5A3.5,3.5 0 0,1 8.5,9A3.5,3.5 0 0,1 12,5.5M5,8C5.56,8 6,8.44 6,9V15H7V22H5V15H4V9C4,8.44 4.44,8 5,8M19,8C19.56,8 20,8.44 20,9V15H21V22H19V15H18V9C18,8.44 18.44,8 19,8M12,14C14.76,14 17,15.12 17,16.5V22H7V16.5C7,15.12 9.24,14 12,14Z" 
-                                              Fill="White" Width="18" Height="18" Stretch="Uniform" VerticalAlignment="Center"/>
-                                        <TextBlock Text=" Nhân sự" Margin="10,0,0,0">
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsSidebarExpanded}" Value="False">
-                                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
-                                        </TextBlock>
-                                    </StackPanel>
-                                </RadioButton>
+
                             </StackPanel>
 
                             <!-- MONITORING & STATS SECTION (always visible) -->
@@ -670,6 +599,9 @@
                     </DataTemplate>
                     <DataTemplate DataType="{x:Type viewmodels:ParkingTopologyViewModel}">
                         <local:ParkingTopologyView/>
+                    </DataTemplate>
+                    <DataTemplate DataType="{x:Type viewmodels:PersonnelExplorerViewModel}">
+                        <local:PersonnelExplorerView/>
                     </DataTemplate>
                     <DataTemplate DataType="{x:Type viewmodels:RealtimeEventFeedViewModel}">
                         <local:RealtimeEventFeedView/>

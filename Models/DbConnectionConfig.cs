@@ -7,7 +7,7 @@ namespace QuanLyGiuXe.Models
 {
     public class DbConnectionConfig
     {
-        public string ServerIP { get; set; } = "192.168.2.13";
+        public string ServerIP { get; set; } = "192.168.2.15";
         public string Port { get; set; } = "1433";
         public string Database { get; set; } = "BaiXe";
         public string Username { get; set; } = "sa";
@@ -23,6 +23,10 @@ namespace QuanLyGiuXe.Models
         {
             try
             {
+                if (filePath == "dbconfig.json")
+                {
+                    filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "dbconfig.json");
+                }
                 var options = new JsonSerializerOptions { WriteIndented = true };
                 string json = JsonSerializer.Serialize(config, options);
                 File.WriteAllText(filePath, json);
@@ -38,6 +42,10 @@ namespace QuanLyGiuXe.Models
         {
             try
             {
+                if (filePath == "dbconfig.json")
+                {
+                    filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "dbconfig.json");
+                }
                 if (File.Exists(filePath))
                 {
                     string json = File.ReadAllText(filePath);
