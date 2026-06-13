@@ -922,7 +922,7 @@
                                             <Border BorderBrush="{StaticResource TopoBorderBrush}" BorderThickness="1.5" CornerRadius="8" Padding="20">
                                                 <StackPanel HorizontalAlignment="Center">
                                                     <TextBlock Text="Chưa gán thẻ" FontSize="13" Foreground="{StaticResource TopoTextMutedBrush}" HorizontalAlignment="Center"/>
-                                                    <Button Content="➕ Cấp thẻ RFID mới" Margin="0,10,0,0" Padding="12,6"
+                                                    <Button Content="➕ Cấp thẻ RFID" Margin="0,10,0,0" Padding="12,6"
                                                             Style="{StaticResource TopoActionButton}" HorizontalAlignment="Center"
                                                             Command="{Binding AddCardCommand}"/>
                                                 </StackPanel>
@@ -1127,8 +1127,8 @@
 
                                 <!-- QUICK ADD SECTOR -->
                                 <TextBlock Text="Tạo mới nhanh" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TopoTextMutedBrush}" Margin="0,0,0,10"/>
-                                <Button Content="🏢 Thêm công ty mới" Style="{StaticResource TopoOutlineButton}" Command="{Binding AddCompanyCommand}"/>
-                                <Button Content="🏷️ Thêm chức vụ mới" Style="{StaticResource TopoOutlineButton}" Command="{Binding AddPosCommand}"/>
+                                <Button Content="🏢 Thêm công ty" Style="{StaticResource TopoOutlineButton}" Command="{Binding AddCompanyCommand}"/>
+                                <Button Content="🏷️ Thêm chức vụ" Style="{StaticResource TopoOutlineButton}" Command="{Binding AddPosCommand}"/>
 
                             </StackPanel>
                         </ScrollViewer>
