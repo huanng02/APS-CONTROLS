@@ -251,7 +251,12 @@ namespace QuanLyGiuXe.Services
                 // Use the service which is now offline-aware
                 var loaiVeList = new LoaiVeService().GetAll();
                 var lv = loaiVeList.FirstOrDefault(x => x.Id == loaiVeId);
-                return lv?.CoTheGiaHan ?? false;
+                if (lv == null) return false;
+                if (lv.CoTheGiaHan) return true;
+
+                var name = (lv.TenLoai ?? string.Empty).ToLowerInvariant();
+                return name.Contains("thang") || name.Contains("tháng") || name.Contains("month") ||
+                       name.Contains("gia han") || name.Contains("gia hạn") || name.Contains("giahan");
             }
             catch { return false; }
         }

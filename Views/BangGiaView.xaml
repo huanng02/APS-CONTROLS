@@ -100,7 +100,7 @@
                             </Grid>
 
                             <TextBlock Text="Monthly Price (VNĐ)" Style="{StaticResource BaseTextBlockStyle}" Margin="0,15,0,5"/>
-                            <TextBox Text="{Binding GiaThangText}"
+                            <TextBox Text="{Binding GiaThangText, UpdateSourceTrigger=PropertyChanged}"
                                      Style="{StaticResource ModernTextBox}"
                                      IsEnabled="{Binding IsThang}"/>
 

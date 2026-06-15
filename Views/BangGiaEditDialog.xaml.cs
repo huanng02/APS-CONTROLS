@@ -31,7 +31,9 @@ namespace QuanLyGiuXe.Views
 
         private void Save_Click(object sender, RoutedEventArgs e)
         {
-            if (!decimal.TryParse(tbGiaThang.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out var gt) || gt <= 0)
+            var text = tbGiaThang.Text;
+            var cleaned = text.Replace(" ", "").Replace("đ", "").Replace("VND", "").Replace(".", "").Replace(",", "");
+            if (!decimal.TryParse(cleaned, out var gt) || gt <= 0)
             {
                 MessageBox.Show("Giá tháng phải lớn hơn 0", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;

@@ -344,7 +344,11 @@ namespace QuanLyGiuXe.ViewModels
             if (loaiVeId <= 0) return false;
             var lv = LoaiVeList.FirstOrDefault(x => x.Id == loaiVeId);
             if (lv == null) return false;
-            return lv.CoTheGiaHan;
+            if (lv.CoTheGiaHan) return true;
+
+            var name = (lv.TenLoai ?? string.Empty).ToLowerInvariant();
+            return name.Contains("thang") || name.Contains("tháng") || name.Contains("month") ||
+                   name.Contains("gia han") || name.Contains("gia hạn") || name.Contains("giahan");
         }
 
         public ICommand LoadCommand { get; }
@@ -592,13 +596,7 @@ namespace QuanLyGiuXe.ViewModels
                 // ensure EditingItem.LoaiVeId reflects current selection
                 if (EditingItem != null) EditingItem.LoaiVeId = SelectedLoaiVeId; // always sync before validation
                 ParsePriceInputsIntoModel(EditingItem);
-                // DEBUG: show current ticket type ids and counts (temporary)
-                try
-                {
-                    var dbg = $"SelectedLoaiVeId={SelectedLoaiVeId}, EditingItem.LoaiVeId={EditingItem.LoaiVeId}, SelectedLoaiVe={(SelectedLoaiVe?.TenLoai ?? "(null)" )}, GiaThang={EditingItem.GiaThang}, KhungGiaItems.Count={KhungGiaItems?.Count ?? 0}";
-                    System.Windows.MessageBox.Show(dbg, "DEBUG: ValidateForSave inputs", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-                catch { }
+
 
                 // Validate model-level fields
                 ValidateForSave(EditingItem, isUpdate: true);
@@ -841,7 +839,11 @@ namespace QuanLyGiuXe.ViewModels
             // reset all
             model.GiaThang = null;
 
-            if (!string.IsNullOrWhiteSpace(GiaThangText) && decimal.TryParse(GiaThangText, out var gt)) model.GiaThang = gt;
+            if (!string.IsNullOrWhiteSpace(GiaThangText))
+            {
+                var cleaned = GiaThangText.Replace(" ", "").Replace("đ", "").Replace("VND", "").Replace(".", "").Replace(",", "");
+                if (decimal.TryParse(cleaned, out var gt)) model.GiaThang = gt;
+            }
         }
 
         private void ValidateForSave(BangGia model, bool isUpdate)

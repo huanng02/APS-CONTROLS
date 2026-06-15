@@ -55,8 +55,19 @@ namespace QuanLyGiuXe.Views
                 foreach (var p in props)
                 {
                     var sp = new StackPanel { Orientation = Orientation.Vertical, Margin = new Thickness(0, 8, 0, 8) };
+                    
+                    string displayName = p.Name;
+                    if (p.Name == "CoTheGiaHan") displayName = "Có thể gia hạn (Vé tháng)";
+                    else if (p.Name == "TenLoai") displayName = "Tên loại vé";
+                    else if (p.Name == "TrangThai") displayName = "Trạng thái";
+                    else if (p.Name == "Detail") displayName = "Mô tả chi tiết";
+                    else if (p.Name == "TenLoaiThe") displayName = "Tên loại thẻ";
+                    else if (p.Name == "GiaTien") displayName = "Giá tiền (VNĐ)";
+                    else if (p.Name == "LoaiXeId") displayName = "Loại xe";
+                    else if (p.Name == "GiaThang") displayName = "Giá tháng (VNĐ)";
+
                     sp.Children.Add(new TextBlock { 
-                        Text = p.Name.ToUpper(), 
+                        Text = displayName.ToUpper(), 
                         FontSize = 11, 
                         FontWeight = FontWeights.Bold, 
                         Foreground = (System.Windows.Media.Brush)Application.Current.FindResource("TextSecondaryBrush"),
