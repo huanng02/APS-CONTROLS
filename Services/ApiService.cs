@@ -47,7 +47,7 @@ public class ApiService
                         content.Add(imageContent, "image", "frame.jpg");
 
                         // Bước 3: Gọi API và đợi phản hồi
-                        var response = await client.PostAsync("http://127.0.0.1:5000/process_plate", content);
+                        var response = await client.PostAsync("http://127.0.0.1:5001/process_plate", content);
 
                         if (response.IsSuccessStatusCode)
                         {

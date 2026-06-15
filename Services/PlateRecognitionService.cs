@@ -43,7 +43,7 @@ namespace QuanLyGiuXe.Services
             new ImageEncodingParam(ImwriteFlags.JpegOptimize, 1),
         ];
 
-        private const string LprEndpoint = "http://localhost:5000/process_plate";
+        private const string LprEndpoint = "http://localhost:5001/process_plate";
 
         /// <summary>
         /// Lightweight health check to detect whether the LPR service is reachable.
