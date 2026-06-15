@@ -135,31 +135,44 @@
                 </Grid.RowDefinitions>
 
                 <!-- Header -->
-                <StackPanel Grid.Row="0" Margin="0,0,0,15">
-                    <TextBlock FontSize="16" FontWeight="Bold" Foreground="#1E3A8A">
-                        <TextBlock.Style>
-                            <Style TargetType="TextBlock">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsCreateMode}" Value="True">
-                                        <Setter Property="Text" Value="📹 THÊM CAMERA MỚI"/>
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding IsEditMode}" Value="True">
-                                        <Setter Property="Text" Value="⚙️ CẬP NHẬT CẤU HÌNH CAMERA"/>
-                                    </DataTrigger>
-                                    <MultiDataTrigger>
-                                        <MultiDataTrigger.Conditions>
-                                            <Condition Binding="{Binding IsCreateMode}" Value="False"/>
-                                            <Condition Binding="{Binding IsEditMode}" Value="False"/>
-                                            <Condition Binding="{Binding SelectedCamera, Converter={StaticResource NullToBoolConverter}}" Value="True"/>
-                                        </MultiDataTrigger.Conditions>
-                                        <Setter Property="Text" Value="🔎 CHI TIẾT CAMERA"/>
-                                    </MultiDataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
-                    <Separator Margin="0,8,0,0" Background="#E5E7EB"/>
-                </StackPanel>
+                <Grid Grid.Row="0" Margin="0,0,0,15">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <StackPanel Grid.Column="0">
+                        <TextBlock FontSize="16" FontWeight="Bold" Foreground="#1E3A8A">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsCreateMode}" Value="True">
+                                            <Setter Property="Text" Value="📹 THÊM CAMERA MỚI"/>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding IsEditMode}" Value="True">
+                                            <Setter Property="Text" Value="⚙️ CẬP NHẬT CẤU HÌNH CAMERA"/>
+                                        </DataTrigger>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding IsCreateMode}" Value="False"/>
+                                                <Condition Binding="{Binding IsEditMode}" Value="False"/>
+                                                <Condition Binding="{Binding SelectedCamera, Converter={StaticResource NullToBoolConverter}}" Value="True"/>
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter Property="Text" Value="🔎 CHI TIẾT CAMERA"/>
+                                        </MultiDataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <Separator Margin="0,8,0,0" Background="#E5E7EB"/>
+                    </StackPanel>
+
+                    <!-- ONVIF Discovery Button (only visible when form is editable) -->
+                    <Button Grid.Column="1" Content="🔍 Tìm Cam ONVIF" Command="{Binding DiscoverCamerasCommand}" 
+                            Style="{StaticResource ModernButton}" Background="#0D9488" Foreground="White" 
+                            Width="120" Height="30" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Top"
+                            Visibility="{Binding IsFormEditable, Converter={StaticResource BoolToVis}}"/>
+                </Grid>
 
                 <!-- Main Fields Form -->
                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">

@@ -18,6 +18,7 @@ namespace QuanLyGiuXe.ViewModels
         private readonly DispatcherTimer _statusTimer;
         private List<CameraUiModel> _allCameras = new();
         private readonly int? _defaultLaneId;
+        private bool _suppressAutoRebuildRtspUrl = false;
         
         public ObservableCollection<CameraUiModel> Cameras { get; } = new();
         public List<LaneConfig> Lanes { get; private set; } = new();
@@ -41,6 +42,7 @@ namespace QuanLyGiuXe.ViewModels
             CancelCommand = new RelayCommand(_ => CancelEditOrCreate());
             TestConnectionCommand = new RelayCommand(async _ => await ExecuteTestConnectionAsync());
             RefreshStatusesCommand = new RelayCommand(_ => UpdateConnectionStatuses());
+            DiscoverCamerasCommand = new RelayCommand(_ => ExecuteDiscoverCameras());
 
             // Polling timer for live status updates
             _statusTimer = new DispatcherTimer();
@@ -356,6 +358,7 @@ namespace QuanLyGiuXe.ViewModels
         public ICommand CancelCommand { get; }
         public ICommand TestConnectionCommand { get; }
         public ICommand RefreshStatusesCommand { get; }
+        public ICommand DiscoverCamerasCommand { get; }
 
         public async Task LoadDataAsync()
         {
@@ -551,8 +554,40 @@ namespace QuanLyGiuXe.ViewModels
 
         private void AutoRebuildRtspUrl()
         {
+            if (_suppressAutoRebuildRtspUrl) return;
             if (string.IsNullOrWhiteSpace(IpAddress)) return;
             RtspUrl = $"rtsp://{IpAddress}:{Port ?? 554}/user={Username}&password={Password}&channel=0&stream=0.sdp?real_stream";
+        }
+
+        private void ExecuteDiscoverCameras()
+        {
+            var win = new QuanLyGiuXe.Views.CameraDiscoveryWindow();
+            win.Owner = Application.Current.MainWindow;
+            if (win.ShowDialog() == true && win.ResultCamera != null)
+            {
+                var cam = win.ResultCamera;
+                _suppressAutoRebuildRtspUrl = true;
+                try
+                {
+                    IpAddress = cam.IpAddress;
+                    Port = cam.RtspPort;
+                    Protocol = "ONVIF";
+                    Username = win.EnteredUsername;
+                    Password = win.EnteredPassword;
+                    RtspUrl = cam.RtspUrl;
+                    
+                    if (string.IsNullOrWhiteSpace(CameraName))
+                    {
+                        CameraName = $"{cam.Manufacturer} {cam.Model}";
+                    }
+                }
+                finally
+                {
+                    _suppressAutoRebuildRtspUrl = false;
+                }
+                
+                TriggerIpValidation();
+            }
         }
 
         private async Task ExecuteTestConnectionAsync()

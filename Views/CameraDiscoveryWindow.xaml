@@ -1,0 +1,105 @@
+<Window x:Class="QuanLyGiuXe.Views.CameraDiscoveryWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Tự Động Tìm Camera ONVIF"
+        Height="450"
+        Width="700"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="#F3F4F6">
+
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Style="{StaticResource EnterpriseCardBorder}" Padding="12" Margin="0,0,0,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="🔍 TÌM CAMERA ONVIF TRÊN MẠNG LAN" FontSize="14" FontWeight="Bold" Foreground="#1E3A8A"/>
+                    <TextBlock Text="Các camera cần hỗ trợ chuẩn ONVIF và đang chạy chung mạng LAN với máy tính này." FontSize="11" Foreground="#6B7280" Margin="0,4,0,0"/>
+                </StackPanel>
+                <Button Grid.Column="1" x:Name="ScanBtn" Content="🔄 Quét Lại" Click="ScanBtn_Click" Style="{StaticResource ModernButton}" Background="#0D9488" Foreground="White" Width="100" Height="32" VerticalAlignment="Center"/>
+            </Grid>
+        </Border>
+
+        <!-- Camera List -->
+        <Border Grid.Row="1" CornerRadius="8" Background="White" BorderBrush="#E5E7EB" BorderThickness="1" ClipToBounds="True">
+            <Grid>
+                <DataGrid x:Name="DiscoveryGrid" ItemsSource="{Binding DiscoveredCameras}" SelectedItem="{Binding SelectedCamera}"
+                          AutoGenerateColumns="False" IsReadOnly="True" BorderThickness="0" Background="White"
+                          RowHeaderWidth="0" GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#F3F4F6"
+                          SelectionMode="Single" CanUserAddRows="False" MouseDoubleClick="DiscoveryGrid_MouseDoubleClick">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Hãng Sản Xuất" Binding="{Binding Manufacturer}" Width="150" FontSize="12" FontWeight="SemiBold"/>
+                        <DataGridTextColumn Header="Model" Binding="{Binding Model}" Width="150" FontSize="12"/>
+                        <DataGridTextColumn Header="Địa Chỉ IP" Binding="{Binding IpAddress}" Width="150" FontSize="12"/>
+                        <DataGridTextColumn Header="Cổng ONVIF" Binding="{Binding OnvifPort}" Width="100" FontSize="12"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <!-- Loading overlay -->
+                <Grid x:Name="LoadingOverlay" Background="#80FFFFFF" Visibility="Collapsed">
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <ProgressBar IsIndeterminate="True" Width="200" Height="10"/>
+                        <TextBlock Text="Đang tìm kiếm camera trên mạng LAN..." Margin="0,10,0,0" FontWeight="SemiBold" Foreground="#374151" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- No devices found text -->
+                <TextBlock x:Name="NoDevicesTxt" Text="Không tìm thấy thiết bị ONVIF nào. Hãy thử Quét Lại." 
+                           HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#9CA3AF"
+                           Visibility="Collapsed"/>
+            </Grid>
+        </Border>
+
+        <!-- Credentials for RTSP URL recovery -->
+        <Border Grid.Row="2" Style="{StaticResource EnterpriseCardBorder}" Padding="12" Margin="0,10,0,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="15"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="15"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="Tài khoản Camera" FontSize="11" FontWeight="SemiBold" Foreground="#4B5563" Margin="0,0,0,4"/>
+                    <TextBox x:Name="UsernameBox" Text="admin" Style="{StaticResource ModernTextBox}" Height="30"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2">
+                    <TextBlock Text="Mật khẩu Camera" FontSize="11" FontWeight="SemiBold" Foreground="#4B5563" Margin="0,0,0,4"/>
+                    <PasswordBox x:Name="PasswordBox" Style="{StaticResource ModernPasswordBox}" Height="30"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="4" VerticalAlignment="Bottom">
+                    <TextBlock Text="" FontSize="11" Margin="0,0,0,4"/>
+                    <TextBlock Text="* Dùng để tự lấy link RTSP từ ONVIF" FontSize="11" Foreground="#6B7280" VerticalAlignment="Center" Height="30" LineHeight="30"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Bottom Buttons -->
+        <Grid Grid.Row="3" Margin="0,5,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="10"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <Button Grid.Column="1" x:Name="CancelBtn" Content="Hủy Bỏ" Click="CancelBtn_Click" Style="{StaticResource ModernButton}" Background="#9CA3AF" Foreground="White" Width="100" Height="36"/>
+            <Button Grid.Column="3" x:Name="SelectBtn" Content="Chọn Camera Này" Click="SelectBtn_Click" Style="{StaticResource ModernButton}" Background="#2563EB" Foreground="White" Width="150" Height="36"/>
+        </Grid>
+    </Grid>
+</Window>
