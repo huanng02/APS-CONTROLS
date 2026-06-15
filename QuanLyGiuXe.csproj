@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-<PropertyGroup>
+  <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
@@ -11,6 +11,7 @@
     <Platforms>x64;AnyCPU</Platforms>
     <Prefer32Bit>false</Prefer32Bit>
     <DefaultItemExcludes>$(DefaultItemExcludes);LicenseServer\**;LicenseTool\**</DefaultItemExcludes>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -91,6 +92,8 @@
 
   <ItemGroup>
     <Resource Include="Assets\avatar_placeholder.png" />
+    <Resource Include="Assets\logo.png" />
+    <Resource Include="Assets\app.ico" />
   </ItemGroup>
 
 </Project>

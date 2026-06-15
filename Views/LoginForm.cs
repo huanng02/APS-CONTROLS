@@ -49,7 +49,7 @@ namespace QuanLyGiuXe.Views
             this.lblMessage = new System.Windows.Forms.Label();
             
             System.Windows.Forms.Panel pnlHeader = new System.Windows.Forms.Panel();
-            System.Windows.Forms.Label lblTitle = new System.Windows.Forms.Label();
+            System.Windows.Forms.PictureBox pbLogo = new System.Windows.Forms.PictureBox();
             System.Windows.Forms.Label lblSubTitle = new System.Windows.Forms.Label();
             System.Windows.Forms.Panel pnlCard = new System.Windows.Forms.Panel();
             System.Windows.Forms.Label lblUserIcon = new System.Windows.Forms.Label();
@@ -63,26 +63,73 @@ namespace QuanLyGiuXe.Views
             this.MaximizeBox = false;
             this.BackColor = Color.FromArgb(240, 242, 245); // Soft Gray BG
 
+            // Load Window Icon from assembly stream
+            try
+            {
+                var uri = new Uri("pack://application:,,,/QuanLyGiuXe;component/Assets/app.ico");
+                var streamInfo = System.Windows.Application.GetResourceStream(uri);
+                if (streamInfo != null)
+                {
+                    using (var stream = streamInfo.Stream)
+                    {
+                        this.Icon = new Icon(stream);
+                    }
+                }
+            }
+            catch
+            {
+                try
+                {
+                    if (System.IO.File.Exists("Assets/app.ico"))
+                    {
+                        this.Icon = new Icon("Assets/app.ico");
+                    }
+                }
+                catch { }
+            }
+
             // Header Section
             pnlHeader.Dock = DockStyle.Top;
             pnlHeader.Height = 120;
-            pnlHeader.BackColor = Color.FromArgb(47, 54, 64); // Dark Navy
+            pnlHeader.BackColor = Color.White; // White background for the logo
 
-            lblTitle.Text = "APS PARKING SYSTEM";
-            lblTitle.ForeColor = Color.White;
-            lblTitle.Font = new Font("Segoe UI", 18, FontStyle.Bold);
-            lblTitle.TextAlign = ContentAlignment.MiddleCenter;
-            lblTitle.Size = new Size(450, 40);
-            lblTitle.Location = new Point(0, 30);
+            pbLogo.Size = new Size(320, 80);
+            pbLogo.Location = new Point(65, 10);
+            pbLogo.SizeMode = PictureBoxSizeMode.Zoom;
+            
+            // Load Logo from assembly stream
+            try
+            {
+                var uri = new Uri("pack://application:,,,/QuanLyGiuXe;component/Assets/logo.png");
+                var streamInfo = System.Windows.Application.GetResourceStream(uri);
+                if (streamInfo != null)
+                {
+                    using (var stream = streamInfo.Stream)
+                    {
+                        pbLogo.Image = System.Drawing.Image.FromStream(stream);
+                    }
+                }
+            }
+            catch
+            {
+                try
+                {
+                    if (System.IO.File.Exists("Assets/logo.png"))
+                    {
+                        pbLogo.Image = System.Drawing.Image.FromFile("Assets/logo.png");
+                    }
+                }
+                catch { }
+            }
 
             lblSubTitle.Text = "Vui lòng đăng nhập để tiếp tục";
-            lblSubTitle.ForeColor = Color.FromArgb(200, 200, 200);
-            lblSubTitle.Font = new Font("Segoe UI", 10);
+            lblSubTitle.ForeColor = Color.FromArgb(100, 110, 120);
+            lblSubTitle.Font = new Font("Segoe UI", 9.5f);
             lblSubTitle.TextAlign = ContentAlignment.MiddleCenter;
-            lblSubTitle.Size = new Size(450, 25);
-            lblSubTitle.Location = new Point(0, 70);
+            lblSubTitle.Size = new Size(450, 20);
+            lblSubTitle.Location = new Point(0, 92);
 
-            pnlHeader.Controls.Add(lblTitle);
+            pnlHeader.Controls.Add(pbLogo);
             pnlHeader.Controls.Add(lblSubTitle);
 
             // Card Panel - Y positions inside card:

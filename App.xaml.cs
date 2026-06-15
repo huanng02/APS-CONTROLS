@@ -19,6 +19,18 @@ namespace QuanLyGiuXe
         {
             try
             {
+                EventManager.RegisterClassHandler(typeof(Window), Window.LoadedEvent, new RoutedEventHandler((s, ev) =>
+                {
+                    if (s is Window window && window.Icon == null)
+                    {
+                        try
+                        {
+                            window.Icon = new System.Windows.Media.Imaging.BitmapImage(new Uri("pack://application:,,,/QuanLyGiuXe;component/Assets/app.ico"));
+                        }
+                        catch { }
+                    }
+                }));
+
                 System.Environment.SetEnvironmentVariable("OPENCV_FFMPEG_CAPTURE_OPTIONS", "rtsp_transport;tcp|fflags;nobuffer|flags;low_delay");
                 base.OnStartup(e);
                 this.ShutdownMode = ShutdownMode.OnExplicitShutdown;
