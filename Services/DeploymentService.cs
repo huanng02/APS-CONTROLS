@@ -39,7 +39,10 @@ namespace QuanLyGiuXe.Services
                 using (var conn = new SqlConnection(connStr))
                 {
                     await conn.OpenAsync();
-                    using (var cmd = new SqlCommand(@"SELECT HasPendingChanges FROM dbo.ConfigurationState WHERE Id = 1", conn))
+                    using (var cmd = new SqlCommand(@"
+                        IF NOT EXISTS (SELECT 1 FROM dbo.ConfigurationState WHERE Id = 1)
+                            INSERT INTO dbo.ConfigurationState (Id, ActiveVersion, HasPendingChanges) VALUES (1, 1, 0);
+                        SELECT HasPendingChanges FROM dbo.ConfigurationState WHERE Id = 1;", conn))
                     {
                         var res = await cmd.ExecuteScalarAsync();
                         if (res != null && res != DBNull.Value)
@@ -69,7 +72,10 @@ namespace QuanLyGiuXe.Services
                 using (var conn = new SqlConnection(connStr))
                 {
                     await conn.OpenAsync();
-                    using (var cmd = new SqlCommand(@"UPDATE dbo.ConfigurationState SET HasPendingChanges = 1 WHERE Id = 1", conn))
+                    using (var cmd = new SqlCommand(@"
+                        IF NOT EXISTS (SELECT 1 FROM dbo.ConfigurationState WHERE Id = 1)
+                            INSERT INTO dbo.ConfigurationState (Id, ActiveVersion, HasPendingChanges) VALUES (1, 1, 0);
+                        UPDATE dbo.ConfigurationState SET HasPendingChanges = 1 WHERE Id = 1;", conn))
                     {
                         await cmd.ExecuteNonQueryAsync();
                     }
@@ -92,7 +98,10 @@ namespace QuanLyGiuXe.Services
                 using (var conn = new SqlConnection(connStr))
                 {
                     await conn.OpenAsync();
-                    string sql = "SELECT ActiveVersion FROM dbo.ConfigurationState WHERE Id = 1";
+                    string sql = @"
+                        IF NOT EXISTS (SELECT 1 FROM dbo.ConfigurationState WHERE Id = 1)
+                            INSERT INTO dbo.ConfigurationState (Id, ActiveVersion, HasPendingChanges) VALUES (1, 1, 0);
+                        SELECT ActiveVersion FROM dbo.ConfigurationState WHERE Id = 1;";
                     using (var cmd = new SqlCommand(sql, conn))
                     {
                         var res = await cmd.ExecuteScalarAsync();
@@ -120,7 +129,10 @@ namespace QuanLyGiuXe.Services
                 using (var conn = new SqlConnection(connStr))
                 {
                     await conn.OpenAsync();
-                    using (var cmd = new SqlCommand(@"SELECT TOP 1 Id, ActiveVersion, LastDeployedAt, LastDeployedBy FROM dbo.ConfigurationState WHERE Id = 1", conn))
+                    using (var cmd = new SqlCommand(@"
+                        IF NOT EXISTS (SELECT 1 FROM dbo.ConfigurationState WHERE Id = 1)
+                            INSERT INTO dbo.ConfigurationState (Id, ActiveVersion, HasPendingChanges) VALUES (1, 1, 0);
+                        SELECT TOP 1 Id, ActiveVersion, LastDeployedAt, LastDeployedBy FROM dbo.ConfigurationState WHERE Id = 1;", conn))
                     {
                         using (var reader = await cmd.ExecuteReaderAsync())
                         {
@@ -163,7 +175,10 @@ namespace QuanLyGiuXe.Services
 
                     // Get current version to either increment or reference
                     int currentVersion = 1;
-                    using (var cmd = new SqlCommand(@"SELECT ActiveVersion FROM dbo.ConfigurationState WHERE Id = 1", conn))
+                    using (var cmd = new SqlCommand(@"
+                        IF NOT EXISTS (SELECT 1 FROM dbo.ConfigurationState WHERE Id = 1)
+                            INSERT INTO dbo.ConfigurationState (Id, ActiveVersion, HasPendingChanges) VALUES (1, 1, 0);
+                        SELECT ActiveVersion FROM dbo.ConfigurationState WHERE Id = 1;", conn))
                     {
                         var res = await cmd.ExecuteScalarAsync();
                         if (res != null && res != DBNull.Value)

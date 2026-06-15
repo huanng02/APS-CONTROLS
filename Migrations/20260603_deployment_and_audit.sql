@@ -9,6 +9,11 @@ BEGIN
         LastDeployedAt DATETIME NULL,
         LastDeployedBy NVARCHAR(100) NULL
     );
+END
+
+-- Ensure seed row always exists (even if table was pre-created without the INSERT)
+IF NOT EXISTS (SELECT 1 FROM dbo.ConfigurationState WHERE Id = 1)
+BEGIN
     INSERT INTO dbo.ConfigurationState (Id, ActiveVersion, HasPendingChanges) VALUES (1, 1, 0);
 END
 

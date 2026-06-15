@@ -55,7 +55,10 @@ namespace QuanLyGiuXe.Services
                     }
 
                     // 2. Mark HasPendingChanges = 1
-                    using (var cmd = new SqlCommand(@"UPDATE dbo.ConfigurationState SET HasPendingChanges = 1 WHERE Id = 1", conn))
+                    using (var cmd = new SqlCommand(@"
+                        IF NOT EXISTS (SELECT 1 FROM dbo.ConfigurationState WHERE Id = 1)
+                            INSERT INTO dbo.ConfigurationState (Id, ActiveVersion, HasPendingChanges) VALUES (1, 1, 0);
+                        UPDATE dbo.ConfigurationState SET HasPendingChanges = 1 WHERE Id = 1;", conn))
                     {
                         await cmd.ExecuteNonQueryAsync();
                     }
