@@ -14,6 +14,31 @@ namespace QuanLyGiuXe.Tests
             Console.WriteLine("RUNNING LANE DIRECTION CONSISTENCY TESTS");
             Console.WriteLine("=================================================");
 
+            try
+            {
+                var dbConfig = DbConnectionConfig.LoadFromFile();
+                using (var conn = new System.Data.SqlClient.SqlConnection(dbConfig.BuildConnectionString()))
+                {
+                    conn.Open();
+                    using (var cmd = conn.CreateCommand())
+                    {
+                        cmd.CommandText = "SELECT Id, CameraName, CameraKey, IpAddress, RtspUrl, LaneId, Direction, IsActive FROM dbo.Cameras";
+                        using (var r = cmd.ExecuteReader())
+                        {
+                            Console.WriteLine("DIAGNOSTIC: Cameras in Database:");
+                            while (r.Read())
+                            {
+                                Console.WriteLine($" - ID: {r[0]}, Name: {r[1]}, Key: {r[2]}, IP: {r[3]}, RTSP: {r[4]}, LaneId: {r[5]}, Dir: {r[6]}, Active: {r[7]}");
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("DIAGNOSTIC CAMERA ERROR: " + ex.Message);
+            }
+
             // 1. Backup original mappings
             var originalMappings = ReaderLaneMappingService.Instance.GetAll()
                 .Select(m => new ReaderLaneMapping

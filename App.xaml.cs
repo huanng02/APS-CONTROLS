@@ -31,7 +31,7 @@ namespace QuanLyGiuXe
                     }
                 }));
 
-                System.Environment.SetEnvironmentVariable("OPENCV_FFMPEG_CAPTURE_OPTIONS", "rtsp_transport;tcp|fflags;nobuffer|flags;low_delay");
+                System.Environment.SetEnvironmentVariable("OPENCV_FFMPEG_CAPTURE_OPTIONS", "rtsp_transport;tcp|fflags;nobuffer|flags;low_delay|stimeout;5000000");
                 base.OnStartup(e);
                 this.ShutdownMode = ShutdownMode.OnExplicitShutdown;
 

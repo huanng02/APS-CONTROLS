@@ -30,7 +30,8 @@ namespace QuanLyGiuXe
 
         private CameraService _cameraService = new CameraService();
         private readonly Dictionary<string, WriteableBitmap> _writeableBitmaps = new();
-        private readonly Dictionary<string, byte[]> _pixelBuffers = new();
+        private volatile bool _isMinimized = false;
+        private DateTime _lastUiDiagnosticsTime = DateTime.MinValue;
         private ParkingView? _parkingViewCache = null;
         private ParkingView? _lastBoundParkingView = null;
         private bool _isProcessingAuto = false;
@@ -50,6 +51,10 @@ namespace QuanLyGiuXe
             DataContext = _mainViewModel;
 
             this.Loaded += MainWindow_Loaded;
+            this.StateChanged += (s, e) =>
+            {
+                _isMinimized = this.WindowState == WindowState.Minimized;
+            };
 
             // LPR health check timer (update UI indicator every 15s)
             var lprTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(15) };
@@ -768,12 +773,57 @@ namespace QuanLyGiuXe
             // Đăng ký sự kiện xử lý ảnh
             _cameraService.NewMatFrameReceived += (s, data) =>
             {
+                bool shouldLog = false;
+                DateTime now = DateTime.UtcNow;
+                if ((now - _lastUiDiagnosticsTime).TotalSeconds >= 5)
+                {
+                    _lastUiDiagnosticsTime = now;
+                    shouldLog = true;
+                }
+
+                if (shouldLog)
+                {
+                    try
+                    {
+                        var vmType = DataContext?.GetType().Name ?? "null";
+                        var viewType = "null";
+                        if (DataContext is MainViewModel mainVm)
+                        {
+                            viewType = mainVm.CurrentView?.GetType().Name ?? "null";
+                        }
+                        LoggingService.Instance.LogInfo("CAM_DIAG", "UI", 
+                            $"Frame received for {data.CamKey}. Minimized={_isMinimized}. DataContext={vmType}. CurrentView={viewType}");
+                    }
+                    catch { }
+                }
+
+                if (_isMinimized) return;
+
+                if (DataContext is MainViewModel vm && vm.CurrentView is not TrangChuViewModel)
+                {
+                    if (shouldLog)
+                    {
+                        try
+                        {
+                            LoggingService.Instance.LogWarning("CAM_DIAG", "UI", 
+                                $"Skipping frame for {data.CamKey} because CurrentView is not TrangChuViewModel. CurrentView type: {vm.CurrentView?.GetType().Name ?? "null"}");
+                        }
+                        catch { }
+                    }
+                    return;
+                }
+
                 string uiCamKey = MapCameraKeyToUi(data.CamKey);
+
+                if (shouldLog && uiCamKey == null)
+                {
+                    LoggingService.Instance.LogWarning("CAM_DIAG", "UI", $"MapCameraKeyToUi returned null for key: {data.CamKey}");
+                }
 
                 // 3. Cập nhật ảnh lên giao diện thông qua WriteableBitmap (giảm cấp phát LOH)
                 if (uiCamKey != null)
                 {
-                    UpdateCameraFrame(uiCamKey, data.Frame);
+                    UpdateCameraFrame(uiCamKey, data.Frame, shouldLog);
                 }
                 
                 // Plate recognition on the active inbound lane's plate camera
@@ -1032,7 +1082,7 @@ namespace QuanLyGiuXe
             return _parkingViewCache;
         }
 
-        private void UpdateCameraFrame(string uiCamKey, Mat mat)
+        private void UpdateCameraFrame(string uiCamKey, Mat mat, bool logDiagnostics = false)
         {
             if (string.IsNullOrEmpty(uiCamKey) || mat == null) return;
 
@@ -1069,34 +1119,29 @@ namespace QuanLyGiuXe
                     bufferSize = stride * height;
                 }
 
-                byte[] pixelData;
-                lock (_pixelBuffers)
-                {
-                    if (!_pixelBuffers.TryGetValue(uiCamKey, out pixelData) || pixelData.Length != bufferSize)
-                    {
-                        pixelData = new byte[bufferSize];
-                        _pixelBuffers[uiCamKey] = pixelData;
-                    }
-                }
-
-                lock (mat)
-                {
-                    if (mat.IsDisposed || mat.Empty()) return;
-                    System.Runtime.InteropServices.Marshal.Copy(mat.Data, pixelData, 0, bufferSize);
-                }
-
                 Dispatcher.Invoke(() =>
                 {
                     try
                     {
                         var parkingView = GetParkingView();
-                        if (parkingView == null) return;
+                        if (parkingView == null)
+                        {
+                            if (logDiagnostics)
+                            {
+                                LoggingService.Instance.LogWarning("CAM_DIAG", "UI", $"GetParkingView() returned null for {uiCamKey}");
+                            }
+                            return;
+                        }
 
                         bool needBind = false;
                         if (parkingView != _lastBoundParkingView)
                         {
                             _lastBoundParkingView = parkingView;
                             needBind = true;
+                            if (logDiagnostics)
+                            {
+                                LoggingService.Instance.LogInfo("CAM_DIAG", "UI", $"ParkingView changed to new instance for {uiCamKey}");
+                            }
                         }
 
                         if (!_writeableBitmaps.TryGetValue(uiCamKey, out var wBmp) ||
@@ -1107,6 +1152,10 @@ namespace QuanLyGiuXe
                             wBmp = new WriteableBitmap(width, height, 96, 96, wpfFormat, null);
                             _writeableBitmaps[uiCamKey] = wBmp;
                             needBind = true;
+                            if (logDiagnostics)
+                            {
+                                LoggingService.Instance.LogInfo("CAM_DIAG", "UI", $"Created/re-created WriteableBitmap for {uiCamKey} ({width}x{height})");
+                            }
                         }
 
                         if (needBind)
@@ -1114,17 +1163,23 @@ namespace QuanLyGiuXe
                             parkingView.UpdateCamera(uiCamKey, wBmp);
                         }
 
-                        wBmp.WritePixels(new Int32Rect(0, 0, width, height), pixelData, stride, 0);
+                        lock (mat)
+                        {
+                            if (!mat.IsDisposed && !mat.Empty())
+                            {
+                                wBmp.WritePixels(new Int32Rect(0, 0, width, height), mat.Data, bufferSize, stride);
+                            }
+                        }
                     }
                     catch (Exception ex)
                     {
-                        System.Diagnostics.Debug.WriteLine($"Lỗi cập nhật WriteableBitmap từ Mat: {ex.Message}");
+                        LoggingService.Instance.LogError("UpdateCameraFrame_Dispatcher", "UI", $"Lỗi cập nhật WriteableBitmap từ Mat cho {uiCamKey}", ex);
                     }
                 });
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Lỗi trong UpdateCameraFrame: {ex.Message}");
+                LoggingService.Instance.LogError("UpdateCameraFrame", "UI", $"Lỗi trong UpdateCameraFrame cho {uiCamKey}", ex);
             }
         }
 

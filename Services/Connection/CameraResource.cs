@@ -28,12 +28,18 @@ namespace QuanLyGiuXe.Services.Connection
             string url = _cameraService.GetUrl(_camKey);
             if (string.IsNullOrEmpty(url)) return false;
 
-            // Force restart camera stream by stopping it first to clear the failed connection
-            _cameraService.StopIpCamera(_camKey);
+            // Check if connection is already running in the connection manager
+            var conn = CameraConnectionManager.Instance.GetConnectionByKey(_camKey);
+            if (conn != null)
+            {
+                // Already running. Let the connection manager's capture loop handle reconnection.
+                return conn.IsConnected;
+            }
+
+            // Not running. Start it.
             _cameraService.StartIpCamera(_camKey, url);
             
-            // Đợi một chút để xem có lên không
-            await Task.Delay(2000, token);
+            await Task.Delay(1000, token);
             return _cameraService.IsConnected(_camKey);
         }
     }
