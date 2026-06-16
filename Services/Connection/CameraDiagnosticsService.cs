@@ -68,7 +68,7 @@ namespace QuanLyGiuXe.Services.Connection
             {
                 try
                 {
-                    await Task.Delay(30000, token); // Run every 30 seconds
+                    await Task.Delay(10000, token); // Run every 10 seconds
 
                     // Perform memory collection and working set trim
                     TrimMemory();
