@@ -330,10 +330,18 @@ namespace QuanLyGiuXe.Services.Connection
                                 }
                                 else
                                 {
-                                    failCount++;
-                                    if (failCount >= 10)
+                                    var now = DateTime.UtcNow;
+                                    var timeSinceLastFrame = now - conn.LastFrameReceived;
+                                    var timeSinceStart = now - conn.LastHeartbeat;
+                                    
+                                    bool timeout = (conn.LastFrameReceived == DateTime.MinValue)
+                                        ? (timeSinceStart.TotalSeconds > 8.0)
+                                        : (timeSinceLastFrame.TotalSeconds > 8.0);
+                                        
+                                    if (timeout)
                                     {
                                         conn.IsConnected = false;
+                                        try { LoggingService.Instance.LogWarning("ConnManager", "CaptureLoop", $"Stream timeout for {conn.Url} (No frames received for 8s). Reconnecting..."); } catch {}
                                         break;
                                     }
                                 }

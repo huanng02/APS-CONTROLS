@@ -51,8 +51,8 @@ namespace QuanLyGiuXe
 
             this.Loaded += MainWindow_Loaded;
 
-            // LPR health check timer (update UI indicator every 5s)
-            var lprTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
+            // LPR health check timer (update UI indicator every 15s)
+            var lprTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(15) };
             lprTimer.Tick += async (s, e) =>
             {
                 try
