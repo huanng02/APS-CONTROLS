@@ -785,12 +785,8 @@ namespace QuanLyGiuXe
                 {
                     try
                     {
-                        var vmType = DataContext?.GetType().Name ?? "null";
-                        var viewType = "null";
-                        if (DataContext is MainViewModel mainVm)
-                        {
-                            viewType = mainVm.CurrentView?.GetType().Name ?? "null";
-                        }
+                        var vmType = _mainViewModel?.GetType().Name ?? "null";
+                        var viewType = _mainViewModel?.CurrentView?.GetType().Name ?? "null";
                         LoggingService.Instance.LogInfo("CAM_DIAG", "UI", 
                             $"Frame received for {data.CamKey}. Minimized={_isMinimized}. DataContext={vmType}. CurrentView={viewType}");
                     }
@@ -799,14 +795,14 @@ namespace QuanLyGiuXe
 
                 if (_isMinimized) return;
 
-                if (DataContext is MainViewModel vm && vm.CurrentView is not TrangChuViewModel)
+                if (_mainViewModel != null && _mainViewModel.CurrentView is not TrangChuViewModel)
                 {
                     if (shouldLog)
                     {
                         try
                         {
                             LoggingService.Instance.LogWarning("CAM_DIAG", "UI", 
-                                $"Skipping frame for {data.CamKey} because CurrentView is not TrangChuViewModel. CurrentView type: {vm.CurrentView?.GetType().Name ?? "null"}");
+                                $"Skipping frame for {data.CamKey} because CurrentView is not TrangChuViewModel. CurrentView type: {_mainViewModel.CurrentView?.GetType().Name ?? "null"}");
                         }
                         catch { }
                     }

@@ -786,7 +786,16 @@ namespace QuanLyGiuXe.ViewModels
                 CreatedUtc = DateTime.UtcNow
             };
 
-            bool isCreate = IsCreateMode; // Capture mode before resetting
+            bool isCreate = IsCreateMode;
+            CameraEntity? previous = null;
+            if (!isCreate && SelectedCamera != null)
+            {
+                try
+                {
+                    previous = await CameraRepository.Instance.GetByIdAsync(SelectedCamera.Id);
+                }
+                catch { }
+            }
 
             bool success;
             string errorMessage = "Lỗi khi lưu cấu hình camera vào cơ sở dữ liệu.";
@@ -818,6 +827,20 @@ namespace QuanLyGiuXe.ViewModels
                 
                 // Select the saved camera
                 SelectedCamera = Cameras.FirstOrDefault(c => c.CameraKey == entity.CameraKey);
+
+                // Audit the change
+                try
+                {
+                    await ConfigurationAuditService.Instance.AuditChangesAsync("Camera", previous, entity);
+                }
+                catch { }
+
+                // Sync the configuration immediately to draft and active configs
+                try
+                {
+                    await SyncCamerasToConfigAsync(force: true);
+                }
+                catch { }
 
                 // Mark pending changes so Development Center knows there are draft changes
                 try
@@ -851,9 +874,30 @@ namespace QuanLyGiuXe.ViewModels
             var result = MessageBox.Show(confirmMsg, "Xác nhận xóa", MessageBoxButton.YesNo, MessageBoxImage.Warning);
             if (result == MessageBoxResult.Yes)
             {
+                CameraEntity? previous = null;
+                try
+                {
+                    previous = await CameraRepository.Instance.GetByIdAsync(SelectedCamera.Id);
+                }
+                catch { }
+
                 bool deleted = await CameraRepository.Instance.DeleteAsync(SelectedCamera.Id);
                 if (deleted)
                 {
+                    // Audit the change
+                    try
+                    {
+                        await ConfigurationAuditService.Instance.AuditChangesAsync<CameraEntity>("Camera", previous, null);
+                    }
+                    catch { }
+
+                    // Sync the configuration immediately to draft and active configs
+                    try
+                    {
+                        await SyncCamerasToConfigAsync(force: true);
+                    }
+                    catch { }
+
                     await LoadDataAsync();
                     SelectedCamera = null;
 
@@ -873,9 +917,9 @@ namespace QuanLyGiuXe.ViewModels
             }
         }
 
-        private async Task SyncCamerasToConfigAsync()
+        private async Task SyncCamerasToConfigAsync(bool force = false)
         {
-            await CameraService.Instance.SyncCamerasToConfigAsync();
+            await CameraService.Instance.SyncCamerasToConfigAsync(force);
         }
     }
 

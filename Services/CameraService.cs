@@ -521,70 +521,94 @@ namespace QuanLyGiuXe.Services
             _cameraUrls.TryRemove(actualKey, out _);
         }
 
-        public async Task SyncCamerasToConfigAsync()
+        private void SyncConfigObject(AppConfig cfg, List<CameraEntity> dbCams)
+        {
+            if (cfg.Cameras == null)
+            {
+                cfg.Cameras = new CameraConfig();
+            }
+
+            cfg.Cameras.LaneCameras = new List<LaneCameraSetting>();
+
+            var activeCams = dbCams.Where(c => c.IsActive && c.LaneId.HasValue).ToList();
+            var dbLanes = ParkingTopologyService.Instance.GetLanes();
+
+            var firstIn = dbLanes.FirstOrDefault(l => l.Direction?.ToUpper() == "IN");
+            var firstOut = dbLanes.FirstOrDefault(l => l.Direction?.ToUpper() == "OUT");
+
+            // Reset legacy properties to empty before updating
+            cfg.Cameras.VaoToanCanh = "";
+            cfg.Cameras.VaoBienSo = "";
+            cfg.Cameras.RaToanCanh = "";
+            cfg.Cameras.RaBienSo = "";
+
+            foreach (var group in activeCams.GroupBy(c => c.LaneId!.Value))
+            {
+                int laneId = group.Key;
+                var laneSetting = new LaneCameraSetting { LaneId = laneId };
+
+                foreach (var cam in group)
+                {
+                    if (cam.Direction == "Overview")
+                    {
+                        laneSetting.ToanCanh = cam.RtspUrl;
+                    }
+                    else
+                    {
+                        laneSetting.BienSo = cam.RtspUrl;
+                    }
+
+                    // Legacy fallbacks for the first IN/OUT lanes
+                    if (firstIn != null && firstIn.Id == laneId)
+                    {
+                        if (cam.Direction == "Overview") cfg.Cameras.VaoToanCanh = cam.RtspUrl;
+                        else cfg.Cameras.VaoBienSo = cam.RtspUrl;
+                    }
+                    else if (firstOut != null && firstOut.Id == laneId)
+                    {
+                        if (cam.Direction == "Overview") cfg.Cameras.RaToanCanh = cam.RtspUrl;
+                        else cfg.Cameras.RaBienSo = cam.RtspUrl;
+                    }
+                }
+
+                cfg.Cameras.LaneCameras.Add(laneSetting);
+            }
+        }
+
+        public async Task SyncCamerasToConfigAsync(bool force = false)
         {
             try
             {
                 var cfg = AppConfig.Load();
-                if (cfg.Cameras != null && cfg.Cameras.AutoSyncFromDb == false)
+                var draftCfg = AppConfig.LoadDraft();
+
+                bool shouldSyncActive = force || (cfg.Cameras != null && cfg.Cameras.AutoSyncFromDb != false);
+                bool shouldSyncDraft = force || (draftCfg.Cameras != null && draftCfg.Cameras.AutoSyncFromDb != false);
+
+                if (!shouldSyncActive && !shouldSyncDraft)
                 {
-                    // Auto-sync disabled by configuration; do not overwrite config.json
                     return;
                 }
+
                 var dbCams = await CameraRepository.Instance.GetAllAsync();
 
-                if (cfg.Cameras.LaneCameras == null)
+                if (shouldSyncActive)
                 {
-                    cfg.Cameras.LaneCameras = new List<LaneCameraSetting>();
+                    SyncConfigObject(cfg, dbCams);
+                    cfg.Save();
                 }
 
-                var activeCams = dbCams.Where(c => c.IsActive && c.LaneId.HasValue).ToList();
-                // Build a map of existing lane settings to preserve manual entries
-                var existingMap = cfg.Cameras.LaneCameras.ToDictionary(lc => lc.LaneId, lc => lc);
-                var dbLanes = ParkingTopologyService.Instance.GetLanes();
-
-                var firstIn = dbLanes.FirstOrDefault(l => l.Direction?.ToUpper() == "IN");
-                var firstOut = dbLanes.FirstOrDefault(l => l.Direction?.ToUpper() == "OUT");
-
-                foreach (var group in activeCams.GroupBy(c => c.LaneId!.Value))
+                if (shouldSyncDraft)
                 {
-                    int laneId = group.Key;
-                    var laneSetting = new LaneCameraSetting { LaneId = laneId };
-
-                    foreach (var cam in group)
-                    {
-                        if (cam.Direction == "Overview")
-                        {
-                            laneSetting.ToanCanh = cam.RtspUrl;
-                        }
-                        else
-                        {
-                            laneSetting.BienSo = cam.RtspUrl;
-                        }
-
-                        // Legacy fallbacks for the first IN/OUT lanes
-                        if (firstIn != null && firstIn.Id == laneId)
-                        {
-                            if (cam.Direction == "Overview") cfg.Cameras.VaoToanCanh = cam.RtspUrl;
-                            else cfg.Cameras.VaoBienSo = cam.RtspUrl;
-                        }
-                        else if (firstOut != null && firstOut.Id == laneId)
-                        {
-                            if (cam.Direction == "Overview") cfg.Cameras.RaToanCanh = cam.RtspUrl;
-                            else cfg.Cameras.RaBienSo = cam.RtspUrl;
-                        }
-                    }
-
-                    cfg.Cameras.LaneCameras.Add(laneSetting);
+                    SyncConfigObject(draftCfg, dbCams);
+                    draftCfg.SaveDraft();
                 }
-
-                cfg.Save();
             }
             catch (Exception ex)
             {
                 try
                 {
-                    LoggingService.Instance.LogError("SyncCamerasToConfig", "CameraService", "Lỗi đồng bộ cấu hình camera vào config.json", ex);
+                    LoggingService.Instance.LogError("SyncCamerasToConfig", "CameraService", "Lỗi đồng bộ cấu hình camera vào config.json và config_draft.json", ex);
                 }
                 catch { }
             }

@@ -121,6 +121,13 @@ namespace QuanLyGiuXe.ViewModels
             set { _pendingControllersCount = value; OnPropertyChanged(); }
         }
 
+        private int _pendingCamerasCount;
+        public int PendingCamerasCount
+        {
+            get => _pendingCamerasCount;
+            set { _pendingCamerasCount = value; OnPropertyChanged(); }
+        }
+
         // ── Summary Counts ──────────────────────────────────────────────
 
         private int _infoCount;
@@ -267,6 +274,7 @@ namespace QuanLyGiuXe.ViewModels
                     PendingLanesCount = pendingCounts.ContainsKey("Lane") ? pendingCounts["Lane"] : 0;
                     PendingReadersCount = pendingCounts.ContainsKey("Reader Mapping") ? pendingCounts["Reader Mapping"] : 0;
                     PendingControllersCount = pendingCounts.ContainsKey("Controller") ? pendingCounts["Controller"] : 0;
+                    PendingCamerasCount = pendingCounts.ContainsKey("Camera") ? pendingCounts["Camera"] : 0;
 
                     // Process validation issues
                     ErrorIssues.Clear();

@@ -210,8 +210,7 @@
 
                         <Separator Background="#2A3F54" Margin="0,8,0,8"/>
 
-                        <!-- Grid representing modified items count -->
-                        <UniformGrid Columns="3" Rows="2">
+                        <UniformGrid Columns="4" Rows="2">
                             <!-- Sites -->
                             <StackPanel Margin="4">
                                 <TextBlock Text="Site thay đổi" FontSize="11" Foreground="{StaticResource TopoTextSecondaryBrush}"/>
@@ -241,6 +240,11 @@
                             <StackPanel Margin="4">
                                 <TextBlock Text="Tủ điều khiển" FontSize="11" Foreground="{StaticResource TopoTextSecondaryBrush}"/>
                                 <TextBlock Text="{Binding PendingControllersCount}" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TopoTextPrimaryBrush}"/>
+                            </StackPanel>
+                            <!-- Cameras -->
+                            <StackPanel Margin="4">
+                                <TextBlock Text="Camera đổi" FontSize="11" Foreground="{StaticResource TopoTextSecondaryBrush}"/>
+                                <TextBlock Text="{Binding PendingCamerasCount}" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TopoTextPrimaryBrush}"/>
                             </StackPanel>
                         </UniformGrid>
                     </StackPanel>
