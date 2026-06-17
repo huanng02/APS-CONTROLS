@@ -1249,25 +1249,26 @@ namespace QuanLyGiuXe
                 CheckVehicleTypeChange(3, R3LaneCombo, R3VehicleTypeCombo);
                 CheckVehicleTypeChange(4, R4LaneCombo, R4VehicleTypeCombo);
 
-                // Validate no camera is assigned to multiple lanes (including database assignments of other gates)
+                // Validate no camera is assigned to multiple roles/lanes (including database assignments of other gates)
                 try
                 {
                     var dbCamerasForValidation = await ParkingTopologyService.Instance.GetCamerasAsync();
                     var currentLaneIdsForValidation = _laneCameraCombos.Select(item => item.LaneId).ToHashSet();
-                    var assignedCameras = new Dictionary<string, int>();
+                    var assignedCameras = new Dictionary<string, (int LaneId, string Role)>(StringComparer.OrdinalIgnoreCase);
 
                     // Populate assigned cameras with database assignments of lanes NOT in current configuration
                     foreach (var dbCam in dbCamerasForValidation)
                     {
                         if (dbCam.LaneId.HasValue && !currentLaneIdsForValidation.Contains(dbCam.LaneId.Value))
                         {
+                            string role = dbCam.Direction == "Overview" ? "Toàn cảnh" : "Biển số";
                             if (!string.IsNullOrEmpty(dbCam.RtspUrl))
                             {
-                                assignedCameras[dbCam.RtspUrl] = dbCam.LaneId.Value;
+                                assignedCameras[dbCam.RtspUrl] = (dbCam.LaneId.Value, role);
                             }
                             if (!string.IsNullOrEmpty(dbCam.CameraName))
                             {
-                                assignedCameras[dbCam.CameraName] = dbCam.LaneId.Value;
+                                assignedCameras[dbCam.CameraName] = (dbCam.LaneId.Value, role);
                             }
                         }
                     }
@@ -1276,36 +1277,38 @@ namespace QuanLyGiuXe
                     {
                         var toanCanh = PickCamera(item.cbToanCanh);
                         var bienSo = PickCamera(item.cbBienSo);
+                        var currentLane = _lanes?.FirstOrDefault(l => l.Id == item.LaneId);
+                        string currentLaneName = currentLane?.LaneName ?? item.LaneId.ToString();
 
                         if (!string.IsNullOrEmpty(toanCanh))
                         {
-                            if (assignedCameras.TryGetValue(toanCanh, out var otherLaneId) && otherLaneId != item.LaneId)
+                            if (assignedCameras.TryGetValue(toanCanh, out var existing))
                             {
-                                var otherLane = _lanes?.FirstOrDefault(l => l.Id == otherLaneId);
-                                var currentLane = _lanes?.FirstOrDefault(l => l.Id == item.LaneId);
-                                MessageBox.Show($"Camera '{item.cbToanCanh.Text}' đã được gán cho làn '{otherLane?.LaneName ?? otherLaneId.ToString()}'. Không thể gán cho làn '{currentLane?.LaneName ?? item.LaneId.ToString()}'.", "Lỗi cấu hình camera", MessageBoxButton.OK, MessageBoxImage.Warning);
+                                var otherLane = _lanes?.FirstOrDefault(l => l.Id == existing.LaneId);
+                                string otherLaneName = otherLane?.LaneName ?? existing.LaneId.ToString();
+                                MessageBox.Show($"Camera '{item.cbToanCanh.Text}' đã được gán cho vai trò '{existing.Role}' của làn '{otherLaneName}'. Không thể gán cho vai trò 'Toàn cảnh' của làn '{currentLaneName}'.", "Lỗi cấu hình camera", MessageBoxButton.OK, MessageBoxImage.Warning);
                                 return;
                             }
-                            assignedCameras[toanCanh] = item.LaneId;
+                            assignedCameras[toanCanh] = (item.LaneId, "Toàn cảnh");
                             if (!string.IsNullOrEmpty(item.cbToanCanh.Text))
                             {
-                                assignedCameras[item.cbToanCanh.Text] = item.LaneId;
+                                assignedCameras[item.cbToanCanh.Text] = (item.LaneId, "Toàn cảnh");
                             }
                         }
 
                         if (!string.IsNullOrEmpty(bienSo))
                         {
-                            if (assignedCameras.TryGetValue(bienSo, out var otherLaneId) && otherLaneId != item.LaneId)
+                            if (assignedCameras.TryGetValue(bienSo, out var existing))
                             {
-                                var otherLane = _lanes?.FirstOrDefault(l => l.Id == otherLaneId);
-                                var currentLane = _lanes?.FirstOrDefault(l => l.Id == item.LaneId);
-                                MessageBox.Show($"Camera '{item.cbBienSo.Text}' đã được gán cho làn '{otherLane?.LaneName ?? otherLaneId.ToString()}'. Không thể gán cho làn '{currentLane?.LaneName ?? item.LaneId.ToString()}'.", "Lỗi cấu hình camera", MessageBoxButton.OK, MessageBoxImage.Warning);
+                                var otherLane = _lanes?.FirstOrDefault(l => l.Id == existing.LaneId);
+                                string otherLaneName = otherLane?.LaneName ?? existing.LaneId.ToString();
+                                MessageBox.Show($"Camera '{item.cbBienSo.Text}' đã được gán cho vai trò '{existing.Role}' của làn '{otherLaneName}'. Không thể gán cho vai trò 'Biển số' của làn '{currentLaneName}'.", "Lỗi cấu hình camera", MessageBoxButton.OK, MessageBoxImage.Warning);
                                 return;
                             }
-                            assignedCameras[bienSo] = item.LaneId;
+                            assignedCameras[bienSo] = (item.LaneId, "Biển số");
                             if (!string.IsNullOrEmpty(item.cbBienSo.Text))
                             {
-                                assignedCameras[item.cbBienSo.Text] = item.LaneId;
+                                assignedCameras[item.cbBienSo.Text] = (item.LaneId, "Biển số");
                             }
                         }
                     }

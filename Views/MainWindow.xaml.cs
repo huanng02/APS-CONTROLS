@@ -33,7 +33,7 @@ namespace QuanLyGiuXe
         private volatile bool _isMinimized = false;
         private DateTime _lastUiDiagnosticsTime = DateTime.MinValue;
         private ParkingView? _parkingViewCache = null;
-        private ParkingView? _lastBoundParkingView = null;
+        private readonly Dictionary<string, ParkingView> _lastBoundParkingViews = new(StringComparer.OrdinalIgnoreCase);
         private bool _isProcessingAuto = false;
         private DateTime _lastAutoScanTime = DateTime.MinValue;
         private DateTime _lastAutoScanTime1 = DateTime.MinValue;
@@ -933,6 +933,7 @@ namespace QuanLyGiuXe
                         {
                             Dispatcher.BeginInvoke(new Action(() =>
                             {
+                                _lastBoundParkingViews.Remove(uiCamKey);
                                 var parkingView = GetParkingView();
                                 parkingView?.UpdateCamera(uiCamKey, null);
                             }));
@@ -1140,9 +1141,10 @@ namespace QuanLyGiuXe
                         }
 
                         bool needBind = false;
-                        if (parkingView != _lastBoundParkingView)
+                        _lastBoundParkingViews.TryGetValue(uiCamKey, out var lastBoundForCam);
+                        if (parkingView != lastBoundForCam)
                         {
-                            _lastBoundParkingView = parkingView;
+                            _lastBoundParkingViews[uiCamKey] = parkingView;
                             needBind = true;
                             if (logDiagnostics)
                             {
