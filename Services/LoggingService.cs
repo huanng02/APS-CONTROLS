@@ -39,7 +39,10 @@ namespace QuanLyGiuXe.Services
         private readonly System.Collections.Generic.HashSet<string> _suppressUi = new(StringComparer.OrdinalIgnoreCase)
         {
             "ConfigLoaded",
-            "ConfigSaved"
+            "ConfigSaved",
+            "C3200_RAW_EVENT",
+            "DIAGNOSTICS",
+            "CAM_DIAG"
         };
 
         // Event emitted for UI listeners
@@ -118,7 +121,7 @@ namespace QuanLyGiuXe.Services
                     IpAddress = GetLocalIpAddress()
                 };
 
-                try { if (!_suppressUi.Contains(entry.EventType)) LogEmitted?.Invoke(entry); } catch { }
+                try { if (!_suppressUi.Contains(entry.EventType) && !_suppressUi.Contains(entry.Action ?? "")) LogEmitted?.Invoke(entry); } catch { }
                 EnqueueAndPersist(entry);
             }
             catch { }
@@ -147,7 +150,7 @@ namespace QuanLyGiuXe.Services
                     CorrelationId = GetOrCreateCorrelationId(),
                     IpAddress = GetLocalIpAddress()
                 };
-                try { if (!_suppressUi.Contains(entry.EventType)) LogEmitted?.Invoke(entry); } catch { }
+                try { if (!_suppressUi.Contains(entry.EventType) && !_suppressUi.Contains(entry.Action ?? "")) LogEmitted?.Invoke(entry); } catch { }
                 EnqueueAndPersist(entry);
             }
             catch { }
@@ -186,7 +189,7 @@ namespace QuanLyGiuXe.Services
                     CorrelationId = GetOrCreateCorrelationId(),
                     IpAddress = GetLocalIpAddress()
                 };
-                try { if (!_suppressUi.Contains(entry.EventType)) LogEmitted?.Invoke(entry); } catch { }
+                try { if (!_suppressUi.Contains(entry.EventType) && !_suppressUi.Contains(entry.Action ?? "")) LogEmitted?.Invoke(entry); } catch { }
                 EnqueueAndPersist(entry);
             }
             catch { }
@@ -277,7 +280,7 @@ namespace QuanLyGiuXe.Services
                     AdditionalData = additionalData
                 };
 
-                try { if (!_suppressUi.Contains(entry.EventType)) LogEmitted?.Invoke(entry); } catch { }
+                try { if (!_suppressUi.Contains(entry.EventType) && !_suppressUi.Contains(entry.Action ?? "")) LogEmitted?.Invoke(entry); } catch { }
                 EnqueueAndPersist(entry);
             }
             catch { }
@@ -471,6 +474,12 @@ namespace QuanLyGiuXe.Services
                 {
                     try
                     {
+                        // Filter out DIAGNOSTICS and CAM_DIAG from DB to prevent bloat (C3200_RAW_EVENT is preserved but rate-limited via change detection)
+                        if (string.Equals(entry.Action, "DIAGNOSTICS", StringComparison.OrdinalIgnoreCase) ||
+                            string.Equals(entry.Action, "CAM_DIAG", StringComparison.OrdinalIgnoreCase))
+                        {
+                            continue;
+                        }
                         db.InsertAppLog(entry.Timestamp, entry.Level, entry.EventType, entry.Source, entry.UserId, entry.Plate, entry.Details, entry.Exception,
                             username: entry.Username, action: entry.Action, entityName: entry.EntityName, entityId: entry.EntityId,
                             oldValues: entry.OldValues, newValues: entry.NewValues, ipAddress: entry.IpAddress, machineName: entry.MachineName,

@@ -69,6 +69,7 @@ namespace QuanLyGiuXe.Services
         private string _password = "";
         private int _timeoutMs = 4000;
         private int _barrierDuration = 5;
+        private string? _lastRawEventSignature = null;
 
         public bool IsConnected => _handle != IntPtr.Zero;
         public string LastError { get; private set; } = "";
@@ -428,11 +429,20 @@ namespace QuanLyGiuXe.Services
                 Debug.WriteLine($"📡 C3200 Event: card={evt.CardNo}, door={evt.Door}, " +
                     $"event={evt.EventType}, inout={evt.InOutState}, verify={evt.VerifyMode}, time={evt.Time}");
 
-                try
+                // Only write log when there is a change event (card swiped, button pressed, or sensor state changed)
+                bool isCardSwiped = !string.IsNullOrEmpty(evt.CardNo) && evt.CardNo != "0";
+                string currentSig = $"{evt.CardNo}_{evt.Door}_{evt.EventType}_{evt.InOutState}";
+                bool hasChanged = isCardSwiped || currentSig != _lastRawEventSignature;
+
+                if (hasChanged)
                 {
-                    LoggingService.Instance.LogInfo("C3200_RAW_EVENT", "C3200Service", $"Raw event: card={evt.CardNo}, door={evt.Door}, event={evt.EventType}, inout={evt.InOutState}");
+                    _lastRawEventSignature = currentSig;
+                    try
+                    {
+                        LoggingService.Instance.LogInfo("C3200_RAW_EVENT", "C3200Service", $"Raw event: card={evt.CardNo}, door={evt.Door}, event={evt.EventType}, inout={evt.InOutState}");
+                    }
+                    catch { }
                 }
-                catch { }
 
                 OnEvent?.Invoke(evt);
 

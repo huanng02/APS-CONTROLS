@@ -47,7 +47,7 @@ namespace QuanLyGiuXe.Services.OfflineCache
                     }
                     else
                     {
-                        LoggingService.Instance.LogInfo("HEALTH_MONITOR", "Check", "Garage session consistency: OK.");
+                        // LoggingService.Instance.LogInfo("HEALTH_MONITOR", "Check", "Garage session consistency: OK.");
                     }
                 }
                 catch (Exception ex)
