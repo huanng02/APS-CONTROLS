@@ -132,7 +132,7 @@ namespace QuanLyGiuXe
             {
                 if (e.Key == Key.F4)
                 {
-                    MoC3200Settings_Click(null, null);
+                    MoSystemConfigDeployment_Click(null, null);
                 }
             };
         }
@@ -303,11 +303,10 @@ namespace QuanLyGiuXe
 
             btnDashboard.Visibility = PermissionService.Instance.CheckPermission("VIEW_DASHBOARD") ? Visibility.Visible : Visibility.Collapsed;
             btnTopologySettings.Visibility = PermissionService.Instance.CheckPermission("CONFIG_SYSTEM") ? Visibility.Visible : Visibility.Collapsed;
-            btnTopologyValidation.Visibility = PermissionService.Instance.CheckPermission("CONFIG_SYSTEM") ? Visibility.Visible : Visibility.Collapsed;
 
             btnSQLTool.Visibility = PermissionService.Instance.CheckPermission("DATABASE_EXPLORER") ? Visibility.Visible : Visibility.Collapsed;
             btnBackupRestore.Visibility = PermissionService.Instance.CheckPermission("BACKUP_RESTORE") ? Visibility.Visible : Visibility.Collapsed;
-            btnC3200Settings.Visibility = PermissionService.Instance.CheckPermission("CONFIG_CONTROLLER") ? Visibility.Visible : Visibility.Collapsed;
+            btnSystemConfigDeployment.Visibility = PermissionService.Instance.CheckPermission("CONFIG_CONTROLLER") ? Visibility.Visible : Visibility.Collapsed;
             btnQAPanel.Visibility = PermissionService.Instance.CheckPermission("SIMULATE_RECOVERY") ? Visibility.Visible : Visibility.Collapsed;
 
             // Matrix button visibility (only visible to SuperAdmin, Admin, Manager, Auditor who have VIEW_AUDIT_LOG or ROLE_ASSIGN)
@@ -379,7 +378,7 @@ namespace QuanLyGiuXe
             catch { }
         }
 
-        private async void MoC3200Settings_Click(object sender, RoutedEventArgs e)
+        private void MoSystemConfigDeployment_Click(object sender, RoutedEventArgs e)
         {
             try
             {
@@ -391,41 +390,10 @@ namespace QuanLyGiuXe
                 return;
             }
 
-            var settingsWin = new C3200SettingsWindow { Owner = this };
-            var result = settingsWin.ShowDialog();
-            ReloadCameras();
             if (DataContext is MainViewModel vm)
             {
-                vm.RefreshSettings();
-                if (vm.CurrentView is ParkingTopologyViewModel topoVm)
-                {
-                    topoVm.RefreshCommand.Execute(null);
-                }
-                // Determine site based on saved config and set it
-                var cfg = AppConfig.Load();
-                var sites = await ParkingTopologyService.Instance.GetSitesAsync();
-                var gates = await ParkingTopologyService.Instance.GetGatesAsync();
-                var controllers = await ParkingTopologyService.Instance.GetControllersAsync();
-                var activeController = controllers.FirstOrDefault(c => c.IpAddress == cfg.ZKTeco.IpAddress);
-                ParkingSite activeSite = null;
-                if (activeController != null)
-                {
-                    var activeGate = gates.FirstOrDefault(g => g.Id == activeController.GateId);
-                    if (activeGate != null)
-                        activeSite = sites.FirstOrDefault(s => s.Id == activeGate.SiteId);
-                }
-                if (activeSite != null)
-                    vm.SelectedSite = activeSite;
-                // Update vehicle count to reflect new site/zone configuration immediately
-                vm.UpdateVehicleCount();
-
-                // If saved successfully, redirect to Deployment Center
-                if (result == true)
-                {
-                    vm.SetView(new DeploymentCenterViewModel());
-                }
+                vm.SetView(new SystemConfigDeploymentViewModel { ActiveTabIndex = 0 });
             }
-            RestoreSidebarSelection();
         }
 
         private void MoAdvancedSettings_Click(object sender, RoutedEventArgs e)
@@ -597,17 +565,14 @@ namespace QuanLyGiuXe
                 {
                     btnTopologySettings.IsChecked = true;
                 }
-                else if (vm.CurrentView is TopologyValidationViewModel)
-                {
-                    btnTopologyValidation.IsChecked = true;
-                }
+
                 else if (vm.CurrentView is PersonnelExplorerViewModel)
                 {
                     btnPersonnelExplorer.IsChecked = true;
                 }
-                else if (vm.CurrentView is DeploymentCenterViewModel)
+                else if (vm.CurrentView is SystemConfigDeploymentViewModel configVm)
                 {
-                    btnDeploymentCenter.IsChecked = true;
+                    btnSystemConfigDeployment.IsChecked = true;
                 }
                 else
                 {
@@ -1496,21 +1461,9 @@ namespace QuanLyGiuXe
             }
         }
 
-        private void MoTopologyValidation_Click(object sender, RoutedEventArgs e)
-        {
-            if (DataContext is MainViewModel vm)
-            {
-                vm.SetView(new TopologyValidationViewModel());
-            }
-        }
 
-        private void MoDeploymentCenter_Click(object sender, RoutedEventArgs e)
-        {
-            if (DataContext is MainViewModel vm)
-            {
-                vm.SetView(new DeploymentCenterViewModel());
-            }
-        }
+
+
 
         private void MoRealtimeLog_Click(object sender, RoutedEventArgs e) =>
             ShowModuleModal("📋 Nhật ký hệ thống", () => new RealtimeLogWindow());

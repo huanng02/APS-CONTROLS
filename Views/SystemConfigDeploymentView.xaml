@@ -1,0 +1,1192 @@
+<UserControl x:Class="QuanLyGiuXe.Views.SystemConfigDeploymentView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:QuanLyGiuXe.Views"
+             xmlns:viewmodels="clr-namespace:QuanLyGiuXe.ViewModels"
+             xmlns:converters="clr-namespace:QuanLyGiuXe.Converters"
+             mc:Ignorable="d" 
+             d:DesignHeight="750" d:DesignWidth="1100"
+             Background="{StaticResource TopoPageBgBrush}"
+             FontFamily="Segoe UI, Inter, Arial"
+             Loaded="UserControl_Loaded">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+        
+        <!-- Style to hide TabControl headers completely -->
+        <Style x:Key="HeaderlessTabControl" TargetType="TabControl">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabControl">
+                        <ContentPresenter ContentSource="SelectedContent" Margin="{TemplateBinding Padding}"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Sidebar ListBoxItem style -->
+        <Style x:Key="SidebarItemStyle" TargetType="ListBoxItem">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#93C5FD"/>
+            <Setter Property="Margin" Value="10,2"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="Border" 
+                                Background="{TemplateBinding Background}" 
+                                BorderBrush="Transparent" 
+                                BorderThickness="4,0,0,0" 
+                                CornerRadius="6"
+                                Padding="5">
+                            <ContentPresenter VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="#1E4FA3"/>
+                                <Setter Property="Foreground" Value="White"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="#F1F5F9"/>
+                                <Setter TargetName="Border" Property="BorderBrush" Value="#F59E0B"/> <!-- Yellow/orange indicator -->
+                                <Setter Property="Foreground" Value="#1E3A8A"/>
+                                <Setter Property="FontWeight" Value="Bold"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Style for listboxes to remove border and styling -->
+        <Style x:Key="CleanListBoxStyle" TargetType="ListBox">
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+            <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="ItemContainerStyle">
+                <Setter.Value>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="BorderThickness" Value="0"/>
+                        <Setter Property="Padding" Value="0"/>
+                        <Setter Property="Margin" Value="0"/>
+                        <Setter Property="Focusable" Value="False"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ListBoxItem">
+                                    <ContentPresenter />
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <Style x:Key="DeployHistoryItemStyle" TargetType="ListBoxItem">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="0"/>
+            <Setter Property="Focusable" Value="True"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <ContentPresenter />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <TabControl Style="{StaticResource EnterpriseTabControl}" SelectedIndex="{Binding ActiveTabIndex, Mode=TwoWay}" Margin="5">
+            
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <!-- TAB 1: CẤU HÌNH HỆ THỐNG                                    -->
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <TabItem Header="⚙️ CẤU HÌNH HỆ THỐNG ZKTECO C3">
+                <Grid Background="#F4F6F8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="260"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- LEFT SIDEBAR -->
+                    <Border Grid.Column="0" Grid.RowSpan="2" BorderBrush="#E5E7EB" BorderThickness="0,0,1,0">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                <GradientStop Color="#0F172A" Offset="0.0"/>
+                                <GradientStop Color="#1E293B" Offset="1.0"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <Grid Margin="0,20">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/> <!-- Header -->
+                                <RowDefinition Height="*"/>    <!-- Menu -->
+                                <RowDefinition Height="Auto"/> <!-- Status/Info -->
+                            </Grid.RowDefinitions>
+
+                            <!-- Header -->
+                            <StackPanel Grid.Row="0" Margin="20,0,20,25">
+                                <TextBlock Text="⚡ APS CONTROLS" Foreground="White" FontSize="18" FontWeight="ExtraBold"/>
+                                <TextBlock Text="ZKTeco C3 Series Setup" Foreground="#94A3B8" FontSize="11" Margin="0,4,0,0"/>
+                            </StackPanel>
+
+                            <!-- Menu -->
+                            <ListBox x:Name="SidebarMenu" Grid.Row="1" SelectedIndex="0" 
+                                     Background="Transparent" BorderThickness="0"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                     ScrollViewer.VerticalScrollBarVisibility="Disabled">
+                                <ListBoxItem Style="{StaticResource SidebarItemStyle}">
+                                    <StackPanel Margin="15,10">
+                                        <TextBlock Text="🔌 1. KẾT NỐI PHẦN CỨNG" FontSize="12" FontWeight="Bold"/>
+                                        <TextBlock Text="IP, Cổng &amp; Nhận diện thiết bị" FontSize="10" Opacity="0.7" Margin="0,3,0,0"/>
+                                    </StackPanel>
+                                </ListBoxItem>
+                                <ListBoxItem Style="{StaticResource SidebarItemStyle}">
+                                    <StackPanel Margin="15,10">
+                                        <TextBlock Text="🏢 2. VỊ TRÍ TOPOLOGY" FontSize="12" FontWeight="Bold"/>
+                                        <TextBlock Text="Chọn Site, Cổng &amp; Thiết bị" FontSize="10" Opacity="0.7" Margin="0,3,0,0"/>
+                                    </StackPanel>
+                                </ListBoxItem>
+                                <ListBoxItem Style="{StaticResource SidebarItemStyle}">
+                                    <StackPanel Margin="15,10">
+                                        <TextBlock Text="📡 3. PHÂN LÀN &amp; ĐIỀU KHIỂN" FontSize="12" FontWeight="Bold"/>
+                                        <TextBlock Text="Gán đầu đọc &amp; Điều khiển làn" FontSize="10" Opacity="0.7" Margin="0,3,0,0"/>
+                                    </StackPanel>
+                                </ListBoxItem>
+                                <ListBoxItem Style="{StaticResource SidebarItemStyle}">
+                                    <StackPanel Margin="15,10">
+                                        <TextBlock Text="⚙️ 4. NÚT NHẤN MỞ CỔNG" FontSize="12" FontWeight="Bold"/>
+                                        <TextBlock Text="Cài đặt nút nhấn vật lý" FontSize="10" Opacity="0.7" Margin="0,3,0,0"/>
+                                    </StackPanel>
+                                </ListBoxItem>
+                            </ListBox>
+
+                            <!-- Status badge -->
+                            <StackPanel Grid.Row="2" Margin="20,10,20,0" Orientation="Horizontal">
+                                <Border Background="#10B981" CornerRadius="5" Width="10" Height="10" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <TextBlock Text="Hệ thống sẵn sàng" Foreground="#A7F3D0" FontSize="11" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- MAIN CONTENT PANEL -->
+                    <ScrollViewer Grid.Column="1" Grid.Row="0" VerticalScrollBarVisibility="Auto" Padding="25">
+                        <TabControl x:Name="MainTabControl" Style="{StaticResource HeaderlessTabControl}"
+                                    SelectedIndex="{Binding SelectedIndex, ElementName=SidebarMenu}">
+                            
+                            <!-- TAB 1.1: HARDWARE CONNECTION -->
+                            <TabItem>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="1.2*"/>
+                                        <ColumnDefinition Width="20"/>
+                                        <ColumnDefinition Width="1*"/>
+                                    </Grid.ColumnDefinitions>
+                                    
+                                    <!-- Connection Parameters -->
+                                    <Border Grid.Column="0" Background="White" CornerRadius="12" BorderBrush="#E5E7EB" BorderThickness="1" Padding="20">
+                                        <Border.Effect>
+                                            <DropShadowEffect BlurRadius="12" ShadowDepth="2" Opacity="0.03"/>
+                                        </Border.Effect>
+                                        <StackPanel>
+                                            <TextBlock Text="🔌 THÔNG SỐ KẾT NỐI" FontSize="15" FontWeight="Bold" Foreground="#1E3A8A" Margin="0,0,0,15"/>
+                                            <Grid>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="15"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                
+                                                <!-- IP Address -->
+                                                <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,0,12">
+                                                    <TextBlock Text="Địa chỉ IP (IP Address)" Foreground="#4B5563" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                                                    <TextBox x:Name="IpBox" Style="{StaticResource ModernTextBox}" Height="36"/>
+                                                    <TextBlock Text="Ví dụ: 192.168.1.201" Foreground="#9CA3AF" FontSize="10" Margin="0,3,0,0"/>
+                                                </StackPanel>
+                                                
+                                                <!-- TCP Port -->
+                                                <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,0,12">
+                                                    <TextBlock Text="Cổng TCP (TCP Port)" Foreground="#4B5563" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                                                    <TextBox x:Name="PortBox" Style="{StaticResource ModernTextBox}" Height="36"/>
+                                                    <TextBlock Text="Mặc định: 4370" Foreground="#9CA3AF" FontSize="10" Margin="0,3,0,0"/>
+                                                </StackPanel>
+                                                
+                                                <!-- Password -->
+                                                <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,0,12">
+                                                    <TextBlock Text="Mật khẩu kết nối" Foreground="#4B5563" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                                                    <TextBox x:Name="PwdBox" Style="{StaticResource ModernTextBox}" Height="36"/>
+                                                    <TextBlock Text="Mặc định: Để trống" Foreground="#9CA3AF" FontSize="10" Margin="0,3,0,0"/>
+                                                </StackPanel>
+                                                
+                                                <!-- Timeout -->
+                                                <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,0,0,12">
+                                                    <TextBlock Text="Timeout (ms)" Foreground="#4B5563" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                                                    <TextBox x:Name="TimeoutBox" Style="{StaticResource ModernTextBox}" Height="36"/>
+                                                    <TextBlock Text="Mặc định: 3000 ms" Foreground="#9CA3AF" FontSize="10" Margin="0,3,0,0"/>
+                                                </StackPanel>
+                                                
+                                                <!-- Barrier Pulse -->
+                                                <StackPanel Grid.Row="2" Grid.Column="0" Margin="0,0,0,12">
+                                                    <TextBlock Text="Độ trễ Relay (Barrier)" Foreground="#4B5563" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                                                    <TextBox x:Name="BarrierBox" Style="{StaticResource ModernTextBox}" Height="36"/>
+                                                    <TextBlock Text="Thời gian mở barrier (giây)" Foreground="#9CA3AF" FontSize="10" Margin="0,3,0,0"/>
+                                                </StackPanel>
+                                                
+                                                <!-- Cooldown -->
+                                                <StackPanel Grid.Row="2" Grid.Column="2" Margin="0,0,0,12">
+                                                    <TextBlock Text="Độ trễ quẹt thẻ lại" Foreground="#4B5563" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                                                    <TextBox x:Name="CooldownBox" Style="{StaticResource ModernTextBox}" Height="36"/>
+                                                    <TextBlock Text="Thời gian chờ chống trùng (ms)" Foreground="#9CA3AF" FontSize="10" Margin="0,3,0,0"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </StackPanel>
+                                    </Border>
+                                    
+                                    <!-- Actions & Hardware Detection Summary -->
+                                    <StackPanel Grid.Column="2">
+                                        <!-- Diagnostic Actions -->
+                                        <Border Background="White" CornerRadius="12" BorderBrush="#E5E7EB" BorderThickness="1" Padding="15" Margin="0,0,0,15">
+                                            <Border.Effect>
+                                                <DropShadowEffect BlurRadius="10" ShadowDepth="1" Opacity="0.02"/>
+                                            </Border.Effect>
+                                            <StackPanel>
+                                                <TextBlock Text="🛠️ KIỂM TRA KẾT NỐI" FontSize="13" FontWeight="Bold" Foreground="#1E3A8A" Margin="0,0,0,10"/>
+                                                <Button Content="⚡ Test kết nối &amp; Nhận diện" Style="{StaticResource ModernButton}" Height="38" Margin="0,0,0,8" Click="TestConnection_Click"/>
+                                                <Button Content="📋 Xuất log chẩn đoán chi tiết" Style="{StaticResource ModernOutlineButton}" Height="35" Click="TestConnectionDetailed_Click"/>
+                                            </StackPanel>
+                                        </Border>
+                                        
+                                        <!-- Hardware summary card -->
+                                        <Border Background="White" CornerRadius="12" BorderBrush="#E5E7EB" BorderThickness="1" Padding="15">
+                                            <Border.Effect>
+                                                <DropShadowEffect BlurRadius="10" ShadowDepth="1" Opacity="0.02"/>
+                                            </Border.Effect>
+                                            <StackPanel>
+                                                <TextBlock Text="🛡️ THÔNG SỐ PHẦN CỨNG" FontSize="13" FontWeight="Bold" Foreground="#1E3A8A" Margin="0,0,4,0"/>
+                                                <TextBlock Text="Hệ thống tự động đồng bộ khi kết nối hoặc lưu" Foreground="#718096" FontSize="10" Margin="0,2,0,12"/>
+                                                
+                                                <StackPanel Margin="0,0,0,12">
+                                                    <TextBlock Text="DÒNG TỦ CHỌN" Foreground="#4B5563" FontSize="11" FontWeight="Bold" Margin="0,0,0,4"/>
+                                                    <ComboBox x:Name="ControllerTypeCombo" Height="36" SelectionChanged="ControllerTypeCombo_SelectionChanged" SelectedIndex="0" IsEnabled="False" Style="{StaticResource ModernComboBox}">
+                                                        <ComboBoxItem Content="C3-200 (2 Relay)" Tag="C3200"/>
+                                                        <ComboBoxItem Content="C3-400 (4 Relay)" Tag="C3400"/>
+                                                    </ComboBox>
+                                                </StackPanel>
+                                                
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <!-- stat 1: readers -->
+                                                    <Border Grid.Column="0" Background="#EFF6FF" CornerRadius="8" Padding="8" Margin="0,0,4,0" BorderBrush="#BFDBFE" BorderThickness="1">
+                                                        <StackPanel HorizontalAlignment="Center">
+                                                            <TextBlock Text="ĐẦU ĐỌC" Foreground="#1E40AF" FontSize="9" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                                            <TextBlock x:Name="ReaderCountText" Text="4" Foreground="#1D4ED8" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                    <!-- stat 2: relays -->
+                                                    <Border Grid.Column="1" Background="#FFF7ED" CornerRadius="8" Padding="8" Margin="2,0,2,0" BorderBrush="#FED7AA" BorderThickness="1">
+                                                        <StackPanel HorizontalAlignment="Center">
+                                                            <TextBlock Text="RƠ-LE" Foreground="#C2410C" FontSize="9" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                                            <TextBlock x:Name="RelayCountText" Text="2" Foreground="#EA580C" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                    <!-- stat 3: max lanes -->
+                                                    <Border Grid.Column="2" Background="#F0FDF4" CornerRadius="8" Padding="8" Margin="4,0,0,0" BorderBrush="#BBF7D0" BorderThickness="1">
+                                                        <StackPanel HorizontalAlignment="Center">
+                                                            <TextBlock Text="LÀN TỐI ĐA" Foreground="#15803D" FontSize="9" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                                            <TextBlock x:Name="MaxLanesText" Text="2" Foreground="#16A34A" FontSize="18" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </Grid>
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+                                </Grid>
+                            </TabItem>
+
+                            <!-- TAB 1.2: TOPOLOGY CONFIGURATION -->
+                            <TabItem>
+                                <Border Background="White" CornerRadius="12" BorderBrush="#E5E7EB" BorderThickness="1" Padding="25">
+                                    <Border.Effect>
+                                        <DropShadowEffect BlurRadius="12" ShadowDepth="2" Opacity="0.03"/>
+                                    </Border.Effect>
+                                    <StackPanel>
+                                        <TextBlock Text="🏢 ĐỊNH VỊ TOPOLOGY HỆ THỐNG" FontSize="16" FontWeight="Bold" Foreground="#1E3A8A" Margin="0,0,0,5"/>
+                                        <TextBlock Text="Cấu hình vị trí lắp đặt của controller trong hệ thống bãi xe." Foreground="#6B7280" FontSize="12" Margin="0,0,0,20"/>
+                                        
+                                        <!-- Step 1: Site -->
+                                        <Border Background="#F9FAFB" CornerRadius="10" Padding="15" Margin="0,0,0,15" BorderBrush="#E5E7EB" BorderThickness="1">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="50"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Border Background="#EFF6FF" CornerRadius="18" Width="36" Height="36" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                                    <TextBlock Text="1" Foreground="#1D4ED8" FontSize="16" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                                <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                                    <TextBlock Text="Bãi xe / Chi nhánh (Site)" FontSize="13" FontWeight="Bold" Foreground="#374151" Margin="0,0,0,5"/>
+                                                    <ComboBox x:Name="SiteCombo" Style="{StaticResource ModernComboBox}" Height="36" SelectionChanged="SiteCombo_SelectionChanged"/>
+                                                    <TextBlock Text="Chọn phân vùng bãi đỗ xe cần cấu hình" Foreground="#9CA3AF" FontSize="11" Margin="0,4,0,0"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+
+                                        <!-- Step 2: Gate -->
+                                        <Border Background="#F9FAFB" CornerRadius="10" Padding="15" Margin="0,0,0,15" BorderBrush="#E5E7EB" BorderThickness="1">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="50"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Border Background="#FEE2E2" CornerRadius="18" Width="36" Height="36" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                                    <TextBlock Text="2" Foreground="#DC2626" FontSize="16" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                                <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                                    <TextBlock Text="Cổng kiểm soát (Gate)" FontSize="13" FontWeight="Bold" Foreground="#374151" Margin="0,0,0,5"/>
+                                                    <ComboBox x:Name="ZoneCombo" Style="{StaticResource ModernComboBox}" Height="36" SelectionChanged="ZoneCombo_SelectionChanged"/>
+                                                    <TextBlock Text="Chọn cổng vật lý tương ứng của bãi xe" Foreground="#9CA3AF" FontSize="11" Margin="0,4,0,0"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+
+                                        <!-- Step 3: Controller -->
+                                        <Border Background="#F9FAFB" CornerRadius="10" Padding="15" BorderBrush="#E5E7EB" BorderThickness="1">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="50"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Border Background="#D1FAE5" CornerRadius="18" Width="36" Height="36" HorizontalAlignment="Left" VerticalAlignment="Center">
+                                                    <TextBlock Text="3" Foreground="#059669" FontSize="16" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                                <StackPanel Grid.Column="1" Margin="10,0,0,0">
+                                                    <TextBlock Text="Đăng ký Thiết bị (Controller)" FontSize="13" FontWeight="Bold" Foreground="#374151" Margin="0,0,0,5"/>
+                                                    <ComboBox x:Name="TopologyCombo" Style="{StaticResource ModernComboBox}" Height="36" SelectionChanged="TopologyCombo_SelectionChanged"/>
+                                                    <TextBlock Text="Chọn thiết bị điều khiển phần cứng được kết nối" Foreground="#9CA3AF" FontSize="11" Margin="0,4,0,0"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </StackPanel>
+                                </Border>
+                            </TabItem>
+
+                            <!-- TAB 1.3: READER ASSIGNMENT & RUNTIME CONTROL -->
+                            <TabItem>
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+                                    
+                                    <StackPanel Grid.Row="0" Margin="0,0,0,15">
+                                        <TextBlock Text="📡 PHÂN LÀN &amp; ĐIỀU KHIỂN LÀN XE" FontSize="16" FontWeight="Bold" Foreground="#1E3A8A"/>
+                                        <TextBlock Text="Gán đầu đọc vật lý cho các làn xe trong phần mềm và thực hiện điều khiển luồng xe khẩn cấp, bảo trì hoặc mở relay từ xa." Foreground="#6B7280" FontSize="12" Margin="0,4,0,0"/>
+                                    </StackPanel>
+
+                                    <!-- Lane Runtime Control View -->
+                                    <Border Grid.Row="1" Background="#F8FAFC" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="10" Padding="15" Margin="0,0,0,20">
+                                        <Border.Effect>
+                                            <DropShadowEffect BlurRadius="8" ShadowDepth="1" Opacity="0.02"/>
+                                        </Border.Effect>
+                                        <StackPanel>
+                                            <TextBlock Text="🎮 BẢNG ĐIỀU KHIỂN HOẠT ĐỘNG (LANE RUNTIME CONTROL)" FontSize="13" FontWeight="Bold" Foreground="#1E3A8A" Margin="0,0,0,10"/>
+                                            <local:LaneRuntimeControlView/>
+                                        </StackPanel>
+                                    </Border>
+                                    
+                                    <!-- Reader Mapping Grid -->
+                                    <StackPanel Grid.Row="2">
+                                        <TextBlock Text="📡 CẤU HÌNH GÁN ĐẦU ĐỌC (READER ASSIGNMENT)" FontSize="13" FontWeight="Bold" Foreground="#1E3A8A" Margin="0,0,0,12"/>
+                                        <UniformGrid Columns="2">
+                                            <!-- Reader 1 -->
+                                            <Border BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="10" Padding="15" Margin="5" Background="White">
+                                                <Border.Effect>
+                                                    <DropShadowEffect BlurRadius="8" ShadowDepth="1" Opacity="0.03"/>
+                                                </Border.Effect>
+                                                <StackPanel>
+                                                    <Grid Margin="0,0,0,12">
+                                                        <StackPanel>
+                                                            <TextBlock Text="📡 ĐẦU ĐỌC 1 (READER 1)" FontWeight="Bold" FontSize="13" Foreground="#1E3A8A"/>
+                                                        </StackPanel>
+                                                        <CheckBox x:Name="R1EnableCheck" Content="Bật đầu đọc" VerticalAlignment="Top" HorizontalAlignment="Right" FontWeight="SemiBold" Foreground="#374151"/>
+                                                    </Grid>
+                                                    
+                                                    <Grid Margin="0,0,0,8">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="100"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Text="Gán vào Làn xe:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#4B5563" FontSize="12"/>
+                                                        <ComboBox x:Name="R1LaneCombo" Grid.Column="1" Style="{StaticResource ModernComboBox}" Height="32" SelectionChanged="R1LaneCombo_SelectionChanged" DisplayMemberPath="LaneName" SelectedValuePath="Id"/>
+                                                    </Grid>
+                                                    
+                                                    <Grid Margin="0,0,0,8">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="100"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Text="Loại xe được phép:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#4B5563" FontSize="12"/>
+                                                        <ComboBox x:Name="R1VehicleTypeCombo" Grid.Column="1" Style="{StaticResource ModernComboBox}" Height="32" DisplayMemberPath="TenLoai" SelectedValuePath="Id"/>
+                                                    </Grid>
+                                                    
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="100"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Text="Chiều kiểm soát:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#4B5563" FontSize="12"/>
+                                                        <ComboBox x:Name="R1DirCombo" Grid.Column="1" Style="{StaticResource ModernComboBox}" Height="32">
+                                                            <ComboBoxItem Tag="IN">Chiều VÀO (Inbound)</ComboBoxItem>
+                                                            <ComboBoxItem Tag="OUT">Chiều RA (Outbound)</ComboBoxItem>
+                                                        </ComboBox>
+                                                    </Grid>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <!-- Reader 2 -->
+                                            <Border BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="10" Padding="15" Margin="5" Background="White">
+                                                <Border.Effect>
+                                                    <DropShadowEffect BlurRadius="8" ShadowDepth="1" Opacity="0.03"/>
+                                                </Border.Effect>
+                                                <StackPanel>
+                                                    <Grid Margin="0,0,0,12">
+                                                        <StackPanel>
+                                                            <TextBlock Text="📡 ĐẦU ĐỌC 2 (READER 2)" FontWeight="Bold" FontSize="13" Foreground="#1E3A8A"/>
+                                                        </StackPanel>
+                                                        <CheckBox x:Name="R2EnableCheck" Content="Bật đầu đọc" VerticalAlignment="Top" HorizontalAlignment="Right" FontWeight="SemiBold" Foreground="#374151"/>
+                                                    </Grid>
+                                                    
+                                                    <Grid Margin="0,0,0,8">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="100"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Text="Gán vào Làn xe:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#4B5563" FontSize="12"/>
+                                                        <ComboBox x:Name="R2LaneCombo" Grid.Column="1" Style="{StaticResource ModernComboBox}" Height="32" SelectionChanged="R2LaneCombo_SelectionChanged" DisplayMemberPath="LaneName" SelectedValuePath="Id"/>
+                                                    </Grid>
+                                                    
+                                                    <Grid Margin="0,0,0,8">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="100"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Text="Loại xe được phép:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#4B5563" FontSize="12"/>
+                                                        <ComboBox x:Name="R2VehicleTypeCombo" Grid.Column="1" Style="{StaticResource ModernComboBox}" Height="32" DisplayMemberPath="TenLoai" SelectedValuePath="Id"/>
+                                                    </Grid>
+                                                    
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="100"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Text="Chiều kiểm soát:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#4B5563" FontSize="12"/>
+                                                        <ComboBox x:Name="R2DirCombo" Grid.Column="1" Style="{StaticResource ModernComboBox}" Height="32">
+                                                            <ComboBoxItem Tag="IN">Chiều VÀO (Inbound)</ComboBoxItem>
+                                                            <ComboBoxItem Tag="OUT">Chiều RA (Outbound)</ComboBoxItem>
+                                                        </ComboBox>
+                                                    </Grid>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <!-- Reader 3 -->
+                                            <Border BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="10" Padding="15" Margin="5" Background="White">
+                                                <Border.Effect>
+                                                    <DropShadowEffect BlurRadius="8" ShadowDepth="1" Opacity="0.03"/>
+                                                </Border.Effect>
+                                                <StackPanel>
+                                                    <Grid Margin="0,0,0,12">
+                                                        <StackPanel>
+                                                            <TextBlock Text="📡 ĐẦU ĐỌC 3 (READER 3)" FontWeight="Bold" FontSize="13" Foreground="#1E3A8A"/>
+                                                        </StackPanel>
+                                                        <CheckBox x:Name="R3EnableCheck" Content="Bật đầu đọc" VerticalAlignment="Top" HorizontalAlignment="Right" FontWeight="SemiBold" Foreground="#374151"/>
+                                                    </Grid>
+                                                    
+                                                    <Grid Margin="0,0,0,8">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="100"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Text="Gán vào Làn xe:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#4B5563" FontSize="12"/>
+                                                        <ComboBox x:Name="R3LaneCombo" Grid.Column="1" Style="{StaticResource ModernComboBox}" Height="32" SelectionChanged="R3LaneCombo_SelectionChanged" DisplayMemberPath="LaneName" SelectedValuePath="Id"/>
+                                                    </Grid>
+                                                    
+                                                    <Grid Margin="0,0,0,8">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="100"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Text="Loại xe được phép:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#4B5563" FontSize="12"/>
+                                                        <ComboBox x:Name="R3VehicleTypeCombo" Grid.Column="1" Style="{StaticResource ModernComboBox}" Height="32" DisplayMemberPath="TenLoai" SelectedValuePath="Id"/>
+                                                    </Grid>
+                                                    
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="100"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Text="Chiều kiểm soát:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#4B5563" FontSize="12"/>
+                                                        <ComboBox x:Name="R3DirCombo" Grid.Column="1" Style="{StaticResource ModernComboBox}" Height="32">
+                                                            <ComboBoxItem Tag="IN">Chiều VÀO (Inbound)</ComboBoxItem>
+                                                            <ComboBoxItem Tag="OUT">Chiều RA (Outbound)</ComboBoxItem>
+                                                        </ComboBox>
+                                                    </Grid>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <!-- Reader 4 -->
+                                            <Border BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="10" Padding="15" Margin="5" Background="White">
+                                                <Border.Effect>
+                                                    <DropShadowEffect BlurRadius="8" ShadowDepth="1" Opacity="0.03"/>
+                                                </Border.Effect>
+                                                <StackPanel>
+                                                    <Grid Margin="0,0,0,12">
+                                                        <StackPanel>
+                                                            <TextBlock Text="📡 ĐẦU ĐỌC 4 (READER 4)" FontWeight="Bold" FontSize="13" Foreground="#1E3A8A"/>
+                                                        </StackPanel>
+                                                        <CheckBox x:Name="R4EnableCheck" Content="Bật đầu đọc" VerticalAlignment="Top" HorizontalAlignment="Right" FontWeight="SemiBold" Foreground="#374151"/>
+                                                    </Grid>
+                                                    
+                                                    <Grid Margin="0,0,0,8">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="100"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Text="Gán vào Làn xe:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#4B5563" FontSize="12"/>
+                                                        <ComboBox x:Name="R4LaneCombo" Grid.Column="1" Style="{StaticResource ModernComboBox}" Height="32" SelectionChanged="R4LaneCombo_SelectionChanged" DisplayMemberPath="LaneName" SelectedValuePath="Id"/>
+                                                    </Grid>
+                                                    
+                                                    <Grid Margin="0,0,0,8">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="100"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Text="Loại xe được phép:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#4B5563" FontSize="12"/>
+                                                        <ComboBox x:Name="R4VehicleTypeCombo" Grid.Column="1" Style="{StaticResource ModernComboBox}" Height="32" DisplayMemberPath="TenLoai" SelectedValuePath="Id"/>
+                                                    </Grid>
+                                                    
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="100"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Text="Chiều kiểm soát:" VerticalAlignment="Center" FontWeight="SemiBold" Foreground="#4B5563" FontSize="12"/>
+                                                        <ComboBox x:Name="R4DirCombo" Grid.Column="1" Style="{StaticResource ModernComboBox}" Height="32">
+                                                            <ComboBoxItem Tag="IN">Chiều VÀO (Inbound)</ComboBoxItem>
+                                                            <ComboBoxItem Tag="OUT">Chiều RA (Outbound)</ComboBoxItem>
+                                                        </ComboBox>
+                                                    </Grid>
+                                                </StackPanel>
+                                            </Border>
+                                        </UniformGrid>
+
+                                        <!-- Dynamic Camera Assignment Panel -->
+                                        <StackPanel Margin="0,20,0,0">
+                                            <Grid Margin="5,0,5,12">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" Text="📷 CẤU HÌNH CAMERA THEO LÀN (LANE CAMERA CONFIGURATION)" FontSize="13" FontWeight="Bold" Foreground="#1E3A8A" VerticalAlignment="Center"/>
+                                                <Button Grid.Column="1" Content="⚙️ Quản lý Camera" Style="{StaticResource ModernOutlineButton}" Height="30" Padding="15,0" Click="AddCamera_Click"/>
+                                            </Grid>
+                                            <UniformGrid x:Name="LaneCamerasContainer" Columns="2"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Grid>
+                            </TabItem>
+
+                            <!-- TAB 1.4: ADVANCED RELAY CONFIG (BUTTON ACTIONS) -->
+                            <TabItem>
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+                                    
+                                    <StackPanel Grid.Row="0" Margin="0,0,0,15">
+                                        <TextBlock Text="⚙️ NÚT NHẤN MỞ CỔNG (HARDWARE BUTTONS)" FontSize="16" FontWeight="Bold" Foreground="#1E3A8A"/>
+                                        <TextBlock Text="Cấu hình hành động kích hoạt khi nhận tín hiệu từ các nút bấm vật lý (nút nhấn cơ) đấu nối với tủ điều khiển." Foreground="#6B7280" FontSize="12" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                    
+                                    <Grid Grid.Row="1">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="20"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        
+                                        <!-- Button 1 Action -->
+                                        <Border Grid.Column="0" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="10" Padding="20" Background="White">
+                                            <Border.Effect>
+                                                <DropShadowEffect BlurRadius="8" ShadowDepth="1" Opacity="0.03"/>
+                                            </Border.Effect>
+                                            <StackPanel>
+                                                <Border Background="#F3F4F6" CornerRadius="8" Padding="10" Margin="0,0,0,15" HorizontalAlignment="Left">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="🔘" FontSize="20" Margin="0,0,8,0"/>
+                                                        <TextBlock Text="NÚT NHẤN 1 (AUX IN 1)" FontWeight="Bold" FontSize="14" Foreground="#374151" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Border>
+                                                
+                                                <TextBlock Text="Hành động khi nhấn nút:" Foreground="#4B5563" FontWeight="Bold" FontSize="12" Margin="0,0,0,6"/>
+                                                <ComboBox x:Name="Button1ActionCombo" Style="{StaticResource ModernComboBox}" Height="36" Margin="0,0,0,15">
+                                                    <ComboBoxItem Tag="None">Không làm gì</ComboBoxItem>
+                                                    <ComboBoxItem Tag="OpenThisDoor">Mở Barrier của Làn tương ứng (Khuyên dùng)</ComboBoxItem>
+                                                    <ComboBoxItem Tag="OpenGroupIn">Mở toàn bộ Làn VÀO</ComboBoxItem>
+                                                    <ComboBoxItem Tag="OpenGroupOut">Mở toàn bộ Làn RA</ComboBoxItem>
+                                                </ComboBox>
+                                                
+                                                <TextBlock Text="Hướng dẫn đấu nối:" Foreground="#4B5563" FontWeight="Bold" FontSize="11" Margin="0,0,0,4"/>
+                                                <TextBlock Text="Đấu hai chân của nút bấm vật lý vào chân GND và AUX1 trên board mạch điều khiển ZKTeco C3." Foreground="#6B7280" FontSize="11" TextWrapping="Wrap"/>
+                                            </StackPanel>
+                                        </Border>
+                                        
+                                        <!-- Button 2 Action -->
+                                        <Border Grid.Column="2" BorderBrush="#E5E7EB" BorderThickness="1" CornerRadius="10" Padding="20" Background="White">
+                                            <Border.Effect>
+                                                <DropShadowEffect BlurRadius="8" ShadowDepth="1" Opacity="0.03"/>
+                                            </Border.Effect>
+                                            <StackPanel>
+                                                <Border Background="#F3F4F6" CornerRadius="8" Padding="10" Margin="0,0,0,15" HorizontalAlignment="Left">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="🔘" FontSize="20" Margin="0,0,8,0"/>
+                                                        <TextBlock Text="NÚT NHẤN 2 (AUX IN 2)" FontWeight="Bold" FontSize="14" Foreground="#374151" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Border>
+                                                
+                                                <TextBlock Text="Hành động khi nhấn nút:" Foreground="#4B5563" FontWeight="Bold" FontSize="12" Margin="0,0,0,6"/>
+                                                <ComboBox x:Name="Button2ActionCombo" Style="{StaticResource ModernComboBox}" Height="36" Margin="0,0,0,15">
+                                                    <ComboBoxItem Tag="None">Không làm gì</ComboBoxItem>
+                                                    <ComboBoxItem Tag="OpenThisDoor">Mở Barrier của Làn tương ứng (Khuyên dùng)</ComboBoxItem>
+                                                    <ComboBoxItem Tag="OpenGroupIn">Mở toàn bộ Làn VÀO</ComboBoxItem>
+                                                    <ComboBoxItem Tag="OpenGroupOut">Mở toàn bộ Làn RA</ComboBoxItem>
+                                                </ComboBox>
+                                                
+                                                <TextBlock Text="Hướng dẫn đấu nối:" Foreground="#4B5563" FontWeight="Bold" FontSize="11" Margin="0,0,0,4"/>
+                                                <TextBlock Text="Đấu hai chân của nút bấm vật lý vào chân GND và AUX2 trên board mạch điều khiển ZKTeco C3." Foreground="#6B7280" FontSize="11" TextWrapping="Wrap"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
+                                </Grid>
+                            </TabItem>
+                        </TabControl>
+                    </ScrollViewer>
+
+                    <!-- FOOTER: SAVE BUTTONS -->
+                    <Border Grid.Column="1" Grid.Row="1" Background="#F8FAFC" BorderBrush="#E5E7EB" BorderThickness="0,1,0,0" Padding="20,15">
+                        <Grid>
+                            <Button Style="{StaticResource ModernOutlineButton}" HorizontalAlignment="Left" Width="150" Height="38" Click="Reset_Click" Content="Reset Mặc Định"/>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Button Style="{StaticResource ModernButton}" Width="180" Background="#10B981" Foreground="White" FontWeight="Bold" Height="38" Click="Save_Click" Content="💾 LƯU CẤU HÌNH"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+            
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <!-- TAB 2: DEVELOPMENT CENTER                                   -->
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <TabItem Header="🚀 DEVELOPMENT CENTER">
+                <Grid Margin="20">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/> <!-- Header -->
+                        <RowDefinition Height="*"/>    <!-- Dashboard Grid -->
+                    </Grid.RowDefinitions>
+
+                    <!-- HEADER PANEL -->
+                    <Grid Grid.Row="0" Margin="0,0,0,20">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0">
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <Path Data="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM19 18H6c-2.21 0-4-1.79-4-4 0-2.05 1.53-3.76 3.56-3.97l1.07-.11.5-.95C8.08 7.14 9.94 6 12 6c2.62 0 4.88 1.86 5.39 4.43l.3 1.5 1.53.11c1.56.1 2.78 1.41 2.78 2.96 0 1.65-1.35 3-3 3z" 
+                                      Fill="{StaticResource TopoPrimaryBrush}" 
+                                      Width="28" Height="28" 
+                                      Stretch="Uniform" 
+                                      Margin="0,0,12,0"/>
+                                <TextBlock Text="DEPLOYMENT CENTER &amp; GOVERNANCE" 
+                                           FontSize="20" 
+                                           FontWeight="Bold" 
+                                           Foreground="{StaticResource TopoTextPrimaryBrush}" 
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+                            <TextBlock Text="Quản lý phiên bản cấu hình hệ thống, kiểm tra tính hợp lệ trước khi triển khai và xem lịch sử thay đổi."
+                                       FontSize="13" 
+                                       Foreground="{StaticResource TopoTextSecondaryBrush}" 
+                                       Margin="40,4,0,0"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button Command="{Binding RefreshCommand}" 
+                                    Style="{StaticResource TopoActionButton}" 
+                                    Background="#2A3F54"
+                                    BorderBrush="#3E5A73"
+                                    BorderThickness="1"
+                                    Padding="16,10"
+                                    Margin="0,0,12,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Data="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"
+                                          Fill="White" 
+                                          Width="14" Height="14" 
+                                          Stretch="Uniform" 
+                                          Margin="0,0,8,0"
+                                          VerticalAlignment="Center"/>
+                                    <TextBlock Text="Làm mới" FontWeight="Bold" FontSize="13" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- DASHBOARD GRID -->
+                    <Grid Grid.Row="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="1*"/>
+                            <ColumnDefinition Width="1.2*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- LEFT COLUMN: STATUS & DEPLOY FORM -->
+                        <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Margin="0,0,10,0">
+                            <Grid Margin="0,0,8,0">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/> <!-- Active Version Card -->
+                                    <RowDefinition Height="Auto"/> <!-- Pending Changes Card -->
+                                    <RowDefinition Height="Auto"/> <!-- Validation Card -->
+                                    <RowDefinition Height="Auto"/> <!-- Deployment Action Card -->
+                                </Grid.RowDefinitions>
+
+                                <!-- 1. Active Version Card -->
+                                <Border Grid.Row="0" Style="{StaticResource StatCardStyle}" Margin="0,0,0,12" Padding="16,12" BorderBrush="{StaticResource TopoPrimaryBrush}" BorderThickness="0,3,0,0">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <TextBlock Text="Phiên Bản Hiện Tại" Style="{StaticResource StatLabelStyle}" FontSize="12"/>
+                                            <TextBlock Text="{Binding CurrentVersion}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource TopoTextPrimaryBrush}" Margin="0,4,0,4"/>
+                                            
+                                            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                                <TextBlock Text="Triển khai bởi: " FontSize="12" Foreground="{StaticResource TopoTextSecondaryBrush}"/>
+                                                <TextBlock Text="{Binding CurrentDeployUser}" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource TopoTextPrimaryBrush}"/>
+                                                <TextBlock Text="  •  " FontSize="12" Foreground="{StaticResource TopoTextSecondaryBrush}"/>
+                                                <TextBlock Text="{Binding CurrentDeployTime, StringFormat='{}{0:dd/MM/yyyy HH:mm}'}" FontSize="12" Foreground="{StaticResource TopoTextSecondaryBrush}"/>
+                                            </StackPanel>
+                                        </StackPanel>
+
+                                        <!-- Icon badge -->
+                                        <Border Grid.Column="1" Background="#1D2B3A" CornerRadius="8" Padding="12" VerticalAlignment="Center">
+                                            <Path Data="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" 
+                                                  Fill="{StaticResource TopoPrimaryBrush}" Width="28" Height="28" Stretch="Uniform"/>
+                                        </Border>
+                                    </Grid>
+                                </Border>
+
+                                <!-- 2. Pending Changes Card -->
+                                <Border Grid.Row="1" Margin="0,0,0,12" Padding="16,12">
+                                    <Border.Style>
+                                        <Style TargetType="Border" BasedOn="{StaticResource StatCardStyle}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding HasPendingChanges}" Value="True">
+                                                    <Setter Property="BorderBrush" Value="{StaticResource TopoWarningBrush}"/>
+                                                    <Setter Property="BorderThickness" Value="0,3,0,0"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding HasPendingChanges}" Value="False">
+                                                    <Setter Property="BorderBrush" Value="#2A3F54"/>
+                                                    <Setter Property="BorderThickness" Value="0,1,0,0"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <StackPanel>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0">
+                                                <TextBlock Text="Trạng Thái Thay Đổi" Style="{StaticResource StatLabelStyle}" FontSize="12"/>
+                                                <StackPanel Orientation="Horizontal" Margin="0,6,0,6" VerticalAlignment="Center">
+                                                    <Path Data="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z" 
+                                                          Fill="{StaticResource TopoWarningBrush}" Width="16" Height="16" Stretch="Uniform" Margin="0,0,8,0"
+                                                          Visibility="{Binding HasPendingChanges, Converter={StaticResource BoolToVis}}"/>
+                                                    <TextBlock FontSize="15" FontWeight="Bold" VerticalAlignment="Center">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding HasPendingChanges}" Value="True">
+                                                                        <Setter Property="Text" Value="⚠ Có thay đổi cấu hình chưa triển khai"/>
+                                                                        <Setter Property="Foreground" Value="{StaticResource TopoWarningBrush}"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding HasPendingChanges}" Value="False">
+                                                                        <Setter Property="Text" Value="✓ Cấu hình đồng nhất với môi trường chạy"/>
+                                                                        <Setter Property="Foreground" Value="{StaticResource TopoSuccessBrush}"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </Grid>
+
+                                        <Separator Background="#2A3F54" Margin="0,8,0,8"/>
+
+                                        <UniformGrid Columns="4" Rows="2">
+                                            <!-- Sites -->
+                                            <StackPanel Margin="4">
+                                                <TextBlock Text="Site thay đổi" FontSize="11" Foreground="{StaticResource TopoTextSecondaryBrush}"/>
+                                                <TextBlock Text="{Binding PendingSitesCount}" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TopoTextPrimaryBrush}"/>
+                                            </StackPanel>
+                                            <!-- Zones -->
+                                            <StackPanel Margin="4">
+                                                <TextBlock Text="Zone thay đổi" FontSize="11" Foreground="{StaticResource TopoTextSecondaryBrush}"/>
+                                                <TextBlock Text="{Binding PendingZonesCount}" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TopoTextPrimaryBrush}"/>
+                                            </StackPanel>
+                                            <!-- Gates -->
+                                            <StackPanel Margin="4">
+                                                <TextBlock Text="Cổng thay đổi" FontSize="11" Foreground="{StaticResource TopoTextSecondaryBrush}"/>
+                                                <TextBlock Text="{Binding PendingGatesCount}" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TopoTextPrimaryBrush}"/>
+                                            </StackPanel>
+                                            <!-- Lanes -->
+                                            <StackPanel Margin="4">
+                                                <TextBlock Text="Làn thay đổi" FontSize="11" Foreground="{StaticResource TopoTextSecondaryBrush}"/>
+                                                <TextBlock Text="{Binding PendingLanesCount}" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TopoTextPrimaryBrush}"/>
+                                            </StackPanel>
+                                            <!-- Readers -->
+                                            <StackPanel Margin="4">
+                                                <TextBlock Text="Đầu đọc đổi" FontSize="11" Foreground="{StaticResource TopoTextSecondaryBrush}"/>
+                                                <TextBlock Text="{Binding PendingReadersCount}" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TopoTextPrimaryBrush}"/>
+                                            </StackPanel>
+                                            <!-- Controllers -->
+                                            <StackPanel Margin="4">
+                                                <TextBlock Text="Tủ điều khiển" FontSize="11" Foreground="{StaticResource TopoTextSecondaryBrush}"/>
+                                                <TextBlock Text="{Binding PendingControllersCount}" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TopoTextPrimaryBrush}"/>
+                                            </StackPanel>
+                                            <!-- Cameras -->
+                                            <StackPanel Margin="4">
+                                                <TextBlock Text="Camera đổi" FontSize="11" Foreground="{StaticResource TopoTextSecondaryBrush}"/>
+                                                <TextBlock Text="{Binding PendingCamerasCount}" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TopoTextPrimaryBrush}"/>
+                                            </StackPanel>
+                                        </UniformGrid>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- 3. Validation Summary Card -->
+                                <Border Grid.Row="2" Margin="0,0,0,12" Padding="16,12">
+                                    <Border.Style>
+                                        <Style TargetType="Border" BasedOn="{StaticResource StatCardStyle}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsValid}" Value="True">
+                                                    <Setter Property="BorderBrush" Value="{StaticResource TopoSuccessBrush}"/>
+                                                    <Setter Property="BorderThickness" Value="0,3,0,0"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding IsValid}" Value="False">
+                                                    <Setter Property="BorderBrush" Value="{StaticResource TopoDangerBrush}"/>
+                                                    <Setter Property="BorderThickness" Value="0,3,0,0"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <StackPanel>
+                                        <TextBlock Text="Trạng Thái Xác Thực Topology" Style="{StaticResource StatLabelStyle}" FontSize="12"/>
+                                        <TextBlock Text="{Binding ValidationStatusText}" FontSize="15" FontWeight="Bold" Margin="0,4,0,8">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsValid}" Value="True">
+                                                            <Setter Property="Foreground" Value="{StaticResource TopoSuccessBrush}"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding IsValid}" Value="False">
+                                                            <Setter Property="Foreground" Value="{StaticResource TopoDangerBrush}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+
+                                        <Grid Margin="0,4,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            
+                                            <Border Grid.Column="0" Background="#23171B" CornerRadius="4" Padding="8,6" Margin="0,0,6,0">
+                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                    <TextBlock Text="Lỗi: " FontSize="12" Foreground="{StaticResource TopoDangerBrush}"/>
+                                                    <TextBlock Text="{Binding ErrorCount}" FontSize="12" FontWeight="Bold" Foreground="{StaticResource TopoDangerBrush}"/>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <Border Grid.Column="1" Background="#262118" CornerRadius="4" Padding="8,6" Margin="0,0,6,0">
+                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                    <TextBlock Text="Cảnh báo: " FontSize="12" Foreground="{StaticResource TopoWarningBrush}"/>
+                                                    <TextBlock Text="{Binding WarningCount}" FontSize="12" FontWeight="Bold" Foreground="{StaticResource TopoWarningBrush}"/>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <Border Grid.Column="2" Background="#172223" CornerRadius="4" Padding="8,6">
+                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                    <TextBlock Text="Thông tin: " FontSize="12" Foreground="{StaticResource TopoPrimaryBrush}"/>
+                                                    <TextBlock Text="{Binding InfoCount}" FontSize="12" FontWeight="Bold" Foreground="{StaticResource TopoPrimaryBrush}"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+                                        
+                                        <!-- List of Errors blocking deployment (if any) -->
+                                        <StackPanel Visibility="{Binding IsValid, Converter={StaticResource BoolToVis}, ConverterParameter=Inverse}" Margin="0,10,0,0">
+                                            <TextBlock Text="Các lỗi chặn triển khai:" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource TopoDangerBrush}" Margin="0,0,0,4"/>
+                                            <ItemsControl ItemsSource="{Binding ErrorIssues}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding Description, StringFormat='• {0}'}" FontSize="11" Foreground="#FF9E9E" TextWrapping="Wrap" Margin="0,2,0,2"/>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- 4. Deployment Action Card -->
+                                <Border Grid.Row="3" Style="{StaticResource StatCardStyle}" Padding="16,16">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+                                        
+                                        <StackPanel Grid.Row="0">
+                                            <TextBlock Text="Triển Khai Cấu Hình" FontSize="14" FontWeight="Bold" Foreground="{StaticResource TopoTextPrimaryBrush}"/>
+                                            <TextBlock Text="Lưu ý: Chỉ được phép triển khai khi hệ thống không có lỗi nghiêm trọng (Errors = 0) và có thay đổi cấu hình chưa triển khai." 
+                                                       FontSize="11" Foreground="{StaticResource TopoTextSecondaryBrush}" TextWrapping="Wrap" Margin="0,4,0,8"/>
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Row="1" Margin="0,4,0,12">
+                                            <TextBlock Text="Ghi chú triển khai (Notes):" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource TopoTextPrimaryBrush}" Margin="0,0,0,6"/>
+                                            <TextBox Text="{Binding Notes, UpdateSourceTrigger=PropertyChanged}" 
+                                                     TextWrapping="Wrap" 
+                                                     AcceptsReturn="True" 
+                                                     VerticalScrollBarVisibility="Auto"
+                                                     Height="80"
+                                                     Background="#1A2835"
+                                                     Foreground="White"
+                                                     BorderBrush="#2C3E50"
+                                                     BorderThickness="1"
+                                                     Padding="8"/>
+                                        </StackPanel>
+
+                                        <!-- Deploy Button -->
+                                        <Button Grid.Row="2"
+                                                Command="{Binding DeployCommand}"
+                                                Background="{StaticResource TopoSuccessBrush}"
+                                                Height="45"
+                                                HorizontalAlignment="Stretch">
+                                            <Button.Style>
+                                                <Style TargetType="Button" BasedOn="{StaticResource TopoActionButton}">
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsEnabled" Value="False">
+                                                            <Setter Property="Background" Value="#2F3B2F"/>
+                                                            <Setter Property="Opacity" Value="0.5"/>
+                                                        </Trigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Path Data="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" 
+                                                      Fill="White" Width="14" Height="14" Stretch="Uniform" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                                <TextBlock Text="Triển Khai Cấu Hình Ngay (Deploy)" FontWeight="Bold" FontSize="14" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </Grid>
+                                </Border>
+                            </Grid>
+                        </ScrollViewer>
+
+                        <!-- RIGHT COLUMN: AUDIT TRAIL & HISTORY -->
+                        <Grid Grid.Column="1" Margin="10,0,0,0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="1.2*"/> <!-- Recent Changes (Audit Trail) -->
+                                <RowDefinition Height="1*"/>   <!-- Deployment History -->
+                            </Grid.RowDefinitions>
+
+                            <!-- 1. Recent Changes Card -->
+                            <Border Grid.Row="0" Style="{StaticResource StatCardStyle}" Margin="0,0,0,12" Padding="16,14">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+                                    
+                                    <StackPanel Grid.Row="0" Margin="0,0,0,10">
+                                        <TextBlock Text="Nhật Ký Thay Đổi Cấu Hình (Audit Trail)" FontSize="14" FontWeight="Bold" Foreground="{StaticResource TopoTextPrimaryBrush}"/>
+                                        <TextBlock Text="Tự động ghi nhận tất cả thay đổi chi tiết cấp độ thuộc tính (không có log thủ công)." FontSize="11" Foreground="{StaticResource TopoTextSecondaryBrush}"/>
+                                    </StackPanel>
+
+                                    <ListBox Grid.Row="1" ItemsSource="{Binding AuditHistory}" Style="{StaticResource CleanListBoxStyle}">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Background="#1C2E3F" CornerRadius="6" Padding="12,10" Margin="0,0,0,8" BorderThickness="1,0,0,0" BorderBrush="{StaticResource TopoPrimaryBrush}">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        
+                                                        <StackPanel Grid.Column="0">
+                                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                                                <Border Background="#2C3E50" CornerRadius="3" Padding="6,2" Margin="0,0,6,0">
+                                                                    <TextBlock Text="{Binding EntityType}" FontSize="10" FontWeight="Bold" Foreground="White"/>
+                                                                </Border>
+                                                                <TextBlock Text="{Binding EntityName}" FontSize="12" FontWeight="Bold" Foreground="{StaticResource TopoTextPrimaryBrush}"/>
+                                                            </StackPanel>
+                                                            
+                                                            <StackPanel Orientation="Horizontal" Margin="0,2,0,0">
+                                                                <TextBlock Text="{Binding PropertyName}" FontSize="11" Foreground="{StaticResource TopoTextSecondaryBrush}" FontWeight="SemiBold"/>
+                                                                <TextBlock Text=": " FontSize="11" Foreground="{StaticResource TopoTextSecondaryBrush}"/>
+                                                                <TextBlock Text="{Binding OldValue}" FontSize="11" Foreground="#FF9E9E" TextDecorations="Strikethrough"/>
+                                                                <Path Data="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" Fill="{StaticResource TopoTextSecondaryBrush}" Width="10" Height="10" Margin="6,0" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                                <TextBlock Text=" → " FontSize="11" Foreground="{StaticResource TopoTextSecondaryBrush}"/>
+                                                                <TextBlock Text="{Binding NewValue}" FontSize="11" Foreground="{StaticResource TopoSuccessBrush}" FontWeight="SemiBold"/>
+                                                            </StackPanel>
+                                                        </StackPanel>
+
+                                                        <!-- Metadata column -->
+                                                        <StackPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding UserName}" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource TopoTextPrimaryBrush}" HorizontalAlignment="Right"/>
+                                                            <TextBlock Text="{Binding Timestamp, StringFormat='{}{0:dd/MM HH:mm}'}" FontSize="10" Foreground="{StaticResource TopoTextSecondaryBrush}" HorizontalAlignment="Right"/>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+                                </Grid>
+                            </Border>
+
+                            <!-- 2. Deployment History Card -->
+                            <Border Grid.Row="1" Style="{StaticResource StatCardStyle}" Padding="16,14">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+
+                                    <StackPanel Grid.Row="0" Margin="0,0,0,10">
+                                        <TextBlock Text="Lịch Sử Triển Khai (Deployment History)" FontSize="14" FontWeight="Bold" Foreground="{StaticResource TopoTextPrimaryBrush}"/>
+                                        <TextBlock Text="Danh sách các phiên bản đã được kích hoạt hoặc thất bại." FontSize="11" Foreground="{StaticResource TopoTextSecondaryBrush}"/>
+                                    </StackPanel>
+
+                                    <ListBox Grid.Row="1" ItemsSource="{Binding DeploymentHistory}" Style="{StaticResource CleanListBoxStyle}" ItemContainerStyle="{StaticResource DeployHistoryItemStyle}" SelectedItem="{Binding SelectedDeployment, Mode=TwoWay}">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border CornerRadius="6" Padding="12,10" Margin="0,0,0,8" BorderThickness="1,0,0,0">
+                                                    <Border.Style>
+                                                        <Style TargetType="Border">
+                                                            <Setter Property="Background" Value="#1C2E3F"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Status}" Value="SUCCESS">
+                                                                    <Setter Property="BorderBrush" Value="{StaticResource TopoSuccessBrush}"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Status}" Value="FAILED">
+                                                                    <Setter Property="BorderBrush" Value="{StaticResource TopoDangerBrush}"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ListBoxItem}}" Value="True">
+                                                                    <Setter Property="Background" Value="#253A4E"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Border.Style>
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/> <!-- Version tag -->
+                                                            <ColumnDefinition Width="*"/>    <!-- Notes / Deployment details -->
+                                                            <ColumnDefinition Width="Auto"/> <!-- Deploy user / status -->
+                                                        </Grid.ColumnDefinitions>
+
+                                                        <!-- Version Tag -->
+                                                        <Border Grid.Column="0" Background="#2C3E50" CornerRadius="4" Width="42" Height="36" Margin="0,0,12,0" VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding Version, StringFormat='V{0}'}" FontSize="13" FontWeight="Bold" Foreground="White" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                                        </Border>
+
+                                                        <!-- Notes -->
+                                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                            <TextBlock Text="{Binding Notes}" FontSize="12" Foreground="{StaticResource TopoTextPrimaryBrush}" TextWrapping="Wrap" FontWeight="SemiBold"/>
+                                                            <TextBlock Text="{Binding DeployTime, StringFormat='{}{0:dd/MM/yyyy HH:mm:ss}'}" FontSize="10" Foreground="{StaticResource TopoTextSecondaryBrush}" Margin="0,2,0,0"/>
+                                                        </StackPanel>
+
+                                                        <!-- Status / User -->
+                                                        <StackPanel Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="10,0,0,0">
+                                                            <Border CornerRadius="4" Padding="6,2" HorizontalAlignment="Right">
+                                                                <Border.Style>
+                                                                    <Style TargetType="Border">
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding Status}" Value="SUCCESS">
+                                                                                <Setter Property="Background" Value="#1B3322"/>
+                                                                            </DataTrigger>
+                                                                            <DataTrigger Binding="{Binding Status}" Value="FAILED">
+                                                                                <Setter Property="Background" Value="#331B1B"/>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </Border.Style>
+                                                                <TextBlock Text="{Binding Status}" FontSize="10" FontWeight="Bold">
+                                                                    <TextBlock.Style>
+                                                                        <Style TargetType="TextBlock">
+                                                                            <Style.Triggers>
+                                                                                <DataTrigger Binding="{Binding Status}" Value="SUCCESS">
+                                                                                    <Setter Property="Foreground" Value="{StaticResource TopoSuccessBrush}"/>
+                                                                                </DataTrigger>
+                                                                                <DataTrigger Binding="{Binding Status}" Value="FAILED">
+                                                                                    <Setter Property="Foreground" Value="{StaticResource TopoDangerBrush}"/>
+                                                                                </DataTrigger>
+                                                                            </Style.Triggers>
+                                                                        </Style>
+                                                                    </TextBlock.Style>
+                                                                </TextBlock>
+                                                            </Border>
+                                                            <TextBlock Text="{Binding DeployBy, StringFormat='Triển khai: {0}'}" FontSize="11" Foreground="{StaticResource TopoTextSecondaryBrush}" Margin="0,4,0,0" HorizontalAlignment="Right"/>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </Grid>
+                </Grid>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</UserControl>

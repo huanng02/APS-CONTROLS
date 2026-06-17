@@ -1263,7 +1263,7 @@ namespace QuanLyGiuXe.ViewModels
             RealtimeEventFeedCommand = new RelayCommand(_ => SetView(new RealtimeEventFeedViewModel()));
             LichSuCommand = new RelayCommand(_ => SetView(new LichSuViewModel()));
             DatabaseExplorerCommand = new SecureCommand("DATABASE_EXPLORER", _ => SetView(new DatabaseExplorerViewModel()));
-            DeploymentCenterCommand = new RelayCommand(_ => SetView(new DeploymentCenterViewModel()));
+            DeploymentCenterCommand = new RelayCommand(_ => SetView(new SystemConfigDeploymentViewModel { ActiveTabIndex = 1 }));
             ToggleUserPopupCommand = new RelayCommand(_ => IsUserPopupOpen = !IsUserPopupOpen);
             EditProfileCommand = new RelayCommand(_ =>
             {
@@ -1573,9 +1573,8 @@ namespace QuanLyGiuXe.ViewModels
                     "DatabaseExplorerViewModel" => "Mini Database Explorer",
                     "DashboardViewModel" => "Dashboard Thống kê",
                     "MonitoringDashboardViewModel" => "Parking Monitoring Dashboard",
-                    "ParkingTopologyViewModel" => "Cấu hình sơ đồ",
-                    "TopologyValidationViewModel" => "Topology Validation",
-                    "DeploymentCenterViewModel" => "Deployment Center",
+                    "ParkingTopologyViewModel" => "Cấu hình & Kiểm tra Sơ đồ",
+                    "SystemConfigDeploymentViewModel" => "Cấu hình & Triển khai",
                     _ => CurrentView.GetType().Name
                 };
                 LoggingService.Instance.LogInfo("TAB_CLOSE", "UI", $"Đóng tab: {oldTabName}");
@@ -1592,9 +1591,8 @@ namespace QuanLyGiuXe.ViewModels
                     "DatabaseExplorerViewModel" => "Mini Database Explorer",
                     "DashboardViewModel" => "Dashboard Thống kê",
                     "MonitoringDashboardViewModel" => "Parking Monitoring Dashboard",
-                    "ParkingTopologyViewModel" => "Cấu hình sơ đồ",
-                    "TopologyValidationViewModel" => "Topology Validation",
-                    "DeploymentCenterViewModel" => "Deployment Center",
+                    "ParkingTopologyViewModel" => "Cấu hình & Kiểm tra Sơ đồ",
+                    "SystemConfigDeploymentViewModel" => "Cấu hình & Triển khai",
                     _ => view.GetType().Name
                 };
                 LoggingService.Instance.LogInfo("TAB_OPEN", "UI", $"Chuyển sang tab: {tabName}");

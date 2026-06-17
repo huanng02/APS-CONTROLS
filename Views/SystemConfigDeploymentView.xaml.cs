@@ -9,12 +9,13 @@ using System.Windows.Controls;
 using System.Threading.Tasks;
 using AForge.Video.DirectShow;
 
-namespace QuanLyGiuXe
+namespace QuanLyGiuXe.Views
 {
-    public partial class C3200SettingsWindow : Window
+    public partial class SystemConfigDeploymentView : UserControl
     {
         private AppConfig _cfg;
         private bool _isInitializing = false;
+        private bool _hasLoaded = false;
         private List<LaneConfig> _lanes;
         private List<ParkingSite> _sites;
         private List<LoaiXe> _vehicleTypes;
@@ -24,7 +25,7 @@ namespace QuanLyGiuXe
         private readonly Dictionary<string, string> _cameraNameToUrlMap = new();
         private const string AutoOption = "(Tự động)";
 
-        public C3200SettingsWindow()
+        public SystemConfigDeploymentView()
         {
             InitializeComponent();
             _cfg = AppConfig.LoadDraft();
@@ -54,6 +55,15 @@ namespace QuanLyGiuXe
                 }
             }
             LoadControllerTypeSelection();
+        }
+
+        private async void UserControl_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (!_hasLoaded)
+            {
+                _hasLoaded = true;
+                await InitializeConfigurationAsync();
+            }
         }
 
         // =============================
@@ -327,16 +337,6 @@ namespace QuanLyGiuXe
             {
                 MessageBox.Show($"Load controller failed: {ex.Message}");
             }
-        }
-
-        // =============================
-        // WINDOW LOADED
-        // =============================
-        private async void Window_Loaded(
-            object sender,
-            RoutedEventArgs e)
-        {
-            await InitializeConfigurationAsync();
         }
 
         private void Reset_Click(object sender, RoutedEventArgs e)
@@ -676,7 +676,7 @@ namespace QuanLyGiuXe
             }
 
             var win = new Views.AddCameraWindow(selectedText, urlOrName);
-            win.Owner = this;
+            win.Owner = Window.GetWindow(this);
             win.ShowDialog();
         }
 
@@ -684,7 +684,7 @@ namespace QuanLyGiuXe
         {
             var lane = _lanes?.FirstOrDefault(l => l.Id == laneId);
             var win = new Views.CameraSettingsWindow(laneId, cameraRole);
-            win.Owner = this;
+            win.Owner = Window.GetWindow(this);
             win.ShowDialog();
 
             // Refresh the camera list and dropdowns
@@ -711,7 +711,7 @@ namespace QuanLyGiuXe
         private async void AddCamera_Click(object sender, RoutedEventArgs e)
         {
             var win = new Views.CameraSettingsWindow();
-            win.Owner = this;
+            win.Owner = Window.GetWindow(this);
             win.ShowDialog();
 
             int selectedGateId = ZoneCombo.SelectedValue != null ? Convert.ToInt32(ZoneCombo.SelectedValue) : 0;
@@ -777,7 +777,6 @@ namespace QuanLyGiuXe
             }
             return text;
         }
-
 
         private bool _isSyncingCombos = false;
 
@@ -969,7 +968,7 @@ namespace QuanLyGiuXe
                 sb.AppendLine($"DLL Arch: {res.DllArch}");
                 sb.AppendLine($"Process Arch: {(Environment.Is64BitProcess ? "x64" : "x86")} ");
 
-                try { LoggingService.Instance.LogInfo("C3200TestDetailed", "C3200SettingsWindow", sb.ToString(), userId: Environment.UserName); } catch { }
+                try { LoggingService.Instance.LogInfo("C3200TestDetailed", "SystemConfigDeploymentView", sb.ToString(), userId: Environment.UserName); } catch { }
 
                 MessageBox.Show(sb.ToString(), "C3200 Detailed Test", MessageBoxButton.OK);
             }
@@ -1139,7 +1138,7 @@ namespace QuanLyGiuXe
                 }
                 catch (Exception ex)
                 {
-                    try { LoggingService.Instance.LogError("Save_Click_AutoSync", "C3200Settings", "Failed to auto-sync lane directions", ex); } catch { }
+                    try { LoggingService.Instance.LogError("Save_Click_AutoSync", "SystemConfigDeployment", "Failed to auto-sync lane directions", ex); } catch { }
                 }
 
                 // Save vehicle type to lanes
@@ -1152,7 +1151,7 @@ namespace QuanLyGiuXe
                 }
                 catch (Exception vtEx)
                 {
-                    try { LoggingService.Instance.LogError("SaveVehicleType", "C3200Settings", "Failed to save lane vehicle type", vtEx); } catch { }
+                    try { LoggingService.Instance.LogError("SaveVehicleType", "SystemConfigDeployment", "Failed to save lane vehicle type", vtEx); } catch { }
                 }
 
                 var changes = new System.Text.StringBuilder();
@@ -1207,7 +1206,7 @@ namespace QuanLyGiuXe
                         }
                         else if (prevMap.LaneId != newMap.LaneId ||
                                  prevMap.Direction != newMap.Direction ||
-                                 prevMap.IsEnabled != newMap.IsEnabled)
+                                  prevMap.IsEnabled != newMap.IsEnabled)
                         {
                             isMapChanged = true;
                         }
@@ -1315,7 +1314,7 @@ namespace QuanLyGiuXe
                 }
                 catch (Exception valEx)
                 {
-                    try { LoggingService.Instance.LogError("Save_Click_CameraValidation", "C3200Settings", "Failed to validate camera assignments", valEx); } catch { }
+                    try { LoggingService.Instance.LogError("Save_Click_CameraValidation", "SystemConfigDeployment", "Failed to validate camera assignments", valEx); } catch { }
                 }
 
                 // Save lane camera assignments
@@ -1407,7 +1406,7 @@ namespace QuanLyGiuXe
                 }
                 catch (Exception ex)
                 {
-                    try { LoggingService.Instance.LogError("Save_Click_CameraSync", "C3200Settings", "Failed to sync camera assignments to DB", ex); } catch { }
+                    try { LoggingService.Instance.LogError("Save_Click_CameraSync", "SystemConfigDeployment", "Failed to sync camera assignments to DB", ex); } catch { }
                 }
 
                 // Restore active configuration in the service since we only saved to draft
@@ -1428,7 +1427,7 @@ namespace QuanLyGiuXe
                 }
                 catch (Exception ex)
                 {
-                    try { LoggingService.Instance.LogError("Save_Click_RestoreActive", "C3200Settings", "Failed to restore active controller config", ex); } catch { }
+                    try { LoggingService.Instance.LogError("Save_Click_RestoreActive", "SystemConfigDeployment", "Failed to restore active controller config", ex); } catch { }
                 }
 
                 if (changes.Length > 0)
@@ -1442,11 +1441,11 @@ namespace QuanLyGiuXe
                     { 
                         LoggingService.Instance.LogAudit(
                             "CONFIG_CHANGED_UI", 
-                            "C3200Settings", 
+                            "SystemConfigDeployment", 
                             "config_draft.json", 
                             null, 
                             new { Diffs = changes.ToString() }, 
-                            source: "C3200SettingsWindow", 
+                            source: "SystemConfigDeploymentView", 
                             details: auditDetails
                         ); 
                     } 
@@ -1460,22 +1459,26 @@ namespace QuanLyGiuXe
                 }
                 catch (Exception depEx)
                 {
-                    try { LoggingService.Instance.LogError("Save_Click_MarkPending", "C3200Settings", "Failed to mark pending changes", depEx); } catch { }
+                    try { LoggingService.Instance.LogError("Save_Click_MarkPending", "SystemConfigDeployment", "Failed to mark pending changes", depEx); } catch { }
                 }
 
                 await RefreshSiteSelectionAsync();
 
                 MessageBox.Show("Đã lưu cấu hình vào bản nháp thành công!\n\nHệ thống sẽ tự động chuyển bạn đến Development Center để tiến hành triển khai.", "Lưu cấu hình", MessageBoxButton.OK, MessageBoxImage.Information);
-                DialogResult = true;
+                
+                // Auto-switch to Tab 2 (Development Center)
+                if (DataContext is SystemConfigDeploymentViewModel vm)
+                {
+                    vm.RefreshCommand.Execute(null);
+                    vm.ActiveTabIndex = 1;
+                }
             }
             catch (Exception ex)
             {
-                try { LoggingService.Instance.LogError("Save_Click", "C3200Settings", "Crash during save", ex); } catch { }
+                try { LoggingService.Instance.LogError("Save_Click", "SystemConfigDeployment", "Crash during save", ex); } catch { }
                 MessageBox.Show($"Lỗi khi lưu cấu hình: {ex.Message}\n\n{ex.StackTrace}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-
-        
 
         private async Task RefreshSiteSelectionAsync()
         {
@@ -1568,13 +1571,28 @@ namespace QuanLyGiuXe
                 _isInitializing = false;
             }
         }
-        private void Close_Click(object sender, RoutedEventArgs e) => Close();
 
-        protected override void OnClosed(EventArgs e)
+        private async Task SaveLaneVehicleType(ComboBox laneCombo, ComboBox vehicleTypeCombo)
         {
-            base.OnClosed(e);
-            
-            // Restore active config to service when window is closed
+            if (laneCombo.SelectedItem is LaneConfig lane && vehicleTypeCombo.SelectedItem is LoaiXe selectedType)
+            {
+                int? newLoaiXeId = selectedType.Id > 0 ? selectedType.Id : (int?)null;
+                
+                // Only save if changed
+                if (lane.LoaiXeId != newLoaiXeId)
+                {
+                    lane.LoaiXeId = newLoaiXeId;
+                    lane.LoaiXeName = selectedType.Id > 0 ? selectedType.TenLoai : string.Empty;
+                    await ParkingTopologyService.Instance.SaveLaneAsync(lane);
+                    LoggingService.Instance.LogInfo("SaveVehicleType", "SystemConfigDeployment", 
+                        $"Lane {lane.LaneCode} LoaiXeId set to {(newLoaiXeId.HasValue ? newLoaiXeId.Value.ToString() : "NULL (Mixed)")}");
+                }
+            }
+        }
+
+        private void UserControl_Unloaded(object sender, RoutedEventArgs e)
+        {
+            // Restore active config to service when control is unloaded
             try
             {
                 var activeConfig = AppConfig.Load();
@@ -1592,24 +1610,6 @@ namespace QuanLyGiuXe
                 });
             }
             catch { }
-        }
-
-        private async Task SaveLaneVehicleType(ComboBox laneCombo, ComboBox vehicleTypeCombo)
-        {
-            if (laneCombo.SelectedItem is LaneConfig lane && vehicleTypeCombo.SelectedItem is LoaiXe selectedType)
-            {
-                int? newLoaiXeId = selectedType.Id > 0 ? selectedType.Id : (int?)null;
-                
-                // Only save if changed
-                if (lane.LoaiXeId != newLoaiXeId)
-                {
-                    lane.LoaiXeId = newLoaiXeId;
-                    lane.LoaiXeName = selectedType.Id > 0 ? selectedType.TenLoai : string.Empty;
-                    await ParkingTopologyService.Instance.SaveLaneAsync(lane);
-                    LoggingService.Instance.LogInfo("SaveVehicleType", "C3200Settings", 
-                        $"Lane {lane.LaneCode} LoaiXeId set to {(newLoaiXeId.HasValue ? newLoaiXeId.Value.ToString() : "NULL (Mixed)")}");
-                }
-            }
         }
     }
 }

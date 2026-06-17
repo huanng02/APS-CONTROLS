@@ -10,8 +10,16 @@ using QuanLyGiuXe.Services;
 
 namespace QuanLyGiuXe.ViewModels
 {
-    public class DeploymentCenterViewModel : BaseViewModel
+    public class SystemConfigDeploymentViewModel : BaseViewModel
     {
+        // ── Active Tab Index ───────────────────────────────────────────
+        private int _activeTabIndex;
+        public int ActiveTabIndex
+        {
+            get => _activeTabIndex;
+            set { _activeTabIndex = value; OnPropertyChanged(); }
+        }
+
         // ── Active Version Info ─────────────────────────────────────────
 
         private string _currentVersion = "V0";
@@ -187,7 +195,7 @@ namespace QuanLyGiuXe.ViewModels
             }
             catch (Exception ex)
             {
-                LoggingService.Instance.LogError("DeploymentCenterViewModel", "ShowDeploymentChanges", "Failed to open changes dialog", ex);
+                LoggingService.Instance.LogError("SystemConfigDeploymentViewModel", "ShowDeploymentChanges", "Failed to open changes dialog", ex);
             }
             finally
             {
@@ -212,7 +220,7 @@ namespace QuanLyGiuXe.ViewModels
 
         // ── Constructor ─────────────────────────────────────────────────
 
-        public DeploymentCenterViewModel()
+        public SystemConfigDeploymentViewModel()
         {
             ValidateCommand = new RelayCommand(_ => ExecuteValidation());
             DeployCommand = new RelayCommand(_ => ExecuteDeploy(), _ => CanDeploy);
@@ -308,7 +316,7 @@ namespace QuanLyGiuXe.ViewModels
             }
             catch (Exception ex)
             {
-                LoggingService.Instance.LogError("DeploymentCenterViewModel", "LoadAllData", "Error loading Deployment Center data", ex);
+                LoggingService.Instance.LogError("SystemConfigDeploymentViewModel", "LoadAllData", "Error loading data", ex);
             }
             finally
             {
@@ -412,7 +420,7 @@ namespace QuanLyGiuXe.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    LoggingService.Instance.LogError("ExecuteDeploy", "DeploymentCenterViewModel", "Failed to configure/reconnect C3200 after deployment", ex);
+                    LoggingService.Instance.LogError("ExecuteDeploy", "SystemConfigDeploymentViewModel", "Failed to configure/reconnect C3200 after deployment", ex);
                 }
 
                 // 3. Apply deployed camera configuration: sync config.json, diff old vs new, stop/start affected streams

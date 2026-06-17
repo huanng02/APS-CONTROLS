@@ -267,6 +267,64 @@ namespace QuanLyGiuXe.ViewModels
         private bool _detailReaderEnabled;
         public bool DetailReaderEnabled { get => _detailReaderEnabled; set { _detailReaderEnabled = value; OnPropertyChanged(); } }
 
+        // ── Validation Summary Counts ──────────────────────────────────────────────
+        private int _infoCount;
+        public int InfoCount
+        {
+            get => _infoCount;
+            set { _infoCount = value; OnPropertyChanged(); }
+        }
+
+        private int _warningCount;
+        public int WarningCount
+        {
+            get => _warningCount;
+            set { _warningCount = value; OnPropertyChanged(); }
+        }
+
+        private int _errorCount;
+        public int ErrorCount
+        {
+            get => _errorCount;
+            set { _errorCount = value; OnPropertyChanged(); }
+        }
+
+        // ── Validation Grouped Issue Collections ───────────────────────────────────
+        public ObservableCollection<ValidationIssue> ErrorIssues { get; } = new ObservableCollection<ValidationIssue>();
+        public ObservableCollection<ValidationIssue> WarningIssues { get; } = new ObservableCollection<ValidationIssue>();
+        public ObservableCollection<ValidationIssue> InfoIssues { get; } = new ObservableCollection<ValidationIssue>();
+
+        // ── Validation Status ──────────────────────────────────────────────────────
+        private bool _isValidationValid;
+        public bool IsValidationValid
+        {
+            get => _isValidationValid;
+            set { _isValidationValid = value; OnPropertyChanged(); }
+        }
+
+        private bool _isValidationLoading;
+        public bool IsValidationLoading
+        {
+            get => _isValidationLoading;
+            set { _isValidationLoading = value; OnPropertyChanged(); }
+        }
+
+        private string _validationStatusText = "Chưa kiểm tra";
+        public string ValidationStatusText
+        {
+            get => _validationStatusText;
+            set { _validationStatusText = value; OnPropertyChanged(); }
+        }
+
+        private bool _hasValidationRun;
+        public bool HasValidationRun
+        {
+            get => _hasValidationRun;
+            set { _hasValidationRun = value; OnPropertyChanged(); }
+        }
+
+        public ICommand ValidateTopologyCommand { get; }
+
         // ──────────────────────────────────────────────
         // EXISTING commands (preserved as-is)
         // ──────────────────────────────────────────────
@@ -331,6 +389,7 @@ namespace QuanLyGiuXe.ViewModels
             CollapseAllCommand = new RelayCommand(_ => SetAllExpanded(false));
             EditSelectedCommand = new RelayCommand(async _ => await EditSelected(), _ => SelectedNode != null && SelectedNode.NodeType != "Reader");
             DeleteSelectedCommand = new RelayCommand(async _ => await DeleteSelected(), _ => SelectedNode != null && SelectedNode.NodeType != "Reader");
+            ValidateTopologyCommand = new RelayCommand(_ => ExecuteValidation());
 
             _ = LoadDataAsync();
         }
@@ -370,6 +429,7 @@ namespace QuanLyGiuXe.ViewModels
                     IsEmpty = TreeNodes.Count == 0;
                     IsLoading = false;
                 });
+                ExecuteValidation();
             }
             catch (Exception ex)
             {
@@ -1243,6 +1303,68 @@ namespace QuanLyGiuXe.ViewModels
             catch (Exception ex)
             {
                 LoggingService.Instance.LogError("POST_SAVE_VALIDATE", "UI", $"Validation error: {ex.Message}");
+            }
+        }
+
+        private async void ExecuteValidation()
+        {
+            if (IsValidationLoading) return;
+
+            IsValidationLoading = true;
+            ValidationStatusText = "Đang kiểm tra...";
+
+            try
+            {
+                var result = await Task.Run(() =>
+                    TopologyValidationService.Instance.ValidateTopology());
+
+                Application.Current?.Dispatcher?.Invoke(() =>
+                {
+                    // Clear previous results
+                    ErrorIssues.Clear();
+                    WarningIssues.Clear();
+                    InfoIssues.Clear();
+
+                    // Populate grouped collections
+                    foreach (var issue in result.Errors)
+                        ErrorIssues.Add(issue);
+
+                    foreach (var issue in result.Warnings)
+                        WarningIssues.Add(issue);
+
+                    foreach (var issue in result.Infos)
+                        InfoIssues.Add(issue);
+
+                    // Update counts
+                    ErrorCount = result.Errors.Count;
+                    WarningCount = result.Warnings.Count;
+                    InfoCount = result.Infos.Count;
+
+                    // Update status
+                    IsValidationValid = result.IsValid;
+                    HasValidationRun = true;
+
+                    if (result.IsValid)
+                    {
+                        ValidationStatusText = "✓ Cấu hình hợp lệ";
+                    }
+                    else
+                    {
+                        ValidationStatusText = "⚠ Cần xử lý trước khi vận hành";
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                Application.Current?.Dispatcher?.Invoke(() =>
+                {
+                    ValidationStatusText = $"Kiểm tra thất bại: {ex.Message}";
+                    HasValidationRun = true;
+                });
+            }
+            finally
+            {
+                IsValidationLoading = false;
             }
         }
     }
