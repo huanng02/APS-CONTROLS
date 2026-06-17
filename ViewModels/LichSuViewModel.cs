@@ -187,6 +187,123 @@ namespace QuanLyGiuXe.ViewModels
         // Lists for time ComboBox populating
         public List<int> HourList { get; } = Enumerable.Range(0, 24).ToList();
         public List<int> MinuteList { get; } = Enumerable.Range(0, 60).ToList();
+
+        // Advanced filter lists
+        public ObservableCollection<string> TrangThaiList { get; } = new() { "Tất cả", "Xe đang trong bãi", "Xe đã ra", "Chỉ xe vào (Tất cả lượt vào)", "Chỉ xe ra (Tất cả lượt ra)" };
+        public ObservableCollection<string> LoaiXeList { get; } = new() { "Tất cả" };
+        public ObservableCollection<string> LoaiVeList { get; } = new() { "Tất cả" };
+        public ObservableCollection<string> LaneList { get; } = new() { "Tất cả" };
+        public ObservableCollection<string> SiteList { get; } = new() { "Tất cả" };
+        public ObservableCollection<string> ZoneList { get; } = new() { "Tất cả" };
+        public ObservableCollection<string> FeeStatusList { get; } = new() { "Tất cả", "Có thu phí (> 0đ)", "Miễn phí (0đ)" };
+
+        private bool _isInitializing = false;
+
+        private string _selectedTrangThai = "Tất cả";
+        public string SelectedTrangThai
+        {
+            get => _selectedTrangThai;
+            set
+            {
+                if (_selectedTrangThai != value)
+                {
+                    _selectedTrangThai = value;
+                    OnPropertyChanged(nameof(SelectedTrangThai));
+                    if (!_isInitializing) LoadTrangAsync();
+                }
+            }
+        }
+
+        private string _selectedLoaiXe = "Tất cả";
+        public string SelectedLoaiXe
+        {
+            get => _selectedLoaiXe;
+            set
+            {
+                if (_selectedLoaiXe != value)
+                {
+                    _selectedLoaiXe = value;
+                    OnPropertyChanged(nameof(SelectedLoaiXe));
+                    if (!_isInitializing) LoadTrangAsync();
+                }
+            }
+        }
+
+        private string _selectedLoaiVe = "Tất cả";
+        public string SelectedLoaiVe
+        {
+            get => _selectedLoaiVe;
+            set
+            {
+                if (_selectedLoaiVe != value)
+                {
+                    _selectedLoaiVe = value;
+                    OnPropertyChanged(nameof(SelectedLoaiVe));
+                    if (!_isInitializing) LoadTrangAsync();
+                }
+            }
+        }
+
+        private string _selectedLane = "Tất cả";
+        public string SelectedLane
+        {
+            get => _selectedLane;
+            set
+            {
+                if (_selectedLane != value)
+                {
+                    _selectedLane = value;
+                    OnPropertyChanged(nameof(SelectedLane));
+                    if (!_isInitializing) LoadTrangAsync();
+                }
+            }
+        }
+
+        private string _selectedSite = "Tất cả";
+        public string SelectedSite
+        {
+            get => _selectedSite;
+            set
+            {
+                if (_selectedSite != value)
+                {
+                    _selectedSite = value;
+                    OnPropertyChanged(nameof(SelectedSite));
+                    if (!_isInitializing) LoadTrangAsync();
+                }
+            }
+        }
+
+        private string _selectedZone = "Tất cả";
+        public string SelectedZone
+        {
+            get => _selectedZone;
+            set
+            {
+                if (_selectedZone != value)
+                {
+                    _selectedZone = value;
+                    OnPropertyChanged(nameof(SelectedZone));
+                    if (!_isInitializing) LoadTrangAsync();
+                }
+            }
+        }
+
+        private string _selectedFeeStatus = "Tất cả";
+        public string SelectedFeeStatus
+        {
+            get => _selectedFeeStatus;
+            set
+            {
+                if (_selectedFeeStatus != value)
+                {
+                    _selectedFeeStatus = value;
+                    OnPropertyChanged(nameof(SelectedFeeStatus));
+                    if (!_isInitializing) LoadTrangAsync();
+                }
+            }
+        }
+
         // ======================
         // PAGING
         // ======================
@@ -261,9 +378,53 @@ namespace QuanLyGiuXe.ViewModels
         {
             try
             {
+                _isInitializing = true;
                 var data = await Task.Run(() => db.LayLichSu().ToList());
                 TatCaLichSu = data;
                 CalculateOverallTodayStats(data);
+
+                // Populate filter lists from data dynamically
+                var loaiXes = data.Select(x => x.LoaiXeName).Where(x => !string.IsNullOrEmpty(x)).Distinct().OrderBy(x => x).ToList();
+                var loaiVes = data.Select(x => x.LoaiVeName).Where(x => !string.IsNullOrEmpty(x)).Distinct().OrderBy(x => x).ToList();
+                var entryLanes = data.Select(x => x.EntryLaneName).Where(x => !string.IsNullOrEmpty(x));
+                var exitLanes = data.Select(x => x.ExitLaneName).Where(x => !string.IsNullOrEmpty(x));
+                var lanes = entryLanes.Concat(exitLanes).Where(x => !string.IsNullOrEmpty(x)).Distinct().OrderBy(x => x).ToList();
+                var sites = data.Select(x => x.SiteName).Where(x => !string.IsNullOrEmpty(x)).Distinct().OrderBy(x => x).ToList();
+                var zones = data.Select(x => x.ZoneName).Where(x => !string.IsNullOrEmpty(x)).Distinct().OrderBy(x => x).ToList();
+
+                Application.Current?.Dispatcher?.Invoke(new Action(() =>
+                {
+                    LoaiXeList.Clear();
+                    LoaiXeList.Add("Tất cả");
+                    foreach (var item in loaiXes) LoaiXeList.Add(item);
+
+                    LoaiVeList.Clear();
+                    LoaiVeList.Add("Tất cả");
+                    foreach (var item in loaiVes) LoaiVeList.Add(item);
+
+                    LaneList.Clear();
+                    LaneList.Add("Tất cả");
+                    foreach (var item in lanes) LaneList.Add(item);
+
+                    SiteList.Clear();
+                    SiteList.Add("Tất cả");
+                    foreach (var item in sites) SiteList.Add(item);
+
+                    ZoneList.Clear();
+                    ZoneList.Add("Tất cả");
+                    foreach (var item in zones) ZoneList.Add(item);
+
+                    // Re-set selections to "Tất cả" to avoid null selection reset due to collection clearing
+                    SelectedTrangThai = "Tất cả";
+                    SelectedLoaiXe = "Tất cả";
+                    SelectedLoaiVe = "Tất cả";
+                    SelectedLane = "Tất cả";
+                    SelectedSite = "Tất cả";
+                    SelectedZone = "Tất cả";
+                    SelectedFeeStatus = "Tất cả";
+                }));
+
+                _isInitializing = false;
                 await LoadTrangAsync();
             }
             catch (Exception ex)
@@ -359,25 +520,111 @@ namespace QuanLyGiuXe.ViewModels
                     (!string.IsNullOrEmpty(x.DepartmentName) && x.DepartmentName.ToLower().Contains(keyword)));
             }
 
-            if (TuNgay.HasValue)
-                query = query.Where(x => x.ThoiGianVao.Date >= TuNgay.Value.Date);
+            // Status and Date/Time filtering
+            if (SelectedTrangThai == "Xe đang trong bãi")
+            {
+                query = query.Where(x => !x.ThoiGianRa.HasValue);
+                
+                if (TuNgay.HasValue)
+                    query = query.Where(x => x.ThoiGianVao.Date >= TuNgay.Value.Date);
+                if (DenNgay.HasValue)
+                    query = query.Where(x => x.ThoiGianVao.Date <= DenNgay.Value.Date);
+                
+                if (StartHour.HasValue)
+                    query = query.Where(x => x.ThoiGianVao.Hour >= StartHour.Value);
+                if (EndHour.HasValue)
+                    query = query.Where(x => x.ThoiGianVao.Hour <= EndHour.Value);
+                if (StartMinute.HasValue)
+                    query = query.Where(x => x.ThoiGianVao.Minute >= StartMinute.Value);
+                if (EndMinute.HasValue)
+                    query = query.Where(x => x.ThoiGianVao.Minute <= EndMinute.Value);
+            }
+            else if (SelectedTrangThai == "Xe đã ra" || SelectedTrangThai == "Chỉ xe ra (Tất cả lượt ra)")
+            {
+                query = query.Where(x => x.ThoiGianRa.HasValue);
+                
+                if (TuNgay.HasValue)
+                    query = query.Where(x => x.ThoiGianRa.HasValue && x.ThoiGianRa.Value.Date >= TuNgay.Value.Date);
+                if (DenNgay.HasValue)
+                    query = query.Where(x => x.ThoiGianRa.HasValue && x.ThoiGianRa.Value.Date <= DenNgay.Value.Date);
+                
+                if (StartHour.HasValue)
+                    query = query.Where(x => x.ThoiGianRa.HasValue && x.ThoiGianRa.Value.Hour >= StartHour.Value);
+                if (EndHour.HasValue)
+                    query = query.Where(x => x.ThoiGianRa.HasValue && x.ThoiGianRa.Value.Hour <= EndHour.Value);
+                if (StartMinute.HasValue)
+                    query = query.Where(x => x.ThoiGianRa.HasValue && x.ThoiGianRa.Value.Minute >= StartMinute.Value);
+                if (EndMinute.HasValue)
+                    query = query.Where(x => x.ThoiGianRa.HasValue && x.ThoiGianRa.Value.Minute <= EndMinute.Value);
+            }
+            else if (SelectedTrangThai == "Chỉ xe vào (Tất cả lượt vào)")
+            {
+                if (TuNgay.HasValue)
+                    query = query.Where(x => x.ThoiGianVao.Date >= TuNgay.Value.Date);
+                if (DenNgay.HasValue)
+                    query = query.Where(x => x.ThoiGianVao.Date <= DenNgay.Value.Date);
+                
+                if (StartHour.HasValue)
+                    query = query.Where(x => x.ThoiGianVao.Hour >= StartHour.Value);
+                if (EndHour.HasValue)
+                    query = query.Where(x => x.ThoiGianVao.Hour <= EndHour.Value);
+                if (StartMinute.HasValue)
+                    query = query.Where(x => x.ThoiGianVao.Minute >= StartMinute.Value);
+                if (EndMinute.HasValue)
+                    query = query.Where(x => x.ThoiGianVao.Minute <= EndMinute.Value);
+            }
+            else // "Tất cả"
+            {
+                if (TuNgay.HasValue)
+                    query = query.Where(x => x.ThoiGianVao.Date >= TuNgay.Value.Date || (x.ThoiGianRa.HasValue && x.ThoiGianRa.Value.Date >= TuNgay.Value.Date));
+                if (DenNgay.HasValue)
+                    query = query.Where(x => x.ThoiGianVao.Date <= DenNgay.Value.Date || (x.ThoiGianRa.HasValue && x.ThoiGianRa.Value.Date <= DenNgay.Value.Date));
+                
+                if (StartHour.HasValue)
+                    query = query.Where(x => x.ThoiGianVao.Hour >= StartHour.Value || (x.ThoiGianRa.HasValue && x.ThoiGianRa.Value.Hour >= StartHour.Value));
+                if (EndHour.HasValue)
+                    query = query.Where(x => x.ThoiGianVao.Hour <= EndHour.Value || (x.ThoiGianRa.HasValue && x.ThoiGianRa.Value.Hour <= EndHour.Value));
+                if (StartMinute.HasValue)
+                    query = query.Where(x => x.ThoiGianVao.Minute >= StartMinute.Value || (x.ThoiGianRa.HasValue && x.ThoiGianRa.Value.Minute >= StartMinute.Value));
+                if (EndMinute.HasValue)
+                    query = query.Where(x => x.ThoiGianVao.Minute <= EndMinute.Value || (x.ThoiGianRa.HasValue && x.ThoiGianRa.Value.Minute <= EndMinute.Value));
+            }
 
-            if (DenNgay.HasValue)
-                query = query.Where(x => (x.ThoiGianRa ?? x.ThoiGianVao).Date <= DenNgay.Value.Date);
+            // Advanced dropdown filters
+            if (!string.IsNullOrEmpty(SelectedLoaiXe) && SelectedLoaiXe != "Tất cả")
+            {
+                query = query.Where(x => string.Equals(x.LoaiXeName, SelectedLoaiXe, StringComparison.OrdinalIgnoreCase));
+            }
 
-            // Hour filter (optional)
-            if (StartHour.HasValue)
-                query = query.Where(x => x.ThoiGianVao.Hour >= StartHour.Value);
+            if (!string.IsNullOrEmpty(SelectedLoaiVe) && SelectedLoaiVe != "Tất cả")
+            {
+                query = query.Where(x => string.Equals(x.LoaiVeName, SelectedLoaiVe, StringComparison.OrdinalIgnoreCase));
+            }
 
-            if (EndHour.HasValue)
-                query = query.Where(x => x.ThoiGianVao.Hour <= EndHour.Value);
+            if (!string.IsNullOrEmpty(SelectedLane) && SelectedLane != "Tất cả")
+            {
+                query = query.Where(x => string.Equals(x.EntryLaneName, SelectedLane, StringComparison.OrdinalIgnoreCase) || 
+                                         string.Equals(x.ExitLaneName, SelectedLane, StringComparison.OrdinalIgnoreCase));
+            }
 
-            // Minute filter (optional)
-            if (StartMinute.HasValue)
-                query = query.Where(x => x.ThoiGianVao.Minute >= StartMinute.Value);
+            if (!string.IsNullOrEmpty(SelectedSite) && SelectedSite != "Tất cả")
+            {
+                query = query.Where(x => string.Equals(x.SiteName, SelectedSite, StringComparison.OrdinalIgnoreCase));
+            }
 
-            if (EndMinute.HasValue)
-                query = query.Where(x => x.ThoiGianVao.Minute <= EndMinute.Value);
+            if (!string.IsNullOrEmpty(SelectedZone) && SelectedZone != "Tất cả")
+            {
+                query = query.Where(x => string.Equals(x.ZoneName, SelectedZone, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (SelectedFeeStatus == "Có thu phí (> 0đ)")
+            {
+                query = query.Where(x => x.Tien.HasValue && x.Tien.Value > 0);
+            }
+            else if (SelectedFeeStatus == "Miễn phí (0đ)")
+            {
+                query = query.Where(x => !x.Tien.HasValue || x.Tien.Value == 0);
+            }
 
             return query.OrderByDescending(x => x.ThoiGianRa ?? x.ThoiGianVao);
         }
@@ -386,8 +633,18 @@ namespace QuanLyGiuXe.ViewModels
         {
             try
             {
+                LoggingService.Instance.LogInfo("LoadTrangAsync", "LichSuViewModel", 
+                    $"Executing LoadTrangAsync. Filters: TuNgay={TuNgay:yyyy-MM-dd HH:mm:ss}, DenNgay={DenNgay:yyyy-MM-dd HH:mm:ss}, " +
+                    $"TrangThai='{SelectedTrangThai}', LoaiXe='{SelectedLoaiXe}', LoaiVe='{SelectedLoaiVe}', Lane='{SelectedLane}', " +
+                    $"Site='{SelectedSite}', Zone='{SelectedZone}', FeeStatus='{SelectedFeeStatus}', " +
+                    $"StartHour={StartHour}, EndHour={EndHour}, StartMinute={StartMinute}, EndMinute={EndMinute}, " +
+                    $"TuKhoa='{TuKhoaTimKiem}', Initializing={_isInitializing}");
+
                 var filtered = await Task.Run(() => GetFilteredData().ToList());
                 _filteredCount = filtered.Count;
+
+                LoggingService.Instance.LogInfo("LoadTrangAsync", "LichSuViewModel", 
+                    $"Filtered data count: {_filteredCount}");
 
                 CalculateFilteredStats(filtered);
 
@@ -432,6 +689,22 @@ namespace QuanLyGiuXe.ViewModels
             OnPropertyChanged(nameof(StartMinute));
             _endMinute = null;
             OnPropertyChanged(nameof(EndMinute));
+
+            // Reset advanced filters
+            _selectedTrangThai = "Tất cả";
+            OnPropertyChanged(nameof(SelectedTrangThai));
+            _selectedLoaiXe = "Tất cả";
+            OnPropertyChanged(nameof(SelectedLoaiXe));
+            _selectedLoaiVe = "Tất cả";
+            OnPropertyChanged(nameof(SelectedLoaiVe));
+            _selectedLane = "Tất cả";
+            OnPropertyChanged(nameof(SelectedLane));
+            _selectedSite = "Tất cả";
+            OnPropertyChanged(nameof(SelectedSite));
+            _selectedZone = "Tất cả";
+            OnPropertyChanged(nameof(SelectedZone));
+            _selectedFeeStatus = "Tất cả";
+            OnPropertyChanged(nameof(SelectedFeeStatus));
 
             TrangHienTai = 1;
             _ = LoadTrangAsync();

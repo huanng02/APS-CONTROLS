@@ -17,7 +17,15 @@ namespace QuanLyGiuXe.Models
         public DateTime? ThoiGianRa { get; set; }
 
         public double? Tien { get; set; }
-        public string TrangThai { get; set; }
+
+        private string? _trangThai;
+        public string TrangThai
+        {
+            get => string.IsNullOrEmpty(_trangThai)
+                ? (ThoiGianRa.HasValue ? "Đã ra" : "Trong bãi")
+                : _trangThai;
+            set => _trangThai = value;
+        }
 
         public string AnhVao { get; set; }
         public string AnhRa { get; set; }

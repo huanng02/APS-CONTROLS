@@ -4,7 +4,7 @@
         xmlns:sys="clr-namespace:System;assembly=System.Runtime"
         xmlns:converters="clr-namespace:QuanLyGiuXe.Converters"
         Title="Lịch sử xe"
-        Height="850"
+        Height="820"
         Width="1550"
         Background="{StaticResource BgLightBrush}">
 
@@ -14,79 +14,389 @@
         <converters:BindingProxy x:Key="DataContextProxy" Data="{Binding}" />
     </Window.Resources>
 
-    <Grid Margin="20">
+    <Grid Margin="12,12,12,10">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/> <!-- Ultra-compact KPI bar -->
+            <RowDefinition Height="Auto"/> <!-- Unified Search & Collapsible Filters Drawer -->
+            <RowDefinition Height="*"/>    <!-- Main Splitter (Table & Detail) -->
         </Grid.RowDefinitions>
 
-        <!-- STATS CARDS & BREAKDOWN ROW -->
-        <Grid Grid.Row="0" Margin="0,0,0,15">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
-            
-            <!-- Sleek Overall KPIs -->
-            <Border Grid.Row="0" Style="{StaticResource EnterpriseCardBorder}" Padding="15,8" Margin="0,0,0,8" BorderBrush="{StaticResource APSBlueBrush}" BorderThickness="0,2,0,0">
-                <UniformGrid Columns="4">
-                    <!-- Total Visits -->
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <TextBlock Text="🚗" FontSize="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="TỔNG LƯỢT XE / TOTAL VISITS" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}"/>
-                            <TextBlock Text="{Binding TongLuotXe}" FontSize="16" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}"/>
-                        </StackPanel>
+        <!-- 1. ULTRA-COMPACT KPI STRIP -->
+        <Border Grid.Row="0" Background="#F1F5F9" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Padding="12,6" Margin="0,0,0,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                
+                <!-- Total Visits -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Center">
+                    <TextBlock Text="&#xE804;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="#2563EB" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBlock Text="TỔNG LƯỢT XE: " FontSize="10" FontWeight="Bold" Foreground="#475569" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding TongLuotXe}" FontSize="13" FontWeight="Bold" Foreground="#1E3A8A" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                </StackPanel>
+                
+                <Border Grid.Column="1" Width="1" Background="#CBD5E1" Margin="10,2" VerticalAlignment="Stretch"/>
+                
+                <!-- Total Revenue -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Center">
+                    <TextBlock Text="&#xE8C7;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="#16A34A" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBlock Text="TỔNG DOANH THU: " FontSize="10" FontWeight="Bold" Foreground="#475569" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding TongDoanhThu, StringFormat={}{0:N0} đ}" FontSize="13" FontWeight="Bold" Foreground="#14532D" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                </StackPanel>
+                
+                <Border Grid.Column="3" Width="1" Background="#CBD5E1" Margin="10,2" VerticalAlignment="Stretch"/>
+                
+                <!-- Visits Today -->
+                <StackPanel Grid.Column="4" Orientation="Horizontal" HorizontalAlignment="Center">
+                    <TextBlock Text="&#xE787;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="#D97706" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBlock Text="HÔM NAY: " FontSize="10" FontWeight="Bold" Foreground="#475569" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding XeHomNay}" FontSize="13" FontWeight="Bold" Foreground="#78350F" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                </StackPanel>
+                
+                <Border Grid.Column="5" Width="1" Background="#CBD5E1" Margin="10,2" VerticalAlignment="Stretch"/>
+                
+                <!-- Revenue Today -->
+                <StackPanel Grid.Column="6" Orientation="Horizontal" HorizontalAlignment="Center">
+                    <TextBlock Text="&#xE94C;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="#DC2626" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBlock Text="DOANH THU NAY: " FontSize="10" FontWeight="Bold" Foreground="#475569" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding DoanhThuHomNay, StringFormat={}{0:N0} đ}" FontSize="13" FontWeight="Bold" Foreground="#7F1D1D" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- 2. FILTER & ANALYTICS PANEL -->
+        <Border Grid.Row="1" Style="{StaticResource EnterpriseCardBorder}" Margin="0,0,0,10" Padding="12,10">
+            <Border.Resources>
+                <!-- Modern Label Style -->
+                <Style x:Key="FilterLabelStyle" TargetType="TextBlock">
+                    <Setter Property="Foreground" Value="#475569"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                    <Setter Property="FontSize" Value="11"/>
+                    <Setter Property="Margin" Value="0,0,0,4"/>
+                </Style>
+
+                <!-- Modern Toggle Button for Drawer Panels -->
+                <Style x:Key="ModernToggleButtonStyle" TargetType="ToggleButton">
+                    <Setter Property="Background" Value="Transparent"/>
+                    <Setter Property="Foreground" Value="{StaticResource APSBlueBrush}"/>
+                    <Setter Property="BorderBrush" Value="#CBD5E1"/>
+                    <Setter Property="BorderThickness" Value="1"/>
+                    <Setter Property="Padding" Value="10,6"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                    <Setter Property="FontSize" Value="12"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="ToggleButton">
+                                <Border x:Name="border" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6" SnapsToDevicePixels="true">
+                                    <ContentPresenter x:Name="contentPresenter" Focusable="False" HorizontalAlignment="Center" RecognizesAccessKey="True" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" VerticalAlignment="Center" Margin="{TemplateBinding Padding}"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="true">
+                                        <Setter TargetName="border" Property="Background" Value="#F8FAFC"/>
+                                        <Setter TargetName="border" Property="BorderBrush" Value="#94A3B8"/>
+                                    </Trigger>
+                                    <Trigger Property="IsChecked" Value="true">
+                                        <Setter TargetName="border" Property="Background" Value="#EFF6FF"/>
+                                        <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource APSBlueBrush}"/>
+                                        <Setter Property="Foreground" Value="{StaticResource APSBlueBrush}"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+
+                <!-- Clean style for DatePicker -->
+                <Style TargetType="DatePicker">
+                    <Setter Property="Height" Value="32"/>
+                    <Setter Property="VerticalAlignment" Value="Center"/>
+                    <Setter Property="Background" Value="White"/>
+                    <Setter Property="BorderBrush" Value="#CBD5E1"/>
+                    <Setter Property="BorderThickness" Value="1"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="DatePicker">
+                                <Border x:Name="DatePickerBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6" SnapsToDevicePixels="True">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <DatePickerTextBox x:Name="PART_TextBox" Grid.Column="0" BorderThickness="0" Background="Transparent" VerticalContentAlignment="Center" Padding="8,0" Foreground="{StaticResource TextPrimaryBrush}"/>
+                                        <Button x:Name="PART_Button" Grid.Column="1" Width="26" Height="26" Margin="0,0,3,0" Background="Transparent" BorderThickness="0" Cursor="Hand" Focusable="False">
+                                            <Button.Template>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border Background="Transparent">
+                                                        <TextBlock Text="&#xE787;" FontFamily="Segoe MDL2 Assets" FontSize="13" Foreground="#64748B" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </Border>
+                                                </ControlTemplate>
+                                            </Button.Template>
+                                        </Button>
+                                        <Popup x:Name="PART_Popup" AllowsTransparency="True" Placement="Bottom" PlacementTarget="{Binding ElementName=DatePickerBorder}" StaysOpen="False">
+                                            <Border Background="White" BorderBrush="#CBD5E1" BorderThickness="1" CornerRadius="8" Padding="4">
+                                                <Border.Effect>
+                                                    <DropShadowEffect BlurRadius="12" Color="#000" Opacity="0.08" ShadowDepth="2"/>
+                                                </Border.Effect>
+                                                <Calendar x:Name="PART_Calendar" BorderThickness="0" Background="White"/>
+                                            </Border>
+                                        </Popup>
+                                    </Grid>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="DatePickerBorder" Property="BorderBrush" Value="{StaticResource APSBlueBrush}"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+
+                <!-- Remove border-in-border for DatePicker Text Box -->
+                <Style TargetType="DatePickerTextBox">
+                    <Setter Property="BorderThickness" Value="0"/>
+                    <Setter Property="Background" Value="Transparent"/>
+                    <Setter Property="VerticalAlignment" Value="Center"/>
+                    <Setter Property="Padding" Value="6,0"/>
+                    <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/>
+                </Style>
+                
+                <!-- TextBox styling -->
+                <Style TargetType="TextBox" BasedOn="{StaticResource ModernTextBox}">
+                    <Setter Property="Height" Value="32"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="TextBox">
+                                <Border x:Name="Border" CornerRadius="6" Background="{TemplateBinding Background}" BorderBrush="#CBD5E1" BorderThickness="1" Padding="{TemplateBinding Padding}">
+                                    <ScrollViewer x:Name="PART_ContentHost" VerticalAlignment="Center"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsFocused" Value="True">
+                                        <Setter TargetName="Border" Property="BorderBrush" Value="{StaticResource APSBlueBrush}"/>
+                                    </Trigger>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Border" Property="BorderBrush" Value="{StaticResource APSBlueBrush}"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+                
+                <!-- ComboBox styling -->
+                <Style TargetType="ComboBox" BasedOn="{StaticResource ModernComboBox}">
+                    <Setter Property="Height" Value="32"/>
+                    <Setter Property="Padding" Value="10,2"/>
+                </Style>
+            </Border.Resources>
+
+            <StackPanel>
+                <!-- Primary Row (Always Visible) -->
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*"/>    <!-- Keyword -->
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="*"/>      <!-- Từ ngày -->
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="*"/>      <!-- Đến ngày -->
+                        <ColumnDefinition Width="15"/>     <!-- Spacing -->
+                        <ColumnDefinition Width="Auto"/>   <!-- Actions -->
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Search Keyword -->
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="Biển số / Từ khóa" Style="{StaticResource FilterLabelStyle}"/>
+                        <Grid>
+                            <TextBox Text="{Binding TuKhoaTimKiem, UpdateSourceTrigger=PropertyChanged}" Padding="8,4,28,4"/>
+                            <TextBlock Text="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="12" Foreground="#94A3B8" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,10,0" IsHitTestVisible="False"/>
+                        </Grid>
                     </StackPanel>
 
-                    <!-- Total Revenue -->
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <TextBlock Text="💵" FontSize="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="TỔNG DOANH THU / REVENUE" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}"/>
-                            <TextBlock Text="{Binding TongDoanhThu, StringFormat={}{0:N0} đ}" FontSize="16" FontWeight="Bold" Foreground="{StaticResource SuccessBrush}"/>
-                        </StackPanel>
+                    <!-- From Date -->
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="Từ ngày" Style="{StaticResource FilterLabelStyle}"/>
+                        <DatePicker SelectedDate="{Binding TuNgay}"/>
                     </StackPanel>
 
-                    <!-- Visits Today -->
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <TextBlock Text="📅" FontSize="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="HÔM NAY / VISITS TODAY" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}"/>
-                            <TextBlock Text="{Binding XeHomNay}" FontSize="16" FontWeight="Bold" Foreground="{StaticResource WarningBrush}"/>
-                        </StackPanel>
+                    <!-- To Date -->
+                    <StackPanel Grid.Column="4">
+                        <TextBlock Text="Đến ngày" Style="{StaticResource FilterLabelStyle}"/>
+                        <DatePicker SelectedDate="{Binding DenNgay}"/>
                     </StackPanel>
 
-                    <!-- Revenue Today -->
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
-                        <TextBlock Text="💰" FontSize="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                        <StackPanel VerticalAlignment="Center">
-                            <TextBlock Text="DOANH THU NAY / TODAY REVENUE" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}"/>
-                            <TextBlock Text="{Binding DoanhThuHomNay, StringFormat={}{0:N0} đ}" FontSize="16" FontWeight="Bold" Foreground="{StaticResource APSRedBrush}"/>
-                        </StackPanel>
+                    <!-- Buttons Group -->
+                    <StackPanel Grid.Column="6" Orientation="Horizontal" VerticalAlignment="Bottom">
+                        <!-- Toggle Button for Advanced Filters -->
+                        <ToggleButton x:Name="BtnToggleAdvanced" Style="{StaticResource ModernToggleButtonStyle}" Margin="0,0,8,0" Height="32">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE71C;" FontFamily="Segoe MDL2 Assets" FontSize="12" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBlock Text="Bộ lọc nâng cao" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </ToggleButton>
+                        
+                        <!-- Toggle Button for Statistics -->
+                        <ToggleButton x:Name="BtnToggleStats" Style="{StaticResource ModernToggleButtonStyle}" Margin="0,0,8,0" Height="32">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE9F9;" FontFamily="Segoe MDL2 Assets" FontSize="12" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                <TextBlock Text="Thống kê" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </ToggleButton>
+                        
+                        <Button Style="{StaticResource ModernButton}" Command="{Binding ResetFilterCommand}" Background="Transparent" Foreground="#475569" BorderBrush="#CBD5E1" BorderThickness="1" Margin="0,0,8,0" Width="80" Height="32">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6">
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                            <TextBlock Text="&#xE777;" FontFamily="Segoe MDL2 Assets" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                                            <TextBlock Text="Đặt lại" VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold"/>
+                                        </StackPanel>
+                                    </Border>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                        
+                        <Button Command="{Binding ExportExcelCommand}" Background="{StaticResource SuccessBrush}" Foreground="White" BorderThickness="0" Width="110" Height="32">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}" CornerRadius="6">
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                            <TextBlock Text="&#xE9F5;" FontFamily="Segoe MDL2 Assets" FontSize="12" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                            <TextBlock Text="Xuất Excel" VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold"/>
+                                        </StackPanel>
+                                    </Border>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
                     </StackPanel>
-                </UniformGrid>
-            </Border>
+                </Grid>
 
-            <!-- Collapsible Detailed Analytics -->
-            <Border Grid.Row="1" Style="{StaticResource EnterpriseCardBorder}" Padding="8" Background="White">
-                <Expander Header="Xem thống kê chi tiết theo loại vé &amp; loại xe / Detailed Analytics" IsExpanded="False" Foreground="{StaticResource TextSecondaryBrush}" FontWeight="SemiBold" FontSize="11" Padding="4">
-                    <Grid Margin="0,8,0,0">
+                <!-- Collapsible Advanced Filters Drawer -->
+                <Border x:Name="AdvancedFiltersPanel" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0" Margin="0,10,0,0" Padding="0,10,0,0">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsChecked, ElementName=BtnToggleAdvanced}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="10"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Row 0: Trạng thái, Loại xe, Loại vé, Làn xe -->
+                        <StackPanel Grid.Row="0" Grid.Column="0">
+                            <TextBlock Text="Trạng thái" Style="{StaticResource FilterLabelStyle}"/>
+                            <ComboBox ItemsSource="{Binding TrangThaiList}" SelectedItem="{Binding SelectedTrangThai, Mode=TwoWay}"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="0" Grid.Column="2">
+                            <TextBlock Text="Loại xe" Style="{StaticResource FilterLabelStyle}"/>
+                            <ComboBox ItemsSource="{Binding LoaiXeList}" SelectedItem="{Binding SelectedLoaiXe, Mode=TwoWay}"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="0" Grid.Column="4">
+                            <TextBlock Text="Loại vé" Style="{StaticResource FilterLabelStyle}"/>
+                            <ComboBox ItemsSource="{Binding LoaiVeList}" SelectedItem="{Binding SelectedLoaiVe, Mode=TwoWay}"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="0" Grid.Column="6">
+                            <TextBlock Text="Làn xe" Style="{StaticResource FilterLabelStyle}"/>
+                            <ComboBox ItemsSource="{Binding LaneList}" SelectedItem="{Binding SelectedLane, Mode=TwoWay}"/>
+                        </StackPanel>
+
+                        <!-- Row 2: Khu vực, Vùng, Doanh thu, Khung giờ -->
+                        <StackPanel Grid.Row="2" Grid.Column="0">
+                            <TextBlock Text="Khu vực (Site)" Style="{StaticResource FilterLabelStyle}"/>
+                            <ComboBox ItemsSource="{Binding SiteList}" SelectedItem="{Binding SelectedSite, Mode=TwoWay}"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="2" Grid.Column="2">
+                            <TextBlock Text="Vùng (Zone)" Style="{StaticResource FilterLabelStyle}"/>
+                            <ComboBox ItemsSource="{Binding ZoneList}" SelectedItem="{Binding SelectedZone, Mode=TwoWay}"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="2" Grid.Column="4">
+                            <TextBlock Text="Doanh thu" Style="{StaticResource FilterLabelStyle}"/>
+                            <ComboBox ItemsSource="{Binding FeeStatusList}" SelectedItem="{Binding SelectedFeeStatus, Mode=TwoWay}"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="2" Grid.Column="6">
+                            <TextBlock Text="Khung giờ" Style="{StaticResource FilterLabelStyle}"/>
+                            <Grid Height="32">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <ComboBox Grid.Column="0" ItemsSource="{Binding HourList}" SelectedItem="{Binding StartHour, Mode=TwoWay}"/>
+                                <TextBlock Grid.Column="1" Text=":" VerticalAlignment="Center" Margin="2,0" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <ComboBox Grid.Column="2" ItemsSource="{Binding MinuteList}" SelectedItem="{Binding StartMinute, Mode=TwoWay}"/>
+                                
+                                <TextBlock Grid.Column="3" Text="-" VerticalAlignment="Center" Margin="6,0" Foreground="{StaticResource TextSecondaryBrush}" FontWeight="Bold"/>
+                                
+                                <ComboBox Grid.Column="4" ItemsSource="{Binding HourList}" SelectedItem="{Binding EndHour, Mode=TwoWay}"/>
+                                <TextBlock Grid.Column="5" Text=":" VerticalAlignment="Center" Margin="2,0" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                <ComboBox Grid.Column="6" ItemsSource="{Binding MinuteList}" SelectedItem="{Binding EndMinute, Mode=TwoWay}"/>
+                            </Grid>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- Collapsible Detailed Stats Drawer -->
+                <Border x:Name="StatsPanel" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0" Margin="0,10,0,0" Padding="0,10,0,0">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsChecked, ElementName=BtnToggleStats}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="16"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
 
                         <!-- Left: Ticket Type Breakdown -->
-                        <Border Grid.Column="0" BorderBrush="#E3E6F0" BorderThickness="0,0,1,0" Margin="0,0,10,0" Padding="0,0,10,0">
+                        <Border Grid.Column="0" BorderBrush="#E2E8F0" BorderThickness="0,0,1,0" Margin="0,0,10,0" Padding="0,0,10,0">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="*"/>
                                 </Grid.RowDefinitions>
-                                <TextBlock Grid.Row="0" Text="🎫 THỐNG KÊ THEO LOẠI VÉ / TICKET STATS" FontWeight="Bold" FontSize="10" Foreground="{StaticResource APSBlueBrush}" Margin="0,0,0,6"/>
-                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="120">
+                                <TextBlock Grid.Row="0" Text="🎫 THỐNG KÊ THEO LOẠI VÉ" FontWeight="Bold" FontSize="11" Foreground="{StaticResource APSBlueBrush}" Margin="0,0,0,6"/>
+                                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="110">
                                     <ItemsControl ItemsSource="{Binding ThongKeLoaiVe}">
                                         <ItemsControl.ItemsPanel>
                                             <ItemsPanelTemplate>
@@ -95,7 +405,7 @@
                                         </ItemsControl.ItemsPanel>
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
-                                                <Border Background="#F8F9FC" BorderThickness="1" BorderBrush="#E3E6F0" CornerRadius="4" Padding="8,4" Margin="0,2,6,2" MinWidth="115">
+                                                <Border Background="#F8FAFC" BorderThickness="1" BorderBrush="#E2E8F0" CornerRadius="6" Padding="8,4" Margin="0,2,6,2" MinWidth="115">
                                                     <StackPanel>
                                                         <TextBlock Text="{Binding TenLoaiVe}" FontWeight="Bold" Foreground="{StaticResource TextPrimaryBrush}" FontSize="11"/>
                                                         <Grid Margin="0,2,0,0">
@@ -105,7 +415,7 @@
                                                                 <ColumnDefinition Width="Auto"/>
                                                             </Grid.ColumnDefinitions>
                                                             <TextBlock Grid.Column="0" Text="Vào: " FontSize="10" Foreground="{StaticResource TextSecondaryBrush}"/>
-                                                            <TextBlock Grid.Column="0" Text="{Binding SoLuotVao}" FontSize="10" FontWeight="Bold" Foreground="{StaticResource InfoBrush}" Margin="22,0,0,0"/>
+                                                            <TextBlock Grid.Column="0" Text="{Binding SoLuotVao}" FontSize="10" FontWeight="Bold" Foreground="{StaticResource InfoBrush}" Margin="24,0,0,0"/>
                                                             <TextBlock Grid.Column="2" Text="Ra: " FontSize="10" Foreground="{StaticResource TextSecondaryBrush}"/>
                                                             <TextBlock Grid.Column="2" Text="{Binding SoLuotRa}" FontSize="10" FontWeight="Bold" Foreground="{StaticResource SuccessBrush}" Margin="18,0,0,0"/>
                                                         </Grid>
@@ -120,13 +430,13 @@
                         </Border>
 
                         <!-- Right: Vehicle Type Breakdown -->
-                        <Grid Grid.Column="1" Margin="10,0,0,0">
+                        <Grid Grid.Column="2">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
-                            <TextBlock Grid.Row="0" Text="🚗 THỐNG KÊ THEO LOẠI XE / VEHICLE STATS" FontWeight="Bold" FontSize="10" Foreground="#7C3AED" Margin="0,0,0,6"/>
-                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="120">
+                            <TextBlock Grid.Row="0" Text="🚗 THỐNG KÊ THEO LOẠI XE" FontWeight="Bold" FontSize="11" Foreground="#7C3AED" Margin="0,0,0,6"/>
+                            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" MaxHeight="110">
                                 <ItemsControl ItemsSource="{Binding ThongKeLoaiXe}">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
@@ -135,9 +445,9 @@
                                     </ItemsControl.ItemsPanel>
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Border Background="#F5F3FF" BorderThickness="1" BorderBrush="#DDD6FE" CornerRadius="4" Padding="8,4" Margin="0,2,6,2" MinWidth="130">
+                                            <Border Background="#FAF5FF" BorderThickness="1" BorderBrush="#F3E8FF" CornerRadius="6" Padding="8,4" Margin="0,2,6,2" MinWidth="130">
                                                 <StackPanel>
-                                                    <TextBlock Text="{Binding TenLoaiXe}" FontWeight="Bold" Foreground="#5B21B6" FontSize="11"/>
+                                                    <TextBlock Text="{Binding TenLoaiXe}" FontWeight="Bold" Foreground="#6B21A8" FontSize="11"/>
                                                     <Grid Margin="0,2,0,0">
                                                         <Grid.ColumnDefinitions>
                                                             <ColumnDefinition Width="Auto"/>
@@ -162,181 +472,191 @@
                             </ScrollViewer>
                         </Grid>
                     </Grid>
-                </Expander>
-            </Border>
-        </Grid>
-
-        <!-- FILTER PANEL -->
-        <Border Grid.Row="1" Style="{StaticResource EnterpriseCardBorder}" Margin="0,0,0,15" Padding="15,10">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-
-                <!-- Column 0: Biển số and Dates -->
-                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="Biển số:" Style="{StaticResource BaseTextBlockStyle}" Margin="0,0,10,0" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
-                    <TextBox Width="150" Text="{Binding TuKhoaTimKiem, UpdateSourceTrigger=PropertyChanged}" 
-                               Style="{StaticResource ModernTextBox}"/>
-                    
-                    <TextBlock Text="Từ:" Style="{StaticResource BaseTextBlockStyle}" Margin="15,0,10,0" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
-                    <DatePicker SelectedDate="{Binding TuNgay}" Width="120" Margin="0,0,10,0"/>
-
-                    <TextBlock Text="Đến:" Style="{StaticResource BaseTextBlockStyle}" Margin="5,0,10,0" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
-                    <DatePicker SelectedDate="{Binding DenNgay}" Width="120"/>
-                </StackPanel>
-
-                <!-- Column 1: Time filter (Hours + Minutes) -->
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="20,0,0,0">
-                    <TextBlock Text="Thời gian:" Style="{StaticResource BaseTextBlockStyle}" Margin="0,0,8,0" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center"/>
-                    
-                    <!-- Start Hour -->
-                    <ComboBox Width="55" ItemsSource="{Binding HourList}" SelectedItem="{Binding StartHour, Mode=TwoWay}" Style="{StaticResource ModernComboBox}"/>
-                    <TextBlock Text=":" VerticalAlignment="Center" Margin="3,0" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}"/>
-                    <!-- Start Minute -->
-                    <ComboBox Width="55" ItemsSource="{Binding MinuteList}" SelectedItem="{Binding StartMinute, Mode=TwoWay}" Style="{StaticResource ModernComboBox}"/>
-                    
-                    <TextBlock Text="đến" VerticalAlignment="Center" Margin="10,0" Foreground="{StaticResource TextSecondaryBrush}"/>
-                    
-                    <!-- End Hour -->
-                    <ComboBox Width="55" ItemsSource="{Binding HourList}" SelectedItem="{Binding EndHour, Mode=TwoWay}" Style="{StaticResource ModernComboBox}"/>
-                    <TextBlock Text=":" VerticalAlignment="Center" Margin="3,0" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}"/>
-                    <!-- End Minute -->
-                    <ComboBox Width="55" ItemsSource="{Binding MinuteList}" SelectedItem="{Binding EndMinute, Mode=TwoWay}" Style="{StaticResource ModernComboBox}"/>
-                </StackPanel>
-
-                <!-- Column 2: Action Buttons (Right Aligned) -->
-                <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                    <Button Content="Đặt lại" Command="{Binding ResetFilterCommand}" Style="{StaticResource ModernOutlineButton}" Margin="0,0,10,0"/>
-                    <Button Content="Xuất Excel" Command="{Binding ExportExcelCommand}" Style="{StaticResource ModernButton}" Background="{StaticResource SuccessBrush}"/>
-                </StackPanel>
-            </Grid>
+                </Border>
+            </StackPanel>
         </Border>
 
-        <!-- TABLE AND DETAIL SPLIT -->
-            <Grid Grid.Row="2">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" MinWidth="500"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="650" MinWidth="500" MaxWidth="1200"/>
-                </Grid.ColumnDefinitions>
-                
-                <!-- Resizable Splitter -->
-                <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="#D1D3E2" Margin="5,0" ShowsPreview="True"/>
+        <!-- 3. TABLE AND DETAIL SPLIT -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" MinWidth="500"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="650" MinWidth="500" MaxWidth="1200"/>
+            </Grid.ColumnDefinitions>
             
-            <!-- LEFT COLUMN: TABLE AND PAGING -->
+            <!-- Resizable Splitter -->
+            <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="#CBD5E1" Margin="4,0" ShowsPreview="True"/>
+        
+            <!-- LEFT COLUMN: TABLE AND PAGING (COMBINED) -->
             <Grid Grid.Column="0">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
-                
-                <!-- TABLE -->
-                <Border Grid.Row="0" Style="{StaticResource EnterpriseCardBorder}" Padding="1">
-                    <DataGrid ItemsSource="{Binding DanhSachLichSu}"
-                              SelectedItem="{Binding SelectedLichSu, Mode=TwoWay}"
-                              Style="{StaticResource ModernDataGrid}"
-                              VirtualizingPanel.IsVirtualizing="True"
-                              VirtualizingPanel.VirtualizationMode="Recycling">
+                <!-- SINGLE CARD FOR TABLE AND PAGING -->
+                <Border Style="{StaticResource EnterpriseCardBorder}" Padding="1">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        
+                        <!-- DATA TABLE -->
+                        <DataGrid Grid.Row="0"
+                                  ItemsSource="{Binding DanhSachLichSu}"
+                                  SelectedItem="{Binding SelectedLichSu, Mode=TwoWay}"
+                                  Style="{StaticResource ModernDataGrid}"
+                                  RowHeight="34"
+                                  VirtualizingPanel.IsVirtualizing="True"
+                                  VirtualizingPanel.VirtualizationMode="Recycling">
 
-                        <DataGrid.ContextMenu>
-                            <ContextMenu>
-                                <MenuItem Header="Copy Plate Number" />
-                                <MenuItem Header="Print Receipt" />
-                            </ContextMenu>
-                        </DataGrid.ContextMenu>
+                            <DataGrid.ColumnHeaderStyle>
+                                <Style TargetType="DataGridColumnHeader">
+                                    <Setter Property="Background" Value="#F1F5F9"/>
+                                    <Setter Property="Foreground" Value="#475569"/>
+                                    <Setter Property="FontWeight" Value="Bold"/>
+                                    <Setter Property="FontSize" Value="11"/>
+                                    <Setter Property="Padding" Value="10,8"/>
+                                    <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                    <Setter Property="BorderBrush" Value="#E2E8F0"/>
+                                </Style>
+                            </DataGrid.ColumnHeaderStyle>
 
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="50"/>
-                            <DataGridTextColumn Header="BIỂN SỐ / PLATE" Binding="{Binding BienSo}" Width="100" FontWeight="Bold"/>
-                            <DataGridTextColumn Header="LOẠI VÉ / TICKET" Binding="{Binding LoaiVeName}" Width="90"/>
-                            <DataGridTextColumn Header="LOẠI XE / VEHICLE" Binding="{Binding LoaiXeName}" Width="90"/>
-                            <DataGridTextColumn Header="CHỦ THẺ" Binding="{Binding EmployeeName}" Width="120"/>
-                            <DataGridTextColumn Header="MÃ NV" Binding="{Binding EmployeeCode}" Width="80"/>
-                            <DataGridTextColumn Header="CÔNG TY" Binding="{Binding CompanyName}" Width="120"/>
-                            <DataGridTextColumn Header="PHÒNG BAN" Binding="{Binding DepartmentName}" Width="120"/>
-                            <DataGridTextColumn Header="GIỜ VÀO / ENTRY" Binding="{Binding ThoiGianVao, StringFormat='dd/MM/yyyy HH:mm'}" Width="120"/>
-                            <DataGridTextColumn Header="GIỜ RA / EXIT" Binding="{Binding ThoiGianRa, StringFormat='dd/MM/yyyy HH:mm'}" Width="120"/>
-                            <DataGridTemplateColumn Header="DOANH THU" Width="90">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <TextBlock Text="{Binding Tien, StringFormat=N0}" Foreground="{StaticResource SuccessBrush}" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
-                            <DataGridTemplateColumn Header="TRẠNG THÁI" Width="90">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <Border CornerRadius="3" Padding="6,2" HorizontalAlignment="Center">
-                                            <Border.Style>
-                                                <Style TargetType="Border">
-                                                    <Setter Property="Background" Value="#E3F2FD"/>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding TrangThai}" Value="Đã ra">
-                                                            <Setter Property="Background" Value="#E8F5E9"/>
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding TrangThai}" Value="Trong bãi">
-                                                            <Setter Property="Background" Value="#FFF3E0"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Border.Style>
-                                            <TextBlock Text="{Binding TrangThai}" FontSize="11" FontWeight="SemiBold" HorizontalAlignment="Center">
-                                                <TextBlock.Style>
-                                                    <Style TargetType="TextBlock">
-                                                        <Setter Property="Foreground" Value="#1565C0"/>
+                            <DataGrid.RowStyle>
+                                <Style TargetType="DataGridRow">
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#F8FAFC"/>
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter Property="Background" Value="#EFF6FF"/>
+                                            <Setter Property="Foreground" Value="#1D4ED8"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </DataGrid.RowStyle>
+
+                            <DataGrid.CellStyle>
+                                <Style TargetType="DataGridCell">
+                                    <Setter Property="VerticalAlignment" Value="Center"/>
+                                    <Setter Property="BorderThickness" Value="0"/>
+                                    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="DataGridCell">
+                                                <Border Background="{TemplateBinding Background}" Padding="10,0" BorderBrush="#F1F5F9" BorderThickness="0,0,0,1">
+                                                    <ContentPresenter VerticalAlignment="Center"/>
+                                                </Border>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </DataGrid.CellStyle>
+
+                            <DataGrid.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="Copy Plate Number" />
+                                    <MenuItem Header="Print Receipt" />
+                                </ContextMenu>
+                            </DataGrid.ContextMenu>
+
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="50"/>
+                                <DataGridTextColumn Header="BIỂN SỐ / PLATE" Binding="{Binding BienSo}" Width="100" FontWeight="Bold"/>
+                                <DataGridTextColumn Header="LOẠI VÉ / TICKET" Binding="{Binding LoaiVeName}" Width="90"/>
+                                <DataGridTextColumn Header="LOẠI XE / VEHICLE" Binding="{Binding LoaiXeName}" Width="90"/>
+                                <DataGridTextColumn Header="CHỦ THẺ" Binding="{Binding EmployeeName}" Width="120"/>
+                                <DataGridTextColumn Header="MÃ NV" Binding="{Binding EmployeeCode}" Width="80"/>
+                                <DataGridTextColumn Header="CÔNG TY" Binding="{Binding CompanyName}" Width="120"/>
+                                <DataGridTextColumn Header="PHÒNG BAN" Binding="{Binding DepartmentName}" Width="120"/>
+                                <DataGridTextColumn Header="GIỜ VÀO / ENTRY" Binding="{Binding ThoiGianVao, StringFormat='dd/MM/yyyy HH:mm'}" Width="110"/>
+                                <DataGridTextColumn Header="GIỜ RA / EXIT" Binding="{Binding ThoiGianRa, StringFormat='dd/MM/yyyy HH:mm'}" Width="110"/>
+                                <DataGridTemplateColumn Header="DOANH THU" Width="90">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Tien, StringFormat=N0}" Foreground="{StaticResource SuccessBrush}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="TRẠNG THÁI" Width="90">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Border CornerRadius="3" Padding="6,2" HorizontalAlignment="Center">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Background" Value="#E3F2FD"/>
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding TrangThai}" Value="Đã ra">
-                                                                <Setter Property="Foreground" Value="#2E7D32"/>
+                                                                <Setter Property="Background" Value="#E8F5E9"/>
                                                             </DataTrigger>
                                                             <DataTrigger Binding="{Binding TrangThai}" Value="Trong bãi">
-                                                                <Setter Property="Foreground" Value="#E65100"/>
+                                                                <Setter Property="Background" Value="#FFF3E0"/>
                                                             </DataTrigger>
                                                         </Style.Triggers>
                                                     </Style>
-                                                </TextBlock.Style>
-                                            </TextBlock>
-                                        </Border>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
-                            <DataGridTextColumn Header="MÃ THẺ" Binding="{Binding CardId}" Width="60"/>
-                            <DataGridTextColumn Header="KHU VỰC" Binding="{Binding SiteName}" Width="80"/>
-                            <DataGridTextColumn Header="VÙNG" Binding="{Binding ZoneName}" Width="80"/>
-                            <DataGridTextColumn Header="LÀN VÀO" Binding="{Binding EntryLaneName}" Width="80"/>
-                            <DataGridTextColumn Header="LÀN RA" Binding="{Binding ExitLaneName}" Width="80"/>
-                        </DataGrid.Columns>
-                    </DataGrid>
-                </Border>
+                                                </Border.Style>
+                                                <TextBlock Text="{Binding TrangThai}" FontSize="10.5" FontWeight="Bold" HorizontalAlignment="Center">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Foreground" Value="#1565C0"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding TrangThai}" Value="Đã ra">
+                                                                    <Setter Property="Foreground" Value="#2E7D32"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding TrangThai}" Value="Trong bãi">
+                                                                    <Setter Property="Foreground" Value="#E65100"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </Border>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="MÃ THẺ" Binding="{Binding CardId}" Width="60"/>
+                                <DataGridTextColumn Header="KHU VỰC" Binding="{Binding SiteName}" Width="80"/>
+                                <DataGridTextColumn Header="VÙNG" Binding="{Binding ZoneName}" Width="80"/>
+                                <DataGridTextColumn Header="LÀN VÀO" Binding="{Binding EntryLaneName}" Width="80"/>
+                                <DataGridTextColumn Header="LÀN RA" Binding="{Binding ExitLaneName}" Width="80"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                        
+                        <!-- PAGING FOOTER -->
+                        <Border Grid.Row="1" BorderBrush="#E2E8F0" BorderThickness="0,1,0,0" Padding="12,6" Background="#F8FAFC" CornerRadius="0,0,4,4">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Text="Hiển thị lịch sử lượt xe ra vào hệ thống" FontSize="11" Foreground="#94A3B8" FontStyle="Italic"/>
+                                </StackPanel>
+                                
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                                    <TextBlock Text="Số dòng:" Style="{StaticResource SubTitleStyle}" Margin="0,0,8,0" VerticalAlignment="Center" FontSize="11"/>
+                                    <ComboBox Width="70" Style="{StaticResource ModernComboBox}" SelectedItem="{Binding PageSize, Mode=TwoWay}" Margin="0,0,16,0" Height="26" Padding="6,1">
+                                        <sys:Int32>25</sys:Int32>
+                                        <sys:Int32>50</sys:Int32>
+                                        <sys:Int32>100</sys:Int32>
+                                        <sys:Int32>500</sys:Int32>
+                                    </ComboBox>
 
-                <!-- PAGING -->
-                <Border Grid.Row="1" Style="{StaticResource EnterpriseCardBorder}" Margin="0,15,0,0" Padding="15,10">
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                        <TextBlock Text="Số dòng:" Style="{StaticResource SubTitleStyle}" Margin="0,0,10,0" VerticalAlignment="Center"/>
-                        <ComboBox Width="80" Style="{StaticResource ModernComboBox}" SelectedItem="{Binding PageSize, Mode=TwoWay}" Margin="0,0,20,0">
-                            <sys:Int32>25</sys:Int32>
-                            <sys:Int32>50</sys:Int32>
-                            <sys:Int32>100</sys:Int32>
-                            <sys:Int32>500</sys:Int32>
-                        </ComboBox>
+                                    <Button Content="⏮" Width="30" Height="26" Command="{Binding TrangDauCommand}" Style="{StaticResource ModernOutlineButton}" Margin="0,0,4,0" Padding="0"/>
+                                    <Button Content="◀" Width="30" Height="26" Command="{Binding TrangTruocCommand}" Style="{StaticResource ModernOutlineButton}" Margin="0,0,12,0" Padding="0"/>
 
-                        <Button Content="⏮" Width="40" Command="{Binding TrangDauCommand}" Style="{StaticResource ModernOutlineButton}" Margin="0,0,5,0" Padding="5"/>
-                        <Button Content="◀" Width="40" Command="{Binding TrangTruocCommand}" Style="{StaticResource ModernOutlineButton}" Margin="0,0,15,0" Padding="5"/>
+                                    <TextBlock Text="{Binding TrangHienTai}" FontSize="12" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="/" FontSize="12" Margin="4,0" VerticalAlignment="Center" Foreground="#94A3B8"/>
+                                    <TextBlock Text="{Binding TongTrang}" FontSize="12" Margin="0,0,12,0" VerticalAlignment="Center" Foreground="#64748B"/>
 
-                        <TextBlock Text="{Binding TrangHienTai}" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}" VerticalAlignment="Center"/>
-                        <TextBlock Text="/" Style="{StaticResource BaseTextBlockStyle}" Margin="5,0" VerticalAlignment="Center" Foreground="{StaticResource TextMutedBrush}"/>
-                        <TextBlock Text="{Binding TongTrang}" Style="{StaticResource BaseTextBlockStyle}" Margin="0,0,15,0" VerticalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}"/>
-
-                        <Button Content="▶" Width="40" Command="{Binding TrangSauCommand}" Style="{StaticResource ModernOutlineButton}" Margin="0,0,5,0" Padding="5"/>
-                        <Button Content="⏭" Width="40" Command="{Binding TrangCuoiCommand}" Style="{StaticResource ModernOutlineButton}" Padding="5"/>
-                    </StackPanel>
+                                    <Button Content="▶" Width="30" Height="26" Command="{Binding TrangSauCommand}" Style="{StaticResource ModernOutlineButton}" Margin="0,0,4,0" Padding="0"/>
+                                    <Button Content="⏭" Width="30" Height="26" Command="{Binding TrangCuoiCommand}" Style="{StaticResource ModernOutlineButton}" Padding="0"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </Grid>
                 </Border>
             </Grid>
             
             <!-- RIGHT COLUMN: DETAIL VIEW -->
-            <Border Grid.Column="2" Style="{StaticResource EnterpriseCardBorder}" Margin="5,0,0,0" Padding="15">
+            <Border Grid.Column="2" Style="{StaticResource EnterpriseCardBorder}" Margin="5,0,0,0" Padding="12">
                 <Grid>
                     <!-- Content Panel (Visible when SelectedLichSu is NOT null) -->
                     <Grid x:Name="DetailContentGrid">
@@ -352,106 +672,96 @@
                         </Grid.Style>
                         
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/> <!-- Header -->
+                            <RowDefinition Height="Auto"/> <!-- Plate Tag -->
+                            <RowDefinition Height="*"/>    <!-- Scrollable content (Images and Details) -->
                         </Grid.RowDefinitions>
 
                         <!-- Header -->
-                        <TextBlock Grid.Row="0" Text="CHI TIẾT LƯỢT XE / VISIT DETAIL" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}" Margin="0,0,0,10" HorizontalAlignment="Center"/>
+                        <TextBlock Grid.Row="0" Text="CHI TIẾT LƯỢT XE" FontSize="13" FontWeight="Bold" Foreground="#1E293B" Margin="0,0,0,10" HorizontalAlignment="Center"/>
 
-                        <!-- License Plate Display -->
-                        <Border Grid.Row="1" BorderBrush="#212529" BorderThickness="2" Background="White" CornerRadius="6" Padding="25,8" HorizontalAlignment="Center" Margin="0,0,0,15">
-                            <TextBlock Text="{Binding SelectedLichSu.BienSo}" FontSize="32" FontWeight="Bold" Foreground="#212529" HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Consolas, Segoe UI"/>
+                        <!-- License Plate Display (Digital glowing dark badge) -->
+                        <Border Grid.Row="1" BorderBrush="#1E293B" BorderThickness="1" Background="#0F172A" CornerRadius="8" Padding="18,6" HorizontalAlignment="Center" Margin="0,0,0,10">
+                            <TextBlock Text="{Binding SelectedLichSu.BienSo}" FontSize="26" FontWeight="Bold" Foreground="#38BDF8" HorizontalAlignment="Center" VerticalAlignment="Center" FontFamily="Consolas, Segoe UI"/>
                         </Border>
 
                         <!-- Scrollable Photos and Text Details -->
                         <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-                            <StackPanel Margin="0,5,0,0">
+                            <StackPanel Margin="0,4,0,0">
                                 
-                                <!-- XE VÀO SECTION -->
-                                <Border Style="{StaticResource EnterpriseCardBorder}" Margin="0,0,0,15" Padding="10" Background="#F8F9FC">
-                                    <StackPanel>
-                                        <TextBlock Text="📷 LƯỢT XE VÀO / ENTRY" FontWeight="Bold" FontSize="13" Foreground="{StaticResource APSBlueBrush}" Margin="0,0,0,8"/>
-                                        
-                                        <!-- Images Grid -->
-                                        <Grid Margin="0,0,0,5">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="8"/>
-                                                <ColumnDefinition Width="*"/>
-                                            </Grid.ColumnDefinitions>
+                                <!-- ENTRY & EXIT IMAGES SIDE-BY-SIDE -->
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="10"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    
+                                    <!-- LƯỢT XE VÀO / ENTRY -->
+                                    <Border Grid.Column="0" Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Padding="8">
+                                        <StackPanel>
+                                            <TextBlock Text="📷 XE VÀO" FontWeight="Bold" FontSize="11" Foreground="{StaticResource APSBlueBrush}" Margin="0,0,0,6" HorizontalAlignment="Center"/>
                                             
-                                            <!-- Toàn cảnh -->
-                                            <StackPanel Grid.Column="0">
-                                                <TextBlock Text="Toàn cảnh / Overview" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,3" HorizontalAlignment="Center"/>
-                                                <Border BorderBrush="{StaticResource BorderMediumBrush}" BorderThickness="1" CornerRadius="4" Background="#F1F3F5" Height="220">
-                                                    <Grid>
-                                                        <Image Source="{Binding SelectedAnhVaoToanCanh}" Stretch="Uniform" Margin="1"/>
-                                                        <Border Background="#F1F3F5" CornerRadius="3">
-                                                            <Border.Style>
-                                                                <Style TargetType="Border">
-                                                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                                                    <Style.Triggers>
-                                                                        <DataTrigger Binding="{Binding SelectedAnhVaoToanCanh}" Value="{x:Null}">
-                                                                            <Setter Property="Visibility" Value="Visible"/>
-                                                                        </DataTrigger>
-                                                                        <DataTrigger Binding="{Binding SelectedAnhVaoToanCanh}" Value="">
-                                                                            <Setter Property="Visibility" Value="Visible"/>
-                                                                        </DataTrigger>
-                                                                    </Style.Triggers>
-                                                                </Style>
-                                                            </Border.Style>
-                                                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                                                                <TextBlock Text="📷" FontSize="24" Foreground="#ADB5BD" HorizontalAlignment="Center"/>
-                                                                <TextBlock Text="Không có ảnh" FontSize="10" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center"/>
-                                                            </StackPanel>
-                                                        </Border>
-                                                    </Grid>
-                                                </Border>
-                                            </StackPanel>
+                                            <!-- Overview Image -->
+                                            <TextBlock Text="Toàn cảnh / Overview" FontSize="9.5" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,3" HorizontalAlignment="Center"/>
+                                            <Border BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Background="#F1F5F9" Height="140" Margin="0,0,0,6">
+                                                <Grid>
+                                                    <Image Source="{Binding SelectedAnhVaoToanCanh}" Stretch="Uniform" Margin="1"/>
+                                                    <Border Background="#F1F5F9" CornerRadius="5">
+                                                        <Border.Style>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding SelectedAnhVaoToanCanh}" Value="{x:Null}">
+                                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding SelectedAnhVaoToanCanh}" Value="">
+                                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Border.Style>
+                                                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                                            <TextBlock Text="&#xEBA9;" FontFamily="Segoe MDL2 Assets" FontSize="20" Foreground="#94A3B8" HorizontalAlignment="Center"/>
+                                                            <TextBlock Text="Không có ảnh" FontSize="9" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </Grid>
+                                            </Border>
+                                            
+                                            <!-- Plate Cam Image -->
+                                            <TextBlock Text="Ảnh biển số / Plate Cam" FontSize="9.5" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,3" HorizontalAlignment="Center"/>
+                                            <Border BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="6" Background="#F1F5F9" Height="140" Margin="0,0,0,6">
+                                                <Grid>
+                                                    <Image Source="{Binding SelectedAnhVaoBienSo}" Stretch="Uniform" Margin="1"/>
+                                                    <Border Background="#F1F5F9" CornerRadius="5">
+                                                        <Border.Style>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding SelectedAnhVaoBienSo}" Value="{x:Null}">
+                                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding SelectedAnhVaoBienSo}" Value="">
+                                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Border.Style>
+                                                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                                            <TextBlock Text="&#xEBA9;" FontFamily="Segoe MDL2 Assets" FontSize="20" Foreground="#94A3B8" HorizontalAlignment="Center"/>
+                                                            <TextBlock Text="Không có ảnh" FontSize="9" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </Grid>
+                                            </Border>
 
-                                            <!-- Cam biển số -->
-                                            <StackPanel Grid.Column="2">
-                                                <TextBlock Text="Ảnh biển số / Plate Cam" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,3" HorizontalAlignment="Center"/>
-                                                <Border BorderBrush="{StaticResource BorderMediumBrush}" BorderThickness="1" CornerRadius="4" Background="#F1F3F5" Height="220">
-                                                    <Grid>
-                                                        <Image Source="{Binding SelectedAnhVaoBienSo}" Stretch="Uniform" Margin="1"/>
-                                                        <Border Background="#F1F3F5" CornerRadius="3">
-                                                            <Border.Style>
-                                                                <Style TargetType="Border">
-                                                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                                                    <Style.Triggers>
-                                                                        <DataTrigger Binding="{Binding SelectedAnhVaoBienSo}" Value="{x:Null}">
-                                                                            <Setter Property="Visibility" Value="Visible"/>
-                                                                        </DataTrigger>
-                                                                        <DataTrigger Binding="{Binding SelectedAnhVaoBienSo}" Value="">
-                                                                            <Setter Property="Visibility" Value="Visible"/>
-                                                                        </DataTrigger>
-                                                                    </Style.Triggers>
-                                                                </Style>
-                                                            </Border.Style>
-                                                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                                                                <TextBlock Text="📷" FontSize="24" Foreground="#ADB5BD" HorizontalAlignment="Center"/>
-                                                                <TextBlock Text="Không có ảnh" FontSize="10" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center"/>
-                                                            </StackPanel>
-                                                        </Border>
-                                                    </Grid>
-                                                </Border>
-                                            </StackPanel>
-                                        </Grid>
-
-                                        <!-- Biển số cắt -->
-                                        <Grid Margin="0,4,0,0">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto"/>
-                                                <ColumnDefinition Width="*"/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="Biển số cắt / Cropped:" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                            <Border Grid.Column="1" BorderBrush="#212529" BorderThickness="1.5" Background="White" CornerRadius="3" Padding="5,2" Height="65" HorizontalAlignment="Left" MinWidth="220">
+                                            <!-- Cropped Plate -->
+                                            <TextBlock Text="Biển số cắt / Cropped" FontSize="9.5" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,3" HorizontalAlignment="Center"/>
+                                            <Border BorderBrush="#CBD5E1" BorderThickness="1" Background="White" CornerRadius="4" Padding="2" Height="45" HorizontalAlignment="Center" Width="140">
                                                 <Grid>
                                                     <Image Source="{Binding SelectedAnhVaoBienSoCat}" Stretch="Uniform" Margin="1"/>
-                                                    <Border Background="White">
+                                                    <Border Background="White" CornerRadius="3">
                                                         <Border.Style>
                                                             <Style TargetType="Border">
                                                                 <Setter Property="Visibility" Value="Collapsed"/>
@@ -465,97 +775,78 @@
                                                                 </Style.Triggers>
                                                             </Style>
                                                         </Border.Style>
-                                                        <TextBlock Text="CHƯA CẮT" FontSize="13" FontWeight="Bold" Foreground="#868E96" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="CHƯA CẮT" FontSize="11" FontWeight="Bold" Foreground="#94A3B8" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                                                     </Border>
                                                 </Grid>
                                             </Border>
-                                        </Grid>
-                                    </StackPanel>
-                                </Border>
-
-                                <!-- XE RA SECTION -->
-                                <Border Style="{StaticResource EnterpriseCardBorder}" Margin="0,0,0,15" Padding="10" Background="#FFF8F8">
-                                    <StackPanel>
-                                        <TextBlock Text="📷 LƯỢT XE RA / EXIT" FontWeight="Bold" FontSize="13" Foreground="{StaticResource APSRedBrush}" Margin="0,0,0,8"/>
-                                        
-                                        <!-- Images Grid -->
-                                        <Grid Margin="0,0,0,5">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="8"/>
-                                                <ColumnDefinition Width="*"/>
-                                            </Grid.ColumnDefinitions>
+                                        </StackPanel>
+                                    </Border>
+                                    
+                                    <!-- LƯỢT XE RA / EXIT -->
+                                    <Border Grid.Column="2" Background="#FEF2F2" BorderBrush="#FEE2E2" BorderThickness="1" CornerRadius="8" Padding="8">
+                                        <StackPanel>
+                                            <TextBlock Text="📷 XE RA" FontWeight="Bold" FontSize="11" Foreground="{StaticResource APSRedBrush}" Margin="0,0,0,6" HorizontalAlignment="Center"/>
                                             
-                                            <!-- Toàn cảnh -->
-                                            <StackPanel Grid.Column="0">
-                                                <TextBlock Text="Toàn cảnh / Overview" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,3" HorizontalAlignment="Center"/>
-                                                <Border BorderBrush="{StaticResource BorderMediumBrush}" BorderThickness="1" CornerRadius="4" Background="#F1F3F5" Height="220">
-                                                    <Grid>
-                                                        <Image Source="{Binding SelectedAnhRaToanCanh}" Stretch="Uniform" Margin="1"/>
-                                                        <Border Background="#F1F3F5" CornerRadius="3">
-                                                            <Border.Style>
-                                                                <Style TargetType="Border">
-                                                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                                                    <Style.Triggers>
-                                                                        <DataTrigger Binding="{Binding SelectedAnhRaToanCanh}" Value="{x:Null}">
-                                                                            <Setter Property="Visibility" Value="Visible"/>
-                                                                        </DataTrigger>
-                                                                        <DataTrigger Binding="{Binding SelectedAnhRaToanCanh}" Value="">
-                                                                            <Setter Property="Visibility" Value="Visible"/>
-                                                                        </DataTrigger>
-                                                                    </Style.Triggers>
-                                                                </Style>
-                                                            </Border.Style>
-                                                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                                                                <TextBlock Text="📷" FontSize="24" Foreground="#ADB5BD" HorizontalAlignment="Center"/>
-                                                                <TextBlock Text="Không có ảnh" FontSize="10" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center"/>
-                                                            </StackPanel>
-                                                        </Border>
-                                                    </Grid>
-                                                </Border>
-                                            </StackPanel>
+                                            <!-- Overview Image -->
+                                            <TextBlock Text="Toàn cảnh / Overview" FontSize="9.5" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,3" HorizontalAlignment="Center"/>
+                                            <Border BorderBrush="#FEE2E2" BorderThickness="1" CornerRadius="6" Background="#F1F5F9" Height="140" Margin="0,0,0,6">
+                                                <Grid>
+                                                    <Image Source="{Binding SelectedAnhRaToanCanh}" Stretch="Uniform" Margin="1"/>
+                                                    <Border Background="#F1F5F9" CornerRadius="5">
+                                                        <Border.Style>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding SelectedAnhRaToanCanh}" Value="{x:Null}">
+                                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding SelectedAnhRaToanCanh}" Value="">
+                                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Border.Style>
+                                                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                                            <TextBlock Text="&#xEBA9;" FontFamily="Segoe MDL2 Assets" FontSize="20" Foreground="#94A3B8" HorizontalAlignment="Center"/>
+                                                            <TextBlock Text="Không có ảnh" FontSize="9" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </Grid>
+                                            </Border>
+                                            
+                                            <!-- Plate Cam Image -->
+                                            <TextBlock Text="Ảnh biển số / Plate Cam" FontSize="9.5" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,3" HorizontalAlignment="Center"/>
+                                            <Border BorderBrush="#FEE2E2" BorderThickness="1" CornerRadius="6" Background="#F1F5F9" Height="140" Margin="0,0,0,6">
+                                                <Grid>
+                                                    <Image Source="{Binding SelectedAnhRaBienSo}" Stretch="Uniform" Margin="1"/>
+                                                    <Border Background="#F1F5F9" CornerRadius="5">
+                                                        <Border.Style>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding SelectedAnhRaBienSo}" Value="{x:Null}">
+                                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                                    </DataTrigger>
+                                                                    <DataTrigger Binding="{Binding SelectedAnhRaBienSo}" Value="">
+                                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Border.Style>
+                                                        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                                                            <TextBlock Text="&#xEBA9;" FontFamily="Segoe MDL2 Assets" FontSize="20" Foreground="#94A3B8" HorizontalAlignment="Center"/>
+                                                            <TextBlock Text="Không có ảnh" FontSize="9" Foreground="#94A3B8" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </Grid>
+                                            </Border>
 
-                                            <!-- Cam biển số -->
-                                            <StackPanel Grid.Column="2">
-                                                <TextBlock Text="Ảnh biển số / Plate Cam" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,3" HorizontalAlignment="Center"/>
-                                                <Border BorderBrush="{StaticResource BorderMediumBrush}" BorderThickness="1" CornerRadius="4" Background="#F1F3F5" Height="220">
-                                                    <Grid>
-                                                        <Image Source="{Binding SelectedAnhRaBienSo}" Stretch="Uniform" Margin="1"/>
-                                                        <Border Background="#F1F3F5" CornerRadius="3">
-                                                            <Border.Style>
-                                                                <Style TargetType="Border">
-                                                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                                                    <Style.Triggers>
-                                                                        <DataTrigger Binding="{Binding SelectedAnhRaBienSo}" Value="{x:Null}">
-                                                                            <Setter Property="Visibility" Value="Visible"/>
-                                                                        </DataTrigger>
-                                                                        <DataTrigger Binding="{Binding SelectedAnhRaBienSo}" Value="">
-                                                                            <Setter Property="Visibility" Value="Visible"/>
-                                                                        </DataTrigger>
-                                                                    </Style.Triggers>
-                                                                </Style>
-                                                            </Border.Style>
-                                                            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
-                                                                <TextBlock Text="📷" FontSize="24" Foreground="#ADB5BD" HorizontalAlignment="Center"/>
-                                                                <TextBlock Text="Không có ảnh" FontSize="10" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center"/>
-                                                            </StackPanel>
-                                                        </Border>
-                                                    </Grid>
-                                                </Border>
-                                            </StackPanel>
-                                        </Grid>
-
-                                        <!-- Biển số cắt -->
-                                        <Grid Margin="0,4,0,0">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto"/>
-                                                <ColumnDefinition Width="*"/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Grid.Column="0" Text="Biển số cắt / Cropped:" FontSize="11" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                            <Border Grid.Column="1" BorderBrush="#212529" BorderThickness="1.5" Background="White" CornerRadius="3" Padding="5,2" Height="65" HorizontalAlignment="Left" MinWidth="220">
+                                            <!-- Cropped Plate -->
+                                            <TextBlock Text="Biển số cắt / Cropped" FontSize="9.5" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,3" HorizontalAlignment="Center"/>
+                                            <Border BorderBrush="#FCA5A5" BorderThickness="1" Background="White" CornerRadius="4" Padding="2" Height="45" HorizontalAlignment="Center" Width="140">
                                                 <Grid>
                                                     <Image Source="{Binding SelectedAnhRaBienSoCat}" Stretch="Uniform" Margin="1"/>
-                                                    <Border Background="White">
+                                                    <Border Background="White" CornerRadius="3">
                                                         <Border.Style>
                                                             <Style TargetType="Border">
                                                                 <Setter Property="Visibility" Value="Collapsed"/>
@@ -569,82 +860,129 @@
                                                                 </Style.Triggers>
                                                             </Style>
                                                         </Border.Style>
-                                                        <TextBlock Text="CHƯA CẮT" FontSize="13" FontWeight="Bold" Foreground="#868E96" VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                                        <TextBlock Text="CHƯA CẮT" FontSize="11" FontWeight="Bold" Foreground="#94A3B8" VerticalAlignment="Center" HorizontalAlignment="Center"/>
                                                     </Border>
                                                 </Grid>
                                             </Border>
-                                        </Grid>
-                                    </StackPanel>
-                                </Border>
-
-                                <!-- Details Grid -->
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
-
-                                    <!-- Types -->
-                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Loại vé / Ticket:" Style="{StaticResource BaseTextBlockStyle}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,10,4"/>
-                                    <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding SelectedLichSu.LoaiVeName, TargetNullValue='Vé lượt'}" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}" Margin="0,4,0,4"/>
-
-                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Loại xe / Vehicle:" Style="{StaticResource BaseTextBlockStyle}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,10,4"/>
-                                    <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding SelectedLichSu.LoaiXeName, TargetNullValue='-'}" Style="{StaticResource BaseTextBlockStyle}" FontWeight="SemiBold" Margin="0,4,0,4"/>
-
-                                    <!-- Trạng thái -->
-                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Trạng thái / Status:" Style="{StaticResource BaseTextBlockStyle}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,10,4"/>
-                                    <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding SelectedLichSu.TrangThai, TargetNullValue='-'}" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold" Foreground="{StaticResource WarningBrush}" Margin="0,4,0,4"/>
-
-                                    <!-- Card ID -->
-                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Mã thẻ / Card ID:" Style="{StaticResource BaseTextBlockStyle}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,10,4"/>
-                                    <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding SelectedLichSu.CardId}" Style="{StaticResource BaseTextBlockStyle}" Margin="0,4,0,4"/>
-
-                                    <!-- Entry Info -->
-                                    <TextBlock Grid.Row="4" Grid.Column="0" Text="Giờ vào / In Time:" Style="{StaticResource BaseTextBlockStyle}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,10,4"/>
-                                    <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding SelectedLichSu.ThoiGianVao, StringFormat='dd/MM/yyyy HH:mm:ss'}" Style="{StaticResource BaseTextBlockStyle}" Margin="0,4,0,4"/>
-
-                                    <TextBlock Grid.Row="5" Grid.Column="0" Text="Làn vào / In Lane:" Style="{StaticResource BaseTextBlockStyle}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,10,4"/>
-                                    <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding SelectedLichSu.EntryLaneName}" Style="{StaticResource BaseTextBlockStyle}" Margin="0,4,0,4"/>
-
-                                    <!-- Exit Info -->
-                                    <TextBlock Grid.Row="6" Grid.Column="0" Text="Giờ ra / Out Time:" Style="{StaticResource BaseTextBlockStyle}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,10,4"/>
-                                    <TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding SelectedLichSu.ThoiGianRa, StringFormat='dd/MM/yyyy HH:mm:ss', TargetNullValue='Chưa ra'}" Style="{StaticResource BaseTextBlockStyle}" Margin="0,4,0,4"/>
-
-                                    <TextBlock Grid.Row="7" Grid.Column="0" Text="Làn ra / Out Lane:" Style="{StaticResource BaseTextBlockStyle}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,10,4"/>
-                                    <TextBlock Grid.Row="7" Grid.Column="1" Text="{Binding SelectedLichSu.ExitLaneName, TargetNullValue='-'}" Style="{StaticResource BaseTextBlockStyle}" Margin="0,4,0,4"/>
-
-                                    <!-- Location -->
-                                    <TextBlock Grid.Row="8" Grid.Column="0" Text="Khu vực / Site:" Style="{StaticResource BaseTextBlockStyle}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,10,4"/>
-                                    <TextBlock Grid.Row="8" Grid.Column="1" Text="{Binding SelectedLichSu.SiteName, TargetNullValue='-'}" Style="{StaticResource BaseTextBlockStyle}" Margin="0,4,0,4"/>
-
-                                    <TextBlock Grid.Row="9" Grid.Column="0" Text="Vùng / Zone:" Style="{StaticResource BaseTextBlockStyle}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,10,4"/>
-                                    <TextBlock Grid.Row="9" Grid.Column="1" Text="{Binding SelectedLichSu.ZoneName, TargetNullValue='-'}" Style="{StaticResource BaseTextBlockStyle}" Margin="0,4,0,4"/>
-
-                                    <!-- Duration -->
-                                    <TextBlock Grid.Row="10" Grid.Column="0" Text="Thời gian đỗ:" Style="{StaticResource BaseTextBlockStyle}" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,4,10,4"/>
-                                    <TextBlock Grid.Row="10" Grid.Column="1" Text="{Binding ThoiGianDo}" Style="{StaticResource BaseTextBlockStyle}" FontWeight="SemiBold" Foreground="{StaticResource WarningBrush}" Margin="0,4,0,4"/>
+                                        </StackPanel>
+                                    </Border>
                                 </Grid>
+
+                                <!-- DETAILS PROPERTY SHEET -->
+                                <Border BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Background="White" Padding="12" Margin="0,0,0,10">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" MinWidth="130"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <!-- Employee details -->
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+
+                                        <!-- Row 0: Ticket Type -->
+                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Loại vé / Ticket:" FontSize="12.5" FontWeight="SemiBold" Foreground="#64748B" Margin="0,4,10,4"/>
+                                        <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding SelectedLichSu.LoaiVeName, TargetNullValue='Vé lượt'}" FontSize="12.5" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}" Margin="0,4,0,4"/>
+
+                                        <!-- Row 1: Vehicle Type -->
+                                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Loại xe / Vehicle:" FontSize="12.5" FontWeight="SemiBold" Foreground="#64748B" Margin="0,4,10,4"/>
+                                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding SelectedLichSu.LoaiXeName, TargetNullValue='-'}" FontSize="12.5" FontWeight="SemiBold" Margin="0,4,0,4"/>
+
+                                        <!-- Row 2: Status -->
+                                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Trạng thái / Status:" FontSize="12.5" FontWeight="SemiBold" Foreground="#64748B" Margin="0,4,10,4"/>
+                                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding SelectedLichSu.TrangThai, TargetNullValue='-'}" FontSize="12.5" FontWeight="Bold" Margin="0,4,0,4">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Foreground" Value="#1565C0"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding SelectedLichSu.TrangThai}" Value="Đã ra">
+                                                            <Setter Property="Foreground" Value="#2E7D32"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding SelectedLichSu.TrangThai}" Value="Trong bãi">
+                                                            <Setter Property="Foreground" Value="#E65100"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+
+                                        <!-- Row 3: Card ID -->
+                                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Mã thẻ / Card ID:" FontSize="12.5" FontWeight="SemiBold" Foreground="#64748B" Margin="0,4,10,4"/>
+                                        <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding SelectedLichSu.CardId}" FontSize="12.5" Margin="0,4,0,4"/>
+
+                                        <!-- Row 4: In Time -->
+                                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Giờ vào / In Time:" FontSize="12.5" FontWeight="SemiBold" Foreground="#64748B" Margin="0,4,10,4"/>
+                                        <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding SelectedLichSu.ThoiGianVao, StringFormat='dd/MM/yyyy HH:mm:ss'}" FontSize="12.5" Margin="0,4,0,4"/>
+
+                                        <!-- Row 5: In Lane -->
+                                        <TextBlock Grid.Row="5" Grid.Column="0" Text="Làn vào / In Lane:" FontSize="12.5" FontWeight="SemiBold" Foreground="#64748B" Margin="0,4,10,4"/>
+                                        <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding SelectedLichSu.EntryLaneName}" FontSize="12.5" Margin="0,4,0,4"/>
+
+                                        <!-- Row 6: Out Time -->
+                                        <TextBlock Grid.Row="6" Grid.Column="0" Text="Giờ ra / Out Time:" FontSize="12.5" FontWeight="SemiBold" Foreground="#64748B" Margin="0,4,10,4"/>
+                                        <TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding SelectedLichSu.ThoiGianRa, StringFormat='dd/MM/yyyy HH:mm:ss', TargetNullValue='Chưa ra'}" FontSize="12.5" Margin="0,4,0,4"/>
+
+                                        <!-- Row 7: Out Lane -->
+                                        <TextBlock Grid.Row="7" Grid.Column="0" Text="Làn ra / Out Lane:" FontSize="12.5" FontWeight="SemiBold" Foreground="#64748B" Margin="0,4,10,4"/>
+                                        <TextBlock Grid.Row="7" Grid.Column="1" Text="{Binding SelectedLichSu.ExitLaneName, TargetNullValue='-'}" FontSize="12.5" Margin="0,4,0,4"/>
+
+                                        <!-- Row 8: Site -->
+                                        <TextBlock Grid.Row="8" Grid.Column="0" Text="Khu vực / Site:" FontSize="12.5" FontWeight="SemiBold" Foreground="#64748B" Margin="0,4,10,4"/>
+                                        <TextBlock Grid.Row="8" Grid.Column="1" Text="{Binding SelectedLichSu.SiteName, TargetNullValue='-'}" FontSize="12.5" Margin="0,4,0,4"/>
+
+                                        <!-- Row 9: Zone -->
+                                        <TextBlock Grid.Row="9" Grid.Column="0" Text="Vùng / Zone:" FontSize="12.5" FontWeight="SemiBold" Foreground="#64748B" Margin="0,4,10,4"/>
+                                        <TextBlock Grid.Row="9" Grid.Column="1" Text="{Binding SelectedLichSu.ZoneName, TargetNullValue='-'}" FontSize="12.5" Margin="0,4,0,4"/>
+
+                                        <!-- Row 10: Parking Duration -->
+                                        <TextBlock Grid.Row="10" Grid.Column="0" Text="Thời gian đỗ:" FontSize="12.5" FontWeight="SemiBold" Foreground="#64748B" Margin="0,4,10,4"/>
+                                        <TextBlock Grid.Row="10" Grid.Column="1" Text="{Binding ThoiGianDo}" FontSize="12.5" FontWeight="SemiBold" Foreground="#E65100" Margin="0,4,0,4"/>
+
+                                        <!-- Row 11: Chủ thẻ -->
+                                        <TextBlock Grid.Row="11" Grid.Column="0" Text="Chủ thẻ:" FontSize="12.5" FontWeight="SemiBold" Foreground="#64748B" Margin="0,4,10,4"
+                                                   Visibility="{Binding SelectedLichSu.EmployeeName, Converter={StaticResource StringToVisibilityConverter}}"/>
+                                        <TextBlock Grid.Row="11" Grid.Column="1" Text="{Binding SelectedLichSu.EmployeeName}" FontSize="12.5" FontWeight="SemiBold" Margin="0,4,0,4"
+                                                   Visibility="{Binding SelectedLichSu.EmployeeName, Converter={StaticResource StringToVisibilityConverter}}"/>
+
+                                        <!-- Row 12: Mã NV -->
+                                        <TextBlock Grid.Row="12" Grid.Column="0" Text="Mã nhân viên:" FontSize="12.5" FontWeight="SemiBold" Foreground="#64748B" Margin="0,4,10,4"
+                                                   Visibility="{Binding SelectedLichSu.EmployeeCode, Converter={StaticResource StringToVisibilityConverter}}"/>
+                                        <TextBlock Grid.Row="12" Grid.Column="1" Text="{Binding SelectedLichSu.EmployeeCode}" FontSize="12.5" Margin="0,4,0,4"
+                                                   Visibility="{Binding SelectedLichSu.EmployeeCode, Converter={StaticResource StringToVisibilityConverter}}"/>
+
+                                        <!-- Row 13: Công ty -->
+                                        <TextBlock Grid.Row="13" Grid.Column="0" Text="Công ty:" FontSize="12.5" FontWeight="SemiBold" Foreground="#64748B" Margin="0,4,10,4"
+                                                   Visibility="{Binding SelectedLichSu.CompanyName, Converter={StaticResource StringToVisibilityConverter}}"/>
+                                        <TextBlock Grid.Row="13" Grid.Column="1" Text="{Binding SelectedLichSu.CompanyName}" FontSize="12.5" Margin="0,4,0,4"
+                                                   Visibility="{Binding SelectedLichSu.CompanyName, Converter={StaticResource StringToVisibilityConverter}}"/>
+
+                                        <!-- Row 14: Phòng ban -->
+                                        <TextBlock Grid.Row="14" Grid.Column="0" Text="Phòng ban:" FontSize="12.5" FontWeight="SemiBold" Foreground="#64748B" Margin="0,4,10,4"
+                                                   Visibility="{Binding SelectedLichSu.DepartmentName, Converter={StaticResource StringToVisibilityConverter}}"/>
+                                        <TextBlock Grid.Row="14" Grid.Column="1" Text="{Binding SelectedLichSu.DepartmentName}" FontSize="12.5" Margin="0,4,0,4"
+                                                   Visibility="{Binding SelectedLichSu.DepartmentName, Converter={StaticResource StringToVisibilityConverter}}"/>
+                                    </Grid>
+                                </Border>
                                 
-                                <Separator Margin="0,10"/>
-                                
-                                <!-- Revenue Display -->
-                                <Border Background="#E8F5E9" CornerRadius="4" Padding="12,8">
+                                <!-- REVENUE PAYMENT DISPLAY (Premium green badge) -->
+                                <Border Background="#E8F5E9" BorderBrush="#C8E6C9" BorderThickness="1" CornerRadius="6" Padding="12,8" Margin="0,0,0,4">
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                        <TextBlock Text="TIỀN THANH TOÁN: " Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold" Foreground="{StaticResource SuccessBrush}"/>
-                                        <TextBlock Text="{Binding SelectedLichSu.Tien, StringFormat={}{0:N0} VNĐ, TargetNullValue='0'}" Style="{StaticResource Heading2Style}" Foreground="{StaticResource SuccessBrush}" Margin="5,0,0,0"/>
+                                        <TextBlock Text="TIỀN THANH TOÁN:" FontSize="11" FontWeight="Bold" Foreground="#2E7D32" VerticalAlignment="Center"/>
+                                        <TextBlock Text="{Binding SelectedLichSu.Tien, StringFormat={}{0:N0} VNĐ, TargetNullValue='0'}" FontSize="18" FontWeight="Bold" Foreground="#1B5E20" Margin="8,0,0,0" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
@@ -664,10 +1002,10 @@
                             </Style>
                         </Grid.Style>
                         <StackPanel HorizontalAlignment="Center">
-                            <TextBlock Text="🔍" FontSize="48" Foreground="#ADB5BD" HorizontalAlignment="Center"/>
-                            <TextBlock Text="Chi tiết lượt xe ra vào" FontWeight="Bold" FontSize="16" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,10,0,5" HorizontalAlignment="Center"/>
-                            <TextBlock Text="Chọn một hàng trong bảng để xem" FontSize="12" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center"/>
-                            <TextBlock Text="thông tin chi tiết và hình ảnh xe." FontSize="12" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Center"/>
+                            <TextBlock Text="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="44" Foreground="#CBD5E1" HorizontalAlignment="Center"/>
+                            <TextBlock Text="Chi tiết lượt xe ra vào" FontWeight="Bold" FontSize="14" Foreground="#64748B" Margin="0,10,0,4" HorizontalAlignment="Center"/>
+                            <TextBlock Text="Chọn một hàng trong bảng để xem" FontSize="11.5" Foreground="#94A3B8" HorizontalAlignment="Center"/>
+                            <TextBlock Text="thông tin chi tiết và hình ảnh xe." FontSize="11.5" Foreground="#94A3B8" HorizontalAlignment="Center"/>
                         </StackPanel>
                     </Grid>
                 </Grid>

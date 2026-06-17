@@ -1767,25 +1767,52 @@ namespace QuanLyGiuXe.Services
                     var list = new List<LichSuXe>();
 
                     using (SqlCommand cmd = new SqlCommand(@"
-                        SELECT TOP 1000 
-                            ls.Id, ls.CardId, ls.BienSo, ls.ThoiGianVao, ls.ThoiGianRa, ls.Tien, ls.TrangThai, ls.AnhVao, ls.AnhRa,
-                            ls.SiteId, ls.ZoneId, ls.EntryLaneId, ls.ExitLaneId,
-                            s.SiteName, z.ZoneName, el.LaneName AS EntryLaneName, exl.LaneName AS ExitLaneName,
-                            lv.TenLoai AS LoaiVeName, lx.TenLoai AS LoaiXeName,
-                            emp.FullName AS EmployeeName, emp.EmployeeCode,
-                            comp.Name AS CompanyName, dept.DepartmentName
-                        FROM LichSuXe ls
-                        LEFT JOIN ParkingSites s ON ls.SiteId = s.Id
-                        LEFT JOIN ParkingZones z ON ls.ZoneId = z.Id
-                        LEFT JOIN Lanes el ON ls.EntryLaneId = el.Id
-                        LEFT JOIN Lanes exl ON ls.ExitLaneId = exl.Id
-                        LEFT JOIN RFIDCards r ON ls.CardId = r.Id
-                        LEFT JOIN LoaiVe lv ON r.LoaiVeId = lv.Id
-                        LEFT JOIN LoaiXe lx ON r.LoaiXeId = lx.Id
-                        LEFT JOIN Employees emp ON r.EmployeeId = emp.Id AND emp.IsDeleted = 0
-                        LEFT JOIN Companies comp ON emp.CompanyId = comp.Id
-                        LEFT JOIN Departments dept ON emp.DepartmentId = dept.Id
-                        ORDER BY ls.ThoiGianVao DESC", conn))
+                        SELECT TOP 1000 * FROM (
+                            SELECT 
+                                ls.Id, ls.CardId, ls.BienSo, ls.ThoiGianVao, ls.ThoiGianRa, ls.Tien, 
+                                ISNULL(ls.TrangThai, N'Đã ra') AS TrangThai, 
+                                ls.AnhVao, ls.AnhRa,
+                                ls.SiteId, ls.ZoneId, ls.EntryLaneId, ls.ExitLaneId,
+                                s.SiteName, z.ZoneName, el.LaneName AS EntryLaneName, exl.LaneName AS ExitLaneName,
+                                lv.TenLoai AS LoaiVeName, lx.TenLoai AS LoaiXeName,
+                                emp.FullName AS EmployeeName, emp.EmployeeCode,
+                                comp.Name AS CompanyName, dept.DepartmentName
+                            FROM LichSuXe ls
+                            LEFT JOIN ParkingSites s ON ls.SiteId = s.Id
+                            LEFT JOIN ParkingZones z ON ls.ZoneId = z.Id
+                            LEFT JOIN Lanes el ON ls.EntryLaneId = el.Id
+                            LEFT JOIN Lanes exl ON ls.ExitLaneId = exl.Id
+                            LEFT JOIN RFIDCards r ON ls.CardId = r.Id
+                            LEFT JOIN LoaiVe lv ON r.LoaiVeId = lv.Id
+                            LEFT JOIN LoaiXe lx ON r.LoaiXeId = lx.Id
+                            LEFT JOIN Employees emp ON r.EmployeeId = emp.Id AND emp.IsDeleted = 0
+                            LEFT JOIN Companies comp ON emp.CompanyId = comp.Id
+                            LEFT JOIN Departments dept ON emp.DepartmentId = dept.Id
+
+                            UNION ALL
+
+                            SELECT 
+                                -xtb.Id AS Id, xtb.CardId, xtb.BienSo, xtb.ThoiGianVao, NULL AS ThoiGianRa, NULL AS Tien, 
+                                N'Trong bãi' AS TrangThai, 
+                                xtb.AnhXe AS AnhVao, NULL AS AnhRa,
+                                xtb.SiteId, xtb.ZoneId, xtb.EntryLaneId, NULL AS ExitLaneId,
+                                s.SiteName, z.ZoneName, el.LaneName AS EntryLaneName, NULL AS ExitLaneName,
+                                lv.TenLoai AS LoaiVeName, lx.TenLoai AS LoaiXeName,
+                                emp.FullName AS EmployeeName, emp.EmployeeCode,
+                                comp.Name AS CompanyName, dept.DepartmentName
+                            FROM XeTrongBai xtb
+                            LEFT JOIN ParkingSites s ON xtb.SiteId = s.Id
+                            LEFT JOIN ParkingZones z ON xtb.ZoneId = z.Id
+                            LEFT JOIN Lanes el ON xtb.EntryLaneId = el.Id
+                            LEFT JOIN RFIDCards r ON xtb.CardId = r.Id
+                            LEFT JOIN LoaiVe lv ON r.LoaiVeId = lv.Id
+                            LEFT JOIN LoaiXe lx ON r.LoaiXeId = lx.Id
+                            LEFT JOIN Employees emp ON r.EmployeeId = emp.Id AND emp.IsDeleted = 0
+                            LEFT JOIN Companies comp ON emp.CompanyId = comp.Id
+                            LEFT JOIN Departments dept ON emp.DepartmentId = dept.Id
+                            WHERE xtb.ThoiGianRa IS NULL
+                        ) AS combined
+                        ORDER BY ThoiGianVao DESC", conn))
                     using (SqlDataReader reader = await cmd.ExecuteReaderAsync())
                     {
                         while (await reader.ReadAsync())
