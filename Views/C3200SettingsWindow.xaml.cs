@@ -1462,7 +1462,8 @@ namespace QuanLyGiuXe
 
                 await RefreshSiteSelectionAsync();
 
-                MessageBox.Show("Đã lưu cấu hình vào bản nháp thành công!\n\nLưu ý: Cấu hình mới chưa được áp dụng ngay vào ứng dụng hiện tại. Bạn cần vào mục Development Center (Trung tâm phát triển) để tiến hành triển khai (Deploy) thì cấu hình mới có hiệu lực.", "Lưu cấu hình", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show("Đã lưu cấu hình vào bản nháp thành công!\n\nHệ thống sẽ tự động chuyển bạn đến Development Center để tiến hành triển khai.", "Lưu cấu hình", MessageBoxButton.OK, MessageBoxImage.Information);
+                DialogResult = true;
             }
             catch (Exception ex)
             {

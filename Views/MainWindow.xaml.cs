@@ -392,7 +392,7 @@ namespace QuanLyGiuXe
             }
 
             var settingsWin = new C3200SettingsWindow { Owner = this };
-            settingsWin.ShowDialog();
+            var result = settingsWin.ShowDialog();
             ReloadCameras();
             if (DataContext is MainViewModel vm)
             {
@@ -418,6 +418,12 @@ namespace QuanLyGiuXe
                     vm.SelectedSite = activeSite;
                 // Update vehicle count to reflect new site/zone configuration immediately
                 vm.UpdateVehicleCount();
+
+                // If saved successfully, redirect to Deployment Center
+                if (result == true)
+                {
+                    vm.SetView(new DeploymentCenterViewModel());
+                }
             }
             RestoreSidebarSelection();
         }
@@ -598,6 +604,10 @@ namespace QuanLyGiuXe
                 else if (vm.CurrentView is PersonnelExplorerViewModel)
                 {
                     btnPersonnelExplorer.IsChecked = true;
+                }
+                else if (vm.CurrentView is DeploymentCenterViewModel)
+                {
+                    btnDeploymentCenter.IsChecked = true;
                 }
                 else
                 {
