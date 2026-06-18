@@ -179,8 +179,6 @@ namespace QuanLyGiuXe.Views
             if (ResolutionCombo != null) ResolutionCombo.IsEnabled = false;
             RtspUrlBox.IsEnabled = false;
             UsbDeviceCombo.IsEnabled = false;
-            BtnTestConnect.IsEnabled = false;
-            BtnStopConnect.IsEnabled = true;
             BtnAddCamera.IsEnabled = false;
             NoStreamOverlay.Visibility = Visibility.Collapsed;
             StatusText.Text = "⏳ Đang kết nối tới camera...";
@@ -274,11 +272,6 @@ namespace QuanLyGiuXe.Views
             }
         }
 
-        private void BtnStopConnect_Click(object sender, RoutedEventArgs e)
-        {
-            StopPreviewUI("⏹️ Đã dừng preview.");
-        }
-
         private void StopPreviewUI(string message)
         {
             _cts?.Cancel();
@@ -300,10 +293,7 @@ namespace QuanLyGiuXe.Views
                 if (ResolutionCombo != null) ResolutionCombo.IsEnabled = true;
                 RtspUrlBox.IsEnabled = true;
                 UsbDeviceCombo.IsEnabled = true;
-                BtnTestConnect.IsEnabled = true;
             }
-            BtnStopConnect.IsEnabled = false;
-
             StatusText.Text = message;
             StatusText.Foreground = message.StartsWith("✅") ? System.Windows.Media.Brushes.Green : System.Windows.Media.Brushes.Red;
         }

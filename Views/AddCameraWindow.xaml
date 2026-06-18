@@ -23,7 +23,7 @@
             </Grid.ColumnDefinitions>
             
             <!-- Left Panel: Configuration -->
-            <Border Grid.Column="0" Background="White" CornerRadius="12" BorderBrush="#E5E7EB" BorderThickness="1" Padding="15">
+            <Border Grid.Column="0" Background="White" CornerRadius="12" BorderBrush="#E5E7EB" BorderThickness="1" Padding="15" Margin="0,0,0,-10">
                 <Border.Effect>
                     <DropShadowEffect BlurRadius="12" ShadowDepth="2" Opacity="0.03"/>
                 </Border.Effect>
@@ -34,13 +34,13 @@
                         <!-- Camera Name -->
                         <StackPanel Margin="0,0,0,8">
                             <TextBlock Text="Tên Camera" Foreground="#4B5563" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,3"/>
-                            <TextBox x:Name="CameraNameBox" Style="{StaticResource ModernTextBox}" Height="30"/>
+                            <TextBox x:Name="CameraNameBox" Style="{StaticResource ModernTextBox}" Height="35"/>
                         </StackPanel>
                         
                         <!-- Connection Type -->
                         <StackPanel Margin="0,0,0,8">
                             <TextBlock Text="Loại Kết Nối" Foreground="#4B5563" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,3"/>
-                            <ComboBox x:Name="CameraTypeCombo" Height="30" Style="{StaticResource ModernComboBox}" SelectionChanged="CameraTypeCombo_SelectionChanged">
+                            <ComboBox x:Name="CameraTypeCombo" Height="35" Style="{StaticResource ModernComboBox}" SelectionChanged="CameraTypeCombo_SelectionChanged">
                                 <ComboBoxItem Content="IP Camera (RTSP URL)" Tag="IP"/>
                                 <ComboBoxItem Content="USB Camera" Tag="USB"/>
                             </ComboBox>
@@ -57,12 +57,12 @@
                                 <!-- IP Address -->
                                 <StackPanel Grid.Column="0">
                                     <TextBlock Text="Địa Chỉ IP" Foreground="#4B5563" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,3"/>
-                                    <TextBox x:Name="IpAddrBox" Style="{StaticResource ModernTextBox}" Height="30" Text="192.168.1.121" TextChanged="IpConfigField_TextChanged"/>
+                                    <TextBox x:Name="IpAddrBox" Style="{StaticResource ModernTextBox}" Height="35" Text="192.168.1.121" TextChanged="IpConfigField_TextChanged"/>
                                 </StackPanel>
                                 <!-- RTSP Port -->
                                 <StackPanel Grid.Column="2">
                                     <TextBlock Text="Cổng RTSP" Foreground="#4B5563" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,3"/>
-                                    <TextBox x:Name="RtspPortBox" Style="{StaticResource ModernTextBox}" Height="30" Text="554" TextChanged="IpConfigField_TextChanged"/>
+                                    <TextBox x:Name="RtspPortBox" Style="{StaticResource ModernTextBox}" Height="35" Text="554" TextChanged="IpConfigField_TextChanged"/>
                                 </StackPanel>
                             </Grid>
 
@@ -75,12 +75,12 @@
                                 <!-- ONVIF Port -->
                                 <StackPanel Grid.Column="0">
                                     <TextBlock Text="Cổng HTTP/ONVIF" Foreground="#4B5563" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,3"/>
-                                    <TextBox x:Name="OnvifPortBox" Style="{StaticResource ModernTextBox}" Height="30" Text="80" TextChanged="IpConfigField_TextChanged"/>
+                                    <TextBox x:Name="OnvifPortBox" Style="{StaticResource ModernTextBox}" Height="35" Text="80" TextChanged="IpConfigField_TextChanged"/>
                                 </StackPanel>
                                 <!-- Camera Brand -->
                                 <StackPanel Grid.Column="2">
                                     <TextBlock Text="Hãng Camera" Foreground="#4B5563" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,3"/>
-                                    <ComboBox x:Name="CameraBrandCombo" Height="30" Style="{StaticResource ModernComboBox}" SelectionChanged="CameraBrandCombo_SelectionChanged">
+                                    <ComboBox x:Name="CameraBrandCombo" Height="35" Style="{StaticResource ModernComboBox}" SelectionChanged="CameraBrandCombo_SelectionChanged">
                                         <ComboBoxItem Content="Xiongmai/Generic" Tag="XM"/>
                                         <ComboBoxItem Content="Hikvision" Tag="HIK"/>
                                         <ComboBoxItem Content="Dahua" Tag="DAHUA"/>
@@ -98,19 +98,19 @@
                                 <!-- Username -->
                                 <StackPanel Grid.Column="0">
                                     <TextBlock Text="Tên Đăng Nhập" Foreground="#4B5563" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,3"/>
-                                    <TextBox x:Name="UserBox" Style="{StaticResource ModernTextBox}" Height="30" Text="admin" TextChanged="IpConfigField_TextChanged"/>
+                                    <TextBox x:Name="UserBox" Style="{StaticResource ModernTextBox}" Height="35" Text="admin" TextChanged="IpConfigField_TextChanged"/>
                                 </StackPanel>
                                 <!-- Password -->
                                 <StackPanel Grid.Column="2">
                                     <TextBlock Text="Mật Khẩu" Foreground="#4B5563" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,3"/>
-                                    <TextBox x:Name="PasswordBox" Style="{StaticResource ModernTextBox}" Height="30" Text="" TextChanged="IpConfigField_TextChanged"/>
+                                    <TextBox x:Name="PasswordBox" Style="{StaticResource ModernTextBox}" Height="35" Text="" TextChanged="IpConfigField_TextChanged"/>
                                 </StackPanel>
                             </Grid>
 
                             <!-- Generated RTSP URL -->
                             <StackPanel Margin="0,4,0,0">
                                 <TextBlock Text="Đường Dẫn RTSP URL" Foreground="#4B5563" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,3"/>
-                                <TextBox x:Name="RtspUrlBox" Style="{StaticResource ModernTextBox}" Height="30" Text="rtsp://"/>
+                                <TextBox x:Name="RtspUrlBox" Style="{StaticResource ModernTextBox}" Height="35" Text="rtsp://"/>
                                 <TextBlock Text="Được sinh tự động. Bạn có thể tự chỉnh sửa nếu chọn 'Custom URL'." Foreground="#9CA3AF" FontSize="9" Margin="0,2,0,0" TextWrapping="Wrap"/>
                             </StackPanel>
                         </StackPanel>
@@ -131,12 +131,6 @@
                             <TextBlock Text="Chọn Thiết Bị USB" Foreground="#4B5563" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,3"/>
                             <ComboBox x:Name="UsbDeviceCombo" Height="30" Style="{StaticResource ModernComboBox}"/>
                         </StackPanel>
-                        
-                        <!-- Test Connection Button -->
-                        <UniformGrid Columns="2" Margin="0,10,0,0">
-                            <Button x:Name="BtnTestConnect" Content="🔌 Chạy Thử" Style="{StaticResource ModernButton}" Height="34" Margin="0,0,5,0" Click="BtnTestConnect_Click"/>
-                            <Button x:Name="BtnStopConnect" Content="⏹️ Dừng Lại" Style="{StaticResource ModernOutlineButton}" Height="34" Margin="5,0,0,0" IsEnabled="False" Click="BtnStopConnect_Click"/>
-                        </UniformGrid>
                     </StackPanel>
                 </ScrollViewer>
             </Border>
