@@ -84,7 +84,7 @@
         <!-- Footer Actions -->
         <Border Grid.Row="2" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,1,0,0" Padding="0,15,0,0" Margin="0,15,0,0">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Content="Cancel" Click="Cancel_Click" Style="{StaticResource ModernOutlineButton}" Width="90" Margin="0,0,10,0" Height="32"/>
+                <Button Content="Cancel" Click="Cancel_Click" Style="{StaticResource ModernOutlineButton}" Width="90" Margin="0,0,10,0" Height="34"/>
                 <Button Content="Save" Click="Save_Click" Style="{StaticResource ModernButton}" Width="90" Height="32"/>
             </StackPanel>
         </Border>

@@ -1,63 +1,114 @@
 <Window x:Class="QuanLyGiuXe.Views.PositionDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Position Information" 
-        Height="280" Width="420"
+        Title="Position Information"
+        Width="440"
+        SizeToContent="Height"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         Background="{StaticResource BgLightBrush}"
         FontFamily="Segoe UI">
 
     <Grid Margin="20">
+
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Header -->
-        <Border Grid.Row="0" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,0,0,1" Padding="0,0,0,15" Margin="0,0,0,15">
+        <!-- HEADER -->
+        <Border Grid.Row="0"
+                BorderBrush="{StaticResource BorderLightBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="0,0,0,12"
+                Margin="0,0,0,12">
+
             <StackPanel Orientation="Horizontal">
-                <Border Background="{StaticResource APSBlueBrush}" CornerRadius="4" Padding="8" Margin="0,0,12,0">
+                <Border Background="{StaticResource APSBlueBrush}"
+                        CornerRadius="6"
+                        Padding="8"
+                        Margin="0,0,12,0">
                     <TextBlock Text="🏷️" Foreground="White" FontSize="14"/>
                 </Border>
+
                 <StackPanel>
-                    <TextBlock Text="POSITION DETAILS" FontSize="16" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}"/>
-                    <TextBlock Text="Define employee job position and designation" Style="{StaticResource SubTitleStyle}"/>
+                    <TextBlock Text="POSITION DETAILS"
+                               FontSize="16"
+                               FontWeight="Bold"
+                               Foreground="{StaticResource APSBlueBrush}"/>
+
+                    <TextBlock Text="Define employee job position"
+                               Foreground="#6B7280"
+                               FontSize="12"/>
                 </StackPanel>
             </StackPanel>
         </Border>
 
-        <!-- Form fields -->
+        <!-- FORM -->
         <StackPanel Grid.Row="1">
-            <Grid Margin="0,0,0,10">
+
+            <Grid Margin="0,0,0,12">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="120"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Text="Position Name *" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                <TextBox Grid.Column="1" x:Name="txtPositionName" Style="{StaticResource ModernTextBox}" Height="32"/>
+
+                <TextBlock Text="Position Name *"
+                           VerticalAlignment="Center"
+                           FontWeight="SemiBold"/>
+
+                <TextBox Grid.Column="1"
+                         x:Name="txtPositionName"
+                         Style="{StaticResource ModernTextBox}"
+                         Height="34"/>
             </Grid>
 
-            <Grid Margin="0,8,0,0">
+            <Grid Margin="0,0,0,4">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="120"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-                <TextBlock Text="Status *" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                <ComboBox Grid.Column="1" x:Name="cbStatus" Style="{StaticResource ModernComboBox}" Height="32">
+
+                <TextBlock Text="Status *"
+                           VerticalAlignment="Center"
+                           FontWeight="SemiBold"/>
+
+                <ComboBox Grid.Column="1"
+                          x:Name="cbStatus"
+                          Style="{StaticResource ModernComboBox}"
+                          Height="34">
                     <ComboBoxItem Content="Active" IsSelected="True"/>
                     <ComboBoxItem Content="Inactive"/>
                 </ComboBox>
             </Grid>
+
         </StackPanel>
 
-        <!-- Footer Actions -->
-        <Border Grid.Row="2" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,1,0,0" Padding="0,15,0,0" Margin="0,15,0,0">
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <Button Content="Cancel" Click="Cancel_Click" Style="{StaticResource ModernOutlineButton}" Width="90" Margin="0,0,10,0" Height="32"/>
-                <Button Content="Save" Click="Save_Click" Style="{StaticResource ModernButton}" Width="90" Height="32"/>
+        <!-- FOOTER -->
+        <Border Grid.Row="2"
+                BorderBrush="{StaticResource BorderLightBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="0,12,0,0"
+                Margin="0,12,0,0">
+
+            <StackPanel Orientation="Horizontal"
+                        HorizontalAlignment="Right">
+
+                <Button Content="Cancel"
+                        Click="Cancel_Click"
+                        Style="{StaticResource ModernOutlineButton}"
+                        Width="90"
+                        Height="34"
+                        Margin="0,0,10,0"/>
+
+                <Button Content="Save"
+                        Click="Save_Click"
+                        Style="{StaticResource ModernButton}"
+                        Width="90"
+                        Height="34"/>
             </StackPanel>
         </Border>
+
     </Grid>
 </Window>
