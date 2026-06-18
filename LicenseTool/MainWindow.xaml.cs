@@ -134,9 +134,16 @@ namespace LicenseTool
                 var machineList = selectedLicense.ActiveMachines.Select(m => new MachineViewModel
                 {
                     MachineFingerprint = m.MachineFingerprint,
-                    Status = m.Status,
-                    CreatedAt = m.CreatedAt,
-                    LastSeenAt = m.LastSeenAt
+                    Status             = m.Status,
+                    CreatedAt          = m.CreatedAt,
+                    LastSeenAt         = m.LastSeenAt,
+                    LastActivatedAt    = m.LastActivatedAt,
+                    MachineName        = m.MachineName ?? "",
+                    CpuId              = m.CpuId ?? "",
+                    DiskSerial         = m.DiskSerial ?? "",
+                    MacAddress         = m.MacAddress ?? "",
+                    OsVersion          = m.OsVersion ?? "",
+                    ActivatedFromIp    = m.ActivatedFromIp ?? ""
                 }).ToList();
 
                 MachinesGrid.ItemsSource = machineList;
@@ -304,16 +311,48 @@ namespace LicenseTool
         public string Status { get; set; } = "ACTIVE";
         public DateTime CreatedAt { get; set; }
         public DateTime LastSeenAt { get; set; }
+        public DateTime? LastActivatedAt { get; set; }
+        // Hardware info
+        public string? MachineName { get; set; }
+        public string? CpuId { get; set; }
+        public string? DiskSerial { get; set; }
+        public string? MacAddress { get; set; }
+        public string? OsVersion { get; set; }
+        public string? ActivatedFromIp { get; set; }
     }
 
     public class MachineViewModel
     {
         public string MachineFingerprint { get; set; } = string.Empty;
         public string Status { get; set; } = "ACTIVE";
-        public string FingerprintShort => MachineFingerprint.Length > 8 ? $"Device #{MachineFingerprint.Substring(0, 8)}" : "Device";
+        public string FingerprintShort => MachineFingerprint.Length > 8 ? MachineFingerprint[..8] + "..." : MachineFingerprint;
         public DateTime CreatedAt { get; set; }
-        public string CreatedAtFormatted => $"Kích hoạt: {CreatedAt.ToLocalTime():yyyy-MM-dd HH:mm}";
         public DateTime LastSeenAt { get; set; }
-        public string LastSeenAtFormatted => LastSeenAt.Year < 2000 ? "Chưa nhận" : LastSeenAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
+        public DateTime? LastActivatedAt { get; set; }
+
+        // Hardware info
+        public string MachineName { get; set; } = "";
+        public string CpuId { get; set; } = "";
+        public string DiskSerial { get; set; } = "";
+        public string MacAddress { get; set; } = "";
+        public string OsVersion { get; set; } = "";
+        public string ActivatedFromIp { get; set; } = "";
+
+        // Formatted display
+        public string DisplayName => !string.IsNullOrWhiteSpace(MachineName)
+            ? MachineName
+            : $"Device #{FingerprintShort}";
+        public string CreatedAtFormatted => $"Kích hoạt: {CreatedAt.ToLocalTime():yyyy-MM-dd HH:mm}";
+        public string LastSeenAtFormatted => LastSeenAt.Year < 2000
+            ? "Chưa nhận"
+            : LastSeenAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
+        public string LastActivatedFormatted => LastActivatedAt.HasValue
+            ? LastActivatedAt.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")
+            : "--";
+        public string MacAddressFormatted => string.IsNullOrWhiteSpace(MacAddress)
+            ? "--"
+            : string.Join(":", Enumerable.Range(0, MacAddress.Length / 2)
+                .Take(6)
+                .Select(i => MacAddress.Substring(i * 2, 2)));
     }
 }

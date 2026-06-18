@@ -71,86 +71,120 @@ namespace LicenseServer.Controllers
         public async Task<IActionResult> Activate([FromBody] ActivateLicenseRequest request)
         {
             if (string.IsNullOrWhiteSpace(request.LicenseKey) || string.IsNullOrWhiteSpace(request.MachineFingerprint))
-            {
                 return BadRequest(new { Message = "License key and machine fingerprint are required." });
-            }
 
             var license = await _context.Licenses
                 .Include(l => l.Machines)
                 .FirstOrDefaultAsync(l => l.LicenseKey == request.LicenseKey);
 
             if (license == null)
-            {
                 return NotFound(new { Message = "License key not found." });
-            }
 
             if (license.Status == "REVOKED")
-            {
                 return BadRequest(new { Message = "License key has been revoked." });
-            }
 
             if (license.ExpireDate < DateTime.UtcNow)
-            {
                 return BadRequest(new { Message = "License key has expired." });
+
+            // Lấy IP của client từ request
+            var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+            // Trích xuất hardware info từ request
+            var hw = request.HardwareInfo ?? new Dictionary<string, string>();
+            hw.TryGetValue("MachineName", out var machineName);
+            hw.TryGetValue("CpuId",       out var cpuId);
+            hw.TryGetValue("DiskSerial",  out var diskSerial);
+            hw.TryGetValue("MacAddress",  out var macAddress);
+            hw.TryGetValue("OsVersion",   out var osVersion);
+
+            // 1. Tìm theo fingerprint chính xác
+            var existingMachine = license.Machines.FirstOrDefault(m => m.Fingerprint == request.MachineFingerprint);
+
+            // 2. Nếu không tìm thấy theo fingerprint → thử tìm theo MachineName + MAC
+            //    (trường hợp fingerprint thay đổi do driver update / interface thay đổi)
+            if (existingMachine == null && !string.IsNullOrWhiteSpace(machineName) && !string.IsNullOrWhiteSpace(macAddress))
+            {
+                existingMachine = license.Machines.FirstOrDefault(m =>
+                    !string.IsNullOrWhiteSpace(m.MachineName) &&
+                    !string.IsNullOrWhiteSpace(m.MacAddress) &&
+                    m.MachineName.Equals(machineName, StringComparison.OrdinalIgnoreCase) &&
+                    m.MacAddress.Equals(macAddress, StringComparison.OrdinalIgnoreCase) &&
+                    m.Status == "ACTIVE");
+
+                if (existingMachine != null)
+                {
+                    // Cùng máy vật lý nhưng fingerprint thay đổi → cập nhật fingerprint
+                    Console.WriteLine($"[LICENSE] Fingerprint updated for machine '{machineName}' ({macAddress}): {existingMachine.Fingerprint} → {request.MachineFingerprint}");
+                    existingMachine.Fingerprint = request.MachineFingerprint;
+                }
             }
 
-            // Check if machine fingerprint is already registered
-            var existingMachine = license.Machines.FirstOrDefault(m => m.Fingerprint == request.MachineFingerprint);
             if (existingMachine == null)
             {
-                // Verify max limits (only count ACTIVE machines)
+                // Máy hoàn toàn mới → kiểm tra giới hạn (chỉ đếm ACTIVE)
                 var activeCount = license.Machines.Count(m => m.Status == "ACTIVE");
                 if (activeCount >= license.MaxMachines)
-                {
                     return BadRequest(new { Message = $"LICENSE EXCEEDED: Maximum active machine limit reached (max {license.MaxMachines})." });
-                }
 
-                // Register new machine
                 var newMachine = new Machine
                 {
-                    LicenseId = license.Id,
-                    Fingerprint = request.MachineFingerprint,
-                    Status = "ACTIVE",
-                    ActivatedAt = DateTime.UtcNow,
-                    LastHeartbeat = DateTime.UtcNow
+                    LicenseId       = license.Id,
+                    Fingerprint     = request.MachineFingerprint,
+                    Status          = "ACTIVE",
+                    ActivatedAt     = DateTime.UtcNow,
+                    LastHeartbeat   = DateTime.UtcNow,
+                    LastActivatedAt = DateTime.UtcNow,
+                    MachineName     = machineName,
+                    CpuId           = cpuId,
+                    DiskSerial      = diskSerial,
+                    MacAddress      = macAddress,
+                    OsVersion       = osVersion,
+                    ActivatedFromIp = clientIp
                 };
                 license.Machines.Add(newMachine);
 
                 if (license.Status == "NOT_ACTIVATED")
-                {
                     license.Status = "ACTIVE";
-                }
 
-                await _context.SaveChangesAsync();
+                Console.WriteLine($"[LICENSE] NEW machine registered: '{machineName}' ({macAddress}) IP={clientIp} Fingerprint={request.MachineFingerprint}");
             }
             else
             {
                 if (existingMachine.Status == "REVOKED")
-                {
                     return BadRequest(new { Message = "DEVICE_REVOKED: This device has been revoked and cannot use this license." });
-                }
 
-                existingMachine.LastHeartbeat = DateTime.UtcNow;
-                await _context.SaveChangesAsync();
+                // Cập nhật thông tin heartbeat và hardware (có thể thay đổi theo thời gian)
+                existingMachine.LastHeartbeat   = DateTime.UtcNow;
+                existingMachine.LastActivatedAt = DateTime.UtcNow;
+                existingMachine.ActivatedFromIp = clientIp;
+                if (!string.IsNullOrWhiteSpace(machineName))  existingMachine.MachineName = machineName;
+                if (!string.IsNullOrWhiteSpace(cpuId))        existingMachine.CpuId       = cpuId;
+                if (!string.IsNullOrWhiteSpace(diskSerial))   existingMachine.DiskSerial  = diskSerial;
+                if (!string.IsNullOrWhiteSpace(macAddress))   existingMachine.MacAddress  = macAddress;
+                if (!string.IsNullOrWhiteSpace(osVersion))    existingMachine.OsVersion   = osVersion;
+
+                Console.WriteLine($"[LICENSE] EXISTING machine re-activated: '{machineName}' ({macAddress}) IP={clientIp}");
             }
 
-            // Generate signed license response
+            await _context.SaveChangesAsync();
+
+            // Tạo signed license block trả về cho client
             var fingerprints = license.Machines
                 .Where(m => m.Status == "ACTIVE")
                 .Select(m => m.Fingerprint)
                 .OrderBy(f => f)
                 .ToList();
-            var payload = $"{license.Id}|{license.LicenseKey}|{license.ExpireDate:yyyy-MM-ddTHH:mm:ssZ}|{license.MaxMachines}|{string.Join(",", fingerprints)}";
+            var payload   = $"{license.Id}|{license.LicenseKey}|{license.ExpireDate:yyyy-MM-ddTHH:mm:ssZ}|{license.MaxMachines}|{string.Join(",", fingerprints)}";
             var signature = _rsaService.SignData(payload);
 
             return Ok(new
             {
-                LicenseId = license.Id,
-                LicenseKey = license.LicenseKey,
-                ExpireAt = license.ExpireDate.ToString("yyyy-MM-ddTHH:mm:ssZ"),
-                MaxMachines = license.MaxMachines,
+                LicenseId             = license.Id,
+                LicenseKey            = license.LicenseKey,
+                ExpireAt              = license.ExpireDate.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                MaxMachines           = license.MaxMachines,
                 RegisteredFingerprints = fingerprints,
-                Signature = signature
+                Signature             = signature
             });
         }
 
@@ -322,8 +356,16 @@ namespace LicenseServer.Controllers
                     {
                         MachineFingerprint = m.Fingerprint,
                         m.Status,
-                        CreatedAt = m.ActivatedAt,
-                        LastSeenAt = m.LastHeartbeat
+                        CreatedAt       = m.ActivatedAt,
+                        LastSeenAt      = m.LastHeartbeat,
+                        LastActivatedAt = m.LastActivatedAt,
+                        // Hardware info
+                        m.MachineName,
+                        m.CpuId,
+                        m.DiskSerial,
+                        m.MacAddress,
+                        m.OsVersion,
+                        m.ActivatedFromIp
                     }).ToList()
                 })
                 .ToListAsync();
@@ -357,6 +399,8 @@ namespace LicenseServer.Controllers
     {
         public string LicenseKey { get; set; } = string.Empty;
         public string MachineFingerprint { get; set; } = string.Empty;
+        /// <summary>Thông tin phần cứng từ client (MachineName, CpuId, DiskSerial, MacAddress, OsVersion)</summary>
+        public Dictionary<string, string>? HardwareInfo { get; set; }
     }
 
     public class ValidateLicenseRequest

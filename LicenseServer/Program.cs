@@ -47,6 +47,46 @@ using (var scope = app.Services.CreateScope())
     try
     {
         context.Database.EnsureCreated();
+
+        // ── Runtime migration: thêm cột hardware info nếu chưa có ──────────
+        // SQLite không hỗ trợ ALTER TABLE ADD COLUMN IF NOT EXISTS
+        // nên phải kiểm tra qua PRAGMA trước
+        var conn = context.Database.GetDbConnection();
+        if (conn.State != System.Data.ConnectionState.Open)
+            conn.Open();
+
+        // Lấy danh sách cột hiện tại của bảng Machines
+        var existingColumns = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = "PRAGMA table_info(Machines)";
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+                existingColumns.Add(reader.GetString(1)); // cột "name"
+        }
+
+        // Danh sách cột mới cần thêm: (tên, kiểu SQLite)
+        var newColumns = new (string Name, string Type)[]
+        {
+            ("LastActivatedAt", "TEXT NULL"),
+            ("MachineName",     "TEXT NULL"),
+            ("CpuId",           "TEXT NULL"),
+            ("DiskSerial",      "TEXT NULL"),
+            ("MacAddress",      "TEXT NULL"),
+            ("OsVersion",       "TEXT NULL"),
+            ("ActivatedFromIp", "TEXT NULL"),
+        };
+
+        foreach (var (colName, colType) in newColumns)
+        {
+            if (!existingColumns.Contains(colName))
+            {
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = $"ALTER TABLE Machines ADD COLUMN {colName} {colType}";
+                cmd.ExecuteNonQuery();
+                Console.WriteLine($"[DB Migration] Added column Machines.{colName}");
+            }
+        }
     }
     catch (Exception ex)
     {

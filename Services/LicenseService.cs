@@ -17,21 +17,34 @@ namespace QuanLyGiuXe.Services
     {
         public static string GetFingerprint()
         {
-            string cpuId = GetCpuId();
-            string diskId = GetDiskId();
-            string macAddress = GetMacAddress();
+            string cpuId   = GetCpuId();
+            string diskId  = GetDiskId();
+            string macAddr = GetStableMacAddress();
 
-            string raw = $"{cpuId.Trim()}#{diskId.Trim()}#{macAddress.Trim()}";
+            string raw = $"{cpuId.Trim()}#{diskId.Trim()}#{macAddr.Trim()}";
             using (var sha256 = SHA256.Create())
             {
                 byte[] bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(raw));
                 var sb = new StringBuilder();
-                foreach (byte b in bytes)
-                {
-                    sb.Append(b.ToString("x2"));
-                }
+                foreach (byte b in bytes) sb.Append(b.ToString("x2"));
                 return sb.ToString();
             }
+        }
+
+        /// <summary>
+        /// Thu thập thông tin phần cứng đầy đủ để gửi lên server khi kích hoạt.
+        /// </summary>
+        public static Dictionary<string, string> GetHardwareInfo()
+        {
+            return new Dictionary<string, string>
+            {
+                ["MachineName"]  = Environment.MachineName,
+                ["CpuId"]        = GetCpuId(),
+                ["DiskSerial"]   = GetDiskId(),
+                ["MacAddress"]   = GetStableMacAddress(),
+                ["OsVersion"]    = Environment.OSVersion.VersionString,
+                ["Fingerprint"]  = GetFingerprint()
+            };
         }
 
         private static string GetCpuId()
@@ -68,20 +81,63 @@ namespace QuanLyGiuXe.Services
             return "DISK_UNKNOWN";
         }
 
-        private static string GetMacAddress()
+        /// <summary>
+        /// Lấy MAC address ổn định nhất của máy.
+        /// Ưu tiên: Ethernet vật lý (loại trừ WiFi, Bluetooth, Virtual).
+        /// Chọn interface có tốc độ cao nhất trong cùng loại để đảm bảo tính nhất quán.
+        /// </summary>
+        private static string GetStableMacAddress()
         {
             try
             {
-                var nics = NetworkInterface.GetAllNetworkInterfaces();
-                foreach (var nic in nics)
-                {
-                    if (nic.OperationalStatus == OperationalStatus.Up && 
-                        nic.NetworkInterfaceType != NetworkInterfaceType.Loopback)
+                var candidates = NetworkInterface.GetAllNetworkInterfaces()
+                    .Where(nic =>
+                        nic.OperationalStatus == OperationalStatus.Up &&
+                        nic.NetworkInterfaceType != NetworkInterfaceType.Loopback &&
+                        nic.NetworkInterfaceType != NetworkInterfaceType.Tunnel &&
+                        nic.GetPhysicalAddress() != null &&
+                        nic.GetPhysicalAddress().ToString().Length >= 12)
+                    .Where(nic =>
                     {
-                        var addr = nic.GetPhysicalAddress().ToString();
-                        if (!string.IsNullOrWhiteSpace(addr)) return addr;
-                    }
-                }
+                        // Loại bỏ interface ảo / không ổn định
+                        var desc = nic.Description.ToLowerInvariant();
+                        var name = nic.Name.ToLowerInvariant();
+                        return !desc.Contains("virtual") &&
+                               !desc.Contains("vmware") &&
+                               !desc.Contains("virtualbox") &&
+                               !desc.Contains("hyper-v") &&
+                               !desc.Contains("bluetooth") &&
+                               !desc.Contains("vpn") &&
+                               !desc.Contains("pseudo") &&
+                               !desc.Contains("miniport") &&
+                               !desc.Contains("wan") &&
+                               !name.Contains("vethernet") &&
+                               !name.Contains("loopback");
+                    })
+                    .ToList();
+
+                // Ưu tiên 1: Ethernet vật lý (cáp)
+                var ethernet = candidates
+                    .Where(n => n.NetworkInterfaceType == NetworkInterfaceType.Ethernet)
+                    .OrderByDescending(n => n.Speed)  // chọn cái tốc độ cao nhất → ổn định nhất
+                    .FirstOrDefault();
+                if (ethernet != null)
+                    return ethernet.GetPhysicalAddress().ToString();
+
+                // Ưu tiên 2: Bất kỳ interface nào khác (loại trừ WiFi)
+                var other = candidates
+                    .Where(n => n.NetworkInterfaceType != NetworkInterfaceType.Wireless80211)
+                    .OrderByDescending(n => n.Speed)
+                    .FirstOrDefault();
+                if (other != null)
+                    return other.GetPhysicalAddress().ToString();
+
+                // Fallback cuối: WiFi (ít ổn định nhất)
+                var wifi = candidates
+                    .OrderByDescending(n => n.Speed)
+                    .FirstOrDefault();
+                if (wifi != null)
+                    return wifi.GetPhysicalAddress().ToString();
             }
             catch { }
             return "MAC_UNKNOWN";
@@ -109,9 +165,13 @@ namespace QuanLyGiuXe.Services
         private readonly string _licenseFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "license.lic");
         private readonly HttpClient _httpClient = new() { Timeout = TimeSpan.FromSeconds(10) };
 
-        private LicenseValidationService()
-        {
-        }
+        /// <summary>
+        /// Thời gian tối đa máy client được hoạt động offline mà không cần liên lạc server.
+        /// 72h = 3 ngày (đủ để qua weekend / mất điện server ngắn hạn).
+        /// </summary>
+        private const int OfflineGraceHours = 72;
+
+        private LicenseValidationService() { }
 
         public string GetServerUrl()
         {
@@ -129,10 +189,7 @@ namespace QuanLyGiuXe.Services
             }
         }
 
-        public string GetLocalFingerprint()
-        {
-            return MachineFingerprint.GetFingerprint();
-        }
+        public string GetLocalFingerprint() => MachineFingerprint.GetFingerprint();
 
         private static readonly byte[] Entropy = new byte[] { 67, 51, 80, 97, 114, 107, 105, 110, 103, 76, 105, 99, 101, 110, 115, 101 }; // "C3ParkingLicense"
 
@@ -158,12 +215,10 @@ namespace QuanLyGiuXe.Services
             try
             {
                 byte[] ciphertextBytes = Convert.FromBase64String(encryptedBase64);
-                byte[] plaintextBytes = ProtectedData.Unprotect(ciphertextBytes, Entropy, DataProtectionScope.LocalMachine);
+                byte[] plaintextBytes  = ProtectedData.Unprotect(ciphertextBytes, Entropy, DataProtectionScope.LocalMachine);
                 string dateStr = Encoding.UTF8.GetString(plaintextBytes);
                 if (DateTime.TryParse(dateStr, out var date))
-                {
                     return date.ToUniversalTime();
-                }
             }
             catch (Exception ex)
             {
@@ -224,7 +279,7 @@ namespace QuanLyGiuXe.Services
                 {
                     rsa.FromXmlString(PublicKeyXml);
                     var payloadBytes = Encoding.UTF8.GetBytes(payload);
-                    var sigBytes = Convert.FromBase64String(license.Signature);
+                    var sigBytes     = Convert.FromBase64String(license.Signature);
                     isSignatureValid = rsa.VerifyData(payloadBytes, CryptoConfig.MapNameToOID("SHA256")!, sigBytes);
                 }
 
@@ -267,40 +322,49 @@ namespace QuanLyGiuXe.Services
                 var localFingerprint = GetLocalFingerprint();
                 if (!license.RegisteredFingerprints.Contains(localFingerprint))
                 {
+                    // ── KHÔNG XÓA file license.lic ──────────────────────────────────────
+                    // Trước đây: xóa file → buộc nhập lại key → tạo device mới trong DB
+                    // Bây giờ: chỉ báo lỗi, để App hiển thị dialog kích hoạt lại với key hiện tại
+                    var hw = MachineFingerprint.GetHardwareInfo();
+                    Serilog.Log.Warning(
+                        "LICENSE_FINGERPRINT_MISMATCH: Fingerprint máy này ({Fingerprint}) không khớp danh sách đã đăng ký. " +
+                        "MachineName={MachineName}, CPU={CpuId}, Disk={DiskSerial}, MAC={MacAddress}, OS={OsVersion}",
+                        localFingerprint,
+                        hw.GetValueOrDefault("MachineName"),
+                        hw.GetValueOrDefault("CpuId"),
+                        hw.GetValueOrDefault("DiskSerial"),
+                        hw.GetValueOrDefault("MacAddress"),
+                        hw.GetValueOrDefault("OsVersion"));
+
                     errorMsg = "Thiết bị này chưa được đăng ký trong danh sách bản quyền của License Key này.";
                     return false;
                 }
 
                 // 6. Decrypt and check Offline Grace Period
                 DateTime? lastCheck = DecryptDate(license.LastServerCheckEncrypted ?? string.Empty);
-                
+
                 bool isServerOnline = TryCheckServerValidation(license.LicenseKey, out var serverError, out var wasContacted);
-                
+
                 if (wasContacted)
                 {
                     if (!isServerOnline)
                     {
+                        // Server nói invalid (bị thu hồi, hết hạn trên server...) → block nhưng KHÔNG xóa file
+                        // Để lại file để user có thể xem thông tin và liên hệ admin
+                        Serilog.Log.Warning("LICENSE_SERVER_REJECTED: {Error}", serverError);
                         errorMsg = serverError;
-                        try
-                        {
-                            if (File.Exists(_licenseFilePath))
-                            {
-                                File.Delete(_licenseFilePath);
-                            }
-                        }
-                        catch { }
                         return false;
                     }
-                    
-                    // Server is online and verified -> update the timestamp!
+
+                    // Server online và xác nhận hợp lệ → cập nhật timestamp
                     UpdateLastServerCheckTime();
                 }
                 else
                 {
-                    // Server is offline/unreachable -> perform grace check
+                    // Server offline/không kết nối được → kiểm tra grace period
                     if (lastCheck == null)
                     {
-                        errorMsg = "Hệ thống đang ngoại tuyến và không tìm thấy thông tin xác thực an toàn trước đó. Vui lòng kết nối Internet.";
+                        errorMsg = "Hệ thống đang ngoại tuyến và không tìm thấy thông tin xác thực an toàn trước đó. Vui lòng kết nối Internet để kích hoạt lần đầu.";
                         return false;
                     }
 
@@ -311,9 +375,11 @@ namespace QuanLyGiuXe.Services
                     }
 
                     var offlineDuration = DateTime.UtcNow - lastCheck.Value;
-                    if (offlineDuration > TimeSpan.FromHours(24))
+                    if (offlineDuration > TimeSpan.FromHours(OfflineGraceHours))
                     {
-                        errorMsg = $"Đã quá giới hạn hoạt động ngoại tuyến (24 giờ). Thời gian ngoại tuyến hiện tại: {offlineDuration.TotalHours:F1} giờ. Vui lòng kết nối Internet.";
+                        errorMsg = $"Đã quá giới hạn hoạt động ngoại tuyến ({OfflineGraceHours} giờ). " +
+                                   $"Thời gian ngoại tuyến hiện tại: {offlineDuration.TotalHours:F1} giờ. " +
+                                   $"Vui lòng kết nối Internet để xác thực lại bản quyền.";
                         return false;
                     }
                 }
@@ -329,18 +395,18 @@ namespace QuanLyGiuXe.Services
 
         private bool TryCheckServerValidation(string licenseKey, out string serverError, out bool wasContacted)
         {
-            serverError = string.Empty;
+            serverError  = string.Empty;
             wasContacted = false;
             try
             {
                 var localFingerprint = GetLocalFingerprint();
                 var requestBody = new
                 {
-                    LicenseKey = licenseKey,
+                    LicenseKey         = licenseKey,
                     MachineFingerprint = localFingerprint
                 };
 
-                var url = $"{GetServerUrl()}/api/license/validate";
+                var url     = $"{GetServerUrl()}/api/license/validate";
                 var content = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
 
                 using (var cts = new System.Threading.CancellationTokenSource(2000))
@@ -372,7 +438,7 @@ namespace QuanLyGiuXe.Services
             catch
             {
                 wasContacted = false;
-                return true; // Fallback to true, meaning we check offline grace period
+                return true; // Server không liên lạc được → dùng grace period
             }
             return true;
         }
@@ -382,15 +448,29 @@ namespace QuanLyGiuXe.Services
             try
             {
                 var localFingerprint = GetLocalFingerprint();
+                var hardwareInfo     = MachineFingerprint.GetHardwareInfo();
+
+                // Log hardware info khi kích hoạt để có thể debug sau này
+                Serilog.Log.Information(
+                    "LICENSE_ACTIVATE: Attempting activation for key {Key}. " +
+                    "Fingerprint={Fingerprint}, Machine={MachineName}, CPU={CpuId}, Disk={DiskSerial}, MAC={MacAddress}, OS={OsVersion}",
+                    licenseKey,
+                    localFingerprint,
+                    hardwareInfo.GetValueOrDefault("MachineName"),
+                    hardwareInfo.GetValueOrDefault("CpuId"),
+                    hardwareInfo.GetValueOrDefault("DiskSerial"),
+                    hardwareInfo.GetValueOrDefault("MacAddress"),
+                    hardwareInfo.GetValueOrDefault("OsVersion"));
+
                 var requestBody = new
                 {
-                    LicenseKey = licenseKey,
-                    MachineFingerprint = localFingerprint
+                    LicenseKey         = licenseKey,
+                    MachineFingerprint = localFingerprint,
+                    HardwareInfo       = hardwareInfo     // Gửi thông tin phần cứng lên server
                 };
 
-                var url = $"{GetServerUrl()}/api/license/activate";
-                var content = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
-
+                var url      = $"{GetServerUrl()}/api/license/activate";
+                var content  = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
                 var response = await _httpClient.PostAsync(url, content);
                 var responseString = await response.Content.ReadAsStringAsync();
 
@@ -401,26 +481,23 @@ namespace QuanLyGiuXe.Services
                     {
                         var errObj = JsonConvert.DeserializeAnonymousType(responseString, new { Message = "" });
                         if (errObj != null && !string.IsNullOrEmpty(errObj.Message))
-                        {
                             serverMsg = errObj.Message;
-                        }
                     }
                     catch { }
 
                     return (false, serverMsg);
                 }
 
-                var settings = new JsonSerializerSettings { DateParseHandling = DateParseHandling.None };
+                var settings     = new JsonSerializerSettings { DateParseHandling = DateParseHandling.None };
                 var licenseBlock = JsonConvert.DeserializeObject<LicenseBlock>(responseString, settings);
                 if (licenseBlock == null || string.IsNullOrEmpty(licenseBlock.Signature))
-                {
                     return (false, "Không thể giải mã bản quyền trả về từ máy chủ.");
-                }
 
                 licenseBlock.LastServerCheckEncrypted = EncryptDate(DateTime.UtcNow);
                 var updatedJson = JsonConvert.SerializeObject(licenseBlock, Formatting.Indented);
-
                 File.WriteAllText(_licenseFilePath, updatedJson, Encoding.UTF8);
+
+                Serilog.Log.Information("LICENSE_ACTIVATE_SUCCESS: Key {Key} activated for fingerprint {Fingerprint}", licenseKey, localFingerprint);
                 return (true, string.Empty);
             }
             catch (Exception ex)
