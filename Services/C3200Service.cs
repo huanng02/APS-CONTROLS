@@ -97,6 +97,81 @@ namespace QuanLyGiuXe.Services
             _barrierDuration = barrierDuration is > 0 and <= 254 ? barrierDuration : 5;
         }
 
+        // ── Kiểm tra quyền sở hữu controller ────────────────────────────────────
+
+        /// <summary>
+        /// Kiểm tra xem máy hiện tại có phải là máy được cấu hình để điều khiển
+        /// controller này không (dựa theo PcIp lưu trong database).
+        /// Nếu <paramref name="pcIp"/> rỗng hoặc 127.0.0.1 → luôn cho phép (backward-compatible).
+        /// </summary>
+        public static bool IsOwnerOfController(string? pcIp)
+        {
+            // Nếu PcIp chưa được cấu hình → không giới hạn (tương thích ngược)
+            if (string.IsNullOrWhiteSpace(pcIp) ||
+                pcIp.Equals("127.0.0.1", StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            var localIps = GetLocalIpAddresses();
+            return localIps.Contains(pcIp.Trim());
+        }
+
+        /// <summary>
+        /// Trả về tập hợp tất cả IPv4 thực của máy hiện tại.
+        /// Loại bỏ: loopback, APIPA (169.254.x.x), tunnel, interface ảo (VMware, VPN…).
+        /// </summary>
+        public static System.Collections.Generic.HashSet<string> GetLocalIpAddresses()
+        {
+            var result = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                foreach (var nic in System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces())
+                {
+                    if (nic.OperationalStatus != System.Net.NetworkInformation.OperationalStatus.Up)
+                        continue;
+                    if (nic.NetworkInterfaceType == System.Net.NetworkInformation.NetworkInterfaceType.Loopback ||
+                        nic.NetworkInterfaceType == System.Net.NetworkInformation.NetworkInterfaceType.Tunnel)
+                        continue;
+
+                    // Bỏ qua interface ảo
+                    var desc = nic.Description.ToLowerInvariant();
+                    var name = nic.Name.ToLowerInvariant();
+                    if (desc.Contains("virtual") || desc.Contains("vmware") ||
+                        desc.Contains("virtualbox") || desc.Contains("hyper-v") ||
+                        desc.Contains("vpn") || desc.Contains("pseudo") ||
+                        name.Contains("vethernet") || name.Contains("loopback"))
+                        continue;
+
+                    foreach (var addr in nic.GetIPProperties().UnicastAddresses)
+                    {
+                        if (addr.Address.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork)
+                            continue;
+                        var ipStr = addr.Address.ToString();
+                        if (ipStr == "127.0.0.1" || ipStr.StartsWith("169.254."))
+                            continue;
+                        result.Add(ipStr);
+                    }
+                }
+            }
+            catch { }
+
+            // Fallback qua DNS nếu không tìm được gì
+            if (result.Count == 0)
+            {
+                try
+                {
+                    foreach (var addr in System.Net.Dns.GetHostEntry(System.Net.Dns.GetHostName()).AddressList)
+                    {
+                        if (addr.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork &&
+                            addr.ToString() != "127.0.0.1")
+                            result.Add(addr.ToString());
+                    }
+                }
+                catch { }
+            }
+
+            return result;
+        }
+
         // ── Kết nối ───────────────────────────────────────────────────────────────
 
         public async Task<bool> ConnectAsync()

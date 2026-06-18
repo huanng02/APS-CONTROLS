@@ -1443,8 +1443,42 @@ namespace QuanLyGiuXe.ViewModels
                     ip: zk.IpAddress, port: zk.TcpPort,
                     password: zk.Password, timeoutMs: zk.Timeout,
                     barrierDuration: zk.BarrierDuration);
-                
-                await C3200Service.Instance.ConnectAsync();
+
+                // ── Kiểm tra quyền sở hữu: chỉ máy có PcIp khớp mới được connect ──
+                bool isC3Owner = true; // mặc định cho phép nếu không tìm được config
+                try
+                {
+                    var allControllers = await ParkingTopologyService.Instance.GetControllersAsync();
+                    var matchedCtrl = allControllers
+                        .FirstOrDefault(c => c.IsActive &&
+                            c.IpAddress.Trim().Equals(zk.IpAddress.Trim(), StringComparison.OrdinalIgnoreCase));
+
+                    if (matchedCtrl != null && !string.IsNullOrWhiteSpace(matchedCtrl.PcIp))
+                    {
+                        isC3Owner = C3200Service.IsOwnerOfController(matchedCtrl.PcIp);
+                        if (isC3Owner)
+                        {
+                            LoggingService.Instance.LogInfo("C3_OWNER", "MainViewModel",
+                                $"Máy này là owner của controller {zk.IpAddress} (PcIp={matchedCtrl.PcIp}). Bắt đầu kết nối.");
+                        }
+                        else
+                        {
+                            var myIps = string.Join(", ", C3200Service.GetLocalIpAddresses());
+                            LoggingService.Instance.LogInfo("C3_SKIP", "MainViewModel",
+                                $"Controller {zk.IpAddress} thuộc về máy {matchedCtrl.PcIp}. " +
+                                $"Máy này ({myIps}) sẽ không kết nối vào controller đó.");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Nếu lỗi khi kiểm tra → vẫn cho phép connect (fail-safe)
+                    LoggingService.Instance.LogError("C3_OWNER_CHECK_ERROR", "MainViewModel",
+                        "Không kiểm tra được PcIp ownership, cho phép connect mặc định.", ex);
+                }
+
+                if (isC3Owner)
+                    await C3200Service.Instance.ConnectAsync();
 
                 // 2. Heavy data loading removed from startup (Load on demand)
                 UpdateVehicleCount();

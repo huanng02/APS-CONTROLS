@@ -329,21 +329,65 @@ namespace QuanLyGiuXe.Views
                         };
                         var candidates = new List<string>();
 
-                        // 1. Dynamically detected local PC IP
-                        string localIp = "127.0.0.1";
+                        // 1. Enumerate all network interfaces, prioritize Ethernet over WiFi
                         try
                         {
-                            using (var socket = new System.Net.Sockets.Socket(System.Net.Sockets.AddressFamily.InterNetwork, System.Net.Sockets.SocketType.Dgram, 0))
+                            // Group by interface type priority:
+                            // Priority 1: Ethernet (cáp mạng vật lý)
+                            // Priority 2: Other wired
+                            // Priority 3: Wireless (WiFi) - thấp nhất
+                            var ethernetIps   = new List<string>();
+                            var otherIps      = new List<string>();
+                            var wirelessIps   = new List<string>();
+
+                            foreach (var nic in System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces())
                             {
-                                string targetIp = ConnectionManager.Instance.CurrentConfig?.ServerIP ?? "8.8.8.8";
-                                socket.Connect(targetIp, 65530);
-                                if (socket.LocalEndPoint is System.Net.IPEndPoint endPoint)
+                                // Bỏ qua loopback, virtual, tunnel, và interface không hoạt động
+                                if (nic.OperationalStatus != System.Net.NetworkInformation.OperationalStatus.Up)
+                                    continue;
+                                if (nic.NetworkInterfaceType == System.Net.NetworkInformation.NetworkInterfaceType.Loopback)
+                                    continue;
+                                if (nic.NetworkInterfaceType == System.Net.NetworkInformation.NetworkInterfaceType.Tunnel)
+                                    continue;
+
+                                // Bỏ qua các interface ảo (VMware, VirtualBox, Hyper-V, etc.)
+                                var name = nic.Name.ToLowerInvariant();
+                                var desc = nic.Description.ToLowerInvariant();
+                                if (desc.Contains("virtual") || desc.Contains("vmware") ||
+                                    desc.Contains("virtualbox") || desc.Contains("hyper-v") ||
+                                    desc.Contains("vpn") || desc.Contains("pseudo") ||
+                                    name.Contains("vethernet") || name.Contains("loopback"))
+                                    continue;
+
+                                foreach (var addr in nic.GetIPProperties().UnicastAddresses)
                                 {
-                                    localIp = endPoint.Address.ToString();
+                                    if (addr.Address.AddressFamily != System.Net.Sockets.AddressFamily.InterNetwork)
+                                        continue;
+                                    string ipStr = addr.Address.ToString();
+                                    if (ipStr == "127.0.0.1" || ipStr.StartsWith("169.254."))
+                                        continue; // bỏ APIPA
+
+                                    if (nic.NetworkInterfaceType == System.Net.NetworkInformation.NetworkInterfaceType.Ethernet)
+                                        ethernetIps.Add(ipStr);
+                                    else if (nic.NetworkInterfaceType == System.Net.NetworkInformation.NetworkInterfaceType.Wireless80211)
+                                        wirelessIps.Add(ipStr);
+                                    else
+                                        otherIps.Add(ipStr);
                                 }
                             }
+
+                            // Thêm theo thứ tự ưu tiên: Ethernet → Other → WiFi
+                            foreach (var ip in ethernetIps)
+                                if (!candidates.Contains(ip)) candidates.Add(ip);
+                            foreach (var ip in otherIps)
+                                if (!candidates.Contains(ip)) candidates.Add(ip);
+                            foreach (var ip in wirelessIps)
+                                if (!candidates.Contains(ip)) candidates.Add(ip);
                         }
-                        catch
+                        catch { }
+
+                        // 2. Fallback nếu không tìm được IP nào
+                        if (candidates.Count == 0)
                         {
                             try
                             {
@@ -353,25 +397,19 @@ namespace QuanLyGiuXe.Views
                                     if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
                                     {
                                         string ipStr = ip.ToString();
-                                        if (ipStr != "127.0.0.1")
-                                        {
-                                            localIp = ipStr;
-                                            break;
-                                        }
+                                        if (ipStr != "127.0.0.1" && !ipStr.StartsWith("169.254.") && !candidates.Contains(ipStr))
+                                            candidates.Add(ipStr);
                                     }
                                 }
                             }
                             catch { }
                         }
 
-                        if (!string.IsNullOrWhiteSpace(localIp))
-                            candidates.Add(localIp);
-
-                        // 2. Loopback
+                        // 3. Loopback
                         if (!candidates.Contains("127.0.0.1"))
                             candidates.Add("127.0.0.1");
 
-                        // 3. Existing controllers' PcIps
+                        // 4. Existing controllers' PcIps
                         try
                         {
                             var allControllers = await ParkingTopologyService.Instance.GetControllersAsync();
