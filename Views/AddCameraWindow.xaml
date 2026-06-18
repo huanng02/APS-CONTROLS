@@ -115,16 +115,7 @@
                             </StackPanel>
                         </StackPanel>
 
-                        <!-- Camera Resolution -->
-                        <StackPanel Margin="0,0,0,8">
-                            <TextBlock Text="Độ Phân Giải" Foreground="#4B5563" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,3"/>
-                            <ComboBox x:Name="ResolutionCombo" Height="30" Style="{StaticResource ModernComboBox}">
-                                <ComboBoxItem Content="Mặc định" Tag=""/>
-                                <ComboBoxItem Content="1920x1080" Tag="1920x1080"/>
-                                <ComboBoxItem Content="1280x720" Tag="1280x720"/>
-                                <ComboBoxItem Content="640x480" Tag="640x480"/>
-                            </ComboBox>
-                        </StackPanel>
+                       
                         
                         <!-- USB Device Selection (Visible for USB Camera) -->
                         <StackPanel x:Name="UsbConfigPanel" Margin="0,0,0,15" Visibility="Collapsed">

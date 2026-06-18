@@ -97,10 +97,6 @@ namespace QuanLyGiuXe.Views
 
             CameraTypeCombo.SelectedIndex = 0;
             CameraBrandCombo.SelectedIndex = 0;
-            if (ResolutionCombo != null)
-            {
-                ResolutionCombo.SelectedIndex = 0;
-            }
             
             // Populate USB devices
             foreach (FilterInfo device in _usbDevices)
@@ -176,7 +172,6 @@ namespace QuanLyGiuXe.Views
             if (CameraBrandCombo != null) CameraBrandCombo.IsEnabled = false;
             if (UserBox != null) UserBox.IsEnabled = false;
             if (PasswordBox != null) PasswordBox.IsEnabled = false;
-            if (ResolutionCombo != null) ResolutionCombo.IsEnabled = false;
             RtspUrlBox.IsEnabled = false;
             UsbDeviceCombo.IsEnabled = false;
             BtnAddCamera.IsEnabled = false;
@@ -290,7 +285,6 @@ namespace QuanLyGiuXe.Views
                 if (CameraBrandCombo != null) CameraBrandCombo.IsEnabled = true;
                 if (UserBox != null) UserBox.IsEnabled = true;
                 if (PasswordBox != null) PasswordBox.IsEnabled = true;
-                if (ResolutionCombo != null) ResolutionCombo.IsEnabled = true;
                 RtspUrlBox.IsEnabled = true;
                 UsbDeviceCombo.IsEnabled = true;
             }
@@ -441,19 +435,7 @@ namespace QuanLyGiuXe.Views
 
             int? resWidth = null;
             int? resHeight = null;
-            if (ResolutionCombo != null && ResolutionCombo.SelectedItem is ComboBoxItem selectedResItem)
-            {
-                string tag = selectedResItem.Tag?.ToString() ?? "";
-                if (!string.IsNullOrEmpty(tag) && tag.Contains('x'))
-                {
-                    var parts = tag.Split('x');
-                    if (parts.Length == 2 && int.TryParse(parts[0], out int w) && int.TryParse(parts[1], out int h))
-                    {
-                        resWidth = w;
-                        resHeight = h;
-                    }
-                }
-            }
+            
 
             var camera = new QuanLyGiuXe.Models.CameraConfig
             {
