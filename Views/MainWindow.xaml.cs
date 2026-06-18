@@ -68,7 +68,7 @@ namespace QuanLyGiuXe
                         if (DataContext is MainViewModel vm)
                         {
                             vm.IsLprAvailable = ok;
-                            vm.LprStatusLabel = ok ? "APS Vision AI: OK" : "APS Vision AI: Unavailable";
+                            vm.LprStatusLabel = ok ? "APS Vision AI: Hoạt động" : "APS Vision AI: Không phản hồi";
                         }
                     }));
                 }

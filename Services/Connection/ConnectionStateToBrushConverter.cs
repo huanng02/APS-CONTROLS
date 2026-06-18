@@ -20,6 +20,15 @@ namespace QuanLyGiuXe.Services.Connection
                     _ => Brushes.Gray
                 };
             }
+
+            // Hỗ trợ bool (IsLprAvailable): true = xanh, false = đỏ
+            if (value is bool available)
+            {
+                return available
+                    ? new SolidColorBrush(System.Windows.Media.Color.FromRgb(46, 204, 113))  // Green
+                    : new SolidColorBrush(System.Windows.Media.Color.FromRgb(231, 76, 60));   // Red
+            }
+
             return Brushes.Gray;
         }
 

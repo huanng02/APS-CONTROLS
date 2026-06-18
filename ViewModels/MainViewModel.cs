@@ -1549,9 +1549,9 @@ namespace QuanLyGiuXe.ViewModels
                             IsC3Connected = C3State == Services.Connection.ConnectionState.Connected;
                             C3StatusLabel = C3State switch
                             {
-                                Services.Connection.ConnectionState.Connected => "C3-200",
-                                Services.Connection.ConnectionState.Reconnecting => "C3-200 (Đang thử lại...)",
-                                _ => "C3-200 (Mất kết nối)"
+                                Services.Connection.ConnectionState.Connected    => "C3-200: Kết nối thành công",
+                                Services.Connection.ConnectionState.Reconnecting => "C3-200: Đang thử kết nối lại...",
+                                _                                                => "C3-200: Mất kết nối"
                             };
                             break;
                     }
