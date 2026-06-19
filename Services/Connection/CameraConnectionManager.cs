@@ -86,6 +86,17 @@ namespace QuanLyGiuXe.Services.Connection
         public void StartStream(string consumerKey, string url, int targetWidth, int targetHeight, int maxFps)
         {
             if (string.IsNullOrEmpty(url)) return;
+
+            try
+            {
+                var config = AppConfig.Load();
+                if (config?.Cameras?.AutoUseSubstream ?? true)
+                {
+                    url = ConvertToSubstreamUrl(url);
+                }
+            }
+            catch { }
+
             string normalizedUrl = NormalizeUrl(url);
             
             lock (_managerLock)
@@ -383,6 +394,41 @@ namespace QuanLyGiuXe.Services.Connection
                 }
                 catch {}
             }
+        }
+
+        public static string ConvertToSubstreamUrl(string url)
+        {
+            if (string.IsNullOrEmpty(url)) return url;
+
+            // Dahua / KBVision: subtype=0 -> subtype=1
+            if (url.Contains("subtype=0"))
+            {
+                return url.Replace("subtype=0", "subtype=1");
+            }
+
+            // Hikvision / Ezviz / Imou: /main/ -> /sub/
+            if (url.Contains("/main/"))
+            {
+                return url.Replace("/main/", "/sub/");
+            }
+
+            // Hikvision / Ezviz: /Channels/101 -> /Channels/102
+            if (url.Contains("/Channels/101"))
+            {
+                return url.Replace("/Channels/101", "/Channels/102");
+            }
+            if (url.Contains("/channels/101"))
+            {
+                return url.Replace("/channels/101", "/channels/102");
+            }
+
+            // Other cameras (e.g. channel=0_stream=0 -> channel=0_stream=1)
+            if (url.Contains("stream=0"))
+            {
+                return System.Text.RegularExpressions.Regex.Replace(url, @"stream=0(?!\d)", "stream=1", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            }
+
+            return url;
         }
     }
 }

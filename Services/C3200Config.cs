@@ -240,6 +240,7 @@ namespace QuanLyGiuXe.Services
         public string TargetResolution { get; set; } = "480x360";
         public int SaveJpegQuality { get; set; } = 70;
         public int SaveMaxWidth { get; set; } = 1280;
+        public bool AutoUseSubstream { get; set; } = true;
     }
 
     public sealed class LaneCameraSetting
