@@ -466,87 +466,98 @@
                                             <RowDefinition Height="*"/>
                                         </Grid.RowDefinitions>
 
-                                        <!-- Title -->
-                                        <TextBlock Grid.Row="0" Text="DANH SÁCH NHÂN VIÊN TRONG PHÒNG" 
-                                                   FontSize="12" FontWeight="Bold" FontFamily="Segoe UI, Inter, Arial"
-                                                   Foreground="{StaticResource TopoTextSecondaryBrush}" Margin="0,0,0,12"/>
+                                         <!-- Title & Actions Header -->
+                                         <Grid Grid.Row="0" Margin="0,0,0,12">
+                                             <Grid.ColumnDefinitions>
+                                                 <ColumnDefinition Width="*"/>
+                                                 <ColumnDefinition Width="Auto"/>
+                                             </Grid.ColumnDefinitions>
 
-                                        <!-- Search & Filters -->
-                                        <Grid Grid.Row="1" Margin="0,0,0,12">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-                                            
-                                            <WrapPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                                                 <!-- Search TextBox -->
-                                                 <TextBox Style="{StaticResource TopoSearchBox}" Width="190" Height="32" Margin="0,0,0,4"
-                                                          Text="{Binding DeptEmpSearchText, UpdateSourceTrigger=PropertyChanged}">
-                                                     <TextBox.Template>
-                                                         <ControlTemplate TargetType="TextBox">
-                                                             <Border x:Name="border"
-                                                                     Background="{TemplateBinding Background}"
-                                                                     BorderBrush="{TemplateBinding BorderBrush}"
-                                                                     BorderThickness="{TemplateBinding BorderThickness}"
-                                                                     CornerRadius="6"
-                                                                     SnapsToDevicePixels="True">
-                                                                 <Grid>
-                                                                     <TextBlock x:Name="placeholder"
-                                                                                Text="🔍 Tìm tên, mã NV, SĐT..."
-                                                                                Foreground="{StaticResource TopoTextMutedBrush}"
-                                                                                FontSize="12"
-                                                                                Margin="10,0"
-                                                                                VerticalAlignment="Center"
-                                                                                Visibility="Collapsed"/>
-                                                                     <ScrollViewer x:Name="PART_ContentHost"
-                                                                                   Margin="8,0"
-                                                                                   VerticalAlignment="Center"/>
-                                                                 </Grid>
-                                                             </Border>
-                                                             <ControlTemplate.Triggers>
-                                                                 <Trigger Property="Text" Value="">
-                                                                     <Setter TargetName="placeholder" Property="Visibility" Value="Visible"/>
-                                                                 </Trigger>
-                                                                 <Trigger Property="Text" Value="{x:Null}">
-                                                                     <Setter TargetName="placeholder" Property="Visibility" Value="Visible"/>
-                                                                 </Trigger>
-                                                                 <Trigger Property="IsFocused" Value="True">
-                                                                     <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource TopoPrimaryBrush}"/>
-                                                                     <Setter TargetName="placeholder" Property="Visibility" Value="Collapsed"/>
-                                                                 </Trigger>
-                                                             </ControlTemplate.Triggers>
-                                                         </ControlTemplate>
-                                                     </TextBox.Template>
-                                                 </TextBox>
- 
-                                                 <!-- Status Filter -->
-                                                 <TextBlock Text="Trạng thái:" VerticalAlignment="Center" Margin="12,0,6,4" 
+                                             <!-- Title -->
+                                             <TextBlock Grid.Column="0" Text="DANH SÁCH NHÂN VIÊN TRONG PHÒNG" 
+                                                        FontSize="12" FontWeight="Bold" FontFamily="Segoe UI, Inter, Arial"
+                                                        Foreground="{StaticResource TopoTextSecondaryBrush}" VerticalAlignment="Center"/>
+
+                                             <!-- Action Buttons -->
+                                             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                                 <Button Content="📥 Tải Template" Click="DownloadTemplate_Click" 
+                                                         Style="{StaticResource TopoOutlineButton}" Height="32" Padding="12,0" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                                 <Button Content="📁 Import Excel" Click="OpenImport_Click" 
+                                                         Style="{StaticResource TopoOutlineButton}" Height="32" Padding="12,0" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                                 <Button Content="➕ Thêm nhân viên" 
+                                                         Style="{StaticResource TopoActionButton}" Height="32" Padding="12,0" Margin="0" VerticalAlignment="Center"
+                                                         Command="{Binding AddEmpCommand}" 
+                                                         CommandParameter="{Binding SelectedNode.DataItem}"/>
+                                             </StackPanel>
+                                         </Grid>
+
+                                         <!-- Search & Filters -->
+                                         <WrapPanel Grid.Row="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,12">
+                                             <!-- Search TextBox -->
+                                             <TextBox Style="{StaticResource TopoSearchBox}" Width="220" Height="32" Margin="0,0,16,4" VerticalAlignment="Center"
+                                                      Text="{Binding DeptEmpSearchText, UpdateSourceTrigger=PropertyChanged}">
+                                                 <TextBox.Template>
+                                                     <ControlTemplate TargetType="TextBox">
+                                                         <Border x:Name="border"
+                                                                 Background="{TemplateBinding Background}"
+                                                                 BorderBrush="{TemplateBinding BorderBrush}"
+                                                                 BorderThickness="{TemplateBinding BorderThickness}"
+                                                                 CornerRadius="6"
+                                                                 SnapsToDevicePixels="True">
+                                                             <Grid>
+                                                                 <TextBlock x:Name="placeholder"
+                                                                            Text="🔍 Tìm tên, mã NV, SĐT..."
+                                                                            Foreground="{StaticResource TopoTextMutedBrush}"
+                                                                            FontSize="12"
+                                                                            Margin="10,0"
+                                                                            VerticalAlignment="Center"
+                                                                            Visibility="Collapsed"/>
+                                                                 <ScrollViewer x:Name="PART_ContentHost"
+                                                                               Margin="8,0"
+                                                                               VerticalAlignment="Center"/>
+                                                             </Grid>
+                                                         </Border>
+                                                         <ControlTemplate.Triggers>
+                                                             <Trigger Property="Text" Value="">
+                                                                 <Setter TargetName="placeholder" Property="Visibility" Value="Visible"/>
+                                                             </Trigger>
+                                                             <Trigger Property="Text" Value="{x:Null}">
+                                                                 <Setter TargetName="placeholder" Property="Visibility" Value="Visible"/>
+                                                             </Trigger>
+                                                             <Trigger Property="IsFocused" Value="True">
+                                                                 <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource TopoPrimaryBrush}"/>
+                                                                 <Setter TargetName="placeholder" Property="Visibility" Value="Collapsed"/>
+                                                             </Trigger>
+                                                         </ControlTemplate.Triggers>
+                                                     </ControlTemplate>
+                                                 </TextBox.Template>
+                                             </TextBox>
+
+                                             <!-- Status Filter -->
+                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,16,4">
+                                                 <TextBlock Text="Trạng thái:" VerticalAlignment="Center" Margin="0,0,6,0" 
                                                             FontSize="12" Foreground="{StaticResource TopoTextSecondaryBrush}"/>
                                                  <ComboBox SelectedValue="{Binding DeptEmpStatusFilter, Mode=TwoWay}" 
                                                            SelectedValuePath="Content" Style="{StaticResource ModernComboBox}" 
-                                                           Width="85" Height="32" Margin="0,0,0,4">
+                                                           Width="90" Height="32" VerticalAlignment="Center">
                                                      <ComboBoxItem Content="All" IsSelected="True"/>
                                                      <ComboBoxItem Content="Active"/>
                                                      <ComboBoxItem Content="Inactive"/>
                                                  </ComboBox>
- 
-                                                 <!-- Position Filter -->
-                                                 <TextBlock Text="Chức vụ:" VerticalAlignment="Center" Margin="12,0,6,4" 
+                                             </StackPanel>
+
+                                             <!-- Position Filter -->
+                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,16,4">
+                                                 <TextBlock Text="Chức vụ:" VerticalAlignment="Center" Margin="0,0,6,0" 
                                                             FontSize="12" Foreground="{StaticResource TopoTextSecondaryBrush}"/>
                                                  <ComboBox ItemsSource="{Binding DeptEmpPositionFilterList}"
                                                            SelectedValue="{Binding DeptEmpPositionFilter, Mode=TwoWay}"
                                                            SelectedValuePath="Id"
                                                            DisplayMemberPath="PositionName"
                                                            Style="{StaticResource ModernComboBox}" 
-                                                           Width="125" Height="32" Margin="0,0,0,4"/>
-                                             </WrapPanel>
-
-                                            <!-- Add Employee Button -->
-                                            <Button Grid.Column="1" Content="➕ Thêm nhân viên" 
-                                                    Style="{StaticResource TopoOutlineButton}" Height="32" Padding="12,0"
-                                                    Command="{Binding AddEmpCommand}" 
-                                                    CommandParameter="{Binding SelectedNode.DataItem}"/>
-                                        </Grid>
+                                                           Width="150" Height="32" VerticalAlignment="Center"/>
+                                             </StackPanel>
+                                         </WrapPanel>
 
                                         <!-- Employees DataGrid -->
                                         <DataGrid Grid.Row="2" ItemsSource="{Binding FilteredDeptEmployees}"

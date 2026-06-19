@@ -43,7 +43,11 @@
                         </ComboBox>
                     </StackPanel>
 
-                    <Button Grid.Column="1" Content="Add Employee" Command="{Binding AddCommand}" Style="{StaticResource ModernButton}" Height="36" Padding="15,0"/>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <Button Content="Tải Template" Click="DownloadTemplate_Click" Style="{StaticResource ModernOutlineButton}" Height="36" Padding="15,0" Margin="0,0,10,0"/>
+                        <Button Content="Import Excel" Click="OpenImport_Click" Style="{StaticResource ModernOutlineButton}" Height="36" Padding="15,0" Margin="0,0,10,0"/>
+                        <Button Content="Add Employee" Command="{Binding AddCommand}" Style="{StaticResource ModernButton}" Height="36" Padding="15,0"/>
+                    </StackPanel>
                 </Grid>
 
                 <!-- Row 2: Cascading Filters -->
