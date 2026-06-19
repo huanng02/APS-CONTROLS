@@ -92,7 +92,6 @@ namespace QuanLyGiuXe.Services
             {
                 var candidates = NetworkInterface.GetAllNetworkInterfaces()
                     .Where(nic =>
-                        nic.OperationalStatus == OperationalStatus.Up &&
                         nic.NetworkInterfaceType != NetworkInterfaceType.Loopback &&
                         nic.NetworkInterfaceType != NetworkInterfaceType.Tunnel &&
                         nic.GetPhysicalAddress() != null &&
