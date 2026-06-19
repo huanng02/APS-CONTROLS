@@ -300,6 +300,12 @@ namespace QuanLyGiuXe.Services
             var existingEmployees = BuildEmployeeDict();
             var existingCards = BuildCardDict();
 
+            var employeeIdToCode = new Dictionary<int, string>();
+            foreach (var kvp in existingEmployees)
+            {
+                employeeIdToCode[kvp.Value] = kvp.Key;
+            }
+
             var uidsInFile = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var codesInFile = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
@@ -422,7 +428,7 @@ namespace QuanLyGiuXe.Services
                             {
                                 if (cardInfo.EmployeeId.HasValue)
                                 {
-                                    var assignedEmpCode = GetEmployeeCodeById(cardInfo.EmployeeId.Value);
+                                    employeeIdToCode.TryGetValue(cardInfo.EmployeeId.Value, out var assignedEmpCode);
                                     if (assignedEmpCode != null && !string.Equals(assignedEmpCode, ipr.EmployeeCode, StringComparison.OrdinalIgnoreCase))
                                     {
                                         ipr.Status = "Error";
@@ -597,7 +603,7 @@ namespace QuanLyGiuXe.Services
                 using (var conn = new System.Data.SqlClient.SqlConnection(_db.GetConnectionString()))
                 {
                     conn.Open();
-                    using (var cmd = new System.Data.SqlClient.SqlCommand("SELECT Id, EmployeeCode FROM dbo.Employees WHERE IsDeleted = 0", conn))
+                    using (var cmd = new System.Data.SqlClient.SqlCommand("SELECT Id, EmployeeCode FROM dbo.Employees", conn))
                     using (var reader = cmd.ExecuteReader())
                     {
                         while (reader.Read())
@@ -657,15 +663,81 @@ namespace QuanLyGiuXe.Services
             using (var conn = new System.Data.SqlClient.SqlConnection(connStr))
             {
                 conn.Open();
-
-                foreach (var r in rows)
+                using (var trans = conn.BeginTransaction())
                 {
-                    if (r.Status.StartsWith("Error")) continue;
-
-                    using (var trans = conn.BeginTransaction())
+                    try
                     {
-                        try
+                        var resolvedCompanies = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                        using (var cmd = new System.Data.SqlClient.SqlCommand("SELECT Id, Name FROM dbo.Companies WHERE IsDeleted = 0", conn, trans))
+                        using (var reader = cmd.ExecuteReader())
                         {
+                            while (reader.Read())
+                            {
+                                var id = Convert.ToInt32(reader["Id"]);
+                                var name = reader["Name"]?.ToString()?.Trim();
+                                if (!string.IsNullOrEmpty(name))
+                                    resolvedCompanies[name] = id;
+                            }
+                        }
+
+                        var resolvedDepartments = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                        using (var cmd = new System.Data.SqlClient.SqlCommand("SELECT Id, CompanyId, DepartmentName FROM dbo.Departments WHERE IsDeleted = 0", conn, trans))
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                var id = Convert.ToInt32(reader["Id"]);
+                                var compId = Convert.ToInt32(reader["CompanyId"]);
+                                var dept = reader["DepartmentName"]?.ToString()?.Trim();
+                                if (!string.IsNullOrEmpty(dept))
+                                    resolvedDepartments[$"{compId}_{dept}"] = id;
+                            }
+                        }
+
+                        var resolvedPositions = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                        using (var cmd = new System.Data.SqlClient.SqlCommand("SELECT Id, PositionName FROM dbo.Positions WHERE IsDeleted = 0", conn, trans))
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                var id = Convert.ToInt32(reader["Id"]);
+                                var pos = reader["PositionName"]?.ToString()?.Trim();
+                                if (!string.IsNullOrEmpty(pos))
+                                    resolvedPositions[pos] = id;
+                            }
+                        }
+
+                        var resolvedEmployees = new Dictionary<string, (int Id, bool IsDeleted)>(StringComparer.OrdinalIgnoreCase);
+                        using (var cmd = new System.Data.SqlClient.SqlCommand("SELECT Id, EmployeeCode, IsDeleted FROM dbo.Employees", conn, trans))
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                var id = Convert.ToInt32(reader["Id"]);
+                                var code = reader["EmployeeCode"]?.ToString()?.Trim();
+                                var isDeleted = Convert.ToBoolean(reader["IsDeleted"]);
+                                if (!string.IsNullOrEmpty(code))
+                                    resolvedEmployees[code] = (id, isDeleted);
+                            }
+                        }
+
+                        var resolvedCards = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                        using (var cmd = new System.Data.SqlClient.SqlCommand("SELECT Id, CardUID FROM dbo.RFIDCards", conn, trans))
+                        using (var reader = cmd.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                var id = Convert.ToInt32(reader["Id"]);
+                                var uid = reader["CardUID"]?.ToString()?.Trim();
+                                if (!string.IsNullOrEmpty(uid))
+                                    resolvedCards[uid] = id;
+                            }
+                        }
+
+                        foreach (var r in rows)
+                        {
+                            if (r.Status.StartsWith("Error")) continue;
+
                             // 1. Resolve Company
                             int companyId;
                             var compName = r.CompanyName.Trim();
@@ -676,43 +748,34 @@ namespace QuanLyGiuXe.Services
                             else
                             {
                                 if (string.IsNullOrWhiteSpace(compName)) compName = "Công ty mặc định";
-                                var compCode = MakeInitialsCode(compName);
-
-                                using (var cmd = new System.Data.SqlClient.SqlCommand("SELECT Id FROM dbo.Companies WHERE Name = @name AND IsDeleted = 0", conn, trans))
+                                if (!resolvedCompanies.TryGetValue(compName, out companyId))
                                 {
-                                    cmd.Parameters.AddWithValue("@name", compName);
-                                    var val = cmd.ExecuteScalar();
-                                    if (val != null)
+                                    var compCode = MakeInitialsCode(compName);
+                                    var baseCode = compCode;
+                                    var attempt = 0;
+                                    while (true)
                                     {
-                                        companyId = Convert.ToInt32(val);
-                                    }
-                                    else
-                                    {
-                                        var baseCode = compCode;
-                                        var attempt = 0;
-                                        while (true)
+                                        var testCode = attempt == 0 ? baseCode : $"{baseCode}_{attempt}";
+                                        using (var cmdChk = new System.Data.SqlClient.SqlCommand("SELECT COUNT(*) FROM dbo.Companies WHERE Code = @code AND IsDeleted = 0", conn, trans))
                                         {
-                                            var testCode = attempt == 0 ? baseCode : $"{baseCode}_{attempt}";
-                                            using (var cmdChk = new System.Data.SqlClient.SqlCommand("SELECT COUNT(*) FROM dbo.Companies WHERE Code = @code AND IsDeleted = 0", conn, trans))
+                                            cmdChk.Parameters.AddWithValue("@code", testCode);
+                                            if ((int)cmdChk.ExecuteScalar() == 0)
                                             {
-                                                cmdChk.Parameters.AddWithValue("@code", testCode);
-                                                if ((int)cmdChk.ExecuteScalar() == 0)
-                                                {
-                                                    compCode = testCode;
-                                                    break;
-                                                }
+                                                compCode = testCode;
+                                                break;
                                             }
-                                            attempt++;
                                         }
-
-                                        using (var cmdIns = new System.Data.SqlClient.SqlCommand(
-                                            "INSERT INTO dbo.Companies (Code, Name, Status, IsDeleted) VALUES (@code, @name, 'Active', 0); SELECT SCOPE_IDENTITY();", conn, trans))
-                                        {
-                                            cmdIns.Parameters.AddWithValue("@code", compCode);
-                                            cmdIns.Parameters.AddWithValue("@name", compName);
-                                            companyId = Convert.ToInt32(cmdIns.ExecuteScalar());
-                                        }
+                                        attempt++;
                                     }
+
+                                    using (var cmdIns = new System.Data.SqlClient.SqlCommand(
+                                        "INSERT INTO dbo.Companies (Code, Name, Status, IsDeleted) VALUES (@code, @name, 'Active', 0); SELECT SCOPE_IDENTITY();", conn, trans))
+                                    {
+                                        cmdIns.Parameters.AddWithValue("@code", compCode);
+                                        cmdIns.Parameters.AddWithValue("@name", compName);
+                                        companyId = Convert.ToInt32(cmdIns.ExecuteScalar());
+                                    }
+                                    resolvedCompanies[compName] = companyId;
                                 }
                             }
 
@@ -725,80 +788,54 @@ namespace QuanLyGiuXe.Services
                             }
                             else if (!string.IsNullOrWhiteSpace(deptName))
                             {
-                                using (var cmd = new System.Data.SqlClient.SqlCommand(
-                                    "SELECT Id FROM dbo.Departments WHERE CompanyId = @compId AND DepartmentName = @name AND IsDeleted = 0", conn, trans))
+                                var key = $"{companyId}_{deptName}";
+                                if (resolvedDepartments.TryGetValue(key, out var dId))
                                 {
-                                    cmd.Parameters.AddWithValue("@compId", companyId);
-                                    cmd.Parameters.AddWithValue("@name", deptName);
-                                    var val = cmd.ExecuteScalar();
-                                    if (val != null)
+                                    departmentId = dId;
+                                }
+                                else
+                                {
+                                    using (var cmdIns = new System.Data.SqlClient.SqlCommand(
+                                        "INSERT INTO dbo.Departments (CompanyId, DepartmentName, Status, IsDeleted) VALUES (@compId, @name, 'Active', 0); SELECT SCOPE_IDENTITY();", conn, trans))
                                     {
-                                        departmentId = Convert.ToInt32(val);
+                                        cmdIns.Parameters.AddWithValue("@compId", companyId);
+                                        cmdIns.Parameters.AddWithValue("@name", deptName);
+                                        departmentId = Convert.ToInt32(cmdIns.ExecuteScalar());
                                     }
-                                    else
-                                    {
-                                        using (var cmdIns = new System.Data.SqlClient.SqlCommand(
-                                            "INSERT INTO dbo.Departments (CompanyId, DepartmentName, Status, IsDeleted) VALUES (@compId, @name, 'Active', 0); SELECT SCOPE_IDENTITY();", conn, trans))
-                                        {
-                                            cmdIns.Parameters.AddWithValue("@compId", companyId);
-                                            cmdIns.Parameters.AddWithValue("@name", deptName);
-                                            departmentId = Convert.ToInt32(cmdIns.ExecuteScalar());
-                                        }
-                                    }
+                                    resolvedDepartments[key] = departmentId.Value;
                                 }
                             }
 
                             // 3. Resolve Position
                             int positionId;
                             var posName = string.IsNullOrWhiteSpace(r.PositionName) ? "Employee" : r.PositionName.Trim();
-                            using (var cmd = new System.Data.SqlClient.SqlCommand("SELECT Id FROM dbo.Positions WHERE PositionName = @name AND IsDeleted = 0", conn, trans))
+                            if (resolvedPositions.TryGetValue(posName, out var pId))
                             {
-                                cmd.Parameters.AddWithValue("@name", posName);
-                                var val = cmd.ExecuteScalar();
-                                if (val != null)
+                                positionId = pId;
+                            }
+                            else
+                            {
+                                using (var cmdIns = new System.Data.SqlClient.SqlCommand(
+                                    "INSERT INTO dbo.Positions (PositionName, Status, IsDeleted) VALUES (@name, 'Active', 0); SELECT SCOPE_IDENTITY();", conn, trans))
                                 {
-                                    positionId = Convert.ToInt32(val);
+                                    cmdIns.Parameters.AddWithValue("@name", posName);
+                                    positionId = Convert.ToInt32(cmdIns.ExecuteScalar());
                                 }
-                                else
-                                {
-                                    using (var cmdIns = new System.Data.SqlClient.SqlCommand(
-                                        "INSERT INTO dbo.Positions (PositionName, Status, IsDeleted) VALUES (@name, 'Active', 0); SELECT SCOPE_IDENTITY();", conn, trans))
-                                    {
-                                        cmdIns.Parameters.AddWithValue("@name", posName);
-                                        positionId = Convert.ToInt32(cmdIns.ExecuteScalar());
-                                    }
-                                }
+                                resolvedPositions[posName] = positionId;
                             }
 
                             // 4. Resolve Employee
                             int employeeId;
                             bool isUpdate = false;
-                            using (var cmd = new System.Data.SqlClient.SqlCommand("SELECT Id FROM dbo.Employees WHERE EmployeeCode = @code AND IsDeleted = 0", conn, trans))
+                            var empCode = r.EmployeeCode.Trim();
+                            if (resolvedEmployees.TryGetValue(empCode, out var empInfo))
                             {
-                                cmd.Parameters.AddWithValue("@code", r.EmployeeCode.Trim());
-                                var val = cmd.ExecuteScalar();
-                                if (val != null)
-                                {
-                                    employeeId = Convert.ToInt32(val);
-                                    isUpdate = true;
-                                }
-                                else
-                                {
-                                    using (var cmdDeleted = new System.Data.SqlClient.SqlCommand("SELECT Id FROM dbo.Employees WHERE EmployeeCode = @code AND IsDeleted = 1", conn, trans))
-                                    {
-                                        cmdDeleted.Parameters.AddWithValue("@code", r.EmployeeCode.Trim());
-                                        var valDeleted = cmdDeleted.ExecuteScalar();
-                                        if (valDeleted != null)
-                                        {
-                                            employeeId = Convert.ToInt32(valDeleted);
-                                            isUpdate = true;
-                                        }
-                                        else
-                                        {
-                                            employeeId = 0;
-                                        }
-                                    }
-                                }
+                                employeeId = empInfo.Id;
+                                isUpdate = true;
+                            }
+                            else
+                            {
+                                employeeId = 0;
                             }
 
                             if (isUpdate)
@@ -820,6 +857,7 @@ namespace QuanLyGiuXe.Services
                                     cmdUpd.ExecuteNonQuery();
                                 }
                                 updated++;
+                                resolvedEmployees[empCode] = (employeeId, false);
                             }
                             else
                             {
@@ -828,7 +866,7 @@ namespace QuanLyGiuXe.Services
                                       VALUES (@code, @name, @compId, @posId, @deptId, @phone, @email, @cccd, 'Active', 0);
                                       SELECT SCOPE_IDENTITY();", conn, trans))
                                 {
-                                    cmdIns.Parameters.AddWithValue("@code", r.EmployeeCode.Trim());
+                                    cmdIns.Parameters.AddWithValue("@code", empCode);
                                     cmdIns.Parameters.AddWithValue("@name", r.FullName.Trim());
                                     cmdIns.Parameters.AddWithValue("@compId", companyId);
                                     cmdIns.Parameters.AddWithValue("@posId", positionId);
@@ -839,6 +877,7 @@ namespace QuanLyGiuXe.Services
                                     employeeId = Convert.ToInt32(cmdIns.ExecuteScalar());
                                 }
                                 inserted++;
+                                resolvedEmployees[empCode] = (employeeId, false);
                             }
 
                             // 5. RFID Card Assignment (Optional)
@@ -877,11 +916,9 @@ namespace QuanLyGiuXe.Services
                                 }
 
                                 int cardId = 0;
-                                using (var cmd = new System.Data.SqlClient.SqlCommand("SELECT Id FROM dbo.RFIDCards WHERE CardUID = @uid", conn, trans))
+                                if (resolvedCards.TryGetValue(cardUid, out var cId))
                                 {
-                                    cmd.Parameters.AddWithValue("@uid", cardUid);
-                                    var val = cmd.ExecuteScalar();
-                                    if (val != null) cardId = Convert.ToInt32(val);
+                                    cardId = cId;
                                 }
 
                                 if (cardId > 0)
@@ -904,7 +941,8 @@ namespace QuanLyGiuXe.Services
                                 {
                                     using (var cmdInsCard = new System.Data.SqlClient.SqlCommand(
                                         @"INSERT INTO dbo.RFIDCards (CardUID, BienSo, CardName, LoaiXeId, LoaiVeId, TrangThai, NgayDangKy, NgayHetHan, EmployeeId)
-                                          VALUES (@uid, @bienso, @name, @xeId, @veId, 'Active', @ngaydk, @ngayhh, @empId)", conn, trans))
+                                          VALUES (@uid, @bienso, @name, @xeId, @veId, 'Active', @ngaydk, @ngayhh, @empId);
+                                          SELECT SCOPE_IDENTITY();", conn, trans))
                                     {
                                         cmdInsCard.Parameters.AddWithValue("@uid", cardUid);
                                         cmdInsCard.Parameters.AddWithValue("@bienso", string.IsNullOrWhiteSpace(r.BienSo) ? DBNull.Value : (object)r.BienSo.Trim());
@@ -914,19 +952,19 @@ namespace QuanLyGiuXe.Services
                                         cmdInsCard.Parameters.AddWithValue("@ngaydk", DateTime.Today);
                                         cmdInsCard.Parameters.AddWithValue("@ngayhh", r.NgayHetHan.HasValue ? (object)r.NgayHetHan.Value : DBNull.Value);
                                         cmdInsCard.Parameters.AddWithValue("@empId", employeeId);
-                                        cmdInsCard.ExecuteNonQuery();
+                                        cardId = Convert.ToInt32(cmdInsCard.ExecuteScalar());
                                     }
+                                    resolvedCards[cardUid] = cardId;
                                 }
                             }
-
-                            trans.Commit();
                         }
-                        catch (Exception ex)
-                        {
-                            trans.Rollback();
-                            System.Diagnostics.Debug.WriteLine($"Error importing row {r.RowNumber}: {ex.Message}");
-                            throw;
-                        }
+                        trans.Commit();
+                    }
+                    catch (Exception ex)
+                    {
+                        trans.Rollback();
+                        System.Diagnostics.Debug.WriteLine($"Error importing: {ex.Message}");
+                        throw;
                     }
                 }
             }
