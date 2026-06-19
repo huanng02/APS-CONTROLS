@@ -23,7 +23,9 @@
     "RaToanCanh": "",
     "RaBienSo": "",
     "MaxRenderFps": 10,
-    "TargetResolution": "640x480"
+    "TargetResolution": "640x480",
+    "SaveJpegQuality": 70,
+    "SaveMaxWidth": 1280
   },
   "Lpr": {
     "AutoStart": false,

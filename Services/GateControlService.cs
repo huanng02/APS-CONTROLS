@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Threading.Tasks;
 using QuanLyGiuXe.Services;
@@ -59,6 +60,10 @@ namespace QuanLyGiuXe.Services
 
         private (string? PlatePath, string? FullPath) SaveCurrentImages(int door, Dictionary<string, Bitmap> frames, string prefix)
         {
+            var config = AppConfig.Load();
+            int jpegQuality = config?.Cameras?.SaveJpegQuality ?? 70;
+            int maxWidth = config?.Cameras?.SaveMaxWidth ?? 1280;
+
             string imagesDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "GateImages");
             if (!Directory.Exists(imagesDir)) Directory.CreateDirectory(imagesDir);
 
@@ -75,19 +80,83 @@ namespace QuanLyGiuXe.Services
                 if (frames.TryGetValue(fullKey, out var fullBmp))
                 {
                     fullPath = Path.Combine(imagesDir, $"{stamp}_{prefix}_door{door}_full.jpg");
-                    using var clone = (Bitmap)fullBmp.Clone();
-                    clone.Save(fullPath, System.Drawing.Imaging.ImageFormat.Jpeg);
+                    SaveCompressedJpeg(fullBmp, fullPath, jpegQuality, maxWidth);
                 }
 
                 if (frames.TryGetValue(plateKey, out var plateBmp))
                 {
                     platePath = Path.Combine(imagesDir, $"{stamp}_{prefix}_door{door}_plate.jpg");
-                    using var clone = (Bitmap)plateBmp.Clone();
-                    clone.Save(platePath, System.Drawing.Imaging.ImageFormat.Jpeg);
+                    SaveCompressedJpeg(plateBmp, platePath, jpegQuality, maxWidth);
                 }
             }
 
             return (platePath, fullPath);
+        }
+
+        private void SaveCompressedJpeg(Bitmap bmp, string path, int quality, int maxWidth)
+        {
+            if (bmp == null) return;
+            Bitmap? processedBmp = null;
+            try
+            {
+                if (bmp.Width > maxWidth)
+                {
+                    double scale = (double)maxWidth / bmp.Width;
+                    int newHeight = (int)(bmp.Height * scale);
+                    processedBmp = new Bitmap(maxWidth, newHeight);
+                    using (Graphics g = Graphics.FromImage(processedBmp))
+                    {
+                        g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                        g.DrawImage(bmp, 0, 0, maxWidth, newHeight);
+                    }
+                }
+                else
+                {
+                    processedBmp = (Bitmap)bmp.Clone();
+                }
+
+                // Save with custom Jpeg Quality
+                ImageCodecInfo? jpegEncoder = GetEncoder(ImageFormat.Jpeg);
+                if (jpegEncoder != null)
+                {
+                    using var encoderParameters = new EncoderParameters(1);
+                    using var encoderParameter = new EncoderParameter(System.Drawing.Imaging.Encoder.Quality, (long)quality);
+                    encoderParameters.Param[0] = encoderParameter;
+                    processedBmp.Save(path, jpegEncoder, encoderParameters);
+                }
+                else
+                {
+                    processedBmp.Save(path, ImageFormat.Jpeg);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Fallback to basic saving if anything fails
+                try { bmp.Save(path, ImageFormat.Jpeg); } catch { }
+                try
+                {
+                    File.AppendAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "GateServiceError.txt"),
+                        $"{DateTime.Now:O}: Lỗi nén ảnh: {ex.Message}\n");
+                }
+                catch { }
+            }
+            finally
+            {
+                processedBmp?.Dispose();
+            }
+        }
+
+        private ImageCodecInfo? GetEncoder(ImageFormat format)
+        {
+            ImageCodecInfo[] codecs = ImageCodecInfo.GetImageEncoders();
+            foreach (ImageCodecInfo codec in codecs)
+            {
+                if (codec.FormatID == format.Guid)
+                {
+                    return codec;
+                }
+            }
+            return null;
         }
     }
 }

@@ -86,6 +86,10 @@ namespace QuanLyGiuXe.Services
         {
             try
             {
+                var config = AppConfig.Load();
+                int jpegQuality = config?.Cameras?.SaveJpegQuality ?? 70;
+                int maxWidth = config?.Cameras?.SaveMaxWidth ?? 1280;
+
                 string folderPath = BuildFolderPath(siteName, zoneName, gateName, laneName, bienSo, direction, timestamp);
                 Directory.CreateDirectory(folderPath);
 
@@ -97,7 +101,11 @@ namespace QuanLyGiuXe.Services
                     string fullPath = Path.Combine(folderPath, "full.jpg");
                     tasks.Add(Task.Run(() =>
                     {
-                        Cv2.ImEncode(".jpg", fullFrame, out var buf, new ImageEncodingParam(ImwriteFlags.JpegQuality, 85));
+                        using var processed = ResizeIfTooLarge(fullFrame, maxWidth);
+                        Cv2.ImEncode(".jpg", processed, out var buf, new ImageEncodingParam[] {
+                            new ImageEncodingParam(ImwriteFlags.JpegQuality, jpegQuality),
+                            new ImageEncodingParam(ImwriteFlags.JpegOptimize, 1)
+                        });
                         File.WriteAllBytes(fullPath, buf);
                     }));
                 }
@@ -108,7 +116,11 @@ namespace QuanLyGiuXe.Services
                     string rawPath = Path.Combine(folderPath, "plate_raw.jpg");
                     tasks.Add(Task.Run(() =>
                     {
-                        Cv2.ImEncode(".jpg", plateRawFrame, out var buf, new ImageEncodingParam(ImwriteFlags.JpegQuality, 85));
+                        using var processed = ResizeIfTooLarge(plateRawFrame, maxWidth);
+                        Cv2.ImEncode(".jpg", processed, out var buf, new ImageEncodingParam[] {
+                            new ImageEncodingParam(ImwriteFlags.JpegQuality, jpegQuality),
+                            new ImageEncodingParam(ImwriteFlags.JpegOptimize, 1)
+                        });
                         File.WriteAllBytes(rawPath, buf);
                     }));
                 }
@@ -198,6 +210,20 @@ namespace QuanLyGiuXe.Services
             foreach (char c in Path.GetInvalidFileNameChars())
                 name = name.Replace(c, '_');
             return name.Trim().Replace(' ', '_');
+        }
+
+        private static Mat ResizeIfTooLarge(Mat original, int maxWidth)
+        {
+            if (original == null || original.Empty()) return new Mat();
+            if (original.Width <= maxWidth)
+            {
+                return original.Clone();
+            }
+            double scale = (double)maxWidth / original.Width;
+            int newHeight = (int)(original.Height * scale);
+            Mat resized = new Mat();
+            Cv2.Resize(original, resized, new OpenCvSharp.Size(maxWidth, newHeight));
+            return resized;
         }
     }
 }

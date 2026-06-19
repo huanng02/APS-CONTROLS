@@ -238,6 +238,8 @@ namespace QuanLyGiuXe.Services
         public bool AutoSyncFromDb { get; set; } = true;
         public int MaxRenderFps { get; set; } = 10;
         public string TargetResolution { get; set; } = "480x360";
+        public int SaveJpegQuality { get; set; } = 70;
+        public int SaveMaxWidth { get; set; } = 1280;
     }
 
     public sealed class LaneCameraSetting

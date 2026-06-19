@@ -55,6 +55,12 @@ namespace QuanLyGiuXe.Views
                 }
             }
             LoadControllerTypeSelection();
+
+            // Bind image storage options
+            int qVal = _cfg.Cameras.SaveJpegQuality;
+            ImageQualitySlider.Value = qVal;
+            ImageQualityBox.Text = qVal.ToString();
+            SelectMaxWidthComboItem(_cfg.Cameras.SaveMaxWidth);
         }
 
         private async void UserControl_Loaded(object sender, RoutedEventArgs e)
@@ -360,6 +366,12 @@ namespace QuanLyGiuXe.Views
             if (b1c != null) b1c.SelectedIndex = 1; // default OpenThisDoor
             if (b2c != null) b2c.SelectedIndex = 1;
             LoadControllerTypeSelection();
+
+            int defaultQ = _cfg.Cameras.SaveJpegQuality;
+            ImageQualitySlider.Value = defaultQ;
+            ImageQualityBox.Text = defaultQ.ToString();
+            SelectMaxWidthComboItem(_cfg.Cameras.SaveMaxWidth);
+
             MessageBox.Show("Đã reset về mặc định", "Reset", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
@@ -1066,6 +1078,12 @@ namespace QuanLyGiuXe.Views
                 _cfg.ZKTeco.BarrierDuration = targetBarrier;
                 _cfg.ZKTeco.CardCooldownMs = targetCooldown;
 
+                _cfg.Cameras.SaveJpegQuality = int.TryParse(ImageQualityBox.Text, out var q) ? q : 70;
+                if (ImageMaxWidthCombo.SelectedItem is ComboBoxItem wItem && int.TryParse(wItem.Tag?.ToString(), out var w))
+                {
+                    _cfg.Cameras.SaveMaxWidth = w;
+                }
+
                 // ForceMode obsolete
                 _cfg.ZKTeco.ForceAllIn = false;
                 _cfg.ZKTeco.ForceAllOut = false;
@@ -1610,6 +1628,39 @@ namespace QuanLyGiuXe.Views
                 });
             }
             catch { }
+        }
+
+        private void SelectMaxWidthComboItem(int width)
+        {
+            if (ImageMaxWidthCombo == null) return;
+            string wStr = width.ToString();
+            for (int i = 0; i < ImageMaxWidthCombo.Items.Count; i++)
+            {
+                if ((ImageMaxWidthCombo.Items[i] as ComboBoxItem)?.Tag?.ToString() == wStr)
+                {
+                    ImageMaxWidthCombo.SelectedIndex = i;
+                    break;
+                }
+            }
+        }
+
+        private void ImageQualitySlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (ImageQualityBox != null)
+            {
+                ImageQualityBox.Text = ((int)e.NewValue).ToString();
+            }
+        }
+
+        private void ImageQualityBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (ImageQualitySlider != null && int.TryParse(ImageQualityBox.Text, out var val))
+            {
+                if (val >= 10 && val <= 100)
+                {
+                    ImageQualitySlider.Value = val;
+                }
+            }
         }
     }
 }
