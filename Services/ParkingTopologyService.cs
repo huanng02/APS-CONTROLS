@@ -16,6 +16,17 @@ namespace QuanLyGiuXe.Services
 
         private ParkingTopologyService() { }
 
+        private List<LaneConfig>? _cachedLanes;
+        private readonly object _lanesLock = new();
+
+        public void InvalidateLanesCache()
+        {
+            lock (_lanesLock)
+            {
+                _cachedLanes = null;
+            }
+        }
+
         // ──────────────────────────────────────────────
         // READ Methods (Connection-Aware with Fallback)
         // ──────────────────────────────────────────────
@@ -169,7 +180,12 @@ namespace QuanLyGiuXe.Services
 
         public async Task<List<LaneConfig>> GetLanesAsync()
         {
-            return await ConnectivityAwareRepository.Instance.ExecuteReadAsync<List<LaneConfig>>(
+            lock (_lanesLock)
+            {
+                if (_cachedLanes != null) return _cachedLanes;
+            }
+
+            var list = await ConnectivityAwareRepository.Instance.ExecuteReadAsync<List<LaneConfig>>(
                 "LIST_LANES",
                 async conn =>
                 {
@@ -206,6 +222,12 @@ namespace QuanLyGiuXe.Services
                     return list;
                 }
             ) ?? new List<LaneConfig>();
+
+            lock (_lanesLock)
+            {
+                _cachedLanes = list;
+            }
+            return list;
         }
 
         // ──────────────────────────────────────────────
@@ -1331,6 +1353,7 @@ namespace QuanLyGiuXe.Services
 
             if (success)
             {
+                InvalidateLanesCache();
                 try
                 {
                     EventBus.Instance.InvalidateTopologyCache();
@@ -1445,6 +1468,7 @@ namespace QuanLyGiuXe.Services
 
             if (success)
             {
+                InvalidateLanesCache();
                 try { await ConfigurationAuditService.Instance.AuditChangesAsync("Lane", previous, null); } catch { }
                 try
                 {
@@ -1506,6 +1530,7 @@ namespace QuanLyGiuXe.Services
 
             if (success)
             {
+                InvalidateLanesCache();
                 try
                 {
                     string newZoneName = zoneId.HasValue ? (await GetZoneAsync(zoneId.Value))?.ZoneName ?? "Không xác định" : "Chưa gán";
@@ -1572,6 +1597,7 @@ namespace QuanLyGiuXe.Services
 
             if (success)
             {
+                InvalidateLanesCache();
                 try
                 {
                     string newGateName = gateId.HasValue ? (await GetGateAsync(gateId.Value))?.GateName ?? "Không xác định" : "Chưa gán";

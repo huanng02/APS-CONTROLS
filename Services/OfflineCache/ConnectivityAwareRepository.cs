@@ -30,8 +30,8 @@ namespace QuanLyGiuXe.Services.OfflineCache
             try
             {
                 // 1. Check simulation or manual offline
-                if (ConnectivityStateService.Instance.IsSimulatingOffline)
-                    throw new Exception("Simulated offline");
+                if (ConnectivityStateService.Instance.IsSimulatingOffline || !ConnectivityStateService.Instance.IsOnline)
+                    throw new Exception("SQL Server is offline");
 
                 // 2. Try SQL Server
                 using var conn = new SqlConnection(ConnectionString);
@@ -65,8 +65,8 @@ namespace QuanLyGiuXe.Services.OfflineCache
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2)); // Apply 2s timeout to writes too
             try
             {
-                if (ConnectivityStateService.Instance.IsSimulatingOffline)
-                    throw new Exception("Simulated offline");
+                if (ConnectivityStateService.Instance.IsSimulatingOffline || !ConnectivityStateService.Instance.IsOnline)
+                    throw new Exception("SQL Server is offline");
 
                 using var conn = new SqlConnection(ConnectionString);
                 await conn.OpenAsync(cts.Token);

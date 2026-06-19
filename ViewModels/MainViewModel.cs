@@ -1769,6 +1769,13 @@ namespace QuanLyGiuXe.ViewModels
                     plateRawFrame = CameraService.Instance.GetLatestFrame(plateCamKey);
                     fullFrame = CameraService.Instance.GetLatestFrame(overviewCamKey);
 
+                    // Start LPR task in parallel immediately
+                    Task<LprResult>? lprTask = null;
+                    if (plateRawFrame != null && !plateRawFrame.Empty())
+                    {
+                        lprTask = PlateRecognitionService.Instance.RecognizePlateAsync(plateRawFrame);
+                    }
+
                     // Reset UI details immediately (Marshal to UI thread)
                     Application.Current?.Dispatcher?.Invoke(() =>
                     {
@@ -1860,27 +1867,6 @@ namespace QuanLyGiuXe.ViewModels
                         }
                     }
 
-                    // ─── LICENSE PLATE RECOGNITION (LPR) ───
-                    try
-                    {
-                        if (plateRawFrame != null && !plateRawFrame.Empty())
-                        {
-                            var lprResult = await PlateRecognitionService.Instance.RecognizePlateAsync(plateRawFrame);
-                            recognizedPlate = lprResult.Plate;
-                            plateCropBytes = lprResult.PlateCropBytes;
-                        }
-                    }
-                    catch (Exception lprEx)
-                    {
-                        LoggingService.Instance.LogError("LprError", "MainViewModel", $"Failed to run LPR on captured frame", lprEx);
-                    }
-                    lprCompleted = DateTime.Now;
-
-                    if (!string.IsNullOrEmpty(recognizedPlate))
-                    {
-                        SetLanePlate(uiLaneIndex, recognizedPlate);
-                    }
-
                     // ─── COMBINED RFID & LPR DECISION LOGIC ───
                     if (isMonthly)
                     {
@@ -1901,6 +1887,21 @@ namespace QuanLyGiuXe.ViewModels
                             return;
                         }
 
+                        // Await LPR result because it is required for Monthly Tickets
+                        if (lprTask != null)
+                        {
+                            try
+                            {
+                                var lprResult = await lprTask;
+                                recognizedPlate = lprResult.Plate;
+                                plateCropBytes = lprResult.PlateCropBytes;
+                            }
+                            catch (Exception lprEx)
+                            {
+                                LoggingService.Instance.LogError("LprError", "MainViewModel", $"Failed to run LPR on captured frame", lprEx);
+                            }
+                            lprCompleted = DateTime.Now;
+                        }
 
                         // BẮT BUỘC PHẢI CÓ LPR
                         if (string.IsNullOrEmpty(recognizedPlate))
@@ -1922,7 +1923,6 @@ namespace QuanLyGiuXe.ViewModels
                             return;
                         }
 
-
                         // SO SÁNH BIỂN SỐ
                         if (!ComparePlates(recognizedPlate, registeredPlate))
                         {
@@ -1943,17 +1943,13 @@ namespace QuanLyGiuXe.ViewModels
                             return;
                         }
 
-
                         // Match OK
                         SetLanePlate(uiLaneIndex, recognizedPlate);
                     }
                     else
                     {
                         // Daily Ticket (no enforcement of employee info or plate matching)
-                        if (!string.IsNullOrEmpty(recognizedPlate))
-                        {
-                            SetLanePlate(uiLaneIndex, recognizedPlate);
-                        }
+                        // Do NOT wait for LPR in critical path. Let it finish in background!
                     }
 
                     // Physical Access Check (using optimized overload that takes card)
@@ -2008,12 +2004,25 @@ namespace QuanLyGiuXe.ViewModels
                     // ─── 4. UPDATE UI & WRITE TO DB (Post-processing background task) ───
                     if (isInbound)
                     {
-                        string plate = recognizedPlate;
-                    
                         _ = Task.Run(async () =>
                         {
                             try
                             {
+                                string plate = recognizedPlate;
+                                if (lprTask != null)
+                                {
+                                    try
+                                    {
+                                        var lprResult = await lprTask;
+                                        plate = lprResult.Plate;
+                                        plateCropBytes = lprResult.PlateCropBytes;
+                                    }
+                                    catch (Exception lprEx)
+                                    {
+                                        LoggingService.Instance.LogError("LprBackgroundError", "MainViewModel", $"Failed to await background LPR", lprEx);
+                                    }
+                                }
+
                                 if (opened)
                                  {
                                      if (fullFrameClone != null && !fullFrameClone.Empty())
@@ -2111,7 +2120,6 @@ namespace QuanLyGiuXe.ViewModels
                     }
                     else
                     {
-                        string plate = recognizedPlate;
                         DateTime timeIn = xeTrongBai.ThoiGianVao ?? DateTime.Now;
                         var duration = DateTime.Now - timeIn;
                         double fee = db.TinhTien(card.LoaiXeId, card.LoaiVeId, timeIn, DateTime.Now);
@@ -2125,6 +2133,21 @@ namespace QuanLyGiuXe.ViewModels
                         {
                             try
                             {
+                                string plate = recognizedPlate;
+                                if (lprTask != null)
+                                {
+                                    try
+                                    {
+                                        var lprResult = await lprTask;
+                                        plate = lprResult.Plate;
+                                        plateCropBytes = lprResult.PlateCropBytes;
+                                    }
+                                    catch (Exception lprEx)
+                                    {
+                                        LoggingService.Instance.LogError("LprBackgroundError", "MainViewModel", $"Failed to await background LPR", lprEx);
+                                    }
+                                }
+
                                 if (opened)
                                 {
                                      if (fullFrameClone != null && !fullFrameClone.Empty())
@@ -2159,7 +2182,7 @@ namespace QuanLyGiuXe.ViewModels
                                     var (siteName, zoneName, gateName, laneName) = await ParkingImageService.ResolveTopologyNamesAsync(siteId ?? entrySiteId, zoneId ?? entryZoneId, laneId);
                                     exitImageFolderPath = await ParkingImageService.Instance.SaveSnapshotsAsync(
                                         siteName, zoneName, gateName, laneName,
-                                        !string.IsNullOrEmpty(recognizedPlate) ? recognizedPlate : plate,
+                                        plate,
                                         "OUT", timestamp,
                                         fullFrameClone,
                                         plateRawFrameClone,

@@ -11,6 +11,17 @@ namespace QuanLyGiuXe.Services
     {
         private readonly DatabaseService _db = new DatabaseService();
 
+        private static List<LoaiVe>? _cachedLoaiVe;
+        private static readonly object _cacheLock = new();
+
+        public static void InvalidateCache()
+        {
+            lock (_cacheLock)
+            {
+                _cachedLoaiVe = null;
+            }
+        }
+
         public List<LoaiVe> GetAll()
         {
             return System.Threading.Tasks.Task.Run(() => GetAllAsync()).GetAwaiter().GetResult();
@@ -18,7 +29,12 @@ namespace QuanLyGiuXe.Services
 
         public async System.Threading.Tasks.Task<List<LoaiVe>> GetAllAsync()
         {
-            return await ConnectivityAwareRepository.Instance.ExecuteReadAsync<List<LoaiVe>>(
+            lock (_cacheLock)
+            {
+                if (_cachedLoaiVe != null) return _cachedLoaiVe;
+            }
+
+            var list = await ConnectivityAwareRepository.Instance.ExecuteReadAsync<List<LoaiVe>>(
                 "LIST_LOAI_VE",
                 async conn =>
                 {
@@ -42,6 +58,12 @@ namespace QuanLyGiuXe.Services
                     return list;
                 }
             ) ?? new List<LoaiVe>();
+
+            lock (_cacheLock)
+            {
+                _cachedLoaiVe = list;
+            }
+            return list;
         }
 
         public void Insert(LoaiVe lv)
@@ -53,7 +75,7 @@ namespace QuanLyGiuXe.Services
         {
             if (lv == null) return false;
 
-            return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+            var success = await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
                 "INSERT_LOAI_VE",
                 lv,
                 async conn =>
@@ -69,6 +91,8 @@ namespace QuanLyGiuXe.Services
                     }
                 }
             );
+            if (success) InvalidateCache();
+            return success;
         }
 
         public void Update(LoaiVe lv)
@@ -80,7 +104,7 @@ namespace QuanLyGiuXe.Services
         {
             if (lv == null) return false;
 
-            return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+            var success = await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
                 "UPDATE_LOAI_VE",
                 lv,
                 async conn =>
@@ -96,6 +120,8 @@ namespace QuanLyGiuXe.Services
                     }
                 }
             );
+            if (success) InvalidateCache();
+            return success;
         }
 
         public void Delete(int id)
@@ -105,7 +131,7 @@ namespace QuanLyGiuXe.Services
 
         public async System.Threading.Tasks.Task<bool> DeleteAsync(int id)
         {
-            return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+            var success = await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
                 "DELETE_LOAI_VE",
                 new { Id = id },
                 async conn =>
@@ -117,6 +143,8 @@ namespace QuanLyGiuXe.Services
                     }
                 }
             );
+            if (success) InvalidateCache();
+            return success;
         }
     }
 }

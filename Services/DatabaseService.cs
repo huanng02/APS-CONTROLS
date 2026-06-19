@@ -24,6 +24,17 @@ namespace QuanLyGiuXe.Services
 
         private static bool _appLogsTableChecked = false;
 
+        private static List<LoaiXe>? _cachedLoaiXe;
+        private static readonly object _loaiXeLock = new();
+
+        public static void InvalidateLoaiXeCache()
+        {
+            lock (_loaiXeLock)
+            {
+                _cachedLoaiXe = null;
+            }
+        }
+
         /// <summary>
         /// Insert an audit/log entry into AppLogs. Best-effort: swallow errors and auto-provisions table/columns if missing.
         /// </summary>
@@ -594,7 +605,12 @@ namespace QuanLyGiuXe.Services
 
         public async Task<List<LoaiXe>> GetLoaiXeAsync()
         {
-            return await ConnectivityAwareRepository.Instance.ExecuteReadAsync<List<LoaiXe>>(
+            lock (_loaiXeLock)
+            {
+                if (_cachedLoaiXe != null) return _cachedLoaiXe;
+            }
+
+            var list = await ConnectivityAwareRepository.Instance.ExecuteReadAsync<List<LoaiXe>>(
                 "LIST_LOAI_XE",
                 async conn =>
                 {
@@ -615,6 +631,12 @@ namespace QuanLyGiuXe.Services
                     return list;
                 }
             ) ?? new List<LoaiXe>();
+
+            lock (_loaiXeLock)
+            {
+                _cachedLoaiXe = list;
+            }
+            return list;
         }
 
         /// <summary>
@@ -712,7 +734,7 @@ namespace QuanLyGiuXe.Services
 
         public async Task<bool> InsertLoaiXeAsync(string tenLoai, string trangThai)
         {
-            return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+            var success = await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
                 "CREATE_LOAIXE",
                 new { TenLoai = tenLoai, TrangThai = trangThai },
                 async conn =>
@@ -725,6 +747,8 @@ namespace QuanLyGiuXe.Services
                     }
                 }
             );
+            if (success) InvalidateLoaiXeCache();
+            return success;
         }
 
         public void UpdateLoaiXe(int id, string tenLoai, string trangThai)
@@ -734,7 +758,7 @@ namespace QuanLyGiuXe.Services
 
         public async Task<bool> UpdateLoaiXeAsync(int id, string tenLoai, string trangThai)
         {
-            return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+            var success = await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
                 "UPDATE_LOAIXE",
                 new { Id = id, TenLoai = tenLoai, TrangThai = trangThai },
                 async conn =>
@@ -748,6 +772,8 @@ namespace QuanLyGiuXe.Services
                     }
                 }
             );
+            if (success) InvalidateLoaiXeCache();
+            return success;
         }
 
         public void DeleteLoaiXe(int id)
@@ -757,7 +783,7 @@ namespace QuanLyGiuXe.Services
 
         public async Task<bool> DeleteLoaiXeAsync(int id)
         {
-            return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+            var success = await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
                 "DELETE_LOAIXE",
                 new { Id = id },
                 async conn =>
@@ -769,6 +795,8 @@ namespace QuanLyGiuXe.Services
                     }
                 }
             );
+            if (success) InvalidateLoaiXeCache();
+            return success;
         }
         // -----------------------
         // LOAI THE CRUD (mapped to LoaiVe table in DB)
