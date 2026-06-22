@@ -78,7 +78,7 @@ namespace QuanLyGiuXe.Services
 
         public void Insert(BangGiaKhungGio entity)
         {
-            _ = InsertAsync(entity);
+            System.Threading.Tasks.Task.Run(() => InsertAsync(entity)).GetAwaiter().GetResult();
         }
 
         public async System.Threading.Tasks.Task<bool> InsertAsync(BangGiaKhungGio entity)
@@ -104,7 +104,7 @@ namespace QuanLyGiuXe.Services
 
         public void Update(BangGiaKhungGio entity)
         {
-            _ = UpdateAsync(entity);
+            System.Threading.Tasks.Task.Run(() => UpdateAsync(entity)).GetAwaiter().GetResult();
         }
 
         public async System.Threading.Tasks.Task<bool> UpdateAsync(BangGiaKhungGio entity)
@@ -130,7 +130,7 @@ namespace QuanLyGiuXe.Services
 
         public void Delete(int id)
         {
-            _ = DeleteAsync(id);
+            System.Threading.Tasks.Task.Run(() => DeleteAsync(id)).GetAwaiter().GetResult();
         }
 
         public async System.Threading.Tasks.Task<bool> DeleteAsync(int id)

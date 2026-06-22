@@ -1,14 +1,7 @@
-using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Data.SqlClient;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using QuanLyGiuXe.Models;
 using QuanLyGiuXe.Services.OfflineCache;
-using System.Security.Policy;
+using System.Data;
+using System.Data.SqlClient;
 
 namespace QuanLyGiuXe.Services
 {
@@ -252,7 +245,7 @@ namespace QuanLyGiuXe.Services
 
         public void UpdateXeRaById(int id, DateTime thoiGianRa)
         {
-            _ = UpdateXeRaByIdAsync(id, thoiGianRa);
+            Task.Run(() => UpdateXeRaByIdAsync(id, thoiGianRa)).GetAwaiter().GetResult();
         }
 
         public async Task<bool> UpdateXeRaByIdAsync(int id, DateTime thoiGianRa)
@@ -729,7 +722,7 @@ namespace QuanLyGiuXe.Services
 
         public void InsertLoaiXe(string tenLoai, string trangThai)
         {
-            _ = InsertLoaiXeAsync(tenLoai, trangThai);
+            Task.Run(() => InsertLoaiXeAsync(tenLoai, trangThai)).GetAwaiter().GetResult();
         }
 
         public async Task<bool> InsertLoaiXeAsync(string tenLoai, string trangThai)
@@ -753,7 +746,7 @@ namespace QuanLyGiuXe.Services
 
         public void UpdateLoaiXe(int id, string tenLoai, string trangThai)
         {
-            _ = UpdateLoaiXeAsync(id, tenLoai, trangThai);
+            Task.Run(() => UpdateLoaiXeAsync(id, tenLoai, trangThai)).GetAwaiter().GetResult();
         }
 
         public async Task<bool> UpdateLoaiXeAsync(int id, string tenLoai, string trangThai)
@@ -778,7 +771,7 @@ namespace QuanLyGiuXe.Services
 
         public void DeleteLoaiXe(int id)
         {
-            _ = DeleteLoaiXeAsync(id);
+            Task.Run(() => DeleteLoaiXeAsync(id)).GetAwaiter().GetResult();
         }
 
         public async Task<bool> DeleteLoaiXeAsync(int id)
@@ -911,7 +904,7 @@ namespace QuanLyGiuXe.Services
 
         public void InsertLoaiVe(string tenLoaiVe, string trangThai, string detail = null)
         {
-            _ = InsertLoaiVeAsync(tenLoaiVe, trangThai, detail);
+            Task.Run(() => InsertLoaiVeAsync(tenLoaiVe, trangThai, detail)).GetAwaiter().GetResult();
         }
 
         public async Task<bool> InsertLoaiVeAsync(string tenLoaiVe, string trangThai, string detail = null)
@@ -934,7 +927,7 @@ namespace QuanLyGiuXe.Services
 
         public void UpdateLoaiVe(int id, string tenLoaiVe, string trangThai, string detail = null)
         {
-            _ = UpdateLoaiVeAsync(id, tenLoaiVe, trangThai, detail);
+            Task.Run(() => UpdateLoaiVeAsync(id, tenLoaiVe, trangThai, detail)).GetAwaiter().GetResult();
         }
 
         public async Task<bool> UpdateLoaiVeAsync(int id, string tenLoaiVe, string trangThai, string detail = null)
@@ -958,7 +951,7 @@ namespace QuanLyGiuXe.Services
 
         public void DeleteLoaiVe(int id)
         {
-            _ = DeleteLoaiVeAsync(id);
+            Task.Run(() => DeleteLoaiVeAsync(id)).GetAwaiter().GetResult();
         }
 
         public async Task<bool> DeleteLoaiVeAsync(int id)
@@ -1026,7 +1019,7 @@ namespace QuanLyGiuXe.Services
 
         public void InsertRFIDCard(string uid, string bienSo, string cardName, int loaiVeId, int loaiXeId, string trangThai, DateTime ngayTao, DateTime? ngayHetHan, int? employeeId = null)
         {
-            _ = InsertRFIDCardAsync(uid, bienSo, cardName, loaiVeId, loaiXeId, trangThai, ngayTao, ngayHetHan, employeeId);
+            Task.Run(() => InsertRFIDCardAsync(uid, bienSo, cardName, loaiVeId, loaiXeId, trangThai, ngayTao, ngayHetHan, employeeId)).GetAwaiter().GetResult();
         }
 
         public async Task<bool> InsertRFIDCardAsync(string uid, string bienSo, string cardName, int loaiVeId, int loaiXeId, string trangThai, DateTime ngayTao, DateTime? ngayHetHan, int? employeeId = null)
@@ -1056,7 +1049,7 @@ namespace QuanLyGiuXe.Services
 
         public void UpdateRFIDCard(int id, string uid, string bienSo, string cardName, int loaiVeId, int loaiXeId, string trangThai, DateTime? ngayDangKy, DateTime? ngayHetHan, int? employeeId = null)
         {
-            _ = UpdateRFIDCardAsync(id, uid, bienSo, cardName, loaiVeId, loaiXeId, trangThai, ngayDangKy, ngayHetHan, employeeId);
+            Task.Run(() => UpdateRFIDCardAsync(id, uid, bienSo, cardName, loaiVeId, loaiXeId, trangThai, ngayDangKy, ngayHetHan, employeeId)).GetAwaiter().GetResult();
         }
 
         public async Task<bool> UpdateRFIDCardAsync(int id, string uid, string bienSo, string cardName, int loaiVeId, int loaiXeId, string trangThai, DateTime? ngayDangKy, DateTime? ngayHetHan, int? employeeId = null)
@@ -1086,7 +1079,7 @@ namespace QuanLyGiuXe.Services
 
         public void DeleteRFIDCard(int id)
         {
-            _ = DeleteRFIDCardAsync(id);
+            Task.Run(() => DeleteRFIDCardAsync(id)).GetAwaiter().GetResult();
         }
 
         public async Task<bool> DeleteRFIDCardAsync(int id)
@@ -1112,7 +1105,7 @@ namespace QuanLyGiuXe.Services
         /// </summary>
         public void GiaHanRFIDCard(int id, int soThang)
         {
-            _ = GiaHanRFIDCardAsync(id, soThang);
+            Task.Run(() => GiaHanRFIDCardAsync(id, soThang)).GetAwaiter().GetResult();
         }
 
         public async Task<bool> GiaHanRFIDCardAsync(int id, int soThang)
@@ -1340,7 +1333,7 @@ namespace QuanLyGiuXe.Services
         // Parameters: uid (CardUID), bienSo (nullable), anhXe (nullable)
         public void ThemXe(int cardId, string bienSo, string anhXe, int? siteId = null, int? zoneId = null, int? entryLaneId = null)
         {
-            _ = ThemXeAsync(cardId, bienSo, anhXe, siteId, zoneId, entryLaneId);
+            Task.Run(() => ThemXeAsync(cardId, bienSo, anhXe, siteId, zoneId, entryLaneId)).GetAwaiter().GetResult();
         }
 
         public async Task<bool> ThemXeAsync(int cardId, string bienSo, string anhXe, int? siteId = null, int? zoneId = null, int? entryLaneId = null)
@@ -1411,7 +1404,7 @@ namespace QuanLyGiuXe.Services
 
         public void XoaXe(string bienSo)
         {
-            _ = XoaXeAsync(bienSo);
+            Task.Run(() => XoaXeAsync(bienSo)).GetAwaiter().GetResult();
         }
 
         public async Task<bool> XoaXeAsync(string bienSo)
@@ -1433,7 +1426,7 @@ namespace QuanLyGiuXe.Services
         // Delete active entries by CardId (preferred). Do NOT use CardUID in XeTrongBai queries.
         public void XoaXeByCardId(int cardId)
         {
-            _ = XoaXeByCardIdAsync(cardId);
+            Task.Run(() => XoaXeByCardIdAsync(cardId)).GetAwaiter().GetResult();
         }
 
         public async Task<bool> XoaXeByCardIdAsync(int cardId)
@@ -1733,7 +1726,7 @@ namespace QuanLyGiuXe.Services
 
         public void LuuLichSu(string bienSo, DateTime vao, DateTime ra, double tien, string anhXe, string cardUid = null, int? siteId = null, int? zoneId = null, int? entryLaneId = null, int? exitLaneId = null)
         {
-            _ = LuuLichSuAsync(bienSo, vao, ra, tien, anhXe, cardUid, siteId, zoneId, entryLaneId, exitLaneId);
+            Task.Run(() => LuuLichSuAsync(bienSo, vao, ra, tien, anhXe, cardUid, siteId, zoneId, entryLaneId, exitLaneId)).GetAwaiter().GetResult();
         }
 
         public async Task<bool> LuuLichSuAsync(string bienSo, DateTime vao, DateTime ra, double tien, string anhXe, string cardUid = null, int? siteId = null, int? zoneId = null, int? entryLaneId = null, int? exitLaneId = null, string anhVao = null)

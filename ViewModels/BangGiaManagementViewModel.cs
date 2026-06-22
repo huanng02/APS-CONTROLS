@@ -555,7 +555,7 @@ namespace QuanLyGiuXe.ViewModels
             return sb.ToString().Normalize(System.Text.NormalizationForm.FormC);
         }
 
-        private void Add()
+        private async void Add()
         {
             try
             {
@@ -566,15 +566,15 @@ namespace QuanLyGiuXe.ViewModels
                 ValidateForSave(EditingItem, isUpdate: false);
 
                 // insert BangGia row
-                _repo.Insert(EditingItem);
+                await _repo.InsertAsync(EditingItem);
 
                 // retrieve created record to get Id
-                var created = _repo.GetByLoaiXeAndLoaiVe(EditingItem.LoaiXeId, EditingItem.LoaiVeId);
+                var created = await _repo.GetByLoaiXeAndLoaiVeAsync(EditingItem.LoaiXeId, EditingItem.LoaiVeId);
                 if (created != null && created.Id > 0)
                 {
                     EditingItem.Id = created.Id;
                     // persist khung gia rows for this banggia (create all entries, even zero)
-                    SaveKhungGiaList(EditingItem);
+                    await SaveKhungGiaListAsync(EditingItem);
                 }
 
                 MessageBox.Show("Thêm bảng giá thành công", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -586,7 +586,7 @@ namespace QuanLyGiuXe.ViewModels
             }
         }
 
-        private void Update()
+        private async void Update()
         {
             if (SelectedItem == null) return;
             try
@@ -596,7 +596,6 @@ namespace QuanLyGiuXe.ViewModels
                 // ensure EditingItem.LoaiVeId reflects current selection
                 if (EditingItem != null) EditingItem.LoaiVeId = SelectedLoaiVeId; // always sync before validation
                 ParsePriceInputsIntoModel(EditingItem);
-
 
                 // Validate model-level fields
                 ValidateForSave(EditingItem, isUpdate: true);
@@ -679,26 +678,26 @@ namespace QuanLyGiuXe.ViewModels
                     }
                 }
 
-                _repo.Update(EditingItem);
+                await _repo.UpdateAsync(EditingItem);
                 // save KhungGiaList back to DB if applicable
-                if (CanEditKhungGia) SaveKhungGiaList(EditingItem);
+                if (CanEditKhungGia) await SaveKhungGiaListAsync(EditingItem);
 
                 try
                 {
                     LoggingService.Instance.LogAudit(
-                        "SAVE_PRICE_CONFIGURATION", 
-                        "BangGia", 
-                        EditingItem.Id.ToString(), 
-                        null, 
-                        new { 
-                            BangGiaId = EditingItem.Id, 
-                            LoaiXe = LoaiXeList.FirstOrDefault(x => x.Id == EditingItem.LoaiXeId)?.TenLoai,
-                            LoaiVe = LoaiVeList.FirstOrDefault(x => x.Id == EditingItem.LoaiVeId)?.TenLoai,
-                            GiaThang = EditingItem.GiaThang,
-                            Slots = KhungGiaItems.Select(s => new { s.TenKhungGio, s.GiaTien }).ToList()
-                        },
-                        source: "BangGiaManagement",
-                        details: $"Batch updated pricing for {LoaiXeList.FirstOrDefault(x => x.Id == EditingItem.LoaiXeId)?.TenLoai} - {LoaiVeList.FirstOrDefault(x => x.Id == EditingItem.LoaiVeId)?.TenLoai}");
+                         "SAVE_PRICE_CONFIGURATION", 
+                         "BangGia", 
+                         EditingItem.Id.ToString(), 
+                         null, 
+                         new { 
+                             BangGiaId = EditingItem.Id, 
+                             LoaiXe = LoaiXeList.FirstOrDefault(x => x.Id == EditingItem.LoaiXeId)?.TenLoai,
+                             LoaiVe = LoaiVeList.FirstOrDefault(x => x.Id == EditingItem.LoaiVeId)?.TenLoai,
+                             GiaThang = EditingItem.GiaThang,
+                             Slots = KhungGiaItems.Select(s => new { s.TenKhungGio, s.GiaTien }).ToList()
+                         },
+                         source: "BangGiaManagement",
+                         details: $"Batch updated pricing for {LoaiXeList.FirstOrDefault(x => x.Id == EditingItem.LoaiXeId)?.TenLoai} - {LoaiVeList.FirstOrDefault(x => x.Id == EditingItem.LoaiVeId)?.TenLoai}");
                 }
                 catch { }
 
@@ -746,15 +745,15 @@ namespace QuanLyGiuXe.ViewModels
             return result;
         }
 
-        private void SaveKhungGiaList(BangGia model)
+        private async Task SaveKhungGiaListAsync(BangGia model)
         {
             if (model == null || model.Id <= 0) return;
             try
             {
                 var repo = new BangGiaKhungGioRepository();
                 // existing entries: remove all then insert current set (simple upsert)
-                var existing = repo.GetByBangGiaId(model.Id);
-                foreach (var ex in existing) repo.Delete(ex.Id);
+                var existing = await repo.GetByBangGiaIdAsync(model.Id);
+                foreach (var ex in existing) await repo.DeleteAsync(ex.Id);
 
                 // Insert current prices from KhungGiaItems (left-joined list from UI)
                 foreach (var dto in KhungGiaItems)
@@ -765,7 +764,7 @@ namespace QuanLyGiuXe.ViewModels
                         KhungGioId = dto.KhungGioId,
                         GiaTien = dto.GiaTien
                     };
-                    repo.Insert(bgk);
+                    await repo.InsertAsync(bgk);
                 }
             }
             catch { }
@@ -805,14 +804,14 @@ namespace QuanLyGiuXe.ViewModels
             return true;
         }
 
-        private void Delete()
+        private async void Delete()
         {
             if (SelectedItem == null) return;
             if (MessageBox.Show($"Bạn có chắc muốn xóa bản ghi ID={SelectedItem.Id}?", "Xác nhận", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
                 return;
             try
             {
-                _repo.Delete(SelectedItem.Id);
+                await _repo.DeleteAsync(SelectedItem.Id);
                 MessageBox.Show("Xóa thành công", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
                 Load();
             }

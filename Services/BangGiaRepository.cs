@@ -117,7 +117,7 @@ namespace QuanLyGiuXe.Services
 
         public void Insert(BangGia entity)
         {
-            _ = InsertAsync(entity);
+            System.Threading.Tasks.Task.Run(() => InsertAsync(entity)).GetAwaiter().GetResult();
         }
 
         public async System.Threading.Tasks.Task<bool> InsertAsync(BangGia entity)
@@ -144,7 +144,7 @@ namespace QuanLyGiuXe.Services
 
         public void Update(BangGia entity)
         {
-            _ = UpdateAsync(entity);
+            System.Threading.Tasks.Task.Run(() => UpdateAsync(entity)).GetAwaiter().GetResult();
         }
 
         public async System.Threading.Tasks.Task<bool> UpdateAsync(BangGia entity)
@@ -172,7 +172,7 @@ namespace QuanLyGiuXe.Services
 
         public void Delete(int id)
         {
-            _ = DeleteAsync(id);
+            System.Threading.Tasks.Task.Run(() => DeleteAsync(id)).GetAwaiter().GetResult();
         }
 
         public async System.Threading.Tasks.Task<bool> DeleteAsync(int id)
@@ -183,6 +183,13 @@ namespace QuanLyGiuXe.Services
                 new { Id = id },
                 async conn =>
                 {
+                    // Delete child BangGiaKhungGio rows first (FK constraint)
+                    using (var cmdChild = new SqlCommand( @"DELETE FROM dbo.BangGiaKhungGio WHERE BangGiaId=@id", conn))
+                    {
+                        cmdChild.Parameters.AddWithValue("@id", id);
+                        await cmdChild.ExecuteNonQueryAsync();
+                    }
+                    // Then delete parent BangGia row
                     using (var cmd = new SqlCommand( @"DELETE FROM dbo.BangGia WHERE Id=@id", conn))
                     {
                         cmd.Parameters.AddWithValue("@id", id);

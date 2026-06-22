@@ -68,7 +68,7 @@ namespace QuanLyGiuXe.Services
 
         public void Insert(LoaiVe lv)
         {
-            _ = InsertAsync(lv);
+            System.Threading.Tasks.Task.Run(() => InsertAsync(lv)).GetAwaiter().GetResult();
         }
 
         public async System.Threading.Tasks.Task<bool> InsertAsync(LoaiVe lv)
@@ -97,7 +97,7 @@ namespace QuanLyGiuXe.Services
 
         public void Update(LoaiVe lv)
         {
-            _ = UpdateAsync(lv);
+            System.Threading.Tasks.Task.Run(() => UpdateAsync(lv)).GetAwaiter().GetResult();
         }
 
         public async System.Threading.Tasks.Task<bool> UpdateAsync(LoaiVe lv)
@@ -126,7 +126,7 @@ namespace QuanLyGiuXe.Services
 
         public void Delete(int id)
         {
-            _ = DeleteAsync(id);
+            System.Threading.Tasks.Task.Run(() => DeleteAsync(id)).GetAwaiter().GetResult();
         }
 
         public async System.Threading.Tasks.Task<bool> DeleteAsync(int id)
