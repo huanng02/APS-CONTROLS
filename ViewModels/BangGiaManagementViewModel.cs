@@ -807,17 +807,19 @@ namespace QuanLyGiuXe.ViewModels
         private async void Delete()
         {
             if (SelectedItem == null) return;
-            if (MessageBox.Show($"Bạn có chắc muốn xóa bản ghi ID={SelectedItem.Id}?", "Xác nhận", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+            var tenLoaiXe = string.IsNullOrWhiteSpace(SelectedItem.LoaiXe) ? "Không rõ" : SelectedItem.LoaiXe;
+            var tenLoaiVe = string.IsNullOrWhiteSpace(SelectedItem.LoaiVe) ? "Không rõ" : SelectedItem.LoaiVe;
+            if (MessageBox.Show($"Bạn có chắc muốn xóa bảng giá cho loại xe \"{tenLoaiXe}\" - loại vé \"{tenLoaiVe}\"?", "Xác nhận xóa", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
                 return;
             try
             {
                 await _repo.DeleteAsync(SelectedItem.Id);
-                MessageBox.Show("Xóa thành công", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show("Xóa bảng giá thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
                 Load();
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Xóa thất bại: " + ex.Message, "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Không thể xóa bảng giá. Vui lòng thử lại sau.", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
