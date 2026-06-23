@@ -1,0 +1,81 @@
+<Window x:Class="QuanLyGiuXe.Views.RolePermissionMatrixWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Ma trận phân quyền hệ thống (RBAC)" 
+        Height="720" Width="1200"
+        MinHeight="600" MinWidth="1000"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource BgLightBrush}">
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/> <!-- Title Header -->
+            <RowDefinition Height="Auto"/> <!-- Search & Action Buttons -->
+            <RowDefinition Height="*"/>    <!-- Permission Grid -->
+        </Grid.RowDefinitions>
+
+        <!-- Title & Subtitle Badge Header -->
+        <Border Grid.Row="0" Style="{StaticResource EnterpriseCardBorder}" Padding="20" Margin="0,0,0,16">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                
+                <StackPanel>
+                    <TextBlock Text="🛡️ MA TRẬN PHÂN QUYỀN HỆ THỐNG (RBAC)" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}"/>
+                    <TextBlock Text="Nhấp trực tiếp vào ô tương ứng để cấp phát hoặc thu hồi quyền hạn đối với từng vai trò" FontSize="14" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,5,0,0"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Toolbar (Search + Status Info + Save/Close Buttons) -->
+        <Border Grid.Row="1" Style="{StaticResource EnterpriseCardBorder}" Margin="0,0,0,16" Padding="15,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="300"/> <!-- Search -->
+                    <ColumnDefinition Width="*"/>   <!-- Status message -->
+                    <ColumnDefinition Width="Auto"/> <!-- Action Buttons -->
+                </Grid.ColumnDefinitions>
+
+                <!-- Search box -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="🔍" VerticalAlignment="Center" Margin="0,0,10,0" Foreground="{StaticResource TextMutedBrush}" FontSize="16"/>
+                    <TextBox x:Name="TxtSearch" 
+                             Style="{StaticResource ModernTextBox}"
+                             Width="260" Height="36" Padding="10,0" VerticalContentAlignment="Center"
+                             Tag="Tìm kiếm quyền..."
+                             TextChanged="TxtSearch_TextChanged"/>
+                </StackPanel>
+
+                <!-- Status / Pending changes message -->
+                <TextBlock x:Name="LblStatus" Grid.Column="1" 
+                           VerticalAlignment="Center" Margin="20,0"
+                           FontSize="13" Text="Đang tải dữ liệu..." 
+                           Foreground="{StaticResource TextSecondaryBrush}"/>
+
+                <!-- Save & Close Buttons -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <Button x:Name="BtnSave" Content="Lưu thay đổi" Click="BtnSave_Click" Style="{StaticResource ModernButton}" Background="{StaticResource SuccessBrush}" Height="36" Padding="20,0" Margin="0,0,10,0" IsEnabled="False"/>
+                    <Button x:Name="BtnClose" Content="Đóng" Click="BtnClose_Click" Style="{StaticResource ModernOutlineButton}" Height="36" Padding="20,0"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Data Grid -->
+        <Border Grid.Row="2" Style="{StaticResource EnterpriseCardBorder}" Padding="0">
+            <DataGrid x:Name="GridMatrix" 
+                      Style="{StaticResource ModernDataGrid}"
+                      Margin="0"
+                      SelectionMode="Single"
+                      SelectionUnit="Cell">
+                <DataGrid.Columns>
+                    <!-- Fixed Columns -->
+                    <DataGridTextColumn Header="Phân hệ / Module" Binding="{Binding Module}" Width="150" IsReadOnly="True" FontWeight="SemiBold"/>
+                    <DataGridTextColumn Header="Mã Quyền (Code)" Binding="{Binding Code}" Width="150" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="Tên Quyền hạn" Binding="{Binding Name}" Width="200" IsReadOnly="True"/>
+                    <DataGridTextColumn Header="Mô tả chức năng" Binding="{Binding Description}" Width="*" IsReadOnly="True"/>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+    </Grid>
+</Window>

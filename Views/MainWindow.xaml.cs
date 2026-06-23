@@ -1319,10 +1319,9 @@ namespace QuanLyGiuXe
         private void MoMaTranPhanQuyen_Click(object sender, RoutedEventArgs e)
         {
             LoggingService.Instance.LogInfo("TAB_OPEN", "UI", "Mở tab: Ma trận phân quyền");
-            using (var frm = new Views.RolePermissionMatrixForm())
-            {
-                frm.ShowDialog();
-            }
+            var win = new Views.RolePermissionMatrixWindow();
+            win.Owner = this;
+            win.ShowDialog();
             LoggingService.Instance.LogInfo("TAB_CLOSE", "UI", "Đóng tab: Ma trận phân quyền");
         }
 
@@ -1474,8 +1473,9 @@ namespace QuanLyGiuXe
             {
                 AuthorizationGuard.Protect("USER_VIEW", "User Management Panel");
                 
-                using var frm = new QuanLyGiuXe.Views.UserManagementForm();
-                frm.ShowDialog();
+                var win = new QuanLyGiuXe.Views.UserManagementWindow();
+                win.Owner = this;
+                win.ShowDialog();
                 RestoreSidebarSelection();
             }
             catch (Exception ex)

@@ -1,0 +1,168 @@
+<Window x:Class="QuanLyGiuXe.Views.AuditHistoryWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Nhật ký kiểm toán hệ thống" 
+        Height="760" Width="1300"
+        MinHeight="600" MinWidth="1100"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource BgLightBrush}">
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/> <!-- Title Header -->
+            <RowDefinition Height="Auto"/> <!-- Filters -->
+            <RowDefinition Height="*"/>    <!-- Split Content: Grid & Details -->
+        </Grid.RowDefinitions>
+
+        <!-- Title Header -->
+        <Border Grid.Row="0" Style="{StaticResource EnterpriseCardBorder}" Padding="20" Margin="0,0,0,16">
+            <StackPanel>
+                <TextBlock Text="📜 NHẬT KÝ KIỂM TOÁN HỆ THỐNG" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}"/>
+                <TextBlock Text="Theo dõi, kiểm tra, đối soát lịch sử phân quyền và chỉnh sửa bảo mật" FontSize="14" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,5,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Filter Bar -->
+        <Border Grid.Row="1" Style="{StaticResource EnterpriseCardBorder}" Margin="0,0,0,16" Padding="15,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/> <!-- From Date -->
+                    <ColumnDefinition Width="Auto"/> <!-- To Date -->
+                    <ColumnDefinition Width="Auto"/> <!-- Action -->
+                    <ColumnDefinition Width="Auto"/> <!-- Entity -->
+                    <ColumnDefinition Width="*"/>    <!-- Search -->
+                    <ColumnDefinition Width="Auto"/> <!-- Buttons -->
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                    <TextBlock Text="Từ ngày:" Style="{StaticResource SubTitleStyle}" FontWeight="Bold" Margin="0,0,0,4"/>
+                    <DatePicker x:Name="DpFrom" Width="140" Height="36" VerticalContentAlignment="Center"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Margin="0,0,12,0">
+                    <TextBlock Text="Đến ngày:" Style="{StaticResource SubTitleStyle}" FontWeight="Bold" Margin="0,0,0,4"/>
+                    <DatePicker x:Name="DpTo" Width="140" Height="36" VerticalContentAlignment="Center"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Margin="0,0,12,0">
+                    <TextBlock Text="Hành động:" Style="{StaticResource SubTitleStyle}" FontWeight="Bold" Margin="0,0,0,4"/>
+                    <ComboBox x:Name="CboActionType" Style="{StaticResource ModernComboBox}" Width="160" Height="36"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="3" Margin="0,0,12,0">
+                    <TextBlock Text="Loại thực thể:" Style="{StaticResource SubTitleStyle}" FontWeight="Bold" Margin="0,0,0,4"/>
+                    <ComboBox x:Name="CboEntityType" Style="{StaticResource ModernComboBox}" Width="140" Height="36"/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="4" Margin="0,0,15,0">
+                    <TextBlock Text="Tìm từ khóa:" Style="{StaticResource SubTitleStyle}" FontWeight="Bold" Margin="0,0,0,4"/>
+                    <TextBox x:Name="TxtSearch" Style="{StaticResource ModernTextBox}" Height="36" VerticalContentAlignment="Center" Tag="Tìm username, mô tả..."/>
+                </StackPanel>
+
+                <StackPanel Grid.Column="5" Orientation="Horizontal" VerticalAlignment="Bottom">
+                    <Button x:Name="BtnSearch" Content="🔍 Tìm kiếm" Click="BtnSearch_Click" Style="{StaticResource ModernButton}" Height="36" Padding="15,0" Margin="0,0,10,0"/>
+                    <Button x:Name="BtnClear" Content="↺ Xóa lọc" Click="BtnClear_Click" Style="{StaticResource ModernOutlineButton}" Height="36" Padding="15,0"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Main Content Area -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>      <!-- Left: Grid Card -->
+                <ColumnDefinition Width="16"/>     <!-- Spacing -->
+                <ColumnDefinition Width="400"/>    <!-- Right: Detail Card -->
+            </Grid.ColumnDefinitions>
+
+            <!-- Left Side: Data Grid & Pagination -->
+            <Border Grid.Column="0" Style="{StaticResource EnterpriseCardBorder}" Padding="0">
+                <DockPanel>
+                    <!-- Pagination Bar (Bottom) -->
+                    <Border DockPanel.Dock="Bottom" Background="{StaticResource BgLightBrush}" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,1,0,0" Padding="15,10">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button x:Name="BtnFirst" Content="⏮" Click="BtnFirst_Click" Style="{StaticResource ModernOutlineButton}" Width="40" Margin="0,0,5,0" Height="32"/>
+                                <Button x:Name="BtnPrev" Content="◀" Click="BtnPrev_Click" Style="{StaticResource ModernOutlineButton}" Width="40" Margin="0,0,15,0" Height="32"/>
+                                
+                                <TextBlock x:Name="LblPageStatus" Text="Trang 1 / 1 (Tổng số: 0 dòng)" VerticalAlignment="Center" FontSize="13" FontWeight="SemiBold"/>
+                                
+                                <Button x:Name="BtnNext" Content="▶" Click="BtnNext_Click" Style="{StaticResource ModernOutlineButton}" Width="40" Margin="15,0,5,0" Height="32"/>
+                                <Button x:Name="BtnLast" Content="⏭" Click="BtnLast_Click" Style="{StaticResource ModernOutlineButton}" Width="40" Height="32"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- Data Grid (Fill) -->
+                    <DataGrid x:Name="GridLogs" 
+                              Style="{StaticResource ModernDataGrid}"
+                              Margin="0"
+                              SelectionChanged="GridLogs_SelectionChanged">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="ID" Binding="{Binding AuditLogId}" Width="60" FontWeight="SemiBold"/>
+                            <DataGridTextColumn Header="Thời gian" Binding="{Binding CreatedAt, StringFormat=\{0:dd/MM/yyyy HH:mm:ss\}}" Width="140"/>
+                            <DataGridTextColumn Header="Hành động" Binding="{Binding ActionType}" Width="150">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ActionType}" Value="GRANT_PERMISSION">
+                                                <Setter Property="Foreground" Value="{StaticResource SuccessBrush}"/>
+                                                <Setter Property="FontWeight" Value="Bold"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding ActionType}" Value="REVOKE_PERMISSION">
+                                                <Setter Property="Foreground" Value="{StaticResource DangerBrush}"/>
+                                                <Setter Property="FontWeight" Value="Bold"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="Thực thể" Binding="{Binding EntityType}" Width="120"/>
+                            <DataGridTextColumn Header="Người thực hiện" Binding="{Binding Username}" Width="120"/>
+                            <DataGridTextColumn Header="Mô tả" Binding="{Binding Description}" Width="*"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </DockPanel>
+            </Border>
+
+            <!-- Right Side: Detail Panel -->
+            <Border Grid.Column="2" Style="{StaticResource EnterpriseCardBorder}" Padding="15">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top" Text="🔍 CHI TIẾT SỰ KIỆN" Style="{StaticResource SubTitleStyle}" FontWeight="Bold" FontSize="14" Foreground="{StaticResource APSBlueBrush}" Margin="0,0,0,10"/>
+                    
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="0,0,5,0">
+                            <TextBlock Text="Mã Audit:" Style="{StaticResource SubTitleStyle}" FontWeight="Bold" Margin="0,0,0,4"/>
+                            <TextBox x:Name="TxtDetailId" Style="{StaticResource ModernTextBox}" IsReadOnly="True" Margin="0,0,0,10"/>
+
+                            <TextBlock Text="Thời gian:" Style="{StaticResource SubTitleStyle}" FontWeight="Bold" Margin="0,0,0,4"/>
+                            <TextBox x:Name="TxtDetailTime" Style="{StaticResource ModernTextBox}" IsReadOnly="True" Margin="0,0,0,10"/>
+
+                            <TextBlock Text="Người thao tác:" Style="{StaticResource SubTitleStyle}" FontWeight="Bold" Margin="0,0,0,4"/>
+                            <TextBox x:Name="TxtDetailUser" Style="{StaticResource ModernTextBox}" IsReadOnly="True" Margin="0,0,0,10"/>
+
+                            <TextBlock Text="Hành động:" Style="{StaticResource SubTitleStyle}" FontWeight="Bold" Margin="0,0,0,4"/>
+                            <TextBox x:Name="TxtDetailAction" Style="{StaticResource ModernTextBox}" IsReadOnly="True" Margin="0,0,0,10"/>
+
+                            <TextBlock Text="Loại thực thể:" Style="{StaticResource SubTitleStyle}" FontWeight="Bold" Margin="0,0,0,4"/>
+                            <TextBox x:Name="TxtDetailEntity" Style="{StaticResource ModernTextBox}" IsReadOnly="True" Margin="0,0,0,10"/>
+
+                            <TextBlock Text="Mô tả chi tiết:" Style="{StaticResource SubTitleStyle}" FontWeight="Bold" Margin="0,0,0,4"/>
+                            <TextBox x:Name="TxtDetailDesc" Style="{StaticResource ModernTextBox}" IsReadOnly="True" Height="60" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" Margin="0,0,0,10"/>
+
+                            <TextBlock Text="Giá trị cũ (Old Value JSON):" Style="{StaticResource SubTitleStyle}" FontWeight="Bold" Margin="0,0,0,4"/>
+                            <TextBox x:Name="TxtDetailOldValue" Height="120" FontFamily="Consolas" FontSize="12" Background="#0F172A" Foreground="#34D399" IsReadOnly="True" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto" Margin="0,0,0,10"/>
+
+                            <TextBlock Text="Giá trị mới (New Value JSON):" Style="{StaticResource SubTitleStyle}" FontWeight="Bold" Margin="0,0,0,4"/>
+                            <TextBox x:Name="TxtDetailNewValue" Height="120" FontFamily="Consolas" FontSize="12" Background="#0F172A" Foreground="#34D399" IsReadOnly="True" TextWrapping="Wrap" AcceptsReturn="True" VerticalScrollBarVisibility="Auto"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                </DockPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>
