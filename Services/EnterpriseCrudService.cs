@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
 using System.Linq;
+using System.Threading.Tasks;
 using QuanLyGiuXe.Models;
+using QuanLyGiuXe.Services.OfflineCache;
 
 namespace QuanLyGiuXe.Services
 {
@@ -900,6 +902,25 @@ namespace QuanLyGiuXe.Services
                 {
                     try
                     {
+                        // Deactivate old active card of employee:
+                        // First, query the IDs of these active cards to clear their caches
+                        var oldCardIds = new List<int>();
+                        using (var cmd = new SqlCommand("SELECT Id FROM dbo.RFIDCards WHERE EmployeeId = @empId AND TrangThai = 'Active'", conn, trans))
+                        {
+                            cmd.Parameters.AddWithValue("@empId", employeeId);
+                            using (var r = cmd.ExecuteReader())
+                            {
+                                while (r.Read()) oldCardIds.Add(Convert.ToInt32(r["Id"]));
+                            }
+                        }
+
+                        // Delete active sessions in XeTrongBai for these old cards
+                        using (var cmd = new SqlCommand("DELETE FROM dbo.XeTrongBai WHERE CardId IN (SELECT Id FROM dbo.RFIDCards WHERE EmployeeId = @empId AND TrangThai = 'Active')", conn, trans))
+                        {
+                            cmd.Parameters.AddWithValue("@empId", employeeId);
+                            cmd.ExecuteNonQuery();
+                        }
+
                         // Deactivate old active card of employee
                         using (var cmd = new SqlCommand(deactivateOldCardsSql, conn, trans))
                         {
@@ -941,6 +962,13 @@ namespace QuanLyGiuXe.Services
                         }
                         else
                         {
+                            // Delete active session for the existing card
+                            using (var cmd = new SqlCommand("DELETE FROM dbo.XeTrongBai WHERE CardId = @cardId", conn, trans))
+                            {
+                                cmd.Parameters.AddWithValue("@cardId", card.Id);
+                                cmd.ExecuteNonQuery();
+                            }
+
                             // Assign existing card
                             string assignSql = "UPDATE dbo.RFIDCards SET EmployeeId = @empId, TrangThai = 'Active' WHERE Id = @cardId";
                             using (var cmd = new SqlCommand(assignSql, conn, trans))
@@ -953,6 +981,39 @@ namespace QuanLyGiuXe.Services
 
                         trans.Commit();
                         LoggingService.Instance.LogInfo("RFID_ASSIGN", "Assign", $"Assigned card {cardUidOrId} to employee ID {employeeId}");
+
+                        // Invalidate cache for old cards
+                        foreach (var cardId in oldCardIds)
+                        {
+                            try
+                            {
+                                Task.Run(async () =>
+                                {
+                                    await OfflineCacheService.Instance.DeleteActiveSessionLocalAsync(cardId);
+                                    await OfflineCacheService.Instance.SaveCacheAsync($"CHECK_XE_CARD_{cardId}", false);
+                                    await OfflineCacheService.Instance.SaveCacheAsync($"RECORD_XE_CARD_{cardId}", (object?)null);
+                                    await OfflineCacheService.Instance.SaveCacheAsync($"ENTITY_XE_CARD_{cardId}", (object?)null);
+                                }).GetAwaiter().GetResult();
+                            }
+                            catch { }
+                        }
+
+                        // Invalidate cache for new card (if existing)
+                        if (card != null)
+                        {
+                            try
+                            {
+                                Task.Run(async () =>
+                                {
+                                    await OfflineCacheService.Instance.DeleteActiveSessionLocalAsync(card.Id);
+                                    await OfflineCacheService.Instance.SaveCacheAsync($"CHECK_XE_CARD_{card.Id}", false);
+                                    await OfflineCacheService.Instance.SaveCacheAsync($"RECORD_XE_CARD_{card.Id}", (object?)null);
+                                    await OfflineCacheService.Instance.SaveCacheAsync($"ENTITY_XE_CARD_{card.Id}", (object?)null);
+                                }).GetAwaiter().GetResult();
+                            }
+                            catch { }
+                        }
+                        DatabaseService.InvalidateRFIDCardCache();
                     }
                     catch
                     {
@@ -972,11 +1033,42 @@ namespace QuanLyGiuXe.Services
             using (var conn = new SqlConnection(GetConnStr()))
             {
                 conn.Open();
-                using (var cmd = new SqlCommand(sql, conn))
+                using (var trans = conn.BeginTransaction())
                 {
-                    cmd.Parameters.AddWithValue("@cardId", card.Id);
-                    cmd.ExecuteNonQuery();
-                    LoggingService.Instance.LogInfo("RFID_DEASSIGN", "Deassign", $"Removed assignment of card {cardUidOrId}");
+                    try
+                    {
+                        using (var cmd = new SqlCommand("DELETE FROM dbo.XeTrongBai WHERE CardId = @cardId", conn, trans))
+                        {
+                            cmd.Parameters.AddWithValue("@cardId", card.Id);
+                            cmd.ExecuteNonQuery();
+                        }
+                        using (var cmd = new SqlCommand(sql, conn, trans))
+                        {
+                            cmd.Parameters.AddWithValue("@cardId", card.Id);
+                            cmd.ExecuteNonQuery();
+                        }
+                        trans.Commit();
+                        LoggingService.Instance.LogInfo("RFID_DEASSIGN", "Deassign", $"Removed assignment of card {cardUidOrId}");
+
+                        // Clear local cache keys
+                        try
+                        {
+                            Task.Run(async () =>
+                            {
+                                await OfflineCacheService.Instance.DeleteActiveSessionLocalAsync(card.Id);
+                                await OfflineCacheService.Instance.SaveCacheAsync($"CHECK_XE_CARD_{card.Id}", false);
+                                await OfflineCacheService.Instance.SaveCacheAsync($"RECORD_XE_CARD_{card.Id}", (object?)null);
+                                await OfflineCacheService.Instance.SaveCacheAsync($"ENTITY_XE_CARD_{card.Id}", (object?)null);
+                            }).GetAwaiter().GetResult();
+                        }
+                        catch { }
+                        DatabaseService.InvalidateRFIDCardCache();
+                    }
+                    catch
+                    {
+                        trans.Rollback();
+                        throw;
+                    }
                 }
             }
         }
