@@ -1,3 +1,4 @@
+using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -9,6 +10,8 @@ namespace QuanLyGiuXe.Views
     public partial class ConnectDatabaseWindow : Window
     {
         private ConnectDatabaseViewModel _viewModel;
+        private bool _isSyncing = false;
+
         public ConnectDatabaseWindow()
         {
             InitializeComponent();
@@ -16,8 +19,8 @@ namespace QuanLyGiuXe.Views
             this.DataContext = _viewModel;
             
             // Initial load for password
-            txtPassword.Password = _viewModel.Password;
-            txtPasswordVisible.Text = _viewModel.Password;
+            txtPassword.Password = _viewModel.Password ?? string.Empty;
+            txtPasswordVisible.Text = _viewModel.Password ?? string.Empty;
 
             _viewModel.CloseAction = () =>
             {
@@ -25,8 +28,35 @@ namespace QuanLyGiuXe.Views
                 this.Close();
             };
 
+            _viewModel.PropertyChanged += ViewModel_PropertyChanged;
+
             // Hủy toàn bộ tác vụ chạy ngầm khi cửa sổ bị đóng
             Closed += (s, e) => _viewModel?.CancelPendingTasks();
+        }
+
+        private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (_isSyncing) return;
+
+            if (e.PropertyName == nameof(ConnectDatabaseViewModel.Password))
+            {
+                _isSyncing = true;
+                try
+                {
+                    if (txtPassword.Password != _viewModel.Password)
+                    {
+                        txtPassword.Password = _viewModel.Password ?? string.Empty;
+                    }
+                    if (txtPasswordVisible.Text != _viewModel.Password)
+                    {
+                        txtPasswordVisible.Text = _viewModel.Password ?? string.Empty;
+                    }
+                }
+                finally
+                {
+                    _isSyncing = false;
+                }
+            }
         }
 
         private void Header_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -76,28 +106,46 @@ namespace QuanLyGiuXe.Views
 
         private void txtPassword_PasswordChanged(object sender, RoutedEventArgs e)
         {
+            if (_isSyncing) return;
+
             if (this.DataContext is ConnectDatabaseViewModel vm)
             {
-                if (vm.Password != txtPassword.Password)
+                _isSyncing = true;
+                try
                 {
-                    vm.Password = txtPassword.Password;
-                    txtPasswordVisible.Text = txtPassword.Password;
+                    if (vm.Password != txtPassword.Password)
+                    {
+                        vm.Password = txtPassword.Password;
+                        txtPasswordVisible.Text = txtPassword.Password;
+                    }
+                }
+                finally
+                {
+                    _isSyncing = false;
                 }
             }
         }
 
         private void txtPasswordVisible_TextChanged(object sender, TextChangedEventArgs e)
         {
+            if (_isSyncing) return;
+
             if (this.DataContext is ConnectDatabaseViewModel vm)
             {
-                if (vm.Password != txtPasswordVisible.Text)
+                _isSyncing = true;
+                try
                 {
-                    vm.Password = txtPasswordVisible.Text;
-                    txtPassword.Password = txtPasswordVisible.Text;
+                    if (vm.Password != txtPasswordVisible.Text)
+                    {
+                        vm.Password = txtPasswordVisible.Text;
+                        txtPassword.Password = txtPasswordVisible.Text;
+                    }
+                }
+                finally
+                {
+                    _isSyncing = false;
                 }
             }
         }
     }
 }
-
-
