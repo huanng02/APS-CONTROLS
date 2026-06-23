@@ -371,6 +371,16 @@ namespace QuanLyGiuXe.Services
                 CREATE INDEX IX_Lanes_ZoneId ON dbo.Lanes(ZoneId);
             END
 
+            IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_XeTrongBai_CardId_ThoiGianRa' AND object_id = OBJECT_ID('dbo.XeTrongBai'))
+            BEGIN
+                CREATE INDEX IX_XeTrongBai_CardId_ThoiGianRa ON dbo.XeTrongBai(CardId, ThoiGianRa);
+            END
+
+            IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_XeTrongBai_BienSo_ThoiGianRa' AND object_id = OBJECT_ID('dbo.XeTrongBai'))
+            BEGIN
+                CREATE INDEX IX_XeTrongBai_BienSo_ThoiGianRa ON dbo.XeTrongBai(BienSo, ThoiGianRa);
+            END
+
             -- 7) Seeding (Only runs if the database is completely empty)
             IF NOT EXISTS (SELECT 1 FROM dbo.ParkingSites)
             BEGIN

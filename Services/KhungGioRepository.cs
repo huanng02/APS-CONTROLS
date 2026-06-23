@@ -9,6 +9,17 @@ namespace QuanLyGiuXe.Services
     {
         private readonly DatabaseService _db = new DatabaseService();
 
+        private static List<KhungGio>? _cachedKhungGio;
+        private static readonly object _cacheLock = new();
+
+        public static void InvalidateCache()
+        {
+            lock (_cacheLock)
+            {
+                _cachedKhungGio = null;
+            }
+        }
+
         public List<KhungGio> GetAll()
         {
             return System.Threading.Tasks.Task.Run(() => GetAllAsync()).GetAwaiter().GetResult();
@@ -16,7 +27,12 @@ namespace QuanLyGiuXe.Services
 
         public async System.Threading.Tasks.Task<List<KhungGio>> GetAllAsync()
         {
-            return await QuanLyGiuXe.Services.OfflineCache.ConnectivityAwareRepository.Instance.ExecuteReadAsync<List<KhungGio>>(
+            lock (_cacheLock)
+            {
+                if (_cachedKhungGio != null) return _cachedKhungGio;
+            }
+
+            var list = await QuanLyGiuXe.Services.OfflineCache.ConnectivityAwareRepository.Instance.ExecuteReadAsync<List<KhungGio>>(
                 "LOOKUP_KHUNGGIO",
                 async conn =>
                 {
@@ -40,6 +56,12 @@ namespace QuanLyGiuXe.Services
                     return list;
                 }
             ) ?? new List<KhungGio>();
+
+            lock (_cacheLock)
+            {
+                _cachedKhungGio = list;
+            }
+            return list;
         }
 
         public void Update(KhungGio entity)
@@ -63,6 +85,7 @@ namespace QuanLyGiuXe.Services
                         cmd.ExecuteNonQuery();
                     }
                 }
+                InvalidateCache();
                 LoggingService.Instance.LogInfo("Update", "KhungGioRepository", $"Cập nhật khung giờ thành công (Id: {entity.Id}, Tên: {entity.TenKhungGio})");
             }
             catch (Exception ex)
@@ -92,6 +115,7 @@ namespace QuanLyGiuXe.Services
                         if (id != null && int.TryParse(id.ToString(), out var iid)) entity.Id = iid;
                     }
                 }
+                InvalidateCache();
                 LoggingService.Instance.LogInfo("Insert", "KhungGioRepository", $"Thêm khung giờ thành công (Tên: {entity.TenKhungGio})");
             }
             catch (Exception ex)
@@ -116,6 +140,7 @@ namespace QuanLyGiuXe.Services
                         cmd.ExecuteNonQuery();
                     }
                 }
+                InvalidateCache();
                 LoggingService.Instance.LogInfo("Delete", "KhungGioRepository", $"Xóa khung giờ thành công (Id: {id})");
             }
             catch (Exception ex)

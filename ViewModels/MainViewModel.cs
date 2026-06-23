@@ -1972,17 +1972,6 @@ namespace QuanLyGiuXe.ViewModels
 
                     validationCompleted = DateTime.Now;
 
-                    // Resolve topology
-                    var (siteId, zoneId, laneId, _, _, _, _, _) = await ResolveTopologyForLaneAsync(dbLaneId);
-                    if (siteId.HasValue)
-                    {
-                        int? dynamicZoneId = await db.GetZoneBySiteAndVehicleTypeAsync(siteId.Value, card.LoaiXeId);
-                        if (dynamicZoneId.HasValue)
-                        {
-                            zoneId = dynamicZoneId.Value;
-                        }
-                    }
-
                     // ─── 3. TRIGGER BARRIER ───
                     bool opened = await C3200Service.Instance.OpenBarrierAsync(uiLaneIndex);
                     barrierTriggered = DateTime.Now;
@@ -2008,6 +1997,26 @@ namespace QuanLyGiuXe.ViewModels
                         {
                             try
                             {
+                                int? siteId = null;
+                                int? zoneId = null;
+                                int? laneId = null;
+                                try
+                                {
+                                    var topo = await ResolveTopologyForLaneAsync(dbLaneId);
+                                    siteId = topo.SiteId;
+                                    zoneId = topo.ZoneId;
+                                    laneId = topo.LaneId;
+                                    if (siteId.HasValue)
+                                    {
+                                        int? dynamicZoneId = await db.GetZoneBySiteAndVehicleTypeAsync(siteId.Value, card.LoaiXeId);
+                                        if (dynamicZoneId.HasValue)
+                                        {
+                                            zoneId = dynamicZoneId.Value;
+                                        }
+                                    }
+                                }
+                                catch { }
+
                                 string plate = recognizedPlate;
                                 if (lprTask != null)
                                 {
@@ -2133,6 +2142,26 @@ namespace QuanLyGiuXe.ViewModels
                         {
                             try
                             {
+                                int? siteId = null;
+                                int? zoneId = null;
+                                int? laneId = null;
+                                try
+                                {
+                                    var topo = await ResolveTopologyForLaneAsync(dbLaneId);
+                                    siteId = topo.SiteId;
+                                    zoneId = topo.ZoneId;
+                                    laneId = topo.LaneId;
+                                    if (siteId.HasValue)
+                                    {
+                                        int? dynamicZoneId = await db.GetZoneBySiteAndVehicleTypeAsync(siteId.Value, card.LoaiXeId);
+                                        if (dynamicZoneId.HasValue)
+                                        {
+                                            zoneId = dynamicZoneId.Value;
+                                        }
+                                    }
+                                }
+                                catch { }
+
                                 string plate = recognizedPlate;
                                 if (lprTask != null)
                                 {

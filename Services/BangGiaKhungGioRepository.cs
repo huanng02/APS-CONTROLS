@@ -11,6 +11,17 @@ namespace QuanLyGiuXe.Services
     {
         private readonly DatabaseService _db = new DatabaseService();
 
+        private static List<BangGiaKhungGio>? _cachedBangGiaKhungGio;
+        private static readonly object _cacheLock = new();
+
+        public static void InvalidateCache()
+        {
+            lock (_cacheLock)
+            {
+                _cachedBangGiaKhungGio = null;
+            }
+        }
+
         public List<BangGiaKhungGio> GetAll()
         {
             return System.Threading.Tasks.Task.Run(() => GetAllAsync()).GetAwaiter().GetResult();
@@ -18,7 +29,12 @@ namespace QuanLyGiuXe.Services
 
         public async System.Threading.Tasks.Task<List<BangGiaKhungGio>> GetAllAsync()
         {
-            return await ConnectivityAwareRepository.Instance.ExecuteReadAsync<List<BangGiaKhungGio>>(
+            lock (_cacheLock)
+            {
+                if (_cachedBangGiaKhungGio != null) return _cachedBangGiaKhungGio;
+            }
+
+            var list = await ConnectivityAwareRepository.Instance.ExecuteReadAsync<List<BangGiaKhungGio>>(
                 "LIST_BANG_GIA_KHUNG_GIO",
                 async conn =>
                 {
@@ -40,6 +56,12 @@ namespace QuanLyGiuXe.Services
                     return list;
                 }
             ) ?? new List<BangGiaKhungGio>();
+
+            lock (_cacheLock)
+            {
+                _cachedBangGiaKhungGio = list;
+            }
+            return list;
         }
 
         public List<BangGiaKhungGio> GetByBangGiaId(int bangGiaId)
@@ -49,31 +71,8 @@ namespace QuanLyGiuXe.Services
 
         public async System.Threading.Tasks.Task<List<BangGiaKhungGio>> GetByBangGiaIdAsync(int bangGiaId)
         {
-            return await ConnectivityAwareRepository.Instance.ExecuteReadAsync<List<BangGiaKhungGio>>(
-                $"BANG_GIA_KHUNG_GIO_{bangGiaId}",
-                async conn =>
-                {
-                    var list = new List<BangGiaKhungGio>();
-                    using (var cmd = new SqlCommand( @"SELECT Id, BangGiaId, KhungGioId, GiaTien FROM dbo.BangGiaKhungGio WHERE BangGiaId = @bg", conn))
-                    {
-                        cmd.Parameters.AddWithValue("@bg", bangGiaId);
-                        using (var r = await cmd.ExecuteReaderAsync())
-                        {
-                            while (await r.ReadAsync())
-                            {
-                                list.Add(new BangGiaKhungGio
-                                {
-                                    Id = r["Id"] != DBNull.Value ? Convert.ToInt32(r["Id"]) : 0,
-                                    BangGiaId = r["BangGiaId"] != DBNull.Value ? Convert.ToInt32(r["BangGiaId"]) : 0,
-                                    KhungGioId = r["KhungGioId"] != DBNull.Value ? Convert.ToInt32(r["KhungGioId"]) : 0,
-                                    GiaTien = r["GiaTien"] != DBNull.Value ? Convert.ToDecimal(r["GiaTien"]) : 0m
-                                });
-                            }
-                        }
-                    }
-                    return list;
-                }
-            ) ?? new List<BangGiaKhungGio>();
+            var list = await GetAllAsync();
+            return list.Where(x => x.BangGiaId == bangGiaId).ToList();
         }
 
         public void Insert(BangGiaKhungGio entity)
@@ -85,7 +84,7 @@ namespace QuanLyGiuXe.Services
         {
             if (entity == null) return false;
 
-            return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+            var success = await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
                 "INSERT_BANG_GIA_KHUNG_GIO",
                 entity,
                 async conn =>
@@ -100,6 +99,8 @@ namespace QuanLyGiuXe.Services
                     }
                 }
             );
+            if (success) InvalidateCache();
+            return success;
         }
 
         public void Update(BangGiaKhungGio entity)
@@ -111,7 +112,7 @@ namespace QuanLyGiuXe.Services
         {
             if (entity == null || entity.Id <= 0) return false;
 
-            return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+            var success = await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
                 "UPDATE_BANG_GIA_KHUNG_GIO",
                 entity,
                 async conn =>
@@ -126,6 +127,8 @@ namespace QuanLyGiuXe.Services
                     }
                 }
             );
+            if (success) InvalidateCache();
+            return success;
         }
 
         public void Delete(int id)
@@ -136,7 +139,7 @@ namespace QuanLyGiuXe.Services
         public async System.Threading.Tasks.Task<bool> DeleteAsync(int id)
         {
             if (id <= 0) return false;
-            return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+            var success = await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
                 "DELETE_BANG_GIA_KHUNG_GIO",
                 new { Id = id },
                 async conn =>
@@ -148,6 +151,8 @@ namespace QuanLyGiuXe.Services
                     }
                 }
             );
+            if (success) InvalidateCache();
+            return success;
         }
     }
 }

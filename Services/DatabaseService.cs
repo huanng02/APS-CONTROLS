@@ -19,6 +19,7 @@ namespace QuanLyGiuXe.Services
 
         private static List<LoaiXe>? _cachedLoaiXe;
         private static readonly object _loaiXeLock = new();
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, RFIDCard?> _cachedCardsByUid = new();
 
         public static void InvalidateLoaiXeCache()
         {
@@ -26,6 +27,11 @@ namespace QuanLyGiuXe.Services
             {
                 _cachedLoaiXe = null;
             }
+        }
+
+        public static void InvalidateRFIDCardCache()
+        {
+            _cachedCardsByUid.Clear();
         }
 
         /// <summary>
@@ -428,7 +434,6 @@ namespace QuanLyGiuXe.Services
         }
 
         // Legacy helpers removed: pricing is fully driven by KhungGio + BangGiaKhungGio.
-
         public RFIDCard GetRFIDCardByUid(string uid)
         {
             return Task.Run(() => GetRFIDCardByUidAsync(uid)).GetAwaiter().GetResult();
@@ -436,6 +441,12 @@ namespace QuanLyGiuXe.Services
 
         public async Task<RFIDCard?> GetRFIDCardByUidAsync(string uid)
         {
+            if (string.IsNullOrEmpty(uid)) return null;
+            if (_cachedCardsByUid.TryGetValue(uid, out var cachedCard))
+            {
+                return cachedCard;
+            }
+
             var card = await ConnectivityAwareRepository.Instance.ExecuteReadAsync<RFIDCard>(
                 $"RFID_UID_{uid}",
                 async conn =>
@@ -486,6 +497,7 @@ namespace QuanLyGiuXe.Services
                 }
             }
 
+            _cachedCardsByUid[uid] = card;
             return card;
         }
 
@@ -658,6 +670,7 @@ namespace QuanLyGiuXe.Services
                     bulk.WriteToServer(table);
                 }
             }
+            InvalidateRFIDCardCache();
         }
 
         public List<BangGia> LayBangGia()
@@ -1024,7 +1037,7 @@ namespace QuanLyGiuXe.Services
 
         public async Task<bool> InsertRFIDCardAsync(string uid, string bienSo, string cardName, int loaiVeId, int loaiXeId, string trangThai, DateTime ngayTao, DateTime? ngayHetHan, int? employeeId = null)
         {
-            return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+            var success = await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
                 "CREATE_RFID_CARD",
                 new { UID = uid, BienSo = bienSo, CardName = cardName },
                 async conn =>
@@ -1045,6 +1058,8 @@ namespace QuanLyGiuXe.Services
                     }
                 }
             );
+            if (success) InvalidateRFIDCardCache();
+            return success;
         }
 
         public void UpdateRFIDCard(int id, string uid, string bienSo, string cardName, int loaiVeId, int loaiXeId, string trangThai, DateTime? ngayDangKy, DateTime? ngayHetHan, int? employeeId = null)
@@ -1054,7 +1069,7 @@ namespace QuanLyGiuXe.Services
 
         public async Task<bool> UpdateRFIDCardAsync(int id, string uid, string bienSo, string cardName, int loaiVeId, int loaiXeId, string trangThai, DateTime? ngayDangKy, DateTime? ngayHetHan, int? employeeId = null)
         {
-            return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+            var success = await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
                 "UPDATE_RFID_CARD",
                 new { Id = id, UID = uid, BienSo = bienSo },
                 async conn =>
@@ -1075,6 +1090,8 @@ namespace QuanLyGiuXe.Services
                     }
                 }
             );
+            if (success) InvalidateRFIDCardCache();
+            return success;
         }
 
         public void DeleteRFIDCard(int id)
@@ -1084,7 +1101,7 @@ namespace QuanLyGiuXe.Services
 
         public async Task<bool> DeleteRFIDCardAsync(int id)
         {
-            return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+            var success = await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
                 "DELETE_RFID_CARD",
                 new { Id = id },
                 async conn =>
@@ -1096,6 +1113,8 @@ namespace QuanLyGiuXe.Services
                     }
                 }
             );
+            if (success) InvalidateRFIDCardCache();
+            return success;
         }
 
         /// <summary>
@@ -1110,7 +1129,7 @@ namespace QuanLyGiuXe.Services
 
         public async Task<bool> GiaHanRFIDCardAsync(int id, int soThang)
         {
-            return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+            var success = await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
                 "RENEW_RFID_CARD",
                 new { Id = id, Months = soThang },
                 async conn =>
@@ -1152,6 +1171,8 @@ namespace QuanLyGiuXe.Services
                     }
                 }
             );
+            if (success) InvalidateRFIDCardCache();
+            return success;
         }
 
         public List<GiaHanRFIDLog> GetGiaHanHistory(string searchTerm = null, DateTime? fromDate = null, DateTime? toDate = null)
@@ -1946,6 +1967,7 @@ namespace QuanLyGiuXe.Services
                 try
                 {
                     cmd.ExecuteNonQuery();
+                    InvalidateRFIDCardCache();
                     return true;
                 }
                 catch (SqlException ex)
