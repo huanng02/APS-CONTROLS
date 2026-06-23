@@ -152,8 +152,55 @@
                                         <TextBlock Grid.Row="2" Grid.Column="0" Text="Loại xe:" FontSize="10" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,6,2"/>
                                         <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding DataContext.Lane1LoaiXe, RelativeSource={RelativeSource AncestorType=Window}}" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
 
-                                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Loại vé:" FontSize="10" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,6,2"/>
-                                        <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding DataContext.Lane1LoaiVe, RelativeSource={RelativeSource AncestorType=Window}}" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Loại vé:" FontSize="10" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,6,2" VerticalAlignment="Center"/>
+                                        <Border Grid.Row="3" Grid.Column="1" CornerRadius="4" Padding="6,1.5" HorizontalAlignment="Left" Margin="0,0,0,2">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="#F1F5F9"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding DataContext.Lane1LoaiVe, RelativeSource={RelativeSource AncestorType=Window}}" Value="Tháng">
+                                                            <Setter Property="Background" Value="#E0F2FE"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding DataContext.Lane1LoaiVe, RelativeSource={RelativeSource AncestorType=Window}}" Value="Vé tháng">
+                                                            <Setter Property="Background" Value="#E0F2FE"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding DataContext.Lane1LoaiVe, RelativeSource={RelativeSource AncestorType=Window}}" Value="Vãng lai">
+                                                            <Setter Property="Background" Value="#FEF3C7"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding DataContext.Lane1LoaiVe, RelativeSource={RelativeSource AncestorType=Window}}" Value="Vé lượt">
+                                                            <Setter Property="Background" Value="#FEF3C7"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding DataContext.Lane1LoaiVe, RelativeSource={RelativeSource AncestorType=Window}}" Value="">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding DataContext.Lane1LoaiVe, RelativeSource={RelativeSource AncestorType=Window}}" Value="{x:Null}">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <TextBlock Text="{Binding DataContext.Lane1LoaiVe, RelativeSource={RelativeSource AncestorType=Window}}" FontSize="10" FontWeight="Bold">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Foreground" Value="#475569"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding DataContext.Lane1LoaiVe, RelativeSource={RelativeSource AncestorType=Window}}" Value="Tháng">
+                                                                <Setter Property="Foreground" Value="#0369A1"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding DataContext.Lane1LoaiVe, RelativeSource={RelativeSource AncestorType=Window}}" Value="Vé tháng">
+                                                                <Setter Property="Foreground" Value="#0369A1"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding DataContext.Lane1LoaiVe, RelativeSource={RelativeSource AncestorType=Window}}" Value="Vãng lai">
+                                                                <Setter Property="Foreground" Value="#B45309"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding DataContext.Lane1LoaiVe, RelativeSource={RelativeSource AncestorType=Window}}" Value="Vé lượt">
+                                                                <Setter Property="Foreground" Value="#B45309"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </Border>
                                     </Grid>
 
                                     <!-- Manual input row -->
@@ -445,8 +492,55 @@
                                         <TextBlock Grid.Row="2" Grid.Column="0" Text="Loại xe:" FontSize="10" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,6,2"/>
                                         <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding DataContext.Lane2LoaiXe, RelativeSource={RelativeSource AncestorType=Window}}" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
 
-                                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Loại vé:" FontSize="10" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,6,2"/>
-                                        <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding DataContext.Lane2LoaiVe, RelativeSource={RelativeSource AncestorType=Window}}" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Loại vé:" FontSize="10" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,6,2" VerticalAlignment="Center"/>
+                                        <Border Grid.Row="3" Grid.Column="1" CornerRadius="4" Padding="6,1.5" HorizontalAlignment="Left" Margin="0,0,0,2">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="#F1F5F9"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding DataContext.Lane2LoaiVe, RelativeSource={RelativeSource AncestorType=Window}}" Value="Tháng">
+                                                            <Setter Property="Background" Value="#E0F2FE"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding DataContext.Lane2LoaiVe, RelativeSource={RelativeSource AncestorType=Window}}" Value="Vé tháng">
+                                                            <Setter Property="Background" Value="#E0F2FE"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding DataContext.Lane2LoaiVe, RelativeSource={RelativeSource AncestorType=Window}}" Value="Vãng lai">
+                                                            <Setter Property="Background" Value="#FEF3C7"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding DataContext.Lane2LoaiVe, RelativeSource={RelativeSource AncestorType=Window}}" Value="Vé lượt">
+                                                            <Setter Property="Background" Value="#FEF3C7"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding DataContext.Lane2LoaiVe, RelativeSource={RelativeSource AncestorType=Window}}" Value="">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding DataContext.Lane2LoaiVe, RelativeSource={RelativeSource AncestorType=Window}}" Value="{x:Null}">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <TextBlock Text="{Binding DataContext.Lane2LoaiVe, RelativeSource={RelativeSource AncestorType=Window}}" FontSize="10" FontWeight="Bold">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Foreground" Value="#475569"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding DataContext.Lane2LoaiVe, RelativeSource={RelativeSource AncestorType=Window}}" Value="Tháng">
+                                                                <Setter Property="Foreground" Value="#0369A1"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding DataContext.Lane2LoaiVe, RelativeSource={RelativeSource AncestorType=Window}}" Value="Vé tháng">
+                                                                <Setter Property="Foreground" Value="#0369A1"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding DataContext.Lane2LoaiVe, RelativeSource={RelativeSource AncestorType=Window}}" Value="Vãng lai">
+                                                                <Setter Property="Foreground" Value="#B45309"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding DataContext.Lane2LoaiVe, RelativeSource={RelativeSource AncestorType=Window}}" Value="Vé lượt">
+                                                                <Setter Property="Foreground" Value="#B45309"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </Border>
                                     </Grid>
 
                                     <!-- Manual input row -->
