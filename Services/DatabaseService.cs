@@ -1037,15 +1037,21 @@ namespace QuanLyGiuXe.Services
 
         public async Task<bool> InsertRFIDCardAsync(string uid, string bienSo, string cardName, int loaiVeId, int loaiXeId, string trangThai, DateTime ngayTao, DateTime? ngayHetHan, int? employeeId = null)
         {
+            string normalizedUid = RFIDService.ChuanHoaUID(uid);
+            if (await CheckCardExistsAsync(normalizedUid))
+            {
+                throw new InvalidOperationException("Thẻ này đã được đăng ký trong hệ thống!");
+            }
+
             var success = await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
                 "CREATE_RFID_CARD",
-                new { UID = uid, BienSo = bienSo, CardName = cardName },
+                new { UID = normalizedUid, BienSo = bienSo, CardName = cardName, LoaiVeId = loaiVeId, LoaiXeId = loaiXeId, TrangThai = trangThai, NgayTao = ngayTao, NgayHetHan = ngayHetHan, EmployeeId = employeeId },
                 async conn =>
                 {
                     using (SqlCommand cmd = new SqlCommand( @"INSERT INTO RFIDCards (CardUID, BienSo, CardName, LoaiVeId, LoaiXeId, TrangThai, NgayDangKy, NgayHetHan, EmployeeId)
                                    VALUES (@uid, @bien, @card, @loaive, @loaixe, @trang, @ngay, @ngayhh, @empid)", conn))
                     {
-                        cmd.Parameters.AddWithValue("@uid", uid ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@uid", normalizedUid);
                         cmd.Parameters.AddWithValue("@bien", bienSo ?? string.Empty);
                         cmd.Parameters.AddWithValue("@card", (object?)cardName ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("@loaive", loaiVeId);
@@ -1071,7 +1077,7 @@ namespace QuanLyGiuXe.Services
         {
             var success = await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
                 "UPDATE_RFID_CARD",
-                new { Id = id, UID = uid, BienSo = bienSo },
+                new { Id = id, UID = uid, BienSo = bienSo, CardName = cardName, LoaiVeId = loaiVeId, LoaiXeId = loaiXeId, TrangThai = trangThai, NgayDangKy = ngayDangKy, NgayHetHan = ngayHetHan, EmployeeId = employeeId },
                 async conn =>
                 {
                     using (SqlCommand cmd = new SqlCommand( @"UPDATE RFIDCards SET CardUID=@uid, BienSo=@bien, CardName=@name, LoaiVeId=@loaive, LoaiXeId=@loaixe, TrangThai=@trang, NgayDangKy=@ngay, NgayHetHan=@ngayhh, EmployeeId=@empid WHERE Id=@id", conn))
@@ -1939,6 +1945,12 @@ namespace QuanLyGiuXe.Services
 
         public bool AddRFIDCards(string uid, string bienSo, string loaiThe, int? employeeId = null)
         {
+            string normalizedUid = RFIDService.ChuanHoaUID(uid);
+            if (CheckCardExists(normalizedUid))
+            {
+                throw new InvalidOperationException("Thẻ này đã được đăng ký trong hệ thống!");
+            }
+
             string conn_string = GetWorkingConnection();
             using (SqlConnection conn = new SqlConnection(conn_string))
             {
@@ -1958,7 +1970,7 @@ namespace QuanLyGiuXe.Services
                 SqlCommand cmd = new SqlCommand( @"
                     INSERT INTO RFIDCards (CardUID, BienSo, LoaiVeId, LoaiXeId, TrangThai, NgayDangKy, EmployeeId)
                     VALUES (@uid, @bs, @lvId, @lxId, 'Active', GETDATE(), @empid)", conn);
-                cmd.Parameters.AddWithValue("@uid", uid);
+                cmd.Parameters.AddWithValue("@uid", normalizedUid);
                 cmd.Parameters.AddWithValue("@bs", bienSo);
                 cmd.Parameters.AddWithValue("@lvId", loaiVeId);
                 cmd.Parameters.AddWithValue("@lxId", loaiXeId);

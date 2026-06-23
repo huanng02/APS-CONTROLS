@@ -101,13 +101,14 @@ namespace QuanLyGiuXe.Services.OfflineCache
                         return true;
 
                     // RFID Cards
+                    case "CREATE_RFID_CARD":
                     case "INSERT_RFID_CARD":
                     case "UPDATE_RFID_CARD":
                         var card = JsonConvert.DeserializeObject<dynamic>(tx.PayloadJson);
-                        if (tx.TransactionType == "INSERT_RFID_CARD")
-                            await db.InsertRFIDCardAsync((string)card.UID, (string)card.BienSo, (string)card.CardName, (int)card.LoaiVeId, (int)card.LoaiXeId, (string)card.TrangThai, (DateTime)card.NgayTao, (DateTime?)card.NgayHetHan);
+                        if (tx.TransactionType == "INSERT_RFID_CARD" || tx.TransactionType == "CREATE_RFID_CARD")
+                            await db.InsertRFIDCardAsync((string)card.UID, (string)card.BienSo, (string)card.CardName, (int)card.LoaiVeId, (int)card.LoaiXeId, (string)card.TrangThai, (DateTime)card.NgayTao, (DateTime?)card.NgayHetHan, (int?)card.EmployeeId);
                         else
-                            await db.UpdateRFIDCardAsync((int)card.Id, (string)card.UID, (string)card.BienSo, (string)card.CardName, (int)card.LoaiVeId, (int)card.LoaiXeId, (string)card.TrangThai, (DateTime?)card.NgayTao, (DateTime?)card.NgayHetHan);
+                            await db.UpdateRFIDCardAsync((int)card.Id, (string)card.UID, (string)card.BienSo, (string)card.CardName, (int)card.LoaiVeId, (int)card.LoaiXeId, (string)card.TrangThai, (DateTime?)card.NgayDangKy, (DateTime?)card.NgayHetHan, (int?)card.EmployeeId);
                         return true;
 
                     case "DELETE_RFID_CARD":
@@ -283,6 +284,11 @@ namespace QuanLyGiuXe.Services.OfflineCache
             }
             catch (Exception ex)
             {
+                if (IsDuplicateKeyException(ex))
+                {
+                    LoggingService.Instance.LogWarning("SYNC_ENGINE", "Process", $"Conflict ignored: Card already exists for transaction {tx.TransactionType} (ID: {tx.Id}). Marking as resolved.");
+                    return true;
+                }
                 tx.ErrorMessage = ex.Message;
                 LoggingService.Instance.LogError("SYNC_ENGINE", "Sync", $"Failed to sync {tx.TransactionType}: {ex.Message}", ex);
                 return false;
@@ -319,6 +325,20 @@ namespace QuanLyGiuXe.Services.OfflineCache
             {
                 LoggingService.Instance.LogError("SYNC_ENGINE", "TriggerSyncNow", "Failed", ex);
             }
+        }
+
+        private bool IsDuplicateKeyException(Exception ex)
+        {
+            if (ex is System.Data.SqlClient.SqlException sqlEx && (sqlEx.Number == 2627 || sqlEx.Number == 2601))
+                return true;
+
+            if (ex is InvalidOperationException && (ex.Message.Contains("đã được đăng ký") || ex.Message.Contains("đã tồn tại")))
+                return true;
+
+            if (ex.InnerException != null)
+                return IsDuplicateKeyException(ex.InnerException);
+
+            return false;
         }
     }
 }

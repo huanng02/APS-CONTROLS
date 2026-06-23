@@ -82,12 +82,20 @@ namespace QuanLyGiuXe.ViewModels
                 if (ActiveTabIndex == 1)
                 {
                     Console.WriteLine($"Monthly CardUID: {MonthlyCardUID}");
-                    if (!ValidateMonthlyTicket(out err)) return;
+                    if (!ValidateMonthlyTicket(out err))
+                    {
+                        System.Windows.MessageBox.Show(err, "Thông báo", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                        return;
+                    }
                 }
                 else
                 {
                     Console.WriteLine($"Guest CardUID: {GuestCardUID}");
-                    if (!ValidateGuestTicket(out err)) return;
+                    if (!ValidateGuestTicket(out err))
+                    {
+                        System.Windows.MessageBox.Show(err, "Thông báo", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+                        return;
+                    }
                 }
                 // unsubscribe from scanner to avoid leaks
                 UnsubscribeScanner();
@@ -429,6 +437,16 @@ namespace QuanLyGiuXe.ViewModels
             errorMessage = string.Empty;
             if (string.IsNullOrWhiteSpace(GuestCardUID)) { errorMessage = "Card UID không được để trống"; return false; }
             if (!LoaiXeId.HasValue) { errorMessage = "Vui lòng chọn loại xe"; return false; }
+
+            if (IsAddMode)
+            {
+                var normalized = RFIDEventRouterService.ChuanHoaUID(GuestCardUID);
+                if (new DatabaseService().CheckCardExists(normalized))
+                {
+                    errorMessage = "Thẻ này đã được đăng ký trong hệ thống!";
+                    return false;
+                }
+            }
             return true;
         }
 
@@ -439,6 +457,16 @@ namespace QuanLyGiuXe.ViewModels
             if (!LoaiXeId.HasValue) { errorMessage = "Vui lòng chọn loại xe"; return false; }
             if (string.IsNullOrWhiteSpace(BienSo)) { errorMessage = "Biển số là bắt buộc"; return false; }
             if (!NgayDangKy.HasValue) { errorMessage = "Chọn ngày đăng ký"; return false; }
+
+            if (IsAddMode)
+            {
+                var normalized = RFIDEventRouterService.ChuanHoaUID(MonthlyCardUID);
+                if (new DatabaseService().CheckCardExists(normalized))
+                {
+                    errorMessage = "Thẻ này đã được đăng ký trong hệ thống!";
+                    return false;
+                }
+            }
             return true;
         }
 
