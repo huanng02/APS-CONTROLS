@@ -78,8 +78,8 @@ namespace QuanLyGiuXe.Views
             try
             {
                 var db = new DatabaseService();
-                if (db.CheckCardExists(uid))
-                { MessageBox.Show("❌ Thẻ này đã được đăng ký!"); return; }
+                if (db.CheckCardActiveExists(uid))
+                { MessageBox.Show("❌ Thẻ này đang hoạt động trong hệ thống!"); return; }
 
                 int? employeeId = null;
                 if (cbNhanVien.Visibility == Visibility.Visible && cbNhanVien.SelectedValue is int empId)

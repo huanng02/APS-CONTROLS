@@ -1038,9 +1038,19 @@ namespace QuanLyGiuXe.Services
         public async Task<bool> InsertRFIDCardAsync(string uid, string bienSo, string cardName, int loaiVeId, int loaiXeId, string trangThai, DateTime ngayTao, DateTime? ngayHetHan, int? employeeId = null)
         {
             string normalizedUid = RFIDService.ChuanHoaUID(uid);
-            if (await CheckCardExistsAsync(normalizedUid))
+            if (await CheckCardActiveExistsAsync(normalizedUid))
             {
-                throw new InvalidOperationException("Thẻ này đã được đăng ký trong hệ thống!");
+                throw new InvalidOperationException("Thẻ này đang hoạt động trong hệ thống!");
+            }
+
+            bool exists = await CheckCardExistsAsync(normalizedUid);
+            if (exists)
+            {
+                int cardId = await GetCardIdFromUidAsync(normalizedUid);
+                if (cardId > 0)
+                {
+                    await XoaXeByCardIdAsync(cardId);
+                }
             }
 
             var success = await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
@@ -1048,8 +1058,11 @@ namespace QuanLyGiuXe.Services
                 new { UID = normalizedUid, BienSo = bienSo, CardName = cardName, LoaiVeId = loaiVeId, LoaiXeId = loaiXeId, TrangThai = trangThai, NgayTao = ngayTao, NgayHetHan = ngayHetHan, EmployeeId = employeeId },
                 async conn =>
                 {
-                    using (SqlCommand cmd = new SqlCommand( @"INSERT INTO RFIDCards (CardUID, BienSo, CardName, LoaiVeId, LoaiXeId, TrangThai, NgayDangKy, NgayHetHan, EmployeeId)
-                                   VALUES (@uid, @bien, @card, @loaive, @loaixe, @trang, @ngay, @ngayhh, @empid)", conn))
+                    string sql = exists
+                        ? @"UPDATE RFIDCards SET BienSo=@bien, CardName=@card, LoaiVeId=@loaive, LoaiXeId=@loaixe, TrangThai=@trang, NgayDangKy=@ngay, NgayHetHan=@ngayhh, EmployeeId=@empid WHERE CardUID=@uid"
+                        : @"INSERT INTO RFIDCards (CardUID, BienSo, CardName, LoaiVeId, LoaiXeId, TrangThai, NgayDangKy, NgayHetHan, EmployeeId)
+                                   VALUES (@uid, @bien, @card, @loaive, @loaixe, @trang, @ngay, @ngayhh, @empid)";
+                    using (SqlCommand cmd = new SqlCommand(sql, conn))
                     {
                         cmd.Parameters.AddWithValue("@uid", normalizedUid);
                         cmd.Parameters.AddWithValue("@bien", bienSo ?? string.Empty);
@@ -1478,6 +1491,7 @@ namespace QuanLyGiuXe.Services
                     // Xóa cache xe trong bãi để lần quẹt tiếp theo biết xe đã ra
                     await OfflineCacheService.Instance.SaveCacheAsync($"CHECK_XE_CARD_{cardId}", false);
                     await OfflineCacheService.Instance.SaveCacheAsync($"RECORD_XE_CARD_{cardId}", (object?)null);
+                    await OfflineCacheService.Instance.SaveCacheAsync($"ENTITY_XE_CARD_{cardId}", (object?)null);
                 }
             );
         }
@@ -1922,6 +1936,48 @@ namespace QuanLyGiuXe.Services
             );
         }
 
+        public bool CheckCardActiveExists(string uid)
+        {
+            return Task.Run(() => CheckCardActiveExistsAsync(uid)).GetAwaiter().GetResult();
+        }
+
+        public async Task<bool> CheckCardActiveExistsAsync(string uid)
+        {
+            return await ConnectivityAwareRepository.Instance.ExecuteReadAsync<bool>(
+                $"CHECK_CARD_ACTIVE_{uid}",
+                async conn =>
+                {
+                    using (SqlCommand cmd = new SqlCommand( @"SELECT COUNT(*) FROM RFIDCards WHERE CardUID = @uid AND TrangThai = 'Active'", conn))
+                    {
+                        cmd.Parameters.AddWithValue("@uid", uid ?? string.Empty);
+                        var v = await cmd.ExecuteScalarAsync();
+                        return Convert.ToInt32(v) > 0;
+                    }
+                }
+            );
+        }
+
+        public int GetCardIdFromUid(string uid)
+        {
+            return Task.Run(() => GetCardIdFromUidAsync(uid)).GetAwaiter().GetResult();
+        }
+
+        public async Task<int> GetCardIdFromUidAsync(string uid)
+        {
+            return await ConnectivityAwareRepository.Instance.ExecuteReadAsync<int>(
+                $"GET_CARD_ID_{uid}",
+                async conn =>
+                {
+                    using (SqlCommand cmd = new SqlCommand(@"SELECT Id FROM RFIDCards WHERE CardUID = @uid", conn))
+                    {
+                        cmd.Parameters.AddWithValue("@uid", uid ?? string.Empty);
+                        var result = await cmd.ExecuteScalarAsync();
+                        return result != null && result != DBNull.Value ? Convert.ToInt32(result) : 0;
+                    }
+                }
+            );
+        }
+
         public string GetBienSoFromUID(string uid)
         {
             return Task.Run(() => GetBienSoFromUIDAsync(uid)).GetAwaiter().GetResult();
@@ -1946,9 +2002,19 @@ namespace QuanLyGiuXe.Services
         public bool AddRFIDCards(string uid, string bienSo, string loaiThe, int? employeeId = null)
         {
             string normalizedUid = RFIDService.ChuanHoaUID(uid);
-            if (CheckCardExists(normalizedUid))
+            if (CheckCardActiveExists(normalizedUid))
             {
-                throw new InvalidOperationException("Thẻ này đã được đăng ký trong hệ thống!");
+                throw new InvalidOperationException("Thẻ này đang hoạt động trong hệ thống!");
+            }
+
+            bool exists = CheckCardExists(normalizedUid);
+            if (exists)
+            {
+                int cardId = GetCardIdFromUid(normalizedUid);
+                if (cardId > 0)
+                {
+                    XoaXeByCardId(cardId);
+                }
             }
 
             string conn_string = GetWorkingConnection();
@@ -1967,25 +2033,30 @@ namespace QuanLyGiuXe.Services
                     }
                 }
 
-                SqlCommand cmd = new SqlCommand( @"
-                    INSERT INTO RFIDCards (CardUID, BienSo, LoaiVeId, LoaiXeId, TrangThai, NgayDangKy, EmployeeId)
-                    VALUES (@uid, @bs, @lvId, @lxId, 'Active', GETDATE(), @empid)", conn);
-                cmd.Parameters.AddWithValue("@uid", normalizedUid);
-                cmd.Parameters.AddWithValue("@bs", bienSo);
-                cmd.Parameters.AddWithValue("@lvId", loaiVeId);
-                cmd.Parameters.AddWithValue("@lxId", loaiXeId);
-                cmd.Parameters.AddWithValue("@empid", (object?)employeeId ?? DBNull.Value);
+                string sql = exists
+                    ? @"UPDATE RFIDCards SET BienSo = @bs, LoaiVeId = @lvId, LoaiXeId = @lxId, TrangThai = 'Active', NgayDangKy = GETDATE(), EmployeeId = @empid WHERE CardUID = @uid"
+                    : @"INSERT INTO RFIDCards (CardUID, BienSo, LoaiVeId, LoaiXeId, TrangThai, NgayDangKy, EmployeeId)
+                        VALUES (@uid, @bs, @lvId, @lxId, 'Active', GETDATE(), @empid)";
 
-                try
+                using (SqlCommand cmd = new SqlCommand(sql, conn))
                 {
-                    cmd.ExecuteNonQuery();
-                    InvalidateRFIDCardCache();
-                    return true;
-                }
-                catch (SqlException ex)
-                {
-                    Console.WriteLine($"Database error: {ex.Message}");
-                    throw;
+                    cmd.Parameters.AddWithValue("@uid", normalizedUid);
+                    cmd.Parameters.AddWithValue("@bs", bienSo);
+                    cmd.Parameters.AddWithValue("@lvId", loaiVeId);
+                    cmd.Parameters.AddWithValue("@lxId", loaiXeId);
+                    cmd.Parameters.AddWithValue("@empid", (object?)employeeId ?? DBNull.Value);
+
+                    try
+                    {
+                        cmd.ExecuteNonQuery();
+                        InvalidateRFIDCardCache();
+                        return true;
+                    }
+                    catch (SqlException ex)
+                    {
+                        Console.WriteLine($"Database error: {ex.Message}");
+                        throw;
+                    }
                 }
             }
         }

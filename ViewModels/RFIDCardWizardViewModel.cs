@@ -441,9 +441,9 @@ namespace QuanLyGiuXe.ViewModels
             if (IsAddMode)
             {
                 var normalized = RFIDEventRouterService.ChuanHoaUID(GuestCardUID);
-                if (new DatabaseService().CheckCardExists(normalized))
+                if (new DatabaseService().CheckCardActiveExists(normalized))
                 {
-                    errorMessage = "Thẻ này đã được đăng ký trong hệ thống!";
+                    errorMessage = "Thẻ này đang hoạt động trong hệ thống!";
                     return false;
                 }
             }
@@ -461,9 +461,9 @@ namespace QuanLyGiuXe.ViewModels
             if (IsAddMode)
             {
                 var normalized = RFIDEventRouterService.ChuanHoaUID(MonthlyCardUID);
-                if (new DatabaseService().CheckCardExists(normalized))
+                if (new DatabaseService().CheckCardActiveExists(normalized))
                 {
-                    errorMessage = "Thẻ này đã được đăng ký trong hệ thống!";
+                    errorMessage = "Thẻ này đang hoạt động trong hệ thống!";
                     return false;
                 }
             }
