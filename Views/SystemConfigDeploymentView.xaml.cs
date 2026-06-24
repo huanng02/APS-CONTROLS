@@ -39,6 +39,7 @@ namespace QuanLyGiuXe.Views
             BarrierBox.Text = _cfg.ZKTeco.BarrierDuration.ToString();
             CooldownBox.Text = _cfg.ZKTeco.CardCooldownMs.ToString();
             BlockDailyCardForMonthlyPlateCheck.IsChecked = _cfg.ZKTeco.BlockDailyCardForMonthlyPlate;
+            ShowSessionDialogCheck.IsChecked = _cfg.ZKTeco.ShowSessionDialog;
 
             var b1 = this.FindName("Button1ActionCombo") as ComboBox;
             var b2 = this.FindName("Button2ActionCombo") as ComboBox;   
@@ -362,6 +363,7 @@ namespace QuanLyGiuXe.Views
             BarrierBox.Text = _cfg.ZKTeco.BarrierDuration.ToString();
             CooldownBox.Text = _cfg.ZKTeco.CardCooldownMs.ToString();
             BlockDailyCardForMonthlyPlateCheck.IsChecked = _cfg.ZKTeco.BlockDailyCardForMonthlyPlate;
+            ShowSessionDialogCheck.IsChecked = _cfg.ZKTeco.ShowSessionDialog;
 
             var b1c = this.FindName("Button1ActionCombo") as ComboBox;
             var b2c = this.FindName("Button2ActionCombo") as ComboBox;
@@ -1027,6 +1029,7 @@ namespace QuanLyGiuXe.Views
                 var prevForceIn = _cfg.ZKTeco.ForceAllIn;
                 var prevForceOut = _cfg.ZKTeco.ForceAllOut;
                 var prevBlockDaily = _cfg.ZKTeco.BlockDailyCardForMonthlyPlate;
+                var prevShowSession = _cfg.ZKTeco.ShowSessionDialog;
                 var prevBtn1 = _cfg.ZKTeco.Button1Action;
                 var prevBtn2 = _cfg.ZKTeco.Button2Action;
 
@@ -1108,6 +1111,7 @@ namespace QuanLyGiuXe.Views
                 _cfg.ZKTeco.BarrierDuration = targetBarrier;
                 _cfg.ZKTeco.CardCooldownMs = targetCooldown;
                 _cfg.ZKTeco.BlockDailyCardForMonthlyPlate = BlockDailyCardForMonthlyPlateCheck.IsChecked == true;
+                _cfg.ZKTeco.ShowSessionDialog = ShowSessionDialogCheck.IsChecked == true;
 
                 _cfg.Cameras.SaveJpegQuality = int.TryParse(ImageQualityBox.Text, out var q) ? q : 70;
                 if (ImageMaxWidthCombo.SelectedItem is ComboBoxItem wItem && int.TryParse(wItem.Tag?.ToString(), out var w))
@@ -1233,6 +1237,7 @@ namespace QuanLyGiuXe.Views
                 AddChange("ForceAllIn", prevForceIn, _cfg.ZKTeco.ForceAllIn);
                 AddChange("ForceAllOut", prevForceOut, _cfg.ZKTeco.ForceAllOut);
                 AddChange("Cấm thẻ lượt cho xe tháng", prevBlockDaily, _cfg.ZKTeco.BlockDailyCardForMonthlyPlate);
+                AddChange("Hiển thị dialog ra vào", prevShowSession, _cfg.ZKTeco.ShowSessionDialog);
                 AddChange("Button1Action", prevBtn1, _cfg.ZKTeco.Button1Action);
                 AddChange("Button2Action", prevBtn2, _cfg.ZKTeco.Button2Action);
 

@@ -211,6 +211,7 @@
                                                     <RowDefinition Height="Auto"/>
                                                     <RowDefinition Height="Auto"/>
                                                     <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
                                                 </Grid.RowDefinitions>
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="*"/>
@@ -264,6 +265,12 @@
                                                 <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,8,0,4">
                                                     <CheckBox x:Name="BlockDailyCardForMonthlyPlateCheck" Content="Cấm dùng thẻ lượt cho xe tháng (Chỉ cho phép thẻ tháng)" FontSize="12" FontWeight="SemiBold" Foreground="#4B5563" VerticalAlignment="Center"/>
                                                     <TextBlock Text="Khi bật, nếu biển số xe nhận diện thuộc về thẻ tháng, hệ thống sẽ chặn không cho quẹt bằng thẻ lượt." Foreground="#9CA3AF" FontSize="10" Margin="0,3,0,0"/>
+                                                </StackPanel>
+
+                                                <!-- UI Settings (Show entry/exit dialog) -->
+                                                <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,8,0,4">
+                                                    <CheckBox x:Name="ShowSessionDialogCheck" Content="Hiển thị dialog thông tin xe ra vào" FontSize="12" FontWeight="SemiBold" Foreground="#4B5563" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Khi bật, hệ thống sẽ tự động hiện dialog thông tin chi tiết xe (biển số, thời gian, hình ảnh) khi quẹt thẻ thành công." Foreground="#9CA3AF" FontSize="10" Margin="0,3,0,0"/>
                                                 </StackPanel>
                                             </Grid>
                                         </StackPanel>

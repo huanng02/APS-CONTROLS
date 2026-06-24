@@ -109,8 +109,8 @@ namespace QuanLyGiuXe
             RegisterShortcuts();
         }
 
-        // Whether automatic session dialog should be shown (bound to ToggleButton in XAML)
-        public bool AllowShowSession => btnShowSession?.IsChecked == true;
+        // Whether automatic session dialog should be shown (driven by config)
+        public bool AllowShowSession => AppConfig.Load().ZKTeco.ShowSessionDialog;
 
         private void RegisterShortcuts()
         {
@@ -163,6 +163,7 @@ namespace QuanLyGiuXe
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
+
             // Start heavy components in background to keep UI responsive
             Task.Run(() => {
                 MoCameras();
@@ -847,7 +848,9 @@ namespace QuanLyGiuXe
             {
                 _cameraService.ClearCache();
                 AppConfig.ClearCache();
-                var cfg = AppConfig.Load().Cameras;
+                var appCfg = AppConfig.Load();
+                var cfg = appCfg.Cameras;
+
                 
                 // Build target camera configuration list (key -> url)
                 var targetConfigs = new System.Collections.Generic.Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
