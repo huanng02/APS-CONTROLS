@@ -192,7 +192,7 @@ namespace QuanLyGiuXe.Services
                     var list = new List<LaneConfig>();
                     using (var cmd = new SqlCommand(@"
                         SELECT l.Id, l.LaneCode, l.LaneName, l.Direction, l.ZoneId, l.GateId, l.IsActive, l.CreatedUtc,
-                               z.ZoneName, g.GateName, l.LoaiXeId, lx.TenLoai
+                                z.ZoneName, g.GateName, l.LoaiXeId, lx.TenLoai, l.DisplayIndex
                         FROM dbo.Lanes l
                         LEFT JOIN dbo.ParkingZones z ON l.ZoneId = z.Id
                         LEFT JOIN dbo.ParkingGates g ON l.GateId = g.Id
@@ -215,7 +215,8 @@ namespace QuanLyGiuXe.Services
                                 ZoneName = r.IsDBNull(8) ? string.Empty : r.GetString(8),
                                 GateName = r.IsDBNull(9) ? string.Empty : r.GetString(9),
                                 LoaiXeId = r.IsDBNull(10) ? null : r.GetInt32(10),
-                                LoaiXeName = r.IsDBNull(11) ? string.Empty : r.GetString(11)
+                                LoaiXeName = r.IsDBNull(11) ? string.Empty : r.GetString(11),
+                                DisplayIndex = r.IsDBNull(12) ? null : r.GetInt32(12)
                             });
                         }
                     }
@@ -1250,11 +1251,11 @@ namespace QuanLyGiuXe.Services
                     string sql;
                     if (isNew)
                     {
-                        sql = "INSERT INTO dbo.Lanes (LaneCode, LaneName, Direction, ZoneId, GateId, LoaiXeId, IsActive, CreatedUtc) OUTPUT INSERTED.Id VALUES (@code, @name, @dir, @zoneId, @gateId, @loaiXeId, @active, @created)";
+                        sql = "INSERT INTO dbo.Lanes (LaneCode, LaneName, Direction, ZoneId, GateId, LoaiXeId, IsActive, CreatedUtc, DisplayIndex) OUTPUT INSERTED.Id VALUES (@code, @name, @dir, @zoneId, @gateId, @loaiXeId, @active, @created, @displayIndex)";
                     }
                     else
                     {
-                        sql = "UPDATE dbo.Lanes SET LaneCode = @code, LaneName = @name, Direction = @dir, ZoneId = @zoneId, GateId = @gateId, LoaiXeId = @loaiXeId, IsActive = @active WHERE Id = @id";
+                        sql = "UPDATE dbo.Lanes SET LaneCode = @code, LaneName = @name, Direction = @dir, ZoneId = @zoneId, GateId = @gateId, LoaiXeId = @loaiXeId, IsActive = @active, DisplayIndex = @displayIndex WHERE Id = @id";
                     }
 
                     using (var cmd = new SqlCommand(sql, conn))
@@ -1268,6 +1269,7 @@ namespace QuanLyGiuXe.Services
                         cmd.Parameters.AddWithValue("@loaiXeId", (object?)lane.LoaiXeId ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("@active", lane.IsActive);
                         cmd.Parameters.AddWithValue("@created", lane.CreatedUtc);
+                        cmd.Parameters.AddWithValue("@displayIndex", (object?)lane.DisplayIndex ?? DBNull.Value);
                         
                         if (isNew)
                         {

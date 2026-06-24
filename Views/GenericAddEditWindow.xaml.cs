@@ -65,6 +65,7 @@ namespace QuanLyGiuXe.Views
                     else if (p.Name == "GiaTien") displayName = "Giá tiền (VNĐ)";
                     else if (p.Name == "LoaiXeId") displayName = "Loại xe";
                     else if (p.Name == "GiaThang") displayName = "Giá tháng (VNĐ)";
+                    else if (p.Name == "DisplayIndex") displayName = "Vị trí hiển thị (1: Trái, 2: Phải)";
 
                     sp.Children.Add(new TextBlock { 
                         Text = displayName.ToUpper(), 

@@ -224,6 +224,20 @@ namespace QuanLyGiuXe.Services
                         LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Camera Resolution migration applied successfully.");
                     }
 
+                    // Execute Lane UI Display Index migration (20260624_add_lane_ui_index.sql)
+                    string scriptPathLaneUiIndex = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260624_add_lane_ui_index.sql");
+                    if (File.Exists(scriptPathLaneUiIndex))
+                    {
+                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Executing Lane UI Display Index migration...");
+                        string sqlLaneUiIndex = await File.ReadAllTextAsync(scriptPathLaneUiIndex);
+                        using (var cmd = new SqlCommand(sqlLaneUiIndex, conn))
+                        {
+                            cmd.CommandTimeout = 60;
+                            await cmd.ExecuteNonQueryAsync();
+                        }
+                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Lane UI Display Index migration applied successfully.");
+                    }
+
                     _migrationsApplied = true;
                     LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "SQL Server topology migrations applied successfully.");
                 }
@@ -808,6 +822,20 @@ namespace QuanLyGiuXe.Services
                             await cmd.ExecuteNonQueryAsync();
                         }
                         LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Camera Resolution migration applied successfully.");
+                    }
+
+                    // Execute Lane UI Display Index migration (20260624_add_lane_ui_index.sql)
+                    string scriptPathLaneUiIndex = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260624_add_lane_ui_index.sql");
+                    if (File.Exists(scriptPathLaneUiIndex))
+                    {
+                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Executing Lane UI Display Index migration...");
+                        string sqlLaneUiIndex = await File.ReadAllTextAsync(scriptPathLaneUiIndex);
+                        using (var cmd = new SqlCommand(sqlLaneUiIndex, conn))
+                        {
+                            cmd.CommandTimeout = 60;
+                            await cmd.ExecuteNonQueryAsync();
+                        }
+                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Lane UI Display Index migration applied successfully.");
                     }
 
                     _baseSchemaChecked = true;

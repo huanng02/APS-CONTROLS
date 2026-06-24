@@ -738,6 +738,23 @@ namespace QuanLyGiuXe.ViewModels
                 .Distinct()
                 .ToList();
 
+            try
+            {
+                var lanes = ParkingTopologyService.Instance.GetLanes();
+                if (lanes != null)
+                {
+                    distinctLaneIds = distinctLaneIds
+                        .OrderBy(id => {
+                            var lane = lanes.FirstOrDefault(l => l.Id == id);
+                            // If DisplayIndex is null/0, default to 999 to place it at the end, or tie-break with Id
+                            return (lane?.DisplayIndex == null || lane.DisplayIndex == 0) ? 999 : lane.DisplayIndex.Value;
+                        })
+                        .ThenBy(id => id)
+                        .ToList();
+                }
+            }
+            catch { }
+
             if (uiLaneIndex == 1)
             {
                 if (distinctLaneIds.Count > 0) return distinctLaneIds[0];

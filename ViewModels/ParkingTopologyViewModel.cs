@@ -213,6 +213,9 @@ namespace QuanLyGiuXe.ViewModels
         private string _detailLaneLoaiXeName = string.Empty;
         public string DetailLaneLoaiXeName { get => _detailLaneLoaiXeName; set { _detailLaneLoaiXeName = value; OnPropertyChanged(); } }
 
+        private int? _detailLaneDisplayIndex;
+        public int? DetailLaneDisplayIndex { get => _detailLaneDisplayIndex; set { _detailLaneDisplayIndex = value; OnPropertyChanged(); } }
+
         private ObservableCollection<ReaderLaneMapping> _detailLaneReaders = new();
         public ObservableCollection<ReaderLaneMapping> DetailLaneReaders { get => _detailLaneReaders; set { _detailLaneReaders = value; OnPropertyChanged(); } }
 
@@ -842,6 +845,7 @@ namespace QuanLyGiuXe.ViewModels
             DetailLaneZone = lane.ZoneName;
             DetailLaneIsActive = lane.IsActive;
             DetailLaneLoaiXeName = lane.LoaiXeName;
+            DetailLaneDisplayIndex = lane.DisplayIndex;
 
             var readers = ReaderLaneMappingService.Instance.GetMappingsByLane(lane.Id);
             DetailLaneReaders = new ObservableCollection<ReaderLaneMapping>(readers);

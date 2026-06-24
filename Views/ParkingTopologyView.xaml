@@ -648,6 +648,7 @@
                                                 <RowDefinition Height="Auto"/>
                                                 <RowDefinition Height="Auto"/>
                                                 <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
                                             </Grid.RowDefinitions>
 
                                             <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,0,12">
@@ -695,6 +696,10 @@
                                                         </Style>
                                                     </TextBlock.Style>
                                                 </TextBlock>
+                                            </StackPanel>
+                                            <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,0,12">
+                                                <TextBlock Text="🖥️ Vị trí hiển thị trên giao diện" Style="{StaticResource InfoLabelStyle}"/>
+                                                <TextBlock Text="{Binding DetailLaneDisplayIndex, TargetNullValue='Tự động sắp xếp (Theo đầu đọc)'}" Style="{StaticResource InfoValueStyle}"/>
                                             </StackPanel>
                                         </Grid>
                                     </StackPanel>

@@ -31,6 +31,9 @@ namespace QuanLyGiuXe.Models
         [Description("Loại xe được phép qua làn (để trống = hỗn hợp)")]
         public int? LoaiXeId { get; set; }
 
+        [Description("Thứ tự hiển thị làn trên giao diện (1: Bên trái, 2: Bên phải)")]
+        public int? DisplayIndex { get; set; }
+
         // Display helpers
         public string ZoneName { get; set; } = string.Empty;
         public string GateName { get; set; } = string.Empty;

@@ -137,6 +137,17 @@ namespace QuanLyGiuXe.ViewModels
                     .Distinct()
                     .ToList();
 
+                if (lanes != null)
+                {
+                    distinctLaneIds = distinctLaneIds
+                        .OrderBy(id => {
+                            var lane = lanes.FirstOrDefault(l => l.Id == id);
+                            return (lane?.DisplayIndex == null || lane.DisplayIndex == 0) ? 999 : lane.DisplayIndex.Value;
+                        })
+                        .ThenBy(id => id)
+                        .ToList();
+                }
+
                 for (int i = 1; i <= 2; i++)
                 {
                     int dbLaneId = i;
