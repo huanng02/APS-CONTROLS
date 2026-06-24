@@ -1870,86 +1870,185 @@ namespace QuanLyGiuXe.ViewModels
                     // ─── COMBINED RFID & LPR DECISION LOGIC ───
                     if (isMonthly)
                     {
-                        string registeredPlate = card.BienSo ?? string.Empty;
-
-                        if (string.IsNullOrEmpty(registeredPlate))
+                        if (isInbound)
                         {
-                            SetLaneStatus(uiLaneIndex, "❌ Thẻ chưa đăng ký biển số!");
-                            LoggingService.Instance.LogSecurity(
-                                "ACCESS_DENIED",
-                                "NO_REGISTERED_PLATE",
-                                uid,
-                                "RFID card has no registered plate",
-                                "MainViewModel"
-                            );
+                            string registeredPlate = card.BienSo ?? string.Empty;
 
-                            LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
-                            return;
-                        }
-
-                        // Await LPR result because it is required for Monthly Tickets
-                        if (lprTask != null)
-                        {
-                            try
+                            if (string.IsNullOrEmpty(registeredPlate))
                             {
-                                var lprResult = await lprTask;
-                                recognizedPlate = lprResult.Plate;
-                                plateCropBytes = lprResult.PlateCropBytes;
+                                SetLaneStatus(uiLaneIndex, "❌ Thẻ chưa đăng ký biển số!");
+                                LoggingService.Instance.LogSecurity(
+                                    "ACCESS_DENIED",
+                                    "NO_REGISTERED_PLATE",
+                                    uid,
+                                    "RFID card has no registered plate",
+                                    "MainViewModel"
+                                );
+
+                                LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
+                                return;
                             }
-                            catch (Exception lprEx)
+
+                            // Await LPR result because it is required for Monthly Tickets
+                            if (lprTask != null)
                             {
-                                LoggingService.Instance.LogError("LprError", "MainViewModel", $"Failed to run LPR on captured frame", lprEx);
+                                try
+                                {
+                                    var lprResult = await lprTask;
+                                    recognizedPlate = lprResult.Plate;
+                                    plateCropBytes = lprResult.PlateCropBytes;
+                                }
+                                catch (Exception lprEx)
+                                {
+                                    LoggingService.Instance.LogError("LprError", "MainViewModel", $"Failed to run LPR on captured frame", lprEx);
+                                }
+                                lprCompleted = DateTime.Now;
                             }
-                            lprCompleted = DateTime.Now;
-                        }
 
-                        // BẮT BUỘC PHẢI CÓ LPR
-                        if (string.IsNullOrEmpty(recognizedPlate))
+                            // BẮT BUỘC PHẢI CÓ LPR
+                            if (string.IsNullOrEmpty(recognizedPlate))
+                            {
+                                SetLaneStatus(
+                                    uiLaneIndex,
+                                    "❌ Không nhận diện được biển số!"
+                                );
+
+                                LoggingService.Instance.LogSecurity(
+                                    "ACCESS_DENIED",
+                                    "LPR_EMPTY",
+                                    uid,
+                                    $"Cannot recognize plate. Registered={registeredPlate}",
+                                    "MainViewModel"
+                                );
+
+                                LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
+                                return;
+                            }
+
+                            // SO SÁNH BIỂN SỐ ĐĂNG KÝ
+                            if (!ComparePlates(recognizedPlate, registeredPlate))
+                            {
+                                SetLaneStatus(
+                                    uiLaneIndex,
+                                    $"❌ Sai biển số! Xe: {recognizedPlate} vs Đăng ký: {registeredPlate}"
+                                );
+
+                                LoggingService.Instance.LogSecurity(
+                                    "ACCESS_DENIED",
+                                    "LPR_MISMATCH",
+                                    uid,
+                                    $"Plate mismatch: Recognized={recognizedPlate}, Registered={registeredPlate}",
+                                    "MainViewModel"
+                                );
+
+                                LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
+                                return;
+                            }
+
+                            // Match OK
+                            SetLanePlate(uiLaneIndex, recognizedPlate);
+                        }
+                        else
                         {
-                            SetLaneStatus(
-                                uiLaneIndex,
-                                "❌ Không nhận diện được biển số!"
-                            );
+                            // Monthly Ticket - Outbound (Exit Gate)
+                            // Await LPR result
+                            if (lprTask != null)
+                            {
+                                try
+                                {
+                                    var lprResult = await lprTask;
+                                    recognizedPlate = lprResult.Plate;
+                                    plateCropBytes = lprResult.PlateCropBytes;
+                                }
+                                catch (Exception lprEx)
+                                {
+                                    LoggingService.Instance.LogError("LprError", "MainViewModel", $"Failed to run LPR on captured frame at exit (monthly)", lprEx);
+                                }
+                                lprCompleted = DateTime.Now;
+                            }
 
-                            LoggingService.Instance.LogSecurity(
-                                "ACCESS_DENIED",
-                                "LPR_EMPTY",
-                                uid,
-                                $"Cannot recognize plate. Registered={registeredPlate}",
-                                "MainViewModel"
-                            );
+                            if (string.IsNullOrEmpty(recognizedPlate))
+                            {
+                                SetLaneStatus(uiLaneIndex, "❌ Không nhận diện được biển số lúc ra!");
+                                LoggingService.Instance.LogSecurity("ACCESS_DENIED", "LPR_EMPTY", uid, "Exit (monthly): no plate recognized by AI", "MainViewModel");
+                                LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
+                                return;
+                            }
 
-                            LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
-                            return;
+                            string entryPlate = xeTrongBai.BienSo ?? string.Empty;
+                            if (string.IsNullOrEmpty(entryPlate))
+                            {
+                                SetLaneStatus(uiLaneIndex, "❌ Không tìm thấy biển số lúc vào!");
+                                LoggingService.Instance.LogSecurity("ACCESS_DENIED", "ENTRY_PLATE_EMPTY", uid, "Exit (monthly): entry plate is empty in database", "MainViewModel");
+                                LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
+                                return;
+                            }
+
+                            if (!ComparePlates(recognizedPlate, entryPlate))
+                            {
+                                SetLaneStatus(uiLaneIndex, $"❌ Sai biển số lúc vào! Ra: {recognizedPlate} vs Vào: {entryPlate}");
+                                LoggingService.Instance.LogSecurity("ACCESS_DENIED", "LPR_MISMATCH", uid, $"Exit (monthly): Plate mismatch: Recognized={recognizedPlate}, Entry={entryPlate}", "MainViewModel");
+                                LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
+                                return;
+                            }
+
+                            // Match OK
+                            SetLanePlate(uiLaneIndex, recognizedPlate);
                         }
-
-                        // SO SÁNH BIỂN SỐ
-                        if (!ComparePlates(recognizedPlate, registeredPlate))
-                        {
-                            SetLaneStatus(
-                                uiLaneIndex,
-                                $"❌ Sai biển số! Xe: {recognizedPlate} vs Đăng ký: {registeredPlate}"
-                            );
-
-                            LoggingService.Instance.LogSecurity(
-                                "ACCESS_DENIED",
-                                "LPR_MISMATCH",
-                                uid,
-                                $"Plate mismatch: Recognized={recognizedPlate}, Registered={registeredPlate}",
-                                "MainViewModel"
-                            );
-
-                            LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
-                            return;
-                        }
-
-                        // Match OK
-                        SetLanePlate(uiLaneIndex, recognizedPlate);
                     }
                     else
                     {
-                        // Daily Ticket (no enforcement of employee info or plate matching)
-                        // Do NOT wait for LPR in critical path. Let it finish in background!
+                        // Daily Ticket
+                        if (!isInbound)
+                        {
+                            // Await LPR result because it is required to compare plate at exit gate
+                            if (lprTask != null)
+                            {
+                                try
+                                {
+                                    var lprResult = await lprTask;
+                                    recognizedPlate = lprResult.Plate;
+                                    plateCropBytes = lprResult.PlateCropBytes;
+                                }
+                                catch (Exception lprEx)
+                                {
+                                    LoggingService.Instance.LogError("LprError", "MainViewModel", $"Failed to run LPR on captured frame at exit", lprEx);
+                                }
+                                lprCompleted = DateTime.Now;
+                            }
+
+                            if (string.IsNullOrEmpty(recognizedPlate))
+                            {
+                                SetLaneStatus(uiLaneIndex, "❌ Không nhận diện được biển số lúc ra!");
+                                LoggingService.Instance.LogSecurity("ACCESS_DENIED", "LPR_EMPTY", uid, "Exit: no plate recognized by AI", "MainViewModel");
+                                LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
+                                return;
+                            }
+
+                            string entryPlate = xeTrongBai.BienSo ?? string.Empty;
+                            if (string.IsNullOrEmpty(entryPlate))
+                            {
+                                SetLaneStatus(uiLaneIndex, "❌ Không tìm thấy biển số lúc vào!");
+                                LoggingService.Instance.LogSecurity("ACCESS_DENIED", "ENTRY_PLATE_EMPTY", uid, "Exit: entry plate is empty in database", "MainViewModel");
+                                LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
+                                return;
+                            }
+
+                            if (!ComparePlates(recognizedPlate, entryPlate))
+                            {
+                                SetLaneStatus(uiLaneIndex, $"❌ Sai biển số lúc vào! Ra: {recognizedPlate} vs Vào: {entryPlate}");
+                                LoggingService.Instance.LogSecurity("ACCESS_DENIED", "LPR_MISMATCH", uid, $"Exit: Plate mismatch: Recognized={recognizedPlate}, Entry={entryPlate}", "MainViewModel");
+                                LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
+                                return;
+                            }
+
+                            // Match OK
+                            SetLanePlate(uiLaneIndex, recognizedPlate);
+                        }
+                        else
+                        {
+                            // Daily Ticket - Inbound: no enforcement of plate matching, LPR can finish in background
+                        }
                     }
 
                     // Physical Access Check (using optimized overload that takes card)
@@ -2733,25 +2832,60 @@ namespace QuanLyGiuXe.ViewModels
                 
                 if (isMonthly)
                 {
-                    string registeredPlate = card.BienSo ?? string.Empty;
-                    
-                    if (string.IsNullOrEmpty(registeredPlate))
+                    if (isInbound)
                     {
-                        SetLaneStatus(uiLaneIndex, "❌ Thẻ tháng chưa đăng ký biển số!");
-                        return;
-                    }
+                        string registeredPlate = card.BienSo ?? string.Empty;
+                        
+                        if (string.IsNullOrEmpty(registeredPlate))
+                        {
+                            SetLaneStatus(uiLaneIndex, "❌ Thẻ tháng chưa đăng ký biển số!");
+                            return;
+                        }
 
-                    if (string.IsNullOrEmpty(recognizedPlate))
-                    {
-                        SetLaneStatus(uiLaneIndex, "❌ Không nhận diện được biển số!");
-                        return;
-                    }
+                        if (string.IsNullOrEmpty(recognizedPlate))
+                        {
+                            SetLaneStatus(uiLaneIndex, "❌ Không nhận diện được biển số!");
+                            return;
+                        }
 
-                    if (!ComparePlates(recognizedPlate, registeredPlate))
+                        if (!ComparePlates(recognizedPlate, registeredPlate))
+                        {
+                            SetLaneStatus(uiLaneIndex, $"❌ Sai biển số! Xe: {recognizedPlate} vs Đăng ký: {registeredPlate}");
+                            LoggingService.Instance.LogSecurity("ACCESS_DENIED", "LPR_MISMATCH", uid, $"Manual entry (monthly) mismatch: {recognizedPlate} vs {registeredPlate}", "MainViewModel");
+                            return;
+                        }
+                    }
+                    else
                     {
-                        SetLaneStatus(uiLaneIndex, $"❌ Sai biển số! Xe: {recognizedPlate} vs Đăng ký: {registeredPlate}");
-                        LoggingService.Instance.LogSecurity("ACCESS_DENIED", "LPR_MISMATCH", uid, $"Manual mismatch: {recognizedPlate} vs {registeredPlate}", "MainViewModel");
-                        return;
+                        // Monthly - Outbound (Exit)
+                        var rec = db.GetXeTrongBaiRecordByCardId(card.Id);
+                        if (rec == null)
+                        {
+                            SetLaneStatus(uiLaneIndex, "⚠ Không tìm thấy xe trong bãi");
+                            return;
+                        }
+                        string entryPlate = rec.Value.BienSo ?? string.Empty;
+
+                        if (string.IsNullOrEmpty(recognizedPlate))
+                        {
+                            SetLaneStatus(uiLaneIndex, "❌ Không nhận diện được biển số lúc ra!");
+                            LoggingService.Instance.LogSecurity("ACCESS_DENIED", "LPR_EMPTY", uid, "Manual exit (monthly): no plate recognized by AI", "MainViewModel");
+                            return;
+                        }
+
+                        if (string.IsNullOrEmpty(entryPlate))
+                        {
+                            SetLaneStatus(uiLaneIndex, "❌ Không tìm thấy biển số lúc vào!");
+                            LoggingService.Instance.LogSecurity("ACCESS_DENIED", "ENTRY_PLATE_EMPTY", uid, "Manual exit (monthly): entry plate is empty in database", "MainViewModel");
+                            return;
+                        }
+
+                        if (!ComparePlates(recognizedPlate, entryPlate))
+                        {
+                            SetLaneStatus(uiLaneIndex, $"❌ Sai biển số lúc vào! Ra: {recognizedPlate} vs Vào: {entryPlate}");
+                            LoggingService.Instance.LogSecurity("ACCESS_DENIED", "LPR_MISMATCH", uid, $"Manual exit (monthly): Plate mismatch: Recognized={recognizedPlate}, Entry={entryPlate}", "MainViewModel");
+                            return;
+                        }
                     }
                 }
                 else
