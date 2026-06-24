@@ -225,6 +225,7 @@ namespace QuanLyGiuXe.Services
         public bool ForceAllIn { get; set; } = false;
         // If true, force all scans to be treated as OUT (no IN flow)
         public bool ForceAllOut { get; set; } = false;
+        public bool BlockDailyCardForMonthlyPlate { get; set; } = false;
     }
 
     public sealed class CameraConfig

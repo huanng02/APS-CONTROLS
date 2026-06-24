@@ -249,6 +249,72 @@ namespace QuanLyGiuXe.Services
             return card;
         }
 
+        public RFIDCard GetRFIDCardByNormalizedBienSo(string bienSo)
+        {
+            return Task.Run(() => GetRFIDCardByNormalizedBienSoAsync(bienSo)).GetAwaiter().GetResult();
+        }
+
+        public async Task<RFIDCard?> GetRFIDCardByNormalizedBienSoAsync(string bienSo)
+        {
+            string normalized = new string((bienSo ?? "").Where(char.IsLetterOrDigit).ToArray()).ToUpper();
+            if (string.IsNullOrEmpty(normalized)) return null;
+
+            var card = await ConnectivityAwareRepository.Instance.ExecuteReadAsync<RFIDCard>(
+                $"RFID_NORMALIZED_BIENSO_{normalized}",
+                async conn =>
+                {
+                    string sql = @"
+                        SELECT rc.Id, rc.CardUID, rc.BienSo, rc.CardName, rc.LoaiVeId, rc.LoaiXeId, rc.TrangThai, rc.NgayDangKy, rc.NgayHetHan, rc.GroupId, rc.EmployeeId,
+                               e.FullName AS EmployeeName, e.EmployeeCode AS EmployeeCode
+                        FROM RFIDCards rc
+                        LEFT JOIN Employees e ON rc.EmployeeId = e.Id AND e.IsDeleted = 0
+                        WHERE UPPER(REPLACE(REPLACE(REPLACE(rc.BienSo, '-', ''), '.', ''), ' ', '')) = @bs";
+                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@bs", normalized);
+                        using (var r = await cmd.ExecuteReaderAsync())
+                        {
+                            if (await r.ReadAsync())
+                            {
+                                return new RFIDCard
+                                {
+                                    Id = r["Id"] != DBNull.Value ? Convert.ToInt32(r["Id"]) : 0,
+                                    UID = r["CardUID"]?.ToString() ?? string.Empty,
+                                    BienSo = r["BienSo"]?.ToString() ?? string.Empty,
+                                    CardName = r["CardName"]?.ToString() ?? string.Empty,
+                                    LoaiVeId = r["LoaiVeId"] != DBNull.Value ? Convert.ToInt32(r["LoaiVeId"]) : 0,
+                                    LoaiXeId = r["LoaiXeId"] != DBNull.Value ? Convert.ToInt32(r["LoaiXeId"]) : 0,
+                                    TrangThai = r["TrangThai"]?.ToString() ?? string.Empty,
+                                    NgayTao = r["NgayDangKy"] != DBNull.Value ? Convert.ToDateTime(r["NgayDangKy"]) : DateTime.MinValue,
+                                    NgayHetHan = r["NgayHetHan"] != DBNull.Value ? Convert.ToDateTime(r["NgayHetHan"]) : (DateTime?)null,
+                                    GroupId = r["GroupId"] != DBNull.Value ? Convert.ToInt32(r["GroupId"]) : (int?)null,
+                                    EmployeeId = r["EmployeeId"] != DBNull.Value ? Convert.ToInt32(r["EmployeeId"]) : (int?)null,
+                                    EmployeeName = r["EmployeeName"] == DBNull.Value ? null : r["EmployeeName"].ToString(),
+                                    EmployeeCode = r["EmployeeCode"] == DBNull.Value ? null : r["EmployeeCode"].ToString()
+                                };
+                            }
+                        }
+                    }
+                    return null;
+                }
+            );
+
+            // 🟢 OFFLINE FALLBACK
+            if (card == null)
+            {
+                var list = await QuanLyGiuXe.Services.OfflineCache.OfflineCacheService.Instance.GetCacheAsync<List<RFIDCard>>("LIST_RFID_CARDS");
+                if (list != null)
+                {
+                    card = list.FirstOrDefault(c => {
+                        string cachedNorm = new string((c.BienSo ?? "").Where(char.IsLetterOrDigit).ToArray()).ToUpper();
+                        return cachedNorm == normalized;
+                    });
+                }
+            }
+
+            return card;
+        }
+
         public void UpdateXeRaById(int id, DateTime thoiGianRa)
         {
             Task.Run(() => UpdateXeRaByIdAsync(id, thoiGianRa)).GetAwaiter().GetResult();
