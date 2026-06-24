@@ -629,9 +629,15 @@ namespace QuanLyGiuXe.Views
                 {
                     if (!string.IsNullOrEmpty(dbCam.CameraName))
                     {
-                        if (dbCam.LaneId == null || dbCam.LaneId == lane.Id)
+                        // Cam Toàn Cảnh (cb1): Cho phép hiển thị nếu chưa gán, đã gán cho làn hiện tại, hoặc là camera toàn cảnh (Overview) từ các làn khác
+                        if (dbCam.LaneId == null || dbCam.LaneId == lane.Id || dbCam.Direction == "Overview")
                         {
                             if (!cb1.Items.Contains(dbCam.CameraName)) cb1.Items.Add(dbCam.CameraName);
+                        }
+
+                        // Cam Biển Số (cb2): Chỉ hiển thị nếu chưa gán hoặc đã gán cho làn hiện tại
+                        if (dbCam.LaneId == null || dbCam.LaneId == lane.Id)
+                        {
                             if (!cb2.Items.Contains(dbCam.CameraName)) cb2.Items.Add(dbCam.CameraName);
                         }
                     }
@@ -699,6 +705,10 @@ namespace QuanLyGiuXe.Views
             win.Owner = Window.GetWindow(this);
             win.ShowDialog();
 
+            // Reload draft config because it might have been updated/synced in CameraSettingsWindow
+            AppConfig.ClearCache();
+            _cfg = AppConfig.LoadDraft();
+
             // Refresh the camera list and dropdowns
             int selectedGateId = ZoneCombo.SelectedValue != null ? Convert.ToInt32(ZoneCombo.SelectedValue) : 0;
             var lanesForGate = _lanes?.Where(l => l.GateId == selectedGateId).ToList() ?? new List<LaneConfig>();
@@ -714,7 +724,13 @@ namespace QuanLyGiuXe.Views
                                          .FirstOrDefault();
                 if (latestCam != null)
                 {
-                    cb.Text = latestCam.CameraName;
+                    // Find the newly created ComboBox in the updated _laneCameraCombos list
+                    var newComboTuple = _laneCameraCombos.FirstOrDefault(x => x.LaneId == laneId);
+                    if (newComboTuple != default)
+                    {
+                        var targetCb = cameraRole == "ToanCanh" ? newComboTuple.cbToanCanh : newComboTuple.cbBienSo;
+                        targetCb.Text = latestCam.CameraName;
+                    }
                 }
             }
             catch { }
@@ -725,6 +741,10 @@ namespace QuanLyGiuXe.Views
             var win = new Views.CameraSettingsWindow();
             win.Owner = Window.GetWindow(this);
             win.ShowDialog();
+
+            // Reload draft config because it might have been updated/synced in CameraSettingsWindow
+            AppConfig.ClearCache();
+            _cfg = AppConfig.LoadDraft();
 
             int selectedGateId = ZoneCombo.SelectedValue != null ? Convert.ToInt32(ZoneCombo.SelectedValue) : 0;
             var lanesForGate = _lanes?.Where(l => l.GateId == selectedGateId).ToList() ?? new List<LaneConfig>();
@@ -1007,6 +1027,13 @@ namespace QuanLyGiuXe.Views
                 var prevBtn1 = _cfg.ZKTeco.Button1Action;
                 var prevBtn2 = _cfg.ZKTeco.Button2Action;
 
+                var prevLaneCameras = _cfg.Cameras.LaneCameras?.Select(x => new LaneCameraSetting
+                {
+                    LaneId = x.LaneId,
+                    ToanCanh = x.ToanCanh ?? "",
+                    BienSo = x.BienSo ?? ""
+                }).ToList() ?? new List<LaneCameraSetting>();
+
                 var prevVehicleTypes = new Dictionary<int, (int? id, string name)>();
                 void CapturePrevVehicleType(int readerNo, ComboBox laneCombo)
                 {
@@ -1204,6 +1231,57 @@ namespace QuanLyGiuXe.Views
                 AddChange("Button1Action", prevBtn1, _cfg.ZKTeco.Button1Action);
                 AddChange("Button2Action", prevBtn2, _cfg.ZKTeco.Button2Action);
 
+                // Compare lane camera changes and write to audit log
+                foreach (var item in _laneCameraCombos)
+                {
+                    var oldSetting = prevLaneCameras.FirstOrDefault(x => x.LaneId == item.LaneId);
+                    string oldToanCanh = oldSetting?.ToanCanh ?? "";
+                    string oldBienSo = oldSetting?.BienSo ?? "";
+
+                    string newToanCanh = PickCamera(item.cbToanCanh) ?? "";
+                    string newBienSo = PickCamera(item.cbBienSo) ?? "";
+
+                    if (oldToanCanh != newToanCanh || oldBienSo != newBienSo)
+                    {
+                        var lane = _lanes?.FirstOrDefault(l => l.Id == item.LaneId);
+                        string laneName = lane?.LaneName ?? $"Làn {item.LaneId}";
+
+                        if (oldToanCanh != newToanCanh)
+                        {
+                            string oldDisp = string.IsNullOrEmpty(oldToanCanh) ? "Chưa gán" : (oldToanCanh == "(Tự động)" ? "Tự động" : oldToanCanh);
+                            string newDisp = string.IsNullOrEmpty(newToanCanh) ? "Chưa gán" : (newToanCanh == "(Tự động)" ? "Tự động" : newToanCanh);
+                            
+                            if (changes.Length > 0) changes.Append("; ");
+                            changes.Append($"{laneName} - Cam Toàn Cảnh: '{oldDisp}' -> '{newDisp}'");
+
+                            auditTasks.Add(ConfigurationAuditService.Instance.RecordChangeAsync(
+                                "Camera",
+                                laneName,
+                                "Cam Toàn Cảnh",
+                                oldDisp,
+                                newDisp
+                            ));
+                        }
+
+                        if (oldBienSo != newBienSo)
+                        {
+                            string oldDisp = string.IsNullOrEmpty(oldBienSo) ? "Chưa gán" : (oldBienSo == "(Tự động)" ? "Tự động" : oldBienSo);
+                            string newDisp = string.IsNullOrEmpty(newBienSo) ? "Chưa gán" : (newBienSo == "(Tự động)" ? "Tự động" : newBienSo);
+
+                            if (changes.Length > 0) changes.Append("; ");
+                            changes.Append($"{laneName} - Cam Biển Số: '{oldDisp}' -> '{newDisp}'");
+
+                            auditTasks.Add(ConfigurationAuditService.Instance.RecordChangeAsync(
+                                "Camera",
+                                laneName,
+                                "Cam Biển Số",
+                                oldDisp,
+                                newDisp
+                            ));
+                        }
+                    }
+                }
+
                 if (auditTasks.Count > 0)
                 {
                     await Task.WhenAll(auditTasks);
@@ -1271,7 +1349,7 @@ namespace QuanLyGiuXe.Views
                 {
                     var dbCamerasForValidation = await ParkingTopologyService.Instance.GetCamerasAsync();
                     var currentLaneIdsForValidation = _laneCameraCombos.Select(item => item.LaneId).ToHashSet();
-                    var assignedCameras = new Dictionary<string, (int LaneId, string Role)>(StringComparer.OrdinalIgnoreCase);
+                    var assignedCameras = new Dictionary<string, List<(int LaneId, string Role)>>(StringComparer.OrdinalIgnoreCase);
 
                     // Populate assigned cameras with database assignments of lanes NOT in current configuration
                     foreach (var dbCam in dbCamerasForValidation)
@@ -1279,14 +1357,17 @@ namespace QuanLyGiuXe.Views
                         if (dbCam.LaneId.HasValue && !currentLaneIdsForValidation.Contains(dbCam.LaneId.Value))
                         {
                             string role = dbCam.Direction == "Overview" ? "Toàn cảnh" : "Biển số";
-                            if (!string.IsNullOrEmpty(dbCam.RtspUrl))
+                            void AddAssignment(string key)
                             {
-                                assignedCameras[dbCam.RtspUrl] = (dbCam.LaneId.Value, role);
+                                if (!assignedCameras.TryGetValue(key, out var list))
+                                {
+                                    list = new List<(int LaneId, string Role)>();
+                                    assignedCameras[key] = list;
+                                }
+                                list.Add((dbCam.LaneId.Value, role));
                             }
-                            if (!string.IsNullOrEmpty(dbCam.CameraName))
-                            {
-                                assignedCameras[dbCam.CameraName] = (dbCam.LaneId.Value, role);
-                            }
+                            if (!string.IsNullOrEmpty(dbCam.RtspUrl)) AddAssignment(dbCam.RtspUrl);
+                            if (!string.IsNullOrEmpty(dbCam.CameraName)) AddAssignment(dbCam.CameraName);
                         }
                     }
 
@@ -1299,33 +1380,61 @@ namespace QuanLyGiuXe.Views
 
                         if (!string.IsNullOrEmpty(toanCanh))
                         {
-                            if (assignedCameras.TryGetValue(toanCanh, out var existing))
+                            if (assignedCameras.TryGetValue(toanCanh, out var existingList))
                             {
-                                var otherLane = _lanes?.FirstOrDefault(l => l.Id == existing.LaneId);
-                                string otherLaneName = otherLane?.LaneName ?? existing.LaneId.ToString();
-                                MessageBox.Show($"Camera '{item.cbToanCanh.Text}' đã được gán cho vai trò '{existing.Role}' của làn '{otherLaneName}'. Không thể gán cho vai trò 'Toàn cảnh' của làn '{currentLaneName}'.", "Lỗi cấu hình camera", MessageBoxButton.OK, MessageBoxImage.Warning);
-                                return;
+                                // A camera can be assigned to multiple lanes ONLY if all assignments are "Toàn cảnh" (Overview).
+                                // If any existing assignment is "Biển số", it is a conflict.
+                                var conflicting = existingList.FirstOrDefault(e => e.Role == "Biển số");
+                                if (conflicting != default)
+                                {
+                                    var otherLane = _lanes?.FirstOrDefault(l => l.Id == conflicting.LaneId);
+                                    string otherLaneName = otherLane?.LaneName ?? conflicting.LaneId.ToString();
+                                    MessageBox.Show($"Camera '{item.cbToanCanh.Text}' đã được gán cho vai trò 'Biển số' của làn '{otherLaneName}'. Không thể gán cho vai trò 'Toàn cảnh' của làn '{currentLaneName}'.", "Lỗi cấu hình camera", MessageBoxButton.OK, MessageBoxImage.Warning);
+                                    return;
+                                }
                             }
-                            assignedCameras[toanCanh] = (item.LaneId, "Toàn cảnh");
+                            
+                            void AddCurrentAssignment(string key)
+                            {
+                                if (!assignedCameras.TryGetValue(key, out var list))
+                                {
+                                    list = new List<(int LaneId, string Role)>();
+                                    assignedCameras[key] = list;
+                                }
+                                list.Add((item.LaneId, "Toàn cảnh"));
+                            }
+                            AddCurrentAssignment(toanCanh);
                             if (!string.IsNullOrEmpty(item.cbToanCanh.Text))
                             {
-                                assignedCameras[item.cbToanCanh.Text] = (item.LaneId, "Toàn cảnh");
+                                AddCurrentAssignment(item.cbToanCanh.Text);
                             }
                         }
 
                         if (!string.IsNullOrEmpty(bienSo))
                         {
-                            if (assignedCameras.TryGetValue(bienSo, out var existing))
+                            if (assignedCameras.TryGetValue(bienSo, out var existingList))
                             {
-                                var otherLane = _lanes?.FirstOrDefault(l => l.Id == existing.LaneId);
-                                string otherLaneName = otherLane?.LaneName ?? existing.LaneId.ToString();
-                                MessageBox.Show($"Camera '{item.cbBienSo.Text}' đã được gán cho vai trò '{existing.Role}' của làn '{otherLaneName}'. Không thể gán cho vai trò 'Biển số' của làn '{currentLaneName}'.", "Lỗi cấu hình camera", MessageBoxButton.OK, MessageBoxImage.Warning);
+                                // A camera assigned to "Biển số" role cannot have any other assignment.
+                                var conflicting = existingList.First();
+                                var otherLane = _lanes?.FirstOrDefault(l => l.Id == conflicting.LaneId);
+                                string otherLaneName = otherLane?.LaneName ?? conflicting.LaneId.ToString();
+                                MessageBox.Show($"Camera '{item.cbBienSo.Text}' đã được gán cho vai trò '{conflicting.Role}' của làn '{otherLaneName}'. Không thể gán cho vai trò 'Biển số' của làn '{currentLaneName}'.", "Lỗi cấu hình camera", MessageBoxButton.OK, MessageBoxImage.Warning);
                                 return;
                             }
-                            assignedCameras[bienSo] = (item.LaneId, "Biển số");
+                            
+                            void AddCurrentAssignment(string key)
+                            {
+                                if (!assignedCameras.TryGetValue(key, out var list))
+                                {
+                                    list = new List<(int LaneId, string Role)>();
+                                    assignedCameras[key] = list;
+                                }
+                                list.Add((item.LaneId, "Biển số"));
+                            }
+                            AddCurrentAssignment(bienSo);
                             if (!string.IsNullOrEmpty(item.cbBienSo.Text))
                             {
-                                assignedCameras[item.cbBienSo.Text] = (item.LaneId, "Biển số");
+                                AddCurrentAssignment(item.cbBienSo.Text);
                             }
                         }
                     }
@@ -1579,6 +1688,7 @@ namespace QuanLyGiuXe.Views
 
                 // Reload reader selections
                 LoadReaderSelection();
+                await PopulateLaneCamerasUIAsync(lanesForGate);
             }
             catch (Exception ex)
             {

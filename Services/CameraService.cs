@@ -226,14 +226,16 @@ namespace QuanLyGiuXe.Services
             set => _instance = value;
         }
 
-        public async Task<bool> IsIpAddressUniqueAsync(string ipAddress, int? currentCameraId = null)
+        public async Task<bool> IsIpAddressUniqueAsync(string ipAddress, string direction, int? currentCameraId = null)
         {
             if (string.IsNullOrWhiteSpace(ipAddress)) return true; // USB/empty IP does not require validation
+            if (direction == "Overview") return true; // Bypass uniqueness validation for overview cameras
             
             try
             {
                 var allCameras = await CameraRepository.Instance.GetAllAsync();
                 return !allCameras.Any(c => c.Id != currentCameraId && 
+                                            c.Direction != "Overview" && // Enforce uniqueness only against other plate cameras
                                             !string.IsNullOrEmpty(c.IpAddress) && 
                                             c.IpAddress.Trim().Equals(ipAddress.Trim(), StringComparison.OrdinalIgnoreCase));
             }
@@ -528,10 +530,14 @@ namespace QuanLyGiuXe.Services
                 cfg.Cameras = new CameraConfig();
             }
 
+            // Sao lưu danh sách LaneCameras hiện có để bảo toàn các thiết lập camera toàn cảnh dùng chung
+            var existingLaneCameras = cfg.Cameras.LaneCameras != null 
+                ? new List<LaneCameraSetting>(cfg.Cameras.LaneCameras) 
+                : new List<LaneCameraSetting>();
+
             cfg.Cameras.LaneCameras = new List<LaneCameraSetting>();
 
-            var activeCams = dbCams.Where(c => c.IsActive && c.LaneId.HasValue).ToList();
-            var dbLanes = ParkingTopologyService.Instance.GetLanes();
+            var dbLanes = ParkingTopologyService.Instance.GetLanes() ?? new List<LaneConfig>();
 
             var firstIn = dbLanes.FirstOrDefault(l => l.Direction?.ToUpper() == "IN");
             var firstOut = dbLanes.FirstOrDefault(l => l.Direction?.ToUpper() == "OUT");
@@ -542,36 +548,90 @@ namespace QuanLyGiuXe.Services
             cfg.Cameras.RaToanCanh = "";
             cfg.Cameras.RaBienSo = "";
 
-            foreach (var group in activeCams.GroupBy(c => c.LaneId!.Value))
+            foreach (var lane in dbLanes)
             {
-                int laneId = group.Key;
-                var laneSetting = new LaneCameraSetting { LaneId = laneId };
+                var laneSetting = new LaneCameraSetting { LaneId = lane.Id };
 
-                foreach (var cam in group)
+                // 1. Camera biển số: Phải được gán trực tiếp cho làn này trong CSDL
+                var bienSoCam = dbCams.FirstOrDefault(c => c.IsActive && c.LaneId == lane.Id && c.Direction != "Overview");
+                if (bienSoCam != null)
                 {
-                    if (cam.Direction == "Overview")
-                    {
-                        laneSetting.ToanCanh = cam.RtspUrl;
-                    }
-                    else
-                    {
-                        laneSetting.BienSo = cam.RtspUrl;
-                    }
+                    laneSetting.BienSo = bienSoCam.RtspUrl;
+                }
 
-                    // Legacy fallbacks for the first IN/OUT lanes
-                    if (firstIn != null && firstIn.Id == laneId)
+                // 2. Camera toàn cảnh:
+                // Trước tiên tìm camera toàn cảnh được gán trực tiếp cho làn này trong CSDL
+                var directOverviewCam = dbCams.FirstOrDefault(c => c.IsActive && c.LaneId == lane.Id && c.Direction == "Overview");
+                if (directOverviewCam != null)
+                {
+                    laneSetting.ToanCanh = directOverviewCam.RtspUrl;
+                }
+                else
+                {
+                    // Nếu không có camera trực tiếp, kiểm tra xem cấu hình cũ trong config.json có thiết lập camera toàn cảnh dùng chung không
+                    var existingSetting = existingLaneCameras.FirstOrDefault(elc => elc.LaneId == lane.Id);
+                    if (existingSetting != null && !string.IsNullOrEmpty(existingSetting.ToanCanh))
                     {
-                        if (cam.Direction == "Overview") cfg.Cameras.VaoToanCanh = cam.RtspUrl;
-                        else cfg.Cameras.VaoBienSo = cam.RtspUrl;
-                    }
-                    else if (firstOut != null && firstOut.Id == laneId)
-                    {
-                        if (cam.Direction == "Overview") cfg.Cameras.RaToanCanh = cam.RtspUrl;
-                        else cfg.Cameras.RaBienSo = cam.RtspUrl;
+                        string oldUrl = existingSetting.ToanCanh;
+
+                        // Tìm xem có làn nào khác dùng chung camera này mà làn đó là làn chính (có camera gán trực tiếp trong CSDL) không
+                        string? updatedUrl = null;
+                        foreach (var otherSetting in existingLaneCameras)
+                        {
+                            if (otherSetting.LaneId != lane.Id && 
+                                !string.IsNullOrEmpty(otherSetting.ToanCanh) && 
+                                otherSetting.ToanCanh.Equals(oldUrl, StringComparison.OrdinalIgnoreCase))
+                            {
+                                // Xem làn chính đó có camera trực tiếp mới trong CSDL không
+                                var otherDirectCam = dbCams.FirstOrDefault(c => c.IsActive && c.LaneId == otherSetting.LaneId && c.Direction == "Overview");
+                                if (otherDirectCam != null)
+                                {
+                                    updatedUrl = otherDirectCam.RtspUrl;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (updatedUrl != null)
+                        {
+                            laneSetting.ToanCanh = updatedUrl;
+                        }
+                        else
+                        {
+                            // Nếu không tìm thấy qua làn chính dùng chung, thử khớp trực tiếp trong CSDL theo URL hoặc tên
+                            var matchedDbCam = dbCams.FirstOrDefault(c => c.IsActive && c.Direction == "Overview" && 
+                                (!string.IsNullOrEmpty(c.RtspUrl) && (NormalizeRtspUrl(c.RtspUrl) == NormalizeRtspUrl(oldUrl) || 
+                                 c.CameraName.Equals(oldUrl, StringComparison.OrdinalIgnoreCase))));
+
+                            if (matchedDbCam != null)
+                            {
+                                laneSetting.ToanCanh = matchedDbCam.RtspUrl;
+                            }
+                            else
+                            {
+                                laneSetting.ToanCanh = oldUrl;
+                            }
+                        }
                     }
                 }
 
-                cfg.Cameras.LaneCameras.Add(laneSetting);
+                // Thiết lập legacy fallbacks cho làn đầu tiên vào/ra
+                if (firstIn != null && firstIn.Id == lane.Id)
+                {
+                    cfg.Cameras.VaoToanCanh = laneSetting.ToanCanh ?? "";
+                    cfg.Cameras.VaoBienSo = laneSetting.BienSo ?? "";
+                }
+                else if (firstOut != null && firstOut.Id == lane.Id)
+                {
+                    cfg.Cameras.RaToanCanh = laneSetting.ToanCanh ?? "";
+                    cfg.Cameras.RaBienSo = laneSetting.BienSo ?? "";
+                }
+
+                // Chỉ lưu cấu hình làn nếu có ít nhất một camera được gán
+                if (!string.IsNullOrEmpty(laneSetting.ToanCanh) || !string.IsNullOrEmpty(laneSetting.BienSo))
+                {
+                    cfg.Cameras.LaneCameras.Add(laneSetting);
+                }
             }
         }
 

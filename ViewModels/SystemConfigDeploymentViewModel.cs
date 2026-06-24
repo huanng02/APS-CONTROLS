@@ -17,7 +17,18 @@ namespace QuanLyGiuXe.ViewModels
         public int ActiveTabIndex
         {
             get => _activeTabIndex;
-            set { _activeTabIndex = value; OnPropertyChanged(); }
+            set
+            {
+                if (_activeTabIndex != value)
+                {
+                    _activeTabIndex = value;
+                    OnPropertyChanged();
+                    if (_activeTabIndex == 1)
+                    {
+                        LoadAllData();
+                    }
+                }
+            }
         }
 
         // ── Active Version Info ─────────────────────────────────────────
@@ -450,6 +461,7 @@ namespace QuanLyGiuXe.ViewModels
                 MessageBox.Show("Triển khai cấu hình mới thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
                 Notes = string.Empty;
                 LoadAllData();
+                ActiveTabIndex = 0;
             }
             else
             {

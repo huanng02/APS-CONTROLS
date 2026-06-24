@@ -68,7 +68,7 @@ namespace QuanLyGiuXe.Services
 
         public async Task<bool> InsertAsync(CameraEntity camera)
         {
-            if (!await CameraService.Instance.IsIpAddressUniqueAsync(camera.IpAddress, null))
+            if (!await CameraService.Instance.IsIpAddressUniqueAsync(camera.IpAddress, camera.Direction, null))
             {
                 throw new InvalidOperationException("A camera with this IP address already exists.");
             }
@@ -115,7 +115,7 @@ namespace QuanLyGiuXe.Services
 
         public async Task<bool> UpdateAsync(CameraEntity camera)
         {
-            if (!await CameraService.Instance.IsIpAddressUniqueAsync(camera.IpAddress, camera.Id))
+            if (!await CameraService.Instance.IsIpAddressUniqueAsync(camera.IpAddress, camera.Direction, camera.Id))
             {
                 throw new InvalidOperationException("A camera with this IP address already exists.");
             }

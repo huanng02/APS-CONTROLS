@@ -179,9 +179,17 @@ namespace QuanLyGiuXe.ViewModels
                 return;
             }
 
+            if (Direction == "Overview")
+            {
+                IpValidationMessage = string.Empty;
+                CommandManager.InvalidateRequerySuggested();
+                return;
+            }
+
             int? currentId = IsEditMode && SelectedCamera != null ? SelectedCamera.Id : (int?)null;
             
             bool isDuplicate = _allCameras.Any(c => c.Id != currentId && 
+                                                    c.Direction != "Overview" &&
                                                     !string.IsNullOrEmpty(c.IpAddress) && 
                                                     c.IpAddress.Trim().Equals(ip, StringComparison.OrdinalIgnoreCase));
 
@@ -265,7 +273,12 @@ namespace QuanLyGiuXe.ViewModels
         public string Direction
         {
             get => _direction;
-            set { _direction = value; OnPropertyChanged(); }
+            set 
+            { 
+                _direction = value; 
+                OnPropertyChanged(); 
+                TriggerIpValidation();
+            }
         }
 
         private bool _isActive = true;

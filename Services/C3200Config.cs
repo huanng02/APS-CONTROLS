@@ -102,6 +102,7 @@ namespace QuanLyGiuXe.Services
             lock (_lock)
             {
                 _cached = null;
+                _draftCached = null;
             }
         }
 

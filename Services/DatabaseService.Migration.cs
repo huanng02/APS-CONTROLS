@@ -238,6 +238,20 @@ namespace QuanLyGiuXe.Services
                         LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Lane UI Display Index migration applied successfully.");
                     }
 
+                    // Execute Camera IP Duplicate Relaxation migration (20260624_allow_duplicate_overview_camera_ip.sql)
+                    string scriptPathCamIpRel = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260624_allow_duplicate_overview_camera_ip.sql");
+                    if (File.Exists(scriptPathCamIpRel))
+                    {
+                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Executing Camera IP Duplicate Relaxation migration...");
+                        string sqlCamIpRel = await File.ReadAllTextAsync(scriptPathCamIpRel);
+                        using (var cmd = new SqlCommand(sqlCamIpRel, conn))
+                        {
+                            cmd.CommandTimeout = 60;
+                            await cmd.ExecuteNonQueryAsync();
+                        }
+                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Camera IP Duplicate Relaxation migration applied successfully.");
+                    }
+
                     _migrationsApplied = true;
                     LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "SQL Server topology migrations applied successfully.");
                 }
@@ -836,6 +850,20 @@ namespace QuanLyGiuXe.Services
                             await cmd.ExecuteNonQueryAsync();
                         }
                         LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Lane UI Display Index migration applied successfully.");
+                    }
+
+                    // Execute Camera IP Duplicate Relaxation migration (20260624_allow_duplicate_overview_camera_ip.sql)
+                    string scriptPathCamIpRel = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260624_allow_duplicate_overview_camera_ip.sql");
+                    if (File.Exists(scriptPathCamIpRel))
+                    {
+                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Executing Camera IP Duplicate Relaxation migration...");
+                        string sqlCamIpRel = await File.ReadAllTextAsync(scriptPathCamIpRel);
+                        using (var cmd = new SqlCommand(sqlCamIpRel, conn))
+                        {
+                            cmd.CommandTimeout = 60;
+                            await cmd.ExecuteNonQueryAsync();
+                        }
+                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Camera IP Duplicate Relaxation migration applied successfully.");
                     }
 
                     _baseSchemaChecked = true;
