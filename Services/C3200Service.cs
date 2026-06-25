@@ -176,6 +176,33 @@ namespace QuanLyGiuXe.Services
 
         public async Task<bool> ConnectAsync()
         {
+            // ── Kiểm tra quyền sở hữu PcIp trước khi kết nối ──
+            try
+            {
+                var allControllers = await ParkingTopologyService.Instance.GetControllersAsync();
+                var matchedCtrl = allControllers
+                    .FirstOrDefault(c => c.IsActive &&
+                        c.IpAddress.Trim().Equals(_ip.Trim(), StringComparison.OrdinalIgnoreCase));
+
+                if (matchedCtrl != null && !string.IsNullOrWhiteSpace(matchedCtrl.PcIp))
+                {
+                    if (!IsOwnerOfController(matchedCtrl.PcIp))
+                    {
+                        var myIps = string.Join(", ", GetLocalIpAddresses());
+                        LoggingService.Instance.LogWarning("C3_CONNECT_ABORT", "C3200Service",
+                            $"Từ chối kết nối đến controller {_ip} vì thuộc về máy {matchedCtrl.PcIp}. Máy hiện tại: {myIps}");
+                        LastError = $"Controller thuộc về máy {matchedCtrl.PcIp}";
+                        return false;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Fail-safe: nếu lỗi kiểm tra (ví dụ DB offline), vẫn tiếp tục cho phép kết nối để tránh gián đoạn
+                LoggingService.Instance.LogError("C3_CONNECT_OWNER_CHECK_ERROR", "C3200Service",
+                    "Lỗi khi kiểm tra PcIp ownership, tiếp tục kết nối (fail-safe).", ex);
+            }
+
             return await ErrorHandling.SafeExecutionService.SafeExecuteAsync(async () => 
             {
                 await _connectionSemaphore.WaitAsync();

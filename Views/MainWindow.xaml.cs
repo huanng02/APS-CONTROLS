@@ -595,6 +595,26 @@ namespace QuanLyGiuXe
                 var mapping = ReaderLaneMappingService.Instance.GetMappingByReader(readerNo);
                 int laneId = mapping?.LaneId ?? doorNumber;
                 AuthorizationGuard.ProtectLane(laneId, $"Manual Open Gate {doorNumber}");
+
+                // Perform workstation ownership check
+                var cfg = AppConfig.Load();
+                var controllerIp = cfg.ZKTeco?.IpAddress;
+                if (!string.IsNullOrWhiteSpace(controllerIp))
+                {
+                    var allControllers = await ParkingTopologyService.Instance.GetControllersAsync();
+                    var matchedCtrl = allControllers
+                        .FirstOrDefault(c => c.IsActive &&
+                            c.IpAddress.Trim().Equals(controllerIp.Trim(), StringComparison.OrdinalIgnoreCase));
+
+                    if (matchedCtrl != null && !string.IsNullOrWhiteSpace(matchedCtrl.PcIp))
+                    {
+                        if (!C3200Service.IsOwnerOfController(matchedCtrl.PcIp))
+                        {
+                            var myIps = string.Join(", ", C3200Service.GetLocalIpAddresses());
+                            throw new Exception($"Máy trạm này ({myIps}) không được cấu hình để điều khiển bộ điều khiển ({controllerIp}) của máy trạm {matchedCtrl.PcIp}.");
+                        }
+                    }
+                }
             }
             catch (Exception ex)
             {
