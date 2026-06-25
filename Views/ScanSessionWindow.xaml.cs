@@ -25,6 +25,22 @@ namespace QuanLyGiuXe.Views
             TimeOutText.Text = session.ThoiGianRa.HasValue ? session.ThoiGianRa.Value.ToString("yyyy-MM-dd HH:mm:ss") : "-";
             FeeText.Text = session.Tien.HasValue ? session.Tien.Value.ToString("N0") + " VNĐ" : "-";
 
+            // Load plate images
+            string? entryPlatePath = GetPlateCropPath(session.AnhVao);
+            string? exitPlatePath = GetPlateCropPath(session.AnhRa);
+
+            imgPlateIn.Source = LoadImageFromFile(entryPlatePath);
+            imgPlateOut.Source = LoadImageFromFile(exitPlatePath);
+
+            if (session.ThoiGianRa.HasValue)
+            {
+                ExitPlatePanel.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                ExitPlatePanel.Visibility = Visibility.Collapsed;
+            }
+
             // Default fallback
             UidText.Text = session.CardId.ToString();
             brdEmployeeInfo.Visibility = Visibility.Collapsed;
@@ -78,6 +94,36 @@ namespace QuanLyGiuXe.Views
                 var bi = new BitmapImage();
                 bi.BeginInit();
                 bi.StreamSource = new MemoryStream(binaryData);
+                bi.EndInit();
+                bi.Freeze();
+                return bi;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static string? GetPlateCropPath(string? folderPath)
+        {
+            if (string.IsNullOrEmpty(folderPath)) return null;
+            if (System.IO.Directory.Exists(folderPath))
+            {
+                string path = System.IO.Path.Combine(folderPath, "plate_crop.jpg");
+                if (System.IO.File.Exists(path)) return path;
+            }
+            return null;
+        }
+
+        private static ImageSource? LoadImageFromFile(string? path)
+        {
+            if (string.IsNullOrEmpty(path) || !System.IO.File.Exists(path)) return null;
+            try
+            {
+                var bi = new BitmapImage();
+                bi.BeginInit();
+                bi.CacheOption = BitmapCacheOption.OnLoad;
+                bi.UriSource = new Uri(path);
                 bi.EndInit();
                 bi.Freeze();
                 return bi;

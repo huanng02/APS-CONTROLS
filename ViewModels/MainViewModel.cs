@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using OpenCvSharp;
 using QuanLyGiuXe.Models;
@@ -265,6 +266,34 @@ namespace QuanLyGiuXe.ViewModels
             set { _lane1EmployeeAvatar = value; OnPropertyChanged(nameof(Lane1EmployeeAvatar)); }
         }
 
+        private ImageSource? _lane1PlateInImage;
+        public ImageSource? Lane1PlateInImage
+        {
+            get => _lane1PlateInImage;
+            set { _lane1PlateInImage = value; OnPropertyChanged(nameof(Lane1PlateInImage)); }
+        }
+
+        private ImageSource? _lane1PlateOutImage;
+        public ImageSource? Lane1PlateOutImage
+        {
+            get => _lane1PlateOutImage;
+            set { _lane1PlateOutImage = value; OnPropertyChanged(nameof(Lane1PlateOutImage)); }
+        }
+
+        private Visibility _lane1PlateInVisibility = Visibility.Collapsed;
+        public Visibility Lane1PlateInVisibility
+        {
+            get => _lane1PlateInVisibility;
+            set { _lane1PlateInVisibility = value; OnPropertyChanged(nameof(Lane1PlateInVisibility)); }
+        }
+
+        private Visibility _lane1PlateOutVisibility = Visibility.Collapsed;
+        public Visibility Lane1PlateOutVisibility
+        {
+            get => _lane1PlateOutVisibility;
+            set { _lane1PlateOutVisibility = value; OnPropertyChanged(nameof(Lane1PlateOutVisibility)); }
+        }
+
         private bool _lane1HasEmployee;
         public bool Lane1HasEmployee
         {
@@ -362,6 +391,34 @@ namespace QuanLyGiuXe.ViewModels
         {
             get => _lane2EmployeeAvatar;
             set { _lane2EmployeeAvatar = value; OnPropertyChanged(nameof(Lane2EmployeeAvatar)); }
+        }
+
+        private ImageSource? _lane2PlateInImage;
+        public ImageSource? Lane2PlateInImage
+        {
+            get => _lane2PlateInImage;
+            set { _lane2PlateInImage = value; OnPropertyChanged(nameof(Lane2PlateInImage)); }
+        }
+
+        private ImageSource? _lane2PlateOutImage;
+        public ImageSource? Lane2PlateOutImage
+        {
+            get => _lane2PlateOutImage;
+            set { _lane2PlateOutImage = value; OnPropertyChanged(nameof(Lane2PlateOutImage)); }
+        }
+
+        private Visibility _lane2PlateInVisibility = Visibility.Collapsed;
+        public Visibility Lane2PlateInVisibility
+        {
+            get => _lane2PlateInVisibility;
+            set { _lane2PlateInVisibility = value; OnPropertyChanged(nameof(Lane2PlateInVisibility)); }
+        }
+
+        private Visibility _lane2PlateOutVisibility = Visibility.Collapsed;
+        public Visibility Lane2PlateOutVisibility
+        {
+            get => _lane2PlateOutVisibility;
+            set { _lane2PlateOutVisibility = value; OnPropertyChanged(nameof(Lane2PlateOutVisibility)); }
         }
 
         private bool _lane2HasEmployee;
@@ -2241,6 +2298,7 @@ namespace QuanLyGiuXe.ViewModels
                                 catch { }
 
                                 SetLanePlate(uiLaneIndex, plate);
+                                SetLanePlateImages(uiLaneIndex, imageFolderPath, null);
                                 SetLaneUID(uiLaneIndex, uid);
                                 SetLaneStatus(uiLaneIndex, opened ? $"✅ Xe vào lúc {DateTime.Now:HH:mm}" : "⚠ Xe vào – barrier lỗi");
 
@@ -2398,6 +2456,7 @@ namespace QuanLyGiuXe.ViewModels
 
                                 string displayPlate = !string.IsNullOrEmpty(recognizedPlate) ? recognizedPlate : plate;
                                 SetLanePlate(uiLaneIndex, displayPlate);
+                                SetLanePlateImages(uiLaneIndex, entryImageFolder, exitImageFolderPath);
                                 SetLaneUID(uiLaneIndex, uid);
                                 SetLaneTimeInfo(uiLaneIndex, timeIn, duration);
                                 SetLaneFee(uiLaneIndex, fee);
@@ -2512,6 +2571,7 @@ namespace QuanLyGiuXe.ViewModels
                 catch { }
 
                 SetLanePlate(uiLaneIndex, plate);
+                SetLanePlateImages(uiLaneIndex, imageFolderPath, null);
                 SetLaneUID(uiLaneIndex, uid);
 
                 bool opened = await C3200Service.Instance.OpenBarrierAsync(uiLaneIndex);
@@ -2648,6 +2708,7 @@ namespace QuanLyGiuXe.ViewModels
 
                 string displayPlate = !string.IsNullOrEmpty(recognizedPlate) ? recognizedPlate : plate;
                 SetLanePlate(uiLaneIndex, displayPlate);
+                SetLanePlateImages(uiLaneIndex, entryImageFolder, exitImageFolderPath);
                 SetLaneUID(uiLaneIndex, uid);
                 SetLaneTimeInfo(uiLaneIndex, timeIn, duration);
                 SetLaneFee(uiLaneIndex, fee);
@@ -3632,6 +3693,10 @@ namespace QuanLyGiuXe.ViewModels
                 Lane1EmployeeAvatar = null;
                 Lane1HasEmployee = false;
                 Lane1OwnerStatusText = "Chờ thẻ...";
+                Lane1PlateInImage = null;
+                Lane1PlateOutImage = null;
+                Lane1PlateInVisibility = Visibility.Collapsed;
+                Lane1PlateOutVisibility = Visibility.Collapsed;
             }
             else
             {
@@ -3648,6 +3713,64 @@ namespace QuanLyGiuXe.ViewModels
                 Lane2EmployeeAvatar = null;
                 Lane2HasEmployee = false;
                 Lane2OwnerStatusText = "Chờ thẻ...";
+                Lane2PlateInImage = null;
+                Lane2PlateOutImage = null;
+                Lane2PlateInVisibility = Visibility.Collapsed;
+                Lane2PlateOutVisibility = Visibility.Collapsed;
+            }
+        }
+
+        private void SetLanePlateImages(int lane, string? entryFolder, string? exitFolder)
+        {
+            Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
+            {
+                ImageSource? entryImg = null;
+                ImageSource? exitImg = null;
+
+                if (!string.IsNullOrEmpty(entryFolder) && System.IO.Directory.Exists(entryFolder))
+                {
+                    string path = System.IO.Path.Combine(entryFolder, "plate_crop.jpg");
+                    if (System.IO.File.Exists(path)) entryImg = LoadImageFromFile(path);
+                }
+
+                if (!string.IsNullOrEmpty(exitFolder) && System.IO.Directory.Exists(exitFolder))
+                {
+                    string path = System.IO.Path.Combine(exitFolder, "plate_crop.jpg");
+                    if (System.IO.File.Exists(path)) exitImg = LoadImageFromFile(path);
+                }
+
+                if (lane == 1)
+                {
+                    Lane1PlateInImage = entryImg;
+                    Lane1PlateOutImage = exitImg;
+                    Lane1PlateInVisibility = entryImg != null ? Visibility.Visible : Visibility.Collapsed;
+                    Lane1PlateOutVisibility = exitImg != null ? Visibility.Visible : Visibility.Collapsed;
+                }
+                else
+                {
+                    Lane2PlateInImage = entryImg;
+                    Lane2PlateOutImage = exitImg;
+                    Lane2PlateInVisibility = entryImg != null ? Visibility.Visible : Visibility.Collapsed;
+                    Lane2PlateOutVisibility = exitImg != null ? Visibility.Visible : Visibility.Collapsed;
+                }
+            }));
+        }
+
+        private static ImageSource? LoadImageFromFile(string path)
+        {
+            try
+            {
+                var bi = new BitmapImage();
+                bi.BeginInit();
+                bi.CacheOption = BitmapCacheOption.OnLoad;
+                bi.UriSource = new Uri(path);
+                bi.EndInit();
+                bi.Freeze();
+                return bi;
+            }
+            catch
+            {
+                return null;
             }
         }
 
