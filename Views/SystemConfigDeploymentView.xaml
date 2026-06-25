@@ -212,6 +212,7 @@
                                                     <RowDefinition Height="Auto"/>
                                                     <RowDefinition Height="Auto"/>
                                                     <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
                                                 </Grid.RowDefinitions>
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="*"/>
@@ -271,6 +272,12 @@
                                                 <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,8,0,4">
                                                     <CheckBox x:Name="ShowSessionDialogCheck" Content="Hiển thị dialog thông tin xe ra vào" FontSize="12" FontWeight="SemiBold" Foreground="#4B5563" VerticalAlignment="Center"/>
                                                     <TextBlock Text="Khi bật, hệ thống sẽ tự động hiện dialog thông tin chi tiết xe (biển số, thời gian, hình ảnh) khi quẹt thẻ thành công." Foreground="#9CA3AF" FontSize="10" Margin="0,3,0,0"/>
+                                                </StackPanel>
+
+                                                <!-- UI Settings (Require reason dialog on manual open) -->
+                                                <StackPanel Grid.Row="5" Grid.Column="0" Grid.ColumnSpan="3" Margin="0,8,0,4">
+                                                    <CheckBox x:Name="RequireReasonForManualOpenCheck" Content="Yêu cầu nhập lý do khi mở cổng thủ công" FontSize="12" FontWeight="SemiBold" Foreground="#4B5563" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Khi bật, khi click nút mở cổng trên giao diện sẽ hiện cửa sổ yêu cầu nhập lý do. Nếu tắt, cổng sẽ mở ngay lập tức." Foreground="#9CA3AF" FontSize="10" Margin="0,3,0,0"/>
                                                 </StackPanel>
                                             </Grid>
                                         </StackPanel>

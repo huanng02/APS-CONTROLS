@@ -603,15 +603,18 @@ namespace QuanLyGiuXe
             }
 
             string reason = "Mở từ giao diện phần mềm";
-            var dialog = new ReasonInputDialog();
-            dialog.Owner = this;
-            if (dialog.ShowDialog() == true)
+            if (AppConfig.Load().ZKTeco.RequireReasonForManualOpen)
             {
-                reason = dialog.EnteredReason;
-            }
-            else
-            {
-                return; // Operator cancelled
+                var dialog = new ReasonInputDialog();
+                dialog.Owner = this;
+                if (dialog.ShowDialog() == true)
+                {
+                    reason = dialog.EnteredReason;
+                }
+                else
+                {
+                    return; // Operator cancelled
+                }
             }
 
             // Gọi Service xử lý trọn gói: Chụp ảnh -> Mở cổng -> Ghi Log (tạo snapshot và giải phóng ảnh sau khi dọn dẹp để giảm RAM)

@@ -227,6 +227,7 @@ namespace QuanLyGiuXe.Services
         public bool ForceAllOut { get; set; } = false;
         public bool BlockDailyCardForMonthlyPlate { get; set; } = false;
         public bool ShowSessionDialog { get; set; } = true;
+        public bool RequireReasonForManualOpen { get; set; } = true;
     }
 
     public sealed class CameraConfig
