@@ -553,6 +553,8 @@
                                 <ContextMenu>
                                     <MenuItem Header="Copy Plate Number" />
                                     <MenuItem Header="Print Receipt" />
+                                    <Separator />
+                                    <MenuItem Header="Xử lý kết thúc phiên" Command="{Binding EndSessionCommand}" />
                                 </ContextMenu>
                             </DataGrid.ContextMenu>
 
@@ -985,6 +987,36 @@
                                         <TextBlock Text="{Binding SelectedLichSu.Tien, StringFormat={}{0:N0} VNĐ, TargetNullValue='0'}" FontSize="18" FontWeight="Bold" Foreground="#1B5E20" Margin="8,0,0,0" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </Border>
+
+                                <!-- ACTION BUTTONS FOR ACTIVE SESSION (Xe trong bãi) -->
+                                <Button Command="{Binding EndSessionCommand}"
+                                        Background="#DC2626"
+                                        Foreground="White"
+                                        BorderThickness="0"
+                                        Height="36"
+                                        Margin="0,8,0,4"
+                                        Cursor="Hand">
+                                    <Button.Style>
+                                        <Style TargetType="Button">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding SelectedLichSu.TrangThai}" Value="Trong bãi">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                    <Button.Template>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Background="{TemplateBinding Background}" CornerRadius="6">
+                                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                    <TextBlock Text="&#xE8FB;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                                    <TextBlock Text="Kết thúc phiên ngay" VerticalAlignment="Center" FontSize="12.5" FontWeight="Bold"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </ControlTemplate>
+                                    </Button.Template>
+                                </Button>
                             </StackPanel>
                         </ScrollViewer>
                     </Grid>

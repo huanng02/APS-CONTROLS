@@ -355,6 +355,7 @@ namespace QuanLyGiuXe.ViewModels
         public ICommand TrangCuoiCommand { get; }
         public ICommand ResetFilterCommand { get; }
         public ICommand ExportExcelCommand { get; }
+        public ICommand EndSessionCommand { get; }
 
         private CancellationTokenSource? _searchCts;
 
@@ -366,6 +367,7 @@ namespace QuanLyGiuXe.ViewModels
             TrangCuoiCommand = new RelayCommand(_ => { TrangHienTai = TongTrang; LoadTrangAsync(); });
             ResetFilterCommand = new RelayCommand(_ => ResetFilter());
             ExportExcelCommand = new RelayCommand(_ => ExportExcel());
+            EndSessionCommand = new RelayCommand(async _ => await EndSessionAsync(), _ => CanEndSession());
 
             // Default dates
             TuNgay = DateTime.Today;
@@ -970,6 +972,71 @@ namespace QuanLyGiuXe.ViewModels
             {
                 LoggingService.Instance.LogError("ExportExcel", "LichSuViewModel", "Lỗi xuất Excel", ex);
                 MessageBox.Show($"Lỗi xuất Excel: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private bool CanEndSession()
+        {
+            return SelectedLichSu != null && SelectedLichSu.TrangThai == "Trong bãi" && !SelectedLichSu.ThoiGianRa.HasValue;
+        }
+
+        private async Task EndSessionAsync()
+        {
+            if (SelectedLichSu == null) return;
+
+            var selected = SelectedLichSu;
+
+            var confirmResult = MessageBox.Show(
+                $"Bạn có chắc chắn muốn kết thúc phiên cho xe có biển số '{selected.BienSo}' ngay lập tức không? Hệ thống sẽ tự động tính phí gửi xe và lưu thông tin vào lịch sử.",
+                "Xác nhận kết thúc phiên",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+
+            if (confirmResult != MessageBoxResult.Yes) return;
+
+            try
+            {
+                // 1. Get the card if exists
+                var card = await db.GetRFIDCardByIdAsync(selected.CardId);
+
+                // 2. Compute fee
+                DateTime timeIn = selected.ThoiGianVao;
+                DateTime timeOut = DateTime.Now;
+                int? loaiVeId = card?.LoaiVeId > 0 ? card.LoaiVeId : (int?)null;
+                int? loaiXeId = card?.LoaiXeId > 0 ? card.LoaiXeId : (int?)null;
+                double fee = db.TinhTien(loaiXeId, loaiVeId, timeIn, timeOut);
+
+                // 3. Persist exit
+                // Note: active session ID is negated in LayLichSuAsync to distinguish from archived history
+                int xeTrongBaiId = -selected.Id;
+
+                await db.UpdateXeRaByIdAsync(xeTrongBaiId, timeOut);
+                await db.LuuLichSuAsync(
+                    selected.BienSo,
+                    timeIn,
+                    timeOut,
+                    fee,
+                    string.Empty,
+                    card?.UID,
+                    selected.SiteId,
+                    selected.ZoneId,
+                    selected.EntryLaneId,
+                    selected.ExitLaneId,
+                    selected.AnhVao);
+
+                await db.XoaXeByCardIdAsync(selected.CardId);
+
+                LoggingService.Instance.LogVehicle("MANUAL_XE_RA", selected.BienSo, entityId: selected.CardId, details: $"Manually ended session from History window. Fee: {fee:N0} VND", source: "HistoryWindow");
+
+                MessageBox.Show("Kết thúc phiên xe thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                // Reload data
+                await InitializeDataAsync();
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("ManualEndSessionError", "LichSuViewModel", $"CardId={selected.CardId}", ex);
+                MessageBox.Show($"Lỗi khi kết thúc phiên: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
