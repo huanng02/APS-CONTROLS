@@ -2142,6 +2142,14 @@ namespace QuanLyGiuXe.ViewModels
                                 return;
                             }
 
+                            if (!IsValidPlate(recognizedPlate))
+                            {
+                                SetLaneStatus(uiLaneIndex, $"❌ Biển số không hợp lệ: {recognizedPlate}");
+                                LoggingService.Instance.LogSecurity("ACCESS_DENIED", "LPR_INVALID", uid, $"Entry: invalid plate format: {recognizedPlate}", "MainViewModel");
+                                LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
+                                return;
+                            }
+
                             // Check if casual card is used for monthly plate
                             if (AppConfig.Load().ZKTeco.BlockDailyCardForMonthlyPlate)
                             {
@@ -3061,6 +3069,13 @@ namespace QuanLyGiuXe.ViewModels
                             return;
                         }
 
+                        if (!IsValidPlate(recognizedPlate))
+                        {
+                            SetLaneStatus(uiLaneIndex, $"❌ Biển số không hợp lệ: {recognizedPlate}");
+                            LoggingService.Instance.LogSecurity("ACCESS_DENIED", "LPR_INVALID", uid, $"Manual entry: invalid plate format: {recognizedPlate}", "MainViewModel");
+                            return;
+                        }
+
                         // Check if casual card is used for monthly plate
                         if (AppConfig.Load().ZKTeco.BlockDailyCardForMonthlyPlate)
                         {
@@ -3215,6 +3230,35 @@ namespace QuanLyGiuXe.ViewModels
         {
             if (string.IsNullOrEmpty(plate)) return string.Empty;
             return new string(plate.Where(char.IsLetterOrDigit).ToArray()).ToUpper();
+        }
+
+        public static bool IsValidPlate(string plate)
+        {
+            if (string.IsNullOrEmpty(plate)) return false;
+
+            string normalized = new string(plate.Where(char.IsLetterOrDigit).ToArray()).ToUpper();
+
+            // Check if it starts like a Vietnamese plate: 2 digits followed by a letter (e.g. 63B, 51F, 29A)
+            bool isVnFormatPrefix = System.Text.RegularExpressions.Regex.IsMatch(normalized, @"^\d{2}[A-Z]");
+
+            if (isVnFormatPrefix)
+            {
+                // Strict Vietnamese format check: 2 digits + (2 letters OR 1 letter + optional 1 digit) + 4-5 digits
+                var vnRegex = new System.Text.RegularExpressions.Regex(@"^\d{2}([A-Z]{2}|[A-Z]\d?)\d{4,5}$");
+                return vnRegex.IsMatch(normalized);
+            }
+            else
+            {
+                // Foreign/Special format check: length 5-12, contains at least 1 letter and at least 3 digits
+                if (normalized.Length >= 5 && normalized.Length <= 12)
+                {
+                    int letterCount = normalized.Count(char.IsLetter);
+                    int digitCount = normalized.Count(char.IsDigit);
+                    return letterCount >= 1 && digitCount >= 3;
+                }
+            }
+
+            return false;
         }
 
         private static int GetLevenshteinDistance(string s, string t)
