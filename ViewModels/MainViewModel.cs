@@ -3226,20 +3226,92 @@ namespace QuanLyGiuXe.ViewModels
             return GetLevenshteinDistance(p1, p2) <= 1;
         }
 
+            private static string CorrectSpecialPlateOcrErrors(string normalized)
+        {
+            // Tự động sửa lỗi chữ cái đọc nhầm thành số cho biển chứa NN, NG, QT (trừ cụm NN, NG, QT ra)
+            foreach (var marker in new[] { "NN", "NG", "QT" })
+            {
+                if (normalized.Contains(marker))
+                {
+                    string temp = normalized.Replace(marker, "#");
+                    char[] chars = temp.ToCharArray();
+                    for (int i = 0; i < chars.Length; i++)
+                    {
+                        if (char.IsLetter(chars[i]) && chars[i] != '#')
+                        {
+                            chars[i] = chars[i] switch
+                            {
+                                'B' => '8',
+                                'D' => '0',
+                                'O' => '0',
+                                'I' => '1',
+                                'L' => '1',
+                                'T' => '1',
+                                'Z' => '2',
+                                'S' => '5',
+                                'G' => '6',
+                                'A' => '4',
+                                'Q' => '0',
+                                'U' => '0',
+                                _ => chars[i]
+                            };
+                        }
+                    }
+                    return new string(chars).Replace("#", marker);
+                }
+            }
+
+            // Sửa lỗi AI nhận diện nhầm số thứ 3 thành chữ cái ở biển nước ngoài đặc biệt kết thúc bằng N:
+            if (System.Text.RegularExpressions.Regex.IsMatch(normalized, @"^\d{2}[A-Z]\d{5}(NN|NG|QT|N)$"))
+            {
+                char[] chars = normalized.ToCharArray();
+                char badChar = chars[2];
+                char corrected = badChar switch
+                {
+                    'G' => '6',
+                    'B' => '8',
+                    'O' => '0',
+                    'D' => '0',
+                    'Q' => '0',
+                    'I' => '1',
+                    'L' => '1',
+                    'S' => '5',
+                    'Z' => '2',
+                    'T' => '7',
+                    _ => badChar
+                };
+                chars[2] = corrected;
+                return new string(chars);
+            }
+            return normalized;
+        }
+
         private static string NormalizePlate(string plate)
         {
             if (string.IsNullOrEmpty(plate)) return string.Empty;
-            return new string(plate.Where(char.IsLetterOrDigit).ToArray()).ToUpper();
+            string normalized = new string(plate.Where(char.IsLetterOrDigit).ToArray()).ToUpper();
+            return CorrectSpecialPlateOcrErrors(normalized);
         }
 
         public static bool IsValidPlate(string plate)
         {
             if (string.IsNullOrEmpty(plate)) return false;
 
-            string normalized = new string(plate.Where(char.IsLetterOrDigit).ToArray()).ToUpper();
+            string normalized = NormalizePlate(plate); // Sử dụng hàm đã sửa lỗi OCR
 
-            // Check if it starts like a Vietnamese plate: 2 digits followed by a letter (e.g. 63B, 51F, 29A)
-            bool isVnFormatPrefix = System.Text.RegularExpressions.Regex.IsMatch(normalized, @"^\d{2}[A-Z]");
+            // Hỗ trợ biển ngoại giao / nước ngoài đăng ký tại VN (chứa cụm NN, NG, QT)
+            if (normalized.Contains("NN") || normalized.Contains("NG") || normalized.Contains("QT"))
+            {
+                // Đối với biển chứa NN, NG, QT: Chỉ cần có độ dài hợp lý từ 4 đến 15 ký tự là cho phép qua
+                return normalized.Length >= 4 && normalized.Length <= 15;
+            }
+
+            // Hỗ trợ biển nước ngoài khác kết thúc bằng chữ cái
+            bool isDiplomatOrForeigner = (normalized.Length > 0 && char.IsLetter(normalized[normalized.Length - 1]));
+
+            // Kiểm tra xem có bắt đầu giống định dạng biển số VN tiêu chuẩn (2 số + 1 chữ cái) hay không
+            // Nếu là biển ngoại giao/nước ngoài, ta bỏ qua để tránh kiểm tra nghiêm ngặt của biển dân sự dân dụng
+            bool isVnFormatPrefix = !isDiplomatOrForeigner && System.Text.RegularExpressions.Regex.IsMatch(normalized, @"^\d{2}[A-Z]");
 
             if (isVnFormatPrefix)
             {
@@ -3249,12 +3321,13 @@ namespace QuanLyGiuXe.ViewModels
             }
             else
             {
-                // Foreign/Special format check: length 5-12, contains at least 1 letter and at least 3 digits
-                if (normalized.Length >= 5 && normalized.Length <= 12)
+                // Validate theo chuẩn nước ngoài / quân đội / ngoại giao / đặc biệt khác
+                // Cấu hình thông thoáng hơn (độ dài từ 4-15, tối thiểu 1 chữ cái, 2 chữ số)
+                if (normalized.Length >= 4 && normalized.Length <= 15)
                 {
                     int letterCount = normalized.Count(char.IsLetter);
                     int digitCount = normalized.Count(char.IsDigit);
-                    return letterCount >= 1 && digitCount >= 3;
+                    return letterCount >= 1 && digitCount >= 2;
                 }
             }
 
