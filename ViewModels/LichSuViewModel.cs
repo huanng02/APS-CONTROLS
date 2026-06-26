@@ -107,6 +107,8 @@ namespace QuanLyGiuXe.ViewModels
 
         public bool HasSelectedLichSu => SelectedLichSu != null;
 
+        public bool CanViewShiftReport => PermissionService.Instance.CheckPermission("VIEW_SHIFT_REPORT");
+
         public string ThoiGianDo
         {
             get
@@ -356,6 +358,7 @@ namespace QuanLyGiuXe.ViewModels
         public ICommand ResetFilterCommand { get; }
         public ICommand ExportExcelCommand { get; }
         public ICommand EndSessionCommand { get; }
+        public ICommand BaoCaoCaCommand { get; }
 
         private CancellationTokenSource? _searchCts;
 
@@ -368,6 +371,7 @@ namespace QuanLyGiuXe.ViewModels
             ResetFilterCommand = new RelayCommand(_ => ResetFilter());
             ExportExcelCommand = new RelayCommand(_ => ExportExcel());
             EndSessionCommand = new RelayCommand(async _ => await EndSessionAsync(), _ => CanEndSession());
+            BaoCaoCaCommand = new RelayCommand(_ => BaoCaoCa());
 
             // Default dates
             TuNgay = DateTime.Today;
@@ -712,7 +716,42 @@ namespace QuanLyGiuXe.ViewModels
             _ = LoadTrangAsync();
         }
 
-        private async void ExportExcel()
+        private async void BaoCaoCa()
+        {
+            if (!CanViewShiftReport) return;
+
+            var loginTime = CurrentUserContext.Instance.LoginTime;
+            if (loginTime == default)
+            {
+                loginTime = DateTime.Today;
+            }
+            var now = DateTime.Now;
+
+            _tuNgay = loginTime.Date;
+            OnPropertyChanged(nameof(TuNgay));
+
+            _denNgay = now.Date;
+            OnPropertyChanged(nameof(DenNgay));
+
+            _startHour = loginTime.Hour;
+            OnPropertyChanged(nameof(StartHour));
+
+            _startMinute = loginTime.Minute;
+            OnPropertyChanged(nameof(StartMinute));
+
+            _endHour = now.Hour;
+            OnPropertyChanged(nameof(EndHour));
+
+            _endMinute = now.Minute;
+            OnPropertyChanged(nameof(EndMinute));
+
+            TrangHienTai = 1;
+            await LoadTrangAsync();
+
+            ExportExcel($"BaoCaoCa_{CurrentUserContext.Instance.Username}_{now:yyyyMMdd_HHmm}.xlsx", loginTime, now);
+        }
+
+        private async void ExportExcel(string defaultFileName = null, DateTime? shiftStart = null, DateTime? shiftEnd = null)
         {
             try
             {
@@ -720,7 +759,7 @@ namespace QuanLyGiuXe.ViewModels
                 {
                     Filter = "Excel Files|*.xlsx",
                     Title = "Lưu danh sách lịch sử ra vào",
-                    FileName = $"LichSuXe_{DateTime.Now:yyyyMMdd_HHmm}.xlsx"
+                    FileName = defaultFileName ?? $"LichSuXe_{DateTime.Now:yyyyMMdd_HHmm}.xlsx"
                 };
 
                 if (sfd.ShowDialog() == true)
@@ -770,6 +809,16 @@ namespace QuanLyGiuXe.ViewModels
                         subTitleRange.Merge();
                         subTitleRange.Style.Font.Italic = true;
                         subTitleRange.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+                        if (shiftStart.HasValue && shiftEnd.HasValue)
+                        {
+                            ws.Cell(3, 1).Value = $"Ca làm việc: {shiftStart.Value:dd/MM/yyyy HH:mm:ss} - {shiftEnd.Value:dd/MM/yyyy HH:mm:ss} | Nhân viên: {CurrentUserContext.Instance.Ten} ({CurrentUserContext.Instance.Username})";
+                            var shiftRange = ws.Range(3, 1, 3, 18);
+                            shiftRange.Merge();
+                            shiftRange.Style.Font.Bold = true;
+                            shiftRange.Style.Font.Italic = true;
+                            shiftRange.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                        }
                         
                         // Header Row (Row 4)
                         string[] headers = {

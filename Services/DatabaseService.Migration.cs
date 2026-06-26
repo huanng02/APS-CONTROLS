@@ -252,6 +252,20 @@ namespace QuanLyGiuXe.Services
                         LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Camera IP Duplicate Relaxation migration applied successfully.");
                     }
 
+                    // Execute Shift Report Permission migration (20260626_add_shift_report_permission.sql)
+                    string scriptPathShiftPerm = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260626_add_shift_report_permission.sql");
+                    if (File.Exists(scriptPathShiftPerm))
+                    {
+                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Executing Shift Report Permission migration...");
+                        string sqlShiftPerm = await File.ReadAllTextAsync(scriptPathShiftPerm);
+                        using (var cmd = new SqlCommand(sqlShiftPerm, conn))
+                        {
+                            cmd.CommandTimeout = 60;
+                            await cmd.ExecuteNonQueryAsync();
+                        }
+                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Shift Report Permission migration applied successfully.");
+                    }
+
                     _migrationsApplied = true;
                     LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "SQL Server topology migrations applied successfully.");
                 }
@@ -864,6 +878,20 @@ namespace QuanLyGiuXe.Services
                             await cmd.ExecuteNonQueryAsync();
                         }
                         LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Camera IP Duplicate Relaxation migration applied successfully.");
+                    }
+
+                    // Execute Shift Report Permission migration (20260626_add_shift_report_permission.sql)
+                    string scriptPathShiftPerm = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260626_add_shift_report_permission.sql");
+                    if (File.Exists(scriptPathShiftPerm))
+                    {
+                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Executing Shift Report Permission migration...");
+                        string sqlShiftPerm = await File.ReadAllTextAsync(scriptPathShiftPerm);
+                        using (var cmd = new SqlCommand(sqlShiftPerm, conn))
+                        {
+                            cmd.CommandTimeout = 60;
+                            await cmd.ExecuteNonQueryAsync();
+                        }
+                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Shift Report Permission migration applied successfully.");
                     }
 
                     _baseSchemaChecked = true;

@@ -12,6 +12,7 @@
         <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
         <converters:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter" />
         <converters:BindingProxy x:Key="DataContextProxy" Data="{Binding}" />
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
     </Window.Resources>
 
     <Grid Margin="12,12,12,10">
@@ -255,6 +256,21 @@
                                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
                                             <TextBlock Text="&#xE777;" FontFamily="Segoe MDL2 Assets" FontSize="11" VerticalAlignment="Center" Margin="0,0,4,0"/>
                                             <TextBlock Text="Đặt lại" VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold"/>
+                                        </StackPanel>
+                                    </Border>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                        
+                        <Button Command="{Binding BaoCaoCaCommand}" 
+                                Visibility="{Binding CanViewShiftReport, Converter={StaticResource BoolToVis}}"
+                                Background="#8B5CF6" Foreground="White" BorderThickness="0" Width="145" Height="32" Margin="0,0,8,0">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}" CornerRadius="6">
+                                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                            <TextBlock Text="&#xECF2;" FontFamily="Segoe MDL2 Assets" FontSize="12" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                                            <TextBlock Text="Báo cáo ca làm việc" VerticalAlignment="Center" FontSize="12" FontWeight="SemiBold"/>
                                         </StackPanel>
                                     </Border>
                                 </ControlTemplate>

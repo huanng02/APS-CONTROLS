@@ -10,6 +10,7 @@ namespace QuanLyGiuXe.Models
         string Role { get; }
         string Ten { get; }
         bool IsAuthenticated { get; }
+        DateTime LoginTime { get; }
         HashSet<string> Permissions { get; }
         HashSet<int> AssignedLaneIds { get; }
         HashSet<int> AssignedSiteIds { get; }
@@ -29,6 +30,7 @@ namespace QuanLyGiuXe.Models
         private string _username = string.Empty;
         private string _role = string.Empty;
         private string _ten = string.Empty;
+        private DateTime _loginTime;
         private readonly HashSet<string> _permissions = new(StringComparer.OrdinalIgnoreCase);
         private readonly HashSet<int> _assignedLaneIds = new();
         private readonly HashSet<int> _assignedSiteIds = new();
@@ -38,6 +40,7 @@ namespace QuanLyGiuXe.Models
         public string Role { get { lock(_lock) return _role; } }
         public string Ten { get { lock(_lock) return _ten; } }
         public bool IsAuthenticated => !string.IsNullOrEmpty(Username);
+        public DateTime LoginTime { get { lock(_lock) return _loginTime; } }
 
         public HashSet<string> Permissions { get { lock(_lock) return new HashSet<string>(_permissions, StringComparer.OrdinalIgnoreCase); } }
         public HashSet<int> AssignedLaneIds { get { lock(_lock) return new HashSet<int>(_assignedLaneIds); } }
@@ -51,6 +54,7 @@ namespace QuanLyGiuXe.Models
                 _username = username ?? string.Empty;
                 _role = role ?? string.Empty;
                 _ten = ten ?? string.Empty;
+                _loginTime = DateTime.Now;
 
                 _permissions.Clear();
                 if (permissions != null)
@@ -75,6 +79,7 @@ namespace QuanLyGiuXe.Models
                 CurrentUser.Username = username;
                 CurrentUser.Role = role;
                 CurrentUser.Ten = ten;
+                CurrentUser.LoginTime = _loginTime;
             }
         }
 
@@ -98,6 +103,7 @@ namespace QuanLyGiuXe.Models
                 _username = string.Empty;
                 _role = string.Empty;
                 _ten = string.Empty;
+                _loginTime = default;
                 _permissions.Clear();
                 _assignedLaneIds.Clear();
                 _assignedSiteIds.Clear();

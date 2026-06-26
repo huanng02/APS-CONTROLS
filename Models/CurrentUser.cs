@@ -8,6 +8,7 @@ namespace QuanLyGiuXe.Models
         public static string? Username { get; set; }
         public static string? Role { get; set; }
         public static string? Ten { get; set; }
+        public static DateTime LoginTime { get; set; }
 
         public static void Clear()
         {
@@ -15,6 +16,7 @@ namespace QuanLyGiuXe.Models
             Username = null;
             Role = null;
             Ten = null;
+            LoginTime = default;
         }
 
         public static bool IsAuthenticated => !string.IsNullOrEmpty(Username);
