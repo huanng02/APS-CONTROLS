@@ -112,8 +112,7 @@
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <!-- LEFT SIDEBAR -->
-            <Border x:Name="SidebarBorder" Grid.Column="0" Background="{StaticResource APSBlueBrush}" CornerRadius="8" Width="220">
+            <Border x:Name="SidebarBorder" Grid.Column="0" Background="{StaticResource APSBlueBrush}" CornerRadius="8" Width="65">
                 <Border.Style>
                     <Style TargetType="Border">
                         <Style.Triggers>
@@ -624,9 +623,91 @@
                 </Grid.ColumnDefinitions>
                 
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                    
-                    <TextBlock Text="📋" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                    <TextBlock Text="{Binding SoXeTrongBai}" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}" VerticalAlignment="Center"/>
+                    <!-- Site Name Badge -->
+                    <Border Background="#F1F5F9" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Padding="8,4" Margin="0,0,6,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="📍" Margin="0,0,4,0" VerticalAlignment="Center" FontSize="11"/>
+                            <TextBlock Text="{Binding SelectedSiteName}" Foreground="#334155" FontSize="11" FontWeight="Bold" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Xe trong bãi (Total) Badge -->
+                    <Border Background="#EFF6FF" BorderBrush="#BFDBFE" BorderThickness="1" CornerRadius="8" Padding="10,4" Margin="0,0,10,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="🚗" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Xe trong bãi:" Foreground="#1E40AF" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <TextBlock Text=" " />
+                            <TextBlock Text="{Binding TotalSiteOccupancyText}" Foreground="#1E40AF" FontWeight="Bold" VerticalAlignment="Center"/>
+                            <TextBlock Text=" (" Foreground="#1E40AF" FontSize="11" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding TotalSiteOccupancyPercentageText}" Foreground="#1E40AF" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <TextBlock Text=")" Foreground="#1E40AF" FontSize="11" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Xe tồn qua ngày Badge -->
+                    <Border Background="#FFF7ED" BorderBrush="#FED7AA" BorderThickness="1" CornerRadius="8" Padding="10,4" Margin="0,0,10,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="🌙" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Tồn qua ngày:" Foreground="#C2410C" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <TextBlock Text=" " />
+                            <TextBlock Text="{Binding TodayXeTonQuaNgay}" Foreground="#C2410C" FontWeight="Bold" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Zones List (Dynamic Badges) -->
+                    <ItemsControl ItemsSource="{Binding ZoneOccupancies}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="8" Padding="8,4" Margin="0,0,10,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding DisplayIcon}" Margin="0,0,4,0" VerticalAlignment="Center" FontSize="11"/>
+                                        <TextBlock Text="{Binding ZoneName}" Foreground="#475569" FontSize="11" FontWeight="Medium" VerticalAlignment="Center"/>
+                                        <TextBlock Text=":" Foreground="#475569" FontSize="11" VerticalAlignment="Center"/>
+                                        <TextBlock Text=" " />
+                                        <TextBlock Text="{Binding CapacityText}" Foreground="#0F172A" FontWeight="Bold" FontSize="11" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Dải phân cách dọc chính -->
+                    <Border Width="1" Height="14" Background="#CBD5E1" Margin="5,0,15,0" VerticalAlignment="Center"/>
+
+                    <!-- Lượt vào hôm nay Badge -->
+                    <Border Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="8" Padding="10,4" Margin="0,0,8,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="📥" Margin="0,0,6,0" VerticalAlignment="Center" FontSize="11"/>
+                            <TextBlock Text="Vào hôm nay:" Foreground="#166534" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <TextBlock Text=" " />
+                            <TextBlock Text="{Binding TodayLuotVao}" Foreground="#166534" FontWeight="Bold" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Lượt ra hôm nay Badge -->
+                    <Border Background="#FEF2F2" BorderBrush="#FECACA" BorderThickness="1" CornerRadius="8" Padding="10,4" Margin="0,0,8,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="📤" Margin="0,0,6,0" VerticalAlignment="Center" FontSize="11"/>
+                            <TextBlock Text="Ra hôm nay:" Foreground="#991B1B" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <TextBlock Text=" " />
+                            <TextBlock Text="{Binding TodayLuotRa}" Foreground="#991B1B" FontWeight="Bold" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Doanh thu hôm nay Badge -->
+                    <Border Background="#FDF4FF" BorderBrush="#F5D0FE" BorderThickness="1" CornerRadius="8" Padding="10,4" Margin="0,0,8,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="💰" Margin="0,0,6,0" VerticalAlignment="Center" FontSize="11"/>
+                            <TextBlock Text="Doanh thu:" Foreground="#86198F" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                            <TextBlock Text=" " />
+                            <TextBlock Text="{Binding TodayDoanhThuText}" Foreground="#86198F" FontWeight="Bold" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
                 </StackPanel>
                 
                 <TextBlock Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Center" 

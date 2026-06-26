@@ -357,6 +357,114 @@ namespace QuanLyGiuXe.Services
             );
         }
 
+        public class TodayStats
+        {
+            public int LuotVao { get; set; }
+            public int LuotRa { get; set; }
+            public double DoanhThu { get; set; }
+            public int XeTrongBai { get; set; }
+            public int XeTonQuaNgay { get; set; }
+        }
+
+        public async Task<TodayStats> GetTodayStatsAsync(int? siteId)
+        {
+            string cacheKey = $"STATS_TODAY_{siteId}_{DateTime.Today:yyyyMMdd}";
+            return await ConnectivityAwareRepository.Instance.ExecuteReadAsync<TodayStats>(
+                cacheKey,
+                async conn =>
+                {
+                    var stats = new TodayStats();
+                    DateTime start = DateTime.Today;
+                    DateTime end = DateTime.Today.AddDays(1).AddTicks(-1);
+
+                    string sql = @"
+                        SELECT 
+                            ((SELECT COUNT(*) FROM LichSuXe WHERE ThoiGianVao >= @Start AND ThoiGianVao <= @End AND (@SiteId IS NULL OR SiteId = @SiteId)) + 
+                             (SELECT COUNT(*) FROM XeTrongBai WHERE ThoiGianVao >= @Start AND ThoiGianVao <= @End AND (@SiteId IS NULL OR SiteId = @SiteId))) AS LuotVao,
+                            (SELECT COUNT(*) FROM LichSuXe WHERE ThoiGianRa >= @Start AND ThoiGianRa <= @End AND (@SiteId IS NULL OR SiteId = @SiteId)) AS LuotRa,
+                            (SELECT ISNULL(SUM(Tien), 0) FROM LichSuXe WHERE ThoiGianRa >= @Start AND ThoiGianRa <= @End AND (@SiteId IS NULL OR SiteId = @SiteId)) AS DoanhThu,
+                            (SELECT COUNT(*) FROM XeTrongBai WHERE ThoiGianRa IS NULL AND (@SiteId IS NULL OR SiteId = @SiteId)) AS XeTrongBai,
+                            (SELECT COUNT(*) FROM XeTrongBai WHERE ThoiGianRa IS NULL AND ThoiGianVao < @Start AND (@SiteId IS NULL OR SiteId = @SiteId)) AS XeTonQuaNgay;
+                    ";
+
+                    using (SqlCommand cmd = new SqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@Start", start);
+                        cmd.Parameters.AddWithValue("@End", end);
+                        cmd.Parameters.AddWithValue("@SiteId", (object?)siteId ?? DBNull.Value);
+
+                        using (var reader = await cmd.ExecuteReaderAsync())
+                        {
+                            if (await reader.ReadAsync())
+                            {
+                                stats.LuotVao = reader["LuotVao"] != DBNull.Value ? Convert.ToInt32(reader["LuotVao"]) : 0;
+                                stats.LuotRa = reader["LuotRa"] != DBNull.Value ? Convert.ToInt32(reader["LuotRa"]) : 0;
+                                stats.DoanhThu = reader["DoanhThu"] != DBNull.Value ? Convert.ToDouble(reader["DoanhThu"]) : 0.0;
+                                stats.XeTrongBai = reader["XeTrongBai"] != DBNull.Value ? Convert.ToInt32(reader["XeTrongBai"]) : 0;
+                                stats.XeTonQuaNgay = reader["XeTonQuaNgay"] != DBNull.Value ? Convert.ToInt32(reader["XeTonQuaNgay"]) : 0;
+                            }
+                        }
+                    }
+                    return stats;
+                }
+            ) ?? new TodayStats();
+        }
+
+        public async Task UpdateTodayStatsCacheOfflineAsync(int? siteId, bool isEntry, double revenueChange, bool isOvernightExit = false)
+        {
+            try
+            {
+                string cacheKey = $"STATS_TODAY_{siteId}_{DateTime.Today:yyyyMMdd}";
+                var stats = await OfflineCacheService.Instance.GetCacheAsync<TodayStats>(cacheKey) ?? new TodayStats();
+
+                if (isEntry)
+                {
+                    stats.LuotVao++;
+                    stats.XeTrongBai++;
+                }
+                else
+                {
+                    stats.LuotRa++;
+                    stats.XeTrongBai = Math.Max(0, stats.XeTrongBai - 1);
+                    stats.DoanhThu += revenueChange;
+                    if (isOvernightExit)
+                    {
+                        stats.XeTonQuaNgay = Math.Max(0, stats.XeTonQuaNgay - 1);
+                    }
+                }
+
+                await OfflineCacheService.Instance.SaveCacheAsync(cacheKey, stats);
+
+                // Also update the global stats cache (siteId = null)
+                if (siteId != null)
+                {
+                    string globalCacheKey = $"STATS_TODAY_{null}_{DateTime.Today:yyyyMMdd}";
+                    var globalStats = await OfflineCacheService.Instance.GetCacheAsync<TodayStats>(globalCacheKey) ?? new TodayStats();
+                    if (isEntry)
+                    {
+                        globalStats.LuotVao++;
+                        globalStats.XeTrongBai++;
+                    }
+                    else
+                    {
+                        globalStats.LuotRa++;
+                        globalStats.XeTrongBai = Math.Max(0, globalStats.XeTrongBai - 1);
+                        globalStats.DoanhThu += revenueChange;
+                        if (isOvernightExit)
+                        {
+                            globalStats.XeTonQuaNgay = Math.Max(0, globalStats.XeTonQuaNgay - 1);
+                        }
+                    }
+                    await OfflineCacheService.Instance.SaveCacheAsync(globalCacheKey, globalStats);
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("OFFLINE_CACHE", "UpdateStatsOffline", "Failed to update offline stats cache", ex);
+            }
+        }
+
+
         /// Calculate parking fee based on vehicle type, ticket type and duration.
         /// - If LoaiVe indicates a monthly/subscription type => returns 0.
         /// - Uses BangGia and KhungGio rules (Day/Night logic). Falls back to 5000/hour if not configured.
@@ -1482,6 +1590,7 @@ namespace QuanLyGiuXe.Services
                     await OfflineCacheService.Instance.SaveCacheAsync($"CHECK_XE_TRONG_BAI", true); // generic key
                     await OfflineCacheService.Instance.SaveCacheAsync($"CHECK_XE_CARD_{cardId}", true);
                     await OfflineCacheService.Instance.SaveCacheAsync($"RECORD_XE_CARD_{cardId}", newRecord);
+                    await UpdateTodayStatsCacheOfflineAsync(siteId, isEntry: true, revenueChange: 0);
                 }
             );
         }
@@ -1877,6 +1986,11 @@ namespace QuanLyGiuXe.Services
                         cmd.Parameters.AddWithValue("@exitLane", (object?)exitLaneId ?? DBNull.Value);
                         await cmd.ExecuteNonQueryAsync();
                     }
+                },
+                localCacheUpdater: async () =>
+                {
+                    bool isOvernight = vao < DateTime.Today;
+                    await UpdateTodayStatsCacheOfflineAsync(siteId, isEntry: false, revenueChange: tien, isOvernightExit: isOvernight);
                 }
             );
         }

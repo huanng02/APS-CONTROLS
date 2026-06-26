@@ -1023,6 +1023,86 @@ namespace QuanLyGiuXe.ViewModels
         private string _soXeTrongBaiText = "Xe trong bãi: 0";
         public string SoXeTrongBai => _soXeTrongBaiText;
 
+        private string _selectedSiteName = string.Empty;
+        public string SelectedSiteName
+        {
+            get => _selectedSiteName;
+            set { _selectedSiteName = value; OnPropertyChanged(nameof(SelectedSiteName)); }
+        }
+
+        private int _totalSiteXeTrongBai;
+        public int TotalSiteXeTrongBai
+        {
+            get => _totalSiteXeTrongBai;
+            set { _totalSiteXeTrongBai = value; OnPropertyChanged(nameof(TotalSiteXeTrongBai)); }
+        }
+
+        private int _totalSiteCapacity;
+        public int TotalSiteCapacity
+        {
+            get => _totalSiteCapacity;
+            set { _totalSiteCapacity = value; OnPropertyChanged(nameof(TotalSiteCapacity)); }
+        }
+
+        private string _totalSiteOccupancyText = "0";
+        public string TotalSiteOccupancyText
+        {
+            get => _totalSiteOccupancyText;
+            set { _totalSiteOccupancyText = value; OnPropertyChanged(nameof(TotalSiteOccupancyText)); }
+        }
+
+        private string _totalSiteOccupancyPercentageText = "0%";
+        public string TotalSiteOccupancyPercentageText
+        {
+            get => _totalSiteOccupancyPercentageText;
+            set { _totalSiteOccupancyPercentageText = value; OnPropertyChanged(nameof(TotalSiteOccupancyPercentageText)); }
+        }
+
+        public ObservableCollection<ZoneOccupancyInfo> ZoneOccupancies { get; } = new();
+
+
+        private int _todayLuotVao = 0;
+        public int TodayLuotVao
+        {
+            get => _todayLuotVao;
+            set { _todayLuotVao = value; OnPropertyChanged(nameof(TodayLuotVao)); }
+        }
+
+        private int _todayLuotRa = 0;
+        public int TodayLuotRa
+        {
+            get => _todayLuotRa;
+            set { _todayLuotRa = value; OnPropertyChanged(nameof(TodayLuotRa)); }
+        }
+
+        private int _todayXeTrongBai = 0;
+        public int TodayXeTrongBai
+        {
+            get => _todayXeTrongBai;
+            set { _todayXeTrongBai = value; OnPropertyChanged(nameof(TodayXeTrongBai)); }
+        }
+
+        private int _todayXeTonQuaNgay = 0;
+        public int TodayXeTonQuaNgay
+        {
+            get => _todayXeTonQuaNgay;
+            set { _todayXeTonQuaNgay = value; OnPropertyChanged(nameof(TodayXeTonQuaNgay)); }
+        }
+
+        private double _todayDoanhThu = 0;
+        public double TodayDoanhThu
+        {
+            get => _todayDoanhThu;
+            set 
+            { 
+                _todayDoanhThu = value; 
+                OnPropertyChanged(nameof(TodayDoanhThu)); 
+                OnPropertyChanged(nameof(TodayDoanhThuText)); 
+            }
+        }
+
+        public string TodayDoanhThuText => TodayDoanhThu.ToString("#,##0 VNĐ");
+
         private bool _isUserPopupOpen;
         public bool IsUserPopupOpen
         {
@@ -1030,7 +1110,7 @@ namespace QuanLyGiuXe.ViewModels
             set { _isUserPopupOpen = value; OnPropertyChanged(nameof(IsUserPopupOpen)); }
         }
 
-        private bool _isSidebarExpanded = true;
+        private bool _isSidebarExpanded = false;
         public bool IsSidebarExpanded
         {
             get => _isSidebarExpanded;
@@ -1061,11 +1141,22 @@ namespace QuanLyGiuXe.ViewModels
 
                 if (SelectedSite == null) return;
 
+                // Load stats
+                var stats = await db.GetTodayStatsAsync(SelectedSite.Id);
+                Application.Current?.Dispatcher?.BeginInvoke(new Action(() => {
+                    TodayLuotVao = stats.LuotVao;
+                    TodayLuotRa = stats.LuotRa;
+                    TodayDoanhThu = stats.DoanhThu;
+                    TodayXeTrongBai = stats.XeTrongBai;
+                    TodayXeTonQuaNgay = stats.XeTonQuaNgay;
+                }));
+
                 int count = await Task.Run(() => db.GetTotalXeTrongBaiCount());
                 var zones = await ParkingTopologyService.Instance.GetZonesAsync();
                 
                 var siteZones = zones.Where(z => z.SiteId == SelectedSite.Id).ToList();
                 var zoneInfos = new List<string>();
+                var tempOccupancies = new List<ZoneOccupancyInfo>();
                 int totalSiteCount = 0;
                 int totalSiteCapacity = 0;
 
@@ -1076,12 +1167,17 @@ namespace QuanLyGiuXe.ViewModels
                     totalSiteCapacity += zone.MaxCapacity;
                     
                     // Format zone name (e.g. lowercase zone name) and count/capacity
-                    string zoneDisplayName = zone.ZoneName.ToLower();
-                    // Clean up e.g. "zone xe máy" to "xe máy" if it starts with "zone "
-                    if (zoneDisplayName.StartsWith("zone ")) 
+                    string zoneDisplayName = zone.ZoneName;
+                    if (zoneDisplayName.ToLower().StartsWith("zone ")) 
                         zoneDisplayName = zoneDisplayName.Substring(5);
                     
-                    zoneInfos.Add($"{zoneDisplayName} ({zoneCount}/{zone.MaxCapacity})");
+                    zoneInfos.Add($"{zoneDisplayName.ToLower()} ({zoneCount}/{zone.MaxCapacity})");
+                    tempOccupancies.Add(new ZoneOccupancyInfo
+                    {
+                        ZoneName = zoneDisplayName,
+                        Count = zoneCount,
+                        MaxCapacity = zone.MaxCapacity
+                    });
                 }
 
                 Application.Current?.Dispatcher?.BeginInvoke(new Action(() => {
@@ -1093,6 +1189,20 @@ namespace QuanLyGiuXe.ViewModels
                     
                     _soXeTrongBaiText = $"Xe trong bãi ({SelectedSite.SiteName}): {totalText}{zoneInfoStr}";
                     OnPropertyChanged(nameof(SoXeTrongBai));
+
+                    SelectedSiteName = SelectedSite?.SiteName ?? string.Empty;
+                    TotalSiteXeTrongBai = totalSiteCount;
+                    TotalSiteCapacity = totalSiteCapacity;
+                    TotalSiteOccupancyText = totalText;
+                    
+                    double percentage = totalSiteCapacity > 0 ? (double)totalSiteCount / totalSiteCapacity * 100 : 0;
+                    TotalSiteOccupancyPercentageText = $"{percentage:0.0}%";
+
+                    ZoneOccupancies.Clear();
+                    foreach (var occ in tempOccupancies)
+                    {
+                        ZoneOccupancies.Add(occ);
+                    }
                 }));
                 
                 // Refresh Lane Capacities
@@ -4060,6 +4170,52 @@ namespace QuanLyGiuXe.ViewModels
         public void Dispose()
         {
             UnsubscribeEvents();
+        }
+    }
+
+    public class ZoneOccupancyInfo : INotifyPropertyChanged
+    {
+        private string _zoneName = string.Empty;
+        public string ZoneName
+        {
+            get => _zoneName;
+            set { _zoneName = value; OnPropertyChanged(nameof(ZoneName)); }
+        }
+
+        private int _count;
+        public int Count
+        {
+            get => _count;
+            set 
+            { 
+                _count = value; 
+                OnPropertyChanged(nameof(Count)); 
+                OnPropertyChanged(nameof(CapacityText));
+                OnPropertyChanged(nameof(Percentage));
+            }
+        }
+
+        private int _maxCapacity;
+        public int MaxCapacity
+        {
+            get => _maxCapacity;
+            set 
+            { 
+                _maxCapacity = value; 
+                OnPropertyChanged(nameof(MaxCapacity)); 
+                OnPropertyChanged(nameof(CapacityText));
+                OnPropertyChanged(nameof(Percentage));
+            }
+        }
+
+        public string CapacityText => MaxCapacity > 0 ? $"{Count}/{MaxCapacity}" : $"{Count}";
+        public double Percentage => MaxCapacity > 0 ? (double)Count / MaxCapacity * 100 : 0;
+        public string DisplayIcon => (ZoneName.ToLower().Contains("xe máy") || ZoneName.ToLower().Contains("xe may") || ZoneName.ToLower().Contains("moto")) ? "🛵" : "🚗";
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected virtual void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
 }
