@@ -49,222 +49,65 @@ namespace QuanLyGiuXe.Services
 
                     LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Starting SQL Server topology migrations...");
 
-                    // Read migration SQL script
+                    // 1. 20260519_multi_zone_topology.sql
                     string scriptPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260519_multi_zone_topology.sql");
-                    string sql = string.Empty;
+                    await ExecuteMigrationScriptAsync(conn, "20260519_multi_zone_topology.sql", scriptPath, GetEmbeddedMigrationSql());
 
-                    if (File.Exists(scriptPath))
-                    {
-                        sql = await File.ReadAllTextAsync(scriptPath);
-                    }
-                    else
-                    {
-                        // Fallback embedded script
-                        sql = GetEmbeddedMigrationSql();
-                    }
-
-                    // SQL Server SqlCommand cannot run 'GO' or transaction scripts with GO, but our script
-                    // uses standard SQL with BEGIN TRANSACTION/COMMIT TRANSACTION without GO.
-                    // Execute the migration SQL script
-                    using (var cmd = new SqlCommand(sql, conn))
-                    {
-                        cmd.CommandTimeout = 60; // Allow enough time for migration
-                        await cmd.ExecuteNonQueryAsync();
-                    }
-
-                    // Execute Gates migration (20260528_add_parking_gates_table.sql)
+                    // 2. 20260528_add_parking_gates_table.sql
                     string scriptPathGates = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260528_add_parking_gates_table.sql");
-                    if (File.Exists(scriptPathGates))
-                    {
-                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Executing Cổng kiểm soát (ParkingGates) migration...");
-                        string sqlGates = await File.ReadAllTextAsync(scriptPathGates);
-                        using (var cmd = new SqlCommand(sqlGates, conn))
-                        {
-                            cmd.CommandTimeout = 60;
-                            await cmd.ExecuteNonQueryAsync();
-                        }
-                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Cổng kiểm soát (ParkingGates) migration applied successfully.");
-                    }
+                    await ExecuteMigrationScriptAsync(conn, "20260528_add_parking_gates_table.sql", scriptPathGates);
 
-                    // Execute RBAC migration (20260529_rbac_enterprise.sql)
+                    // 3. 20260529_rbac_enterprise.sql
                     string scriptPathRbac = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260529_rbac_enterprise.sql");
-                    if (File.Exists(scriptPathRbac))
-                    {
-                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Executing Enterprise RBAC migration...");
-                        string sqlRbac = await File.ReadAllTextAsync(scriptPathRbac);
-                        using (var cmd = new SqlCommand(sqlRbac, conn))
-                        {
-                            cmd.CommandTimeout = 60;
-                            await cmd.ExecuteNonQueryAsync();
-                        }
-                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Enterprise RBAC migration applied successfully.");
-                    }                    // Execute RBAC Function Separation migration (20260529_rbac_function_separation.sql)
+                    await ExecuteMigrationScriptAsync(conn, "20260529_rbac_enterprise.sql", scriptPathRbac);
+
+                    // 4. 20260529_rbac_function_separation.sql
                     string scriptPathFuncSep = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260529_rbac_function_separation.sql");
-                    if (File.Exists(scriptPathFuncSep))
-                    {
-                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Executing Enterprise Function Separation migration...");
-                        string sqlFuncSep = await File.ReadAllTextAsync(scriptPathFuncSep);
-                        using (var cmd = new SqlCommand(sqlFuncSep, conn))
-                        {
-                            cmd.CommandTimeout = 60;
-                            await cmd.ExecuteNonQueryAsync();
-                        }
-                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Enterprise Function Separation migration applied successfully.");
-                    }
+                    await ExecuteMigrationScriptAsync(conn, "20260529_rbac_function_separation.sql", scriptPathFuncSep);
 
-                    // Execute Deployment & Audit migration (20260603_deployment_and_audit.sql)
+                    // 5. 20260603_deployment_and_audit.sql
                     string scriptPathDeployAudit = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260603_deployment_and_audit.sql");
-                    if (File.Exists(scriptPathDeployAudit))
-                    {
-                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Executing Deployment Center & Audit Trail migration...");
-                        string sqlDeployAudit = await File.ReadAllTextAsync(scriptPathDeployAudit);
-                        using (var cmd = new SqlCommand(sqlDeployAudit, conn))
-                        {
-                            cmd.CommandTimeout = 60;
-                            await cmd.ExecuteNonQueryAsync();
-                        }
-                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Deployment Center & Audit Trail migration applied successfully.");
-                    }
+                    await ExecuteMigrationScriptAsync(conn, "20260603_deployment_and_audit.sql", scriptPathDeployAudit);
 
-                    // Execute Role Level migration (20260604_add_role_level.sql)
+                    // 6. 20260604_add_role_level.sql
                     string scriptPathRoleLevel = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260604_add_role_level.sql");
-                    if (File.Exists(scriptPathRoleLevel))
-                    {
-                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Executing Role Level migration...");
-                        string sqlRoleLevel = await File.ReadAllTextAsync(scriptPathRoleLevel);
-                        using (var cmd = new SqlCommand(sqlRoleLevel, conn))
-                        {
-                            cmd.CommandTimeout = 60;
-                            await cmd.ExecuteNonQueryAsync();
-                        }
-                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Role Level migration applied successfully.");
-                    }
+                    await ExecuteMigrationScriptAsync(conn, "20260604_add_role_level.sql", scriptPathRoleLevel);
 
-                    // Execute Audit Logs migration (20260604_add_audit_logs.sql)
+                    // 7. 20260604_add_audit_logs.sql
                     string scriptPathAuditLogs = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260604_add_audit_logs.sql");
-                    if (File.Exists(scriptPathAuditLogs))
-                    {
-                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Executing Audit Logs migration...");
-                        string sqlAuditLogs = await File.ReadAllTextAsync(scriptPathAuditLogs);
-                        using (var cmd = new SqlCommand(sqlAuditLogs, conn))
-                        {
-                            cmd.CommandTimeout = 60;
-                            await cmd.ExecuteNonQueryAsync();
-                        }
-                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Audit Logs migration applied successfully.");
-                    }
+                    await ExecuteMigrationScriptAsync(conn, "20260604_add_audit_logs.sql", scriptPathAuditLogs);
 
-                    // Execute Device Monitoring tables migration (20260604_device_monitoring_tables.sql)
+                    // 8. 20260604_device_monitoring_tables.sql
                     string scriptPathDeviceMonitoring = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260604_device_monitoring_tables.sql");
-                    if (File.Exists(scriptPathDeviceMonitoring))
-                    {
-                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Executing Device Monitoring tables migration...");
-                        string sqlDeviceMonitoring = await File.ReadAllTextAsync(scriptPathDeviceMonitoring);
-                        using (var cmd = new SqlCommand(sqlDeviceMonitoring, conn))
-                        {
-                            cmd.CommandTimeout = 60;
-                            await cmd.ExecuteNonQueryAsync();
-                        }
-                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Device Monitoring tables migration applied successfully.");
-                    }
+                    await ExecuteMigrationScriptAsync(conn, "20260604_device_monitoring_tables.sql", scriptPathDeviceMonitoring);
 
-                    // Execute Camera Management Columns migration (20260605_add_camera_management_columns.sql)
+                    // 9. 20260605_add_camera_management_columns.sql
                     string scriptPathCameraMgmt = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260605_add_camera_management_columns.sql");
-                    if (File.Exists(scriptPathCameraMgmt))
-                    {
-                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Executing Camera Management Columns migration...");
-                        string sqlCameraMgmt = await File.ReadAllTextAsync(scriptPathCameraMgmt);
-                        using (var cmd = new SqlCommand(sqlCameraMgmt, conn))
-                        {
-                            cmd.CommandTimeout = 60;
-                            await cmd.ExecuteNonQueryAsync();
-                        }
-                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Camera Management Columns migration applied successfully.");
-                    }
+                    await ExecuteMigrationScriptAsync(conn, "20260605_add_camera_management_columns.sql", scriptPathCameraMgmt);
 
-                    // Execute Camera IP Unique Index migration (20260605_add_camera_ip_unique_constraint.sql)
+                    // 10. 20260605_add_camera_ip_unique_constraint.sql
                     string scriptPathCameraIpUnique = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260605_add_camera_ip_unique_constraint.sql");
-                    if (File.Exists(scriptPathCameraIpUnique))
-                    {
-                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Executing Camera IP Unique Index migration...");
-                        string sqlCameraIpUnique = await File.ReadAllTextAsync(scriptPathCameraIpUnique);
-                        using (var cmd = new SqlCommand(sqlCameraIpUnique, conn))
-                        {
-                            cmd.CommandTimeout = 60;
-                            await cmd.ExecuteNonQueryAsync();
-                        }
-                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Camera IP Unique Index migration applied successfully.");
-                    }
+                    await ExecuteMigrationScriptAsync(conn, "20260605_add_camera_ip_unique_constraint.sql", scriptPathCameraIpUnique);
 
-                    // Execute Enterprise CRUD entities migration (20260610_enterprise_crud_entities.sql)
+                    // 11. 20260610_enterprise_crud_entities.sql
                     string scriptPathEnterpriseCrud = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260610_enterprise_crud_entities.sql");
-                    if (File.Exists(scriptPathEnterpriseCrud))
-                    {
-                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Executing Enterprise CRUD entities migration...");
-                        string sqlEnterpriseCrud = await File.ReadAllTextAsync(scriptPathEnterpriseCrud);
-                        using (var cmd = new SqlCommand(sqlEnterpriseCrud, conn))
-                        {
-                            cmd.CommandTimeout = 60;
-                            await cmd.ExecuteNonQueryAsync();
-                        }
-                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Enterprise CRUD entities migration applied successfully.");
-                    }
+                    await ExecuteMigrationScriptAsync(conn, "20260610_enterprise_crud_entities.sql", scriptPathEnterpriseCrud);
 
-                    // Execute Camera Resolution migration (20260611_add_camera_resolution.sql)
+                    // 12. 20260611_add_camera_resolution.sql
                     string scriptPathCameraResolution = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260611_add_camera_resolution.sql");
-                    if (File.Exists(scriptPathCameraResolution))
-                    {
-                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Executing Camera Resolution migration...");
-                        string sqlCameraResolution = await File.ReadAllTextAsync(scriptPathCameraResolution);
-                        using (var cmd = new SqlCommand(sqlCameraResolution, conn))
-                        {
-                            cmd.CommandTimeout = 60;
-                            await cmd.ExecuteNonQueryAsync();
-                        }
-                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Camera Resolution migration applied successfully.");
-                    }
+                    await ExecuteMigrationScriptAsync(conn, "20260611_add_camera_resolution.sql", scriptPathCameraResolution);
 
-                    // Execute Lane UI Display Index migration (20260624_add_lane_ui_index.sql)
+                    // 13. 20260624_add_lane_ui_index.sql
                     string scriptPathLaneUiIndex = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260624_add_lane_ui_index.sql");
-                    if (File.Exists(scriptPathLaneUiIndex))
-                    {
-                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Executing Lane UI Display Index migration...");
-                        string sqlLaneUiIndex = await File.ReadAllTextAsync(scriptPathLaneUiIndex);
-                        using (var cmd = new SqlCommand(sqlLaneUiIndex, conn))
-                        {
-                            cmd.CommandTimeout = 60;
-                            await cmd.ExecuteNonQueryAsync();
-                        }
-                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Lane UI Display Index migration applied successfully.");
-                    }
+                    await ExecuteMigrationScriptAsync(conn, "20260624_add_lane_ui_index.sql", scriptPathLaneUiIndex);
 
-                    // Execute Camera IP Duplicate Relaxation migration (20260624_allow_duplicate_overview_camera_ip.sql)
+                    // 14. 20260624_allow_duplicate_overview_camera_ip.sql
                     string scriptPathCamIpRel = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260624_allow_duplicate_overview_camera_ip.sql");
-                    if (File.Exists(scriptPathCamIpRel))
-                    {
-                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Executing Camera IP Duplicate Relaxation migration...");
-                        string sqlCamIpRel = await File.ReadAllTextAsync(scriptPathCamIpRel);
-                        using (var cmd = new SqlCommand(sqlCamIpRel, conn))
-                        {
-                            cmd.CommandTimeout = 60;
-                            await cmd.ExecuteNonQueryAsync();
-                        }
-                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Camera IP Duplicate Relaxation migration applied successfully.");
-                    }
+                    await ExecuteMigrationScriptAsync(conn, "20260624_allow_duplicate_overview_camera_ip.sql", scriptPathCamIpRel);
 
-                    // Execute Shift Report Permission migration (20260626_add_shift_report_permission.sql)
+                    // 15. 20260626_add_shift_report_permission.sql
                     string scriptPathShiftPerm = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260626_add_shift_report_permission.sql");
-                    if (File.Exists(scriptPathShiftPerm))
-                    {
-                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Executing Shift Report Permission migration...");
-                        string sqlShiftPerm = await File.ReadAllTextAsync(scriptPathShiftPerm);
-                        using (var cmd = new SqlCommand(sqlShiftPerm, conn))
-                        {
-                            cmd.CommandTimeout = 60;
-                            await cmd.ExecuteNonQueryAsync();
-                        }
-                        LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "Shift Report Permission migration applied successfully.");
-                    }
+                    await ExecuteMigrationScriptAsync(conn, "20260626_add_shift_report_permission.sql", scriptPathShiftPerm);
 
                     _migrationsApplied = true;
                     LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "SQL Server topology migrations applied successfully.");
@@ -653,246 +496,71 @@ namespace QuanLyGiuXe.Services
 
                     // 2. Now run the multi-zone topology migrations safely
                     string multiZoneSql = GetEmbeddedMigrationSql();
-                    using (var cmd = new SqlCommand(multiZoneSql, conn))
-                    {
-                        cmd.CommandTimeout = 60;
-                        await cmd.ExecuteNonQueryAsync();
-                    }
+                    await ExecuteMigrationScriptAsync(conn, "20260519_multi_zone_topology.sql", null, multiZoneSql);
 
                     // 3. Now run the pricing migration script (20260424_add_khunggio_pricing.sql)
                     string pricingSql = GetEmbeddedPricingMigrationSql();
-                    if (!string.IsNullOrWhiteSpace(pricingSql))
-                    {
-                        using (var cmd = new SqlCommand(pricingSql, conn))
-                        {
-                            cmd.CommandTimeout = 60;
-                            await cmd.ExecuteNonQueryAsync();
-                        }
-                    }
+                    await ExecuteMigrationScriptAsync(conn, "20260424_add_khunggio_pricing.sql", null, pricingSql);
 
                     // 4. Now run the gates migration script (20260528_add_parking_gates_table.sql)
                     string scriptPathGates = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260528_add_parking_gates_table.sql");
-                    string sqlGates = string.Empty;
-                    if (File.Exists(scriptPathGates))
-                    {
-                        sqlGates = await File.ReadAllTextAsync(scriptPathGates);
-                    }
-                    else
-                    {
-                        sqlGates = GetEmbeddedGatesMigrationSql();
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(sqlGates))
-                    {
-                        using (var cmd = new SqlCommand(sqlGates, conn))
-                        {
-                            cmd.CommandTimeout = 60;
-                            await cmd.ExecuteNonQueryAsync();
-                        }
-                    }
+                    await ExecuteMigrationScriptAsync(conn, "20260528_add_parking_gates_table.sql", scriptPathGates, GetEmbeddedGatesMigrationSql());
 
                     // 5. Now run the lane vehicle type migration script (20260529_add_lane_vehicle_type.sql)
                     string scriptPathLaneVehicle = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260529_add_lane_vehicle_type.sql");
-                    string sqlLaneVehicle = string.Empty;
-                    if (File.Exists(scriptPathLaneVehicle))
-                    {
-                        sqlLaneVehicle = await File.ReadAllTextAsync(scriptPathLaneVehicle);
-                    }
-                    else
-                    {
-                        sqlLaneVehicle = GetEmbeddedLaneVehicleTypeMigrationSql();
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(sqlLaneVehicle))
-                    {
-                        using (var cmd = new SqlCommand(sqlLaneVehicle, conn))
-                        {
-                            cmd.CommandTimeout = 60;
-                            await cmd.ExecuteNonQueryAsync();
-                        }
-                    }
+                    await ExecuteMigrationScriptAsync(conn, "20260529_add_lane_vehicle_type.sql", scriptPathLaneVehicle, GetEmbeddedLaneVehicleTypeMigrationSql());
 
                     // 6. Now run the Enterprise RBAC migration script (20260529_rbac_enterprise.sql)
                     string scriptPathRbac = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260529_rbac_enterprise.sql");
-                    if (File.Exists(scriptPathRbac))
-                    {
-                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Executing Enterprise RBAC migration...");
-                        string sqlRbac = await File.ReadAllTextAsync(scriptPathRbac);
-                        using (var cmd = new SqlCommand(sqlRbac, conn))
-                        {
-                            cmd.CommandTimeout = 60;
-                            await cmd.ExecuteNonQueryAsync();
-                        }
-                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Enterprise RBAC migration applied successfully.");
-                    }
+                    await ExecuteMigrationScriptAsync(conn, "20260529_rbac_enterprise.sql", scriptPathRbac);
 
                     // 7. Now run the Enterprise RBAC Function Separation migration script (20260529_rbac_function_separation.sql)
                     string scriptPathFuncSep = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260529_rbac_function_separation.sql");
-                    if (File.Exists(scriptPathFuncSep))
-                    {
-                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Executing Enterprise Function Separation migration...");
-                        string sqlFuncSep = await File.ReadAllTextAsync(scriptPathFuncSep);
-                        using (var cmd = new SqlCommand(sqlFuncSep, conn))
-                        {
-                            cmd.CommandTimeout = 60;
-                            await cmd.ExecuteNonQueryAsync();
-                        }
-                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Enterprise Function Separation migration applied successfully.");
-                    }
+                    await ExecuteMigrationScriptAsync(conn, "20260529_rbac_function_separation.sql", scriptPathFuncSep);
 
-                    // 8. Now run the Deployment & Audit migration script (20260603_deployment_and_audit.sql)
+                    // 8. Now run the Deployment Center & Audit Trail migration script (20260603_deployment_and_audit.sql)
                     string scriptPathDeployAudit = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260603_deployment_and_audit.sql");
-                    if (File.Exists(scriptPathDeployAudit))
-                    {
-                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Executing Deployment Center & Audit Trail migration...");
-                        string sqlDeployAudit = await File.ReadAllTextAsync(scriptPathDeployAudit);
-                        using (var cmd = new SqlCommand(sqlDeployAudit, conn))
-                        {
-                            cmd.CommandTimeout = 60;
-                            await cmd.ExecuteNonQueryAsync();
-                        }
-                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Deployment Center & Audit Trail migration applied successfully.");
-                    }
+                    await ExecuteMigrationScriptAsync(conn, "20260603_deployment_and_audit.sql", scriptPathDeployAudit);
 
                     // 9. Now run the Role Level migration script (20260604_add_role_level.sql)
                     string scriptPathRoleLevel = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260604_add_role_level.sql");
-                    if (File.Exists(scriptPathRoleLevel))
-                    {
-                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Executing Role Level migration...");
-                        string sqlRoleLevel = await File.ReadAllTextAsync(scriptPathRoleLevel);
-                        using (var cmd = new SqlCommand(sqlRoleLevel, conn))
-                        {
-                            cmd.CommandTimeout = 60;
-                            await cmd.ExecuteNonQueryAsync();
-                        }
-                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Role Level migration applied successfully.");
-                    }
+                    await ExecuteMigrationScriptAsync(conn, "20260604_add_role_level.sql", scriptPathRoleLevel);
 
                     // 10. Now run the Audit Logs migration script (20260604_add_audit_logs.sql)
                     string scriptPathAuditLogs = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260604_add_audit_logs.sql");
-                    if (File.Exists(scriptPathAuditLogs))
-                    {
-                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Executing Audit Logs migration...");
-                        string sqlAuditLogs = await File.ReadAllTextAsync(scriptPathAuditLogs);
-                        using (var cmd = new SqlCommand(sqlAuditLogs, conn))
-                        {
-                            cmd.CommandTimeout = 60;
-                            await cmd.ExecuteNonQueryAsync();
-                        }
-                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Audit Logs migration applied successfully.");
-                    }
+                    await ExecuteMigrationScriptAsync(conn, "20260604_add_audit_logs.sql", scriptPathAuditLogs);
 
                     // 11. Now run the Device Monitoring tables migration script (20260604_device_monitoring_tables.sql)
                     string scriptPathDeviceMonitoring = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260604_device_monitoring_tables.sql");
-                    if (File.Exists(scriptPathDeviceMonitoring))
-                    {
-                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Executing Device Monitoring tables migration...");
-                        string sqlDeviceMonitoring = await File.ReadAllTextAsync(scriptPathDeviceMonitoring);
-                        using (var cmd = new SqlCommand(sqlDeviceMonitoring, conn))
-                        {
-                            cmd.CommandTimeout = 60;
-                            await cmd.ExecuteNonQueryAsync();
-                        }
-                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Device Monitoring tables migration applied successfully.");
-                    }
+                    await ExecuteMigrationScriptAsync(conn, "20260604_device_monitoring_tables.sql", scriptPathDeviceMonitoring);
 
                     // 12. Now run the Camera Management Columns migration script (20260605_add_camera_management_columns.sql)
                     string scriptPathCameraMgmt = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260605_add_camera_management_columns.sql");
-                    if (File.Exists(scriptPathCameraMgmt))
-                    {
-                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Executing Camera Management Columns migration...");
-                        string sqlCameraMgmt = await File.ReadAllTextAsync(scriptPathCameraMgmt);
-                        using (var cmd = new SqlCommand(sqlCameraMgmt, conn))
-                        {
-                            cmd.CommandTimeout = 60;
-                            await cmd.ExecuteNonQueryAsync();
-                        }
-                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Camera Management Columns migration applied successfully.");
-                    }
+                    await ExecuteMigrationScriptAsync(conn, "20260605_add_camera_management_columns.sql", scriptPathCameraMgmt);
 
                     // 13. Now run the Camera IP Unique Index migration script (20260605_add_camera_ip_unique_constraint.sql)
                     string scriptPathCameraIpUnique = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260605_add_camera_ip_unique_constraint.sql");
-                    if (File.Exists(scriptPathCameraIpUnique))
-                    {
-                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Executing Camera IP Unique Index migration...");
-                        string sqlCameraIpUnique = await File.ReadAllTextAsync(scriptPathCameraIpUnique);
-                        using (var cmd = new SqlCommand(sqlCameraIpUnique, conn))
-                        {
-                            cmd.CommandTimeout = 60;
-                            await cmd.ExecuteNonQueryAsync();
-                        }
-                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Camera IP Unique Index migration applied successfully.");
-                    }
+                    await ExecuteMigrationScriptAsync(conn, "20260605_add_camera_ip_unique_constraint.sql", scriptPathCameraIpUnique);
 
                     // 14. Now run the Enterprise CRUD entities migration script (20260610_enterprise_crud_entities.sql)
                     string scriptPathEnterpriseCrud = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260610_enterprise_crud_entities.sql");
-                    if (File.Exists(scriptPathEnterpriseCrud))
-                    {
-                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Executing Enterprise CRUD entities migration...");
-                        string sqlEnterpriseCrud = await File.ReadAllTextAsync(scriptPathEnterpriseCrud);
-                        using (var cmd = new SqlCommand(sqlEnterpriseCrud, conn))
-                        {
-                            cmd.CommandTimeout = 60;
-                            await cmd.ExecuteNonQueryAsync();
-                        }
-                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Enterprise CRUD entities migration applied successfully.");
-                    }
+                    await ExecuteMigrationScriptAsync(conn, "20260610_enterprise_crud_entities.sql", scriptPathEnterpriseCrud);
 
                     // 15. Now run the Camera Resolution migration script (20260611_add_camera_resolution.sql)
                     string scriptPathCameraResolution = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260611_add_camera_resolution.sql");
-                    if (File.Exists(scriptPathCameraResolution))
-                    {
-                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Executing Camera Resolution migration...");
-                        string sqlCameraResolution = await File.ReadAllTextAsync(scriptPathCameraResolution);
-                        using (var cmd = new SqlCommand(sqlCameraResolution, conn))
-                        {
-                            cmd.CommandTimeout = 60;
-                            await cmd.ExecuteNonQueryAsync();
-                        }
-                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Camera Resolution migration applied successfully.");
-                    }
+                    await ExecuteMigrationScriptAsync(conn, "20260611_add_camera_resolution.sql", scriptPathCameraResolution);
 
-                    // Execute Lane UI Display Index migration (20260624_add_lane_ui_index.sql)
+                    // 16. Execute Lane UI Display Index migration (20260624_add_lane_ui_index.sql)
                     string scriptPathLaneUiIndex = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260624_add_lane_ui_index.sql");
-                    if (File.Exists(scriptPathLaneUiIndex))
-                    {
-                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Executing Lane UI Display Index migration...");
-                        string sqlLaneUiIndex = await File.ReadAllTextAsync(scriptPathLaneUiIndex);
-                        using (var cmd = new SqlCommand(sqlLaneUiIndex, conn))
-                        {
-                            cmd.CommandTimeout = 60;
-                            await cmd.ExecuteNonQueryAsync();
-                        }
-                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Lane UI Display Index migration applied successfully.");
-                    }
+                    await ExecuteMigrationScriptAsync(conn, "20260624_add_lane_ui_index.sql", scriptPathLaneUiIndex);
 
-                    // Execute Camera IP Duplicate Relaxation migration (20260624_allow_duplicate_overview_camera_ip.sql)
+                    // 17. Execute Camera IP Duplicate Relaxation migration (20260624_allow_duplicate_overview_camera_ip.sql)
                     string scriptPathCamIpRel = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260624_allow_duplicate_overview_camera_ip.sql");
-                    if (File.Exists(scriptPathCamIpRel))
-                    {
-                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Executing Camera IP Duplicate Relaxation migration...");
-                        string sqlCamIpRel = await File.ReadAllTextAsync(scriptPathCamIpRel);
-                        using (var cmd = new SqlCommand(sqlCamIpRel, conn))
-                        {
-                            cmd.CommandTimeout = 60;
-                            await cmd.ExecuteNonQueryAsync();
-                        }
-                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Camera IP Duplicate Relaxation migration applied successfully.");
-                    }
+                    await ExecuteMigrationScriptAsync(conn, "20260624_allow_duplicate_overview_camera_ip.sql", scriptPathCamIpRel);
 
-                    // Execute Shift Report Permission migration (20260626_add_shift_report_permission.sql)
+                    // 18. Execute Shift Report Permission migration (20260626_add_shift_report_permission.sql)
                     string scriptPathShiftPerm = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260626_add_shift_report_permission.sql");
-                    if (File.Exists(scriptPathShiftPerm))
-                    {
-                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Executing Shift Report Permission migration...");
-                        string sqlShiftPerm = await File.ReadAllTextAsync(scriptPathShiftPerm);
-                        using (var cmd = new SqlCommand(sqlShiftPerm, conn))
-                        {
-                            cmd.CommandTimeout = 60;
-                            await cmd.ExecuteNonQueryAsync();
-                        }
-                        LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Shift Report Permission migration applied successfully.");
-                    }
+                    await ExecuteMigrationScriptAsync(conn, "20260626_add_shift_report_permission.sql", scriptPathShiftPerm);
 
                     _baseSchemaChecked = true;
                     _migrationsApplied = true; // so that standard migrations are skipped post-login
@@ -1207,6 +875,73 @@ namespace QuanLyGiuXe.Services
 
             COMMIT TRANSACTION;
             ";
+        }
+
+        private static async Task ExecuteMigrationScriptAsync(SqlConnection conn, string scriptName, string scriptPath, string fallbackSql = null)
+        {
+            // 1. Ensure AppliedMigrations table exists
+            using (var cmdTable = new SqlCommand(@"
+                IF OBJECT_ID(N'dbo.AppliedMigrations', N'U') IS NULL
+                BEGIN
+                    CREATE TABLE dbo.AppliedMigrations (
+                        MigrationName NVARCHAR(255) NOT NULL PRIMARY KEY,
+                        AppliedAt DATETIME NOT NULL DEFAULT GETUTCDATE()
+                    );
+                END", conn))
+            {
+                await cmdTable.ExecuteNonQueryAsync();
+            }
+
+            // 2. Check if this migration is already applied
+            bool alreadyApplied = false;
+            using (var cmdCheck = new SqlCommand("SELECT 1 FROM dbo.AppliedMigrations WHERE MigrationName = @Name;", conn))
+            {
+                cmdCheck.Parameters.AddWithValue("@Name", scriptName);
+                using (var reader = await cmdCheck.ExecuteReaderAsync())
+                {
+                    if (await reader.ReadAsync())
+                    {
+                        alreadyApplied = true;
+                    }
+                }
+            }
+
+            if (alreadyApplied)
+            {
+                LoggingService.Instance.LogInfo("MIGRATION", "Execute", $"Migration '{scriptName}' has already been applied, skipping.");
+                return;
+            }
+
+            // 3. Read and execute SQL
+            string sql = string.Empty;
+            if (!string.IsNullOrEmpty(scriptPath) && File.Exists(scriptPath))
+            {
+                sql = await File.ReadAllTextAsync(scriptPath);
+            }
+            else if (!string.IsNullOrEmpty(fallbackSql))
+            {
+                sql = fallbackSql;
+            }
+            else
+            {
+                LoggingService.Instance.LogInfo("MIGRATION", "Execute", $"Migration file '{scriptName}' not found and no fallback provided.");
+                return;
+            }
+
+            LoggingService.Instance.LogInfo("MIGRATION", "Execute", $"Executing migration '{scriptName}'...");
+            using (var cmdExec = new SqlCommand(sql, conn))
+            {
+                cmdExec.CommandTimeout = 90;
+                await cmdExec.ExecuteNonQueryAsync();
+            }
+
+            // 4. Record as applied
+            using (var cmdRecord = new SqlCommand("INSERT INTO dbo.AppliedMigrations (MigrationName) VALUES (@Name);", conn))
+            {
+                cmdRecord.Parameters.AddWithValue("@Name", scriptName);
+                await cmdRecord.ExecuteNonQueryAsync();
+            }
+            LoggingService.Instance.LogInfo("MIGRATION", "Execute", $"Migration '{scriptName}' applied successfully.");
         }
     }
 }

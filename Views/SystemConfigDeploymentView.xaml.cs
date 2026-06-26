@@ -64,6 +64,7 @@ namespace QuanLyGiuXe.Views
             ImageQualitySlider.Value = qVal;
             ImageQualityBox.Text = qVal.ToString();
             SelectMaxWidthComboItem(_cfg.Cameras.SaveMaxWidth);
+            ShowEntrySnapAtExitCheck.IsChecked = _cfg.Cameras.ShowEntrySnapAtExit;
         }
 
         private async void UserControl_Loaded(object sender, RoutedEventArgs e)
@@ -377,6 +378,7 @@ namespace QuanLyGiuXe.Views
             ImageQualitySlider.Value = defaultQ;
             ImageQualityBox.Text = defaultQ.ToString();
             SelectMaxWidthComboItem(_cfg.Cameras.SaveMaxWidth);
+            ShowEntrySnapAtExitCheck.IsChecked = _cfg.Cameras.ShowEntrySnapAtExit;
 
             MessageBox.Show("Đã reset về mặc định", "Reset", MessageBoxButton.OK, MessageBoxImage.Information);
         }
@@ -1035,6 +1037,7 @@ namespace QuanLyGiuXe.Views
                 var prevRequireReason = _cfg.ZKTeco.RequireReasonForManualOpen;
                 var prevBtn1 = _cfg.ZKTeco.Button1Action;
                 var prevBtn2 = _cfg.ZKTeco.Button2Action;
+                var prevShowEntrySnap = _cfg.Cameras.ShowEntrySnapAtExit;
 
                 var prevLaneCameras = _cfg.Cameras.LaneCameras?.Select(x => new LaneCameraSetting
                 {
@@ -1122,6 +1125,7 @@ namespace QuanLyGiuXe.Views
                 {
                     _cfg.Cameras.SaveMaxWidth = w;
                 }
+                _cfg.Cameras.ShowEntrySnapAtExit = ShowEntrySnapAtExitCheck.IsChecked == true;
 
                 // ForceMode obsolete
                 _cfg.ZKTeco.ForceAllIn = false;
@@ -1245,6 +1249,7 @@ namespace QuanLyGiuXe.Views
                 AddChange("Yêu cầu lý do mở cổng thủ công", prevRequireReason, _cfg.ZKTeco.RequireReasonForManualOpen);
                 AddChange("Button1Action", prevBtn1, _cfg.ZKTeco.Button1Action);
                 AddChange("Button2Action", prevBtn2, _cfg.ZKTeco.Button2Action);
+                AddChange("Hiện ảnh vào tại cổng ra", prevShowEntrySnap, _cfg.Cameras.ShowEntrySnapAtExit);
 
                 // Compare lane camera changes and write to audit log
                 foreach (var item in _laneCameraCombos)

@@ -100,7 +100,7 @@
                             
                             <!-- Cropped Plate -->
                             <TextBlock Text="Biển số cắt / Cropped" FontSize="9.5" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,3" HorizontalAlignment="Center"/>
-                            <Border BorderBrush="#CBD5E1" BorderThickness="1" Background="White" CornerRadius="4" Padding="2" Height="45" HorizontalAlignment="Center" Width="140">
+                            <Border BorderThickness="0" Background="Transparent" Padding="0" Height="65" HorizontalAlignment="Center" Width="200">
                                 <Grid>
                                     <Image Source="{Binding SelectedAnhVaoBienSoCat}" Stretch="Uniform" Margin="1"/>
                                     <Border Background="White" CornerRadius="3">
@@ -185,7 +185,7 @@
                             
                             <!-- Cropped Plate -->
                             <TextBlock Text="Biển số cắt / Cropped" FontSize="9.5" FontWeight="SemiBold" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,3" HorizontalAlignment="Center"/>
-                            <Border BorderBrush="#FCA5A5" BorderThickness="1" Background="White" CornerRadius="4" Padding="2" Height="45" HorizontalAlignment="Center" Width="140">
+                            <Border BorderThickness="0" Background="Transparent" Padding="0" Height="65" HorizontalAlignment="Center" Width="200">
                                 <Grid>
                                     <Image Source="{Binding SelectedAnhRaBienSoCat}" Stretch="Uniform" Margin="1"/>
                                     <Border Background="White" CornerRadius="3">

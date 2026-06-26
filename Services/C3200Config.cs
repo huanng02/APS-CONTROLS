@@ -245,6 +245,7 @@ namespace QuanLyGiuXe.Services
         public int SaveJpegQuality { get; set; } = 70;
         public int SaveMaxWidth { get; set; } = 1280;
         public bool AutoUseSubstream { get; set; } = true;
+        public bool ShowEntrySnapAtExit { get; set; } = false;
     }
 
     public sealed class LaneCameraSetting

@@ -2187,6 +2187,23 @@ namespace QuanLyGiuXe.ViewModels
                                 return;
                             }
 
+                            string registeredPlate = card.BienSo ?? string.Empty;
+                            if (string.IsNullOrEmpty(registeredPlate))
+                            {
+                                SetLaneStatus(uiLaneIndex, "❌ Thẻ chưa đăng ký biển số!");
+                                LoggingService.Instance.LogSecurity("ACCESS_DENIED", "NO_REGISTERED_PLATE", uid, "Exit (monthly): RFID card has no registered plate", "MainViewModel");
+                                LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
+                                return;
+                            }
+
+                            if (!ComparePlates(recognizedPlate, registeredPlate))
+                            {
+                                SetLaneStatus(uiLaneIndex, $"❌ Sai biển số đăng ký! Xe: {recognizedPlate} vs Đăng ký: {registeredPlate}");
+                                LoggingService.Instance.LogSecurity("ACCESS_DENIED", "LPR_MISMATCH", uid, $"Exit (monthly): Plate mismatch against registered: Recognized={recognizedPlate}, Registered={registeredPlate}", "MainViewModel");
+                                LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
+                                return;
+                            }
+
                             string entryPlate = xeTrongBai.BienSo ?? string.Empty;
                             if (string.IsNullOrEmpty(entryPlate))
                             {
@@ -2517,17 +2534,44 @@ namespace QuanLyGiuXe.ViewModels
                                          }
                                          catch (Exception snapEx) { LoggingService.Instance.LogError("Snap1Error", "MainViewModel", "Outbound overview snap show failed", snapEx); }
                                      }
-                                     if (plateRawFrameClone != null && !plateRawFrameClone.Empty())
+
+                                     bool showEntrySnap = false;
+                                     try { showEntrySnap = AppConfig.Load().Cameras.ShowEntrySnapAtExit; } catch { }
+
+                                     if (showEntrySnap && !string.IsNullOrEmpty(entryImageFolder) && System.IO.Directory.Exists(entryImageFolder))
                                      {
                                          try
                                          {
-                                             var img2 = MatToBitmapSource(plateRawFrameClone);
-                                             if (img2 != null)
+                                             string platePath = System.IO.Path.Combine(entryImageFolder, "plate_raw.jpg");
+                                             if (!System.IO.File.Exists(platePath))
                                              {
-                                                 Application.Current?.Dispatcher?.Invoke(() => UpdateLaneSnapshot(uiLaneIndex, 2, img2));
+                                                 platePath = System.IO.Path.Combine(entryImageFolder, "plate_crop.jpg");
+                                             }
+                                             if (System.IO.File.Exists(platePath))
+                                             {
+                                                 var img2 = LoadImageFromFile(platePath);
+                                                 if (img2 != null)
+                                                 {
+                                                     Application.Current?.Dispatcher?.Invoke(() => UpdateLaneSnapshot(uiLaneIndex, 2, img2));
+                                                 }
                                              }
                                          }
-                                         catch (Exception snapEx) { LoggingService.Instance.LogError("Snap2Error", "MainViewModel", "Outbound plate snap show failed", snapEx); }
+                                         catch (Exception snapEx) { LoggingService.Instance.LogError("Snap2Error", "MainViewModel", "Outbound entry plate snap show failed", snapEx); }
+                                     }
+                                     else
+                                     {
+                                         if (plateRawFrameClone != null && !plateRawFrameClone.Empty())
+                                         {
+                                             try
+                                             {
+                                                 var img2 = MatToBitmapSource(plateRawFrameClone);
+                                                 if (img2 != null)
+                                                 {
+                                                     Application.Current?.Dispatcher?.Invoke(() => UpdateLaneSnapshot(uiLaneIndex, 2, img2));
+                                                 }
+                                             }
+                                             catch (Exception snapEx) { LoggingService.Instance.LogError("Snap2Error", "MainViewModel", "Outbound plate snap show failed", snapEx); }
+                                         }
                                      }
                                 }
                                 string? exitImageFolderPath = null;
@@ -2839,7 +2883,7 @@ namespace QuanLyGiuXe.ViewModels
                     _ = Task.Run(async () =>
                     {
                         await Task.Delay(200);
-                        await CaptureAndShowSnapshotsAsync(uiLaneIndex, exitLaneId ?? 2);
+                        await CaptureAndShowSnapshotsAsync(uiLaneIndex, exitLaneId ?? 2, entryImageFolder);
                     });
                 }
 
@@ -3152,6 +3196,21 @@ namespace QuanLyGiuXe.ViewModels
                             return;
                         }
 
+                        string registeredPlate = card.BienSo ?? string.Empty;
+                        if (string.IsNullOrEmpty(registeredPlate))
+                        {
+                            SetLaneStatus(uiLaneIndex, "❌ Thẻ chưa đăng ký biển số!");
+                            LoggingService.Instance.LogSecurity("ACCESS_DENIED", "NO_REGISTERED_PLATE", uid, "Manual exit (monthly): RFID card has no registered plate", "MainViewModel");
+                            return;
+                        }
+
+                        if (!ComparePlates(recognizedPlate, registeredPlate))
+                        {
+                            SetLaneStatus(uiLaneIndex, $"❌ Sai biển số đăng ký! Xe: {recognizedPlate} vs Đăng ký: {registeredPlate}");
+                            LoggingService.Instance.LogSecurity("ACCESS_DENIED", "LPR_MISMATCH", uid, $"Manual exit (monthly): Plate mismatch against registered: Recognized={recognizedPlate}, Registered={registeredPlate}", "MainViewModel");
+                            return;
+                        }
+
                         if (string.IsNullOrEmpty(entryPlate))
                         {
                             SetLaneStatus(uiLaneIndex, "❌ Không tìm thấy biển số lúc vào!");
@@ -3329,11 +3388,7 @@ namespace QuanLyGiuXe.ViewModels
             string p1 = NormalizePlate(plate1);
             string p2 = NormalizePlate(plate2);
 
-            if (p1 == p2)
-                return true;
-
-            // Levenshtein distance matching: allow at most 1 character mismatch
-            return GetLevenshteinDistance(p1, p2) <= 1;
+            return p1 == p2;
         }
 
             private static string CorrectSpecialPlateOcrErrors(string normalized)
@@ -3688,7 +3743,7 @@ namespace QuanLyGiuXe.ViewModels
             }));
         }
 
-        private async Task CaptureAndShowSnapshotsAsync(int uiLaneIndex, int dbLaneId)
+        private async Task CaptureAndShowSnapshotsAsync(int uiLaneIndex, int dbLaneId, string? entryFolder = null)
         {
             try
             {
@@ -3735,26 +3790,58 @@ namespace QuanLyGiuXe.ViewModels
                 }
 
                 // Capture Plate Camera
-                try
+                bool showEntrySnap = false;
+                try { showEntrySnap = AppConfig.Load().Cameras.ShowEntrySnapAtExit; } catch { }
+
+                if (showEntrySnap && uiLaneIndex == 2 && !string.IsNullOrEmpty(entryFolder) && System.IO.Directory.Exists(entryFolder))
                 {
-                    using (var mat2 = CameraService.Instance.GetLatestFrame(camKey2))
+                    try
                     {
-                        if (mat2 != null && !mat2.Empty())
+                        string platePath = System.IO.Path.Combine(entryFolder, "plate_raw.jpg");
+                        if (!System.IO.File.Exists(platePath))
                         {
-                            var img2 = MatToBitmapSource(mat2);
+                            platePath = System.IO.Path.Combine(entryFolder, "plate_crop.jpg");
+                        }
+                        if (System.IO.File.Exists(platePath))
+                        {
+                            var img2 = LoadImageFromFile(platePath);
                             if (img2 != null)
                             {
-                                Application.Current.Dispatcher.Invoke(() =>
+                                Application.Current?.Dispatcher?.Invoke(() =>
                                 {
                                     UpdateLaneSnapshot(uiLaneIndex, 2, img2);
                                 });
                             }
                         }
                     }
+                    catch (Exception ex)
+                    {
+                        LoggingService.Instance.LogError("LoadEntryPlateError", "MainViewModel", "Failed to load entry plate snapshot", ex);
+                    }
                 }
-                catch (Exception ex)
+                else
                 {
-                    LoggingService.Instance.LogError("CaptureSnapshotError", "MainViewModel", $"Failed to capture Plate camera {camKey2}", ex);
+                    try
+                    {
+                        using (var mat2 = CameraService.Instance.GetLatestFrame(camKey2))
+                        {
+                            if (mat2 != null && !mat2.Empty())
+                            {
+                                var img2 = MatToBitmapSource(mat2);
+                                if (img2 != null)
+                                {
+                                    Application.Current.Dispatcher.Invoke(() =>
+                                    {
+                                        UpdateLaneSnapshot(uiLaneIndex, 2, img2);
+                                    });
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        LoggingService.Instance.LogError("CaptureSnapshotError", "MainViewModel", $"Failed to capture Plate camera {camKey2}", ex);
+                    }
                 }
             }
             catch (Exception ex)
@@ -3966,18 +4053,20 @@ namespace QuanLyGiuXe.ViewModels
                     if (System.IO.File.Exists(path)) exitImg = LoadImageFromFile(path);
                 }
 
+                var showImg = exitImg ?? entryImg;
+
                 if (lane == 1)
                 {
-                    Lane1PlateInImage = entryImg;
+                    Lane1PlateInImage = showImg;
+                    Lane1PlateInVisibility = showImg != null ? Visibility.Visible : Visibility.Collapsed;
                     Lane1PlateOutImage = exitImg;
-                    Lane1PlateInVisibility = entryImg != null ? Visibility.Visible : Visibility.Collapsed;
                     Lane1PlateOutVisibility = exitImg != null ? Visibility.Visible : Visibility.Collapsed;
                 }
                 else
                 {
-                    Lane2PlateInImage = entryImg;
+                    Lane2PlateInImage = showImg;
+                    Lane2PlateInVisibility = showImg != null ? Visibility.Visible : Visibility.Collapsed;
                     Lane2PlateOutImage = exitImg;
-                    Lane2PlateInVisibility = entryImg != null ? Visibility.Visible : Visibility.Collapsed;
                     Lane2PlateOutVisibility = exitImg != null ? Visibility.Visible : Visibility.Collapsed;
                 }
             }));

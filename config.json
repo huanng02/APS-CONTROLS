@@ -38,7 +38,8 @@
     "TargetResolution": "640x480",
     "SaveJpegQuality": 70,
     "SaveMaxWidth": 800,
-    "AutoUseSubstream": true
+    "AutoUseSubstream": true,
+    "ShowEntrySnapAtExit": false
   },
   "Lpr": {
     "AutoStart": false,
