@@ -33,8 +33,18 @@
             <RowDefinition Height="Auto"/> <!-- Action Footer -->
         </Grid.RowDefinitions>
 
-        <!-- Header Panel -->
+        <!-- Danger Banner: Hiển thị nếu có lỗi (HasErrors = True) -->
         <Border Grid.Row="0" Background="#FFF1F0" BorderBrush="{StaticResource TopoDangerBrush}" BorderThickness="1" CornerRadius="6" Padding="15,12" Margin="0,0,0,15">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding HasErrors}" Value="True">
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
@@ -44,7 +54,67 @@
                       Fill="{StaticResource TopoDangerBrush}" Width="24" Height="24" Stretch="Uniform" Margin="0,0,12,0" VerticalAlignment="Center"/>
                 <StackPanel Grid.Column="1" VerticalAlignment="Center">
                     <TextBlock Text="CẦN XỬ LÝ TRƯỚC KHI VẬN HÀNH" FontSize="14" FontWeight="Bold" Foreground="{StaticResource TopoDangerBrush}"/>
-                    <TextBlock Text="Cấu hình sơ đồ hiện tại có lỗi cần được khắc phục trước khi đưa hệ thống vào vận hành." FontSize="12" Foreground="{StaticResource TopoTextSecondaryBrush}" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                    <TextBlock Text="Cấu hình sơ đồ hiện tại có lỗi nghiêm trọng cần được khắc phục trước khi đưa hệ thống vào vận hành." FontSize="12" Foreground="{StaticResource TopoTextSecondaryBrush}" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Warning Banner: Hiển thị nếu không có lỗi nhưng có cảnh báo (HasErrors = False và HasWarnings = True) -->
+        <Border Grid.Row="0" Background="#FFFDF0" BorderBrush="{StaticResource TopoWarningBrush}" BorderThickness="1" CornerRadius="6" Padding="15,12" Margin="0,0,0,15">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding HasErrors}" Value="False"/>
+                                <Condition Binding="{Binding HasWarnings}" Value="True"/>
+                            </MultiDataTrigger.Conditions>
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </MultiDataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Path Grid.Column="0" Data="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z" 
+                      Fill="{StaticResource TopoWarningBrush}" Width="24" Height="24" Stretch="Uniform" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Text="CÓ CẢNH BÁO CẤU HÌNH" FontSize="14" FontWeight="Bold" Foreground="{StaticResource TopoWarningBrush}"/>
+                    <TextBlock Text="Sơ đồ cấu hình có một số cảnh báo. Hệ thống vẫn có thể vận hành, nhưng bạn nên kiểm tra lại để đảm bảo hoạt động tốt nhất." FontSize="12" Foreground="{StaticResource TopoTextSecondaryBrush}" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Success Banner: Hiển thị nếu hoàn toàn hợp lệ (HasErrors = False và HasWarnings = False) -->
+        <Border Grid.Row="0" Background="#F0FDF4" BorderBrush="{StaticResource TopoSuccessBrush}" BorderThickness="1" CornerRadius="6" Padding="15,12" Margin="0,0,0,15">
+            <Border.Style>
+                <Style TargetType="Border">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding HasErrors}" Value="False"/>
+                                <Condition Binding="{Binding HasWarnings}" Value="False"/>
+                            </MultiDataTrigger.Conditions>
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </MultiDataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Path Grid.Column="0" Data="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" 
+                      Fill="{StaticResource TopoSuccessBrush}" Width="24" Height="24" Stretch="Uniform" Margin="0,0,12,0" VerticalAlignment="Center"/>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Text="CẤU HÌNH HOÀN TOÀN HỢP LỆ" FontSize="14" FontWeight="Bold" Foreground="{StaticResource TopoSuccessBrush}"/>
+                    <TextBlock Text="Không phát hiện lỗi hoặc cảnh báo nào. Sơ đồ bãi xe đã sẵn sàng vận hành." FontSize="12" Foreground="{StaticResource TopoTextSecondaryBrush}" Margin="0,2,0,0" TextWrapping="Wrap"/>
                 </StackPanel>
             </Grid>
         </Border>

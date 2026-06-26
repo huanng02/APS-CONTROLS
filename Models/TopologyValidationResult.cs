@@ -32,5 +32,7 @@ namespace QuanLyGiuXe.Models
         public List<ValidationIssue> Errors { get; set; } = new();
 
         public bool IsValid => Errors.Count == 0;
+        public bool HasErrors => Errors.Count > 0;
+        public bool HasWarnings => Warnings.Count > 0;
     }
 }

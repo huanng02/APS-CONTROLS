@@ -326,7 +326,9 @@ namespace QuanLyGiuXe.ViewModels
             set { _hasValidationRun = value; OnPropertyChanged(); }
         }
 
+        private TopologyValidationResult _latestValidationResult;
         public ICommand ValidateTopologyCommand { get; }
+        public ICommand ShowValidationDetailsCommand { get; }
 
         // ──────────────────────────────────────────────
         // EXISTING commands (preserved as-is)
@@ -393,6 +395,7 @@ namespace QuanLyGiuXe.ViewModels
             EditSelectedCommand = new RelayCommand(async _ => await EditSelected(), _ => SelectedNode != null && SelectedNode.NodeType != "Reader");
             DeleteSelectedCommand = new RelayCommand(async _ => await DeleteSelected(), _ => SelectedNode != null && SelectedNode.NodeType != "Reader");
             ValidateTopologyCommand = new RelayCommand(_ => ExecuteValidation());
+            ShowValidationDetailsCommand = new RelayCommand(_ => ExecuteShowValidationDetails());
 
             _ = LoadDataAsync();
         }
@@ -1322,6 +1325,8 @@ namespace QuanLyGiuXe.ViewModels
                 var result = await Task.Run(() =>
                     TopologyValidationService.Instance.ValidateTopology());
 
+                _latestValidationResult = result;
+
                 Application.Current?.Dispatcher?.Invoke(() =>
                 {
                     // Clear previous results
@@ -1370,6 +1375,18 @@ namespace QuanLyGiuXe.ViewModels
             {
                 IsValidationLoading = false;
             }
+        }
+
+        private void ExecuteShowValidationDetails()
+        {
+            if (_latestValidationResult == null)
+            {
+                _latestValidationResult = TopologyValidationService.Instance.ValidateTopology();
+            }
+
+            var dialog = new TopologyValidationDialog(_latestValidationResult);
+            dialog.Owner = Application.Current?.MainWindow;
+            dialog.ShowDialog();
         }
     }
 }
