@@ -80,5 +80,78 @@ namespace QuanLyGiuXe.Services
                 }
             }
         }
+        public static void SaveUserShiftStart(string username, DateTime shiftStart)
+        {
+            lock (_lock)
+            {
+                try
+                {
+                    var shifts = LoadAllShifts();
+                    shifts[username] = shiftStart;
+                    string json = JsonSerializer.Serialize(shifts, new JsonSerializerOptions { WriteIndented = true });
+                    File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "user_shifts.json"), json);
+                }
+                catch (Exception ex)
+                {
+                    LoggingService.Instance.LogError("SessionService", "SaveUserShiftStart", "Failed to save shift start time", ex);
+                }
+            }
+        }
+
+        public static DateTime? GetUserShiftStart(string username)
+        {
+            lock (_lock)
+            {
+                try
+                {
+                    var shifts = LoadAllShifts();
+                    if (shifts.TryGetValue(username, out DateTime shiftStart))
+                    {
+                        return shiftStart;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LoggingService.Instance.LogError("SessionService", "GetUserShiftStart", "Failed to get shift start time", ex);
+                }
+                return null;
+            }
+        }
+
+        public static void ClearUserShiftStart(string username)
+        {
+            lock (_lock)
+            {
+                try
+                {
+                    var shifts = LoadAllShifts();
+                    if (shifts.Remove(username))
+                    {
+                        string json = JsonSerializer.Serialize(shifts, new JsonSerializerOptions { WriteIndented = true });
+                        File.WriteAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "user_shifts.json"), json);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LoggingService.Instance.LogError("SessionService", "ClearUserShiftStart", "Failed to clear shift start time", ex);
+                }
+            }
+        }
+
+        private static System.Collections.Generic.Dictionary<string, DateTime> LoadAllShifts()
+        {
+            try
+            {
+                string path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "user_shifts.json");
+                if (File.Exists(path))
+                {
+                    string json = File.ReadAllText(path);
+                    return JsonSerializer.Deserialize<System.Collections.Generic.Dictionary<string, DateTime>>(json) 
+                        ?? new System.Collections.Generic.Dictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase);
+                }
+            }
+            catch { }
+            return new System.Collections.Generic.Dictionary<string, DateTime>(StringComparer.OrdinalIgnoreCase);
+        }
     }
 }

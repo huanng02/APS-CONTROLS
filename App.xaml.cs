@@ -260,7 +260,7 @@ namespace QuanLyGiuXe
                 var dbService = new QuanLyGiuXe.Services.DatabaseService();
                 string connectionString = dbService.GetConnectionString();
 
-                dynamic? userFound = Views.LoginForm.AuthenticateUser(connectionString, session.Username, decryptedPassword);
+                UserAuthResult? userFound = Views.LoginForm.AuthenticateUser(connectionString, session.Username, decryptedPassword);
                 if (userFound != null)
                 {
                     if (userFound.Status != "Active")
@@ -276,13 +276,24 @@ namespace QuanLyGiuXe
                     var permissions = await permsService.GetPermissionsForUserAsync(userId);
                     var (laneIds, siteIds) = await permsService.GetAssignedLanesAndSitesAsync(userId);
 
-                    // If saved session is older than 12 hours, treat it as a new shift start
-                    DateTime loginTime = session.LoginTime;
-                    if (DateTime.Now - loginTime > TimeSpan.FromHours(12))
+                    // Check if there is a saved shift in user_shifts.json
+                    DateTime shiftStart = session.LoginTime;
+                    var savedShiftStart = SessionService.GetUserShiftStart(session.Username);
+                    if (savedShiftStart.HasValue && (DateTime.Now - savedShiftStart.Value < TimeSpan.FromHours(12)))
                     {
-                        loginTime = DateTime.Now;
-                        SessionService.SaveSession(session.Username, decryptedPassword, loginTime);
+                        shiftStart = savedShiftStart.Value;
                     }
+                    else
+                    {
+                        if (DateTime.Now - shiftStart > TimeSpan.FromHours(12))
+                        {
+                            shiftStart = DateTime.Now;
+                        }
+                        SessionService.SaveUserShiftStart(session.Username, shiftStart);
+                    }
+
+                    // Keep session.json updated
+                    SessionService.SaveSession(session.Username, decryptedPassword, shiftStart);
 
                     CurrentUserContext.Instance.SetCurrentUser(
                         userId,
@@ -292,7 +303,7 @@ namespace QuanLyGiuXe
                         permissions,
                         laneIds,
                         siteIds,
-                        loginTime
+                        shiftStart
                     );
 
                     try 

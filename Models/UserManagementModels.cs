@@ -31,4 +31,13 @@ namespace QuanLyGiuXe.Models
         public int RoleId { get; set; }
         public string TrangThai { get; set; } = "Active";
     }
+
+    public sealed class UserAuthResult
+    {
+        public int Id { get; set; }
+        public string Username { get; set; } = string.Empty;
+        public string Ten { get; set; } = string.Empty;
+        public string Role { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+    }
 }

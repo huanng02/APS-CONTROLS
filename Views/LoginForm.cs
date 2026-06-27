@@ -339,6 +339,18 @@ namespace QuanLyGiuXe.Views
                     var permissions = await permsService.GetPermissionsForUserAsync(userId);
                     var (laneIds, siteIds) = await permsService.GetAssignedLanesAndSitesAsync(userId);
 
+                    // Restore or create shift start time
+                    DateTime shiftStart = DateTime.Now;
+                    var savedShiftStart = SessionService.GetUserShiftStart(userFound.Username);
+                    if (savedShiftStart.HasValue && (DateTime.Now - savedShiftStart.Value < TimeSpan.FromHours(12)))
+                    {
+                        shiftStart = savedShiftStart.Value;
+                    }
+                    else
+                    {
+                        SessionService.SaveUserShiftStart(userFound.Username, shiftStart);
+                    }
+
                     CurrentUserContext.Instance.SetCurrentUser(
                         userId,
                         userFound.Username,
@@ -346,12 +358,13 @@ namespace QuanLyGiuXe.Views
                         userFound.Ten,
                         permissions,
                         laneIds,
-                        siteIds
+                        siteIds,
+                        shiftStart
                     );
 
                     if (chkRememberMe.Checked)
                     {
-                        SessionService.SaveSession(user, pass, CurrentUserContext.Instance.LoginTime);
+                        SessionService.SaveSession(user, pass, shiftStart);
                     }
                     else
                     {
@@ -403,7 +416,7 @@ namespace QuanLyGiuXe.Views
             lblMessage.ForeColor = Color.Blue;
         }
 
-        internal static dynamic? AuthenticateUser(string connectionString, string user, string pass)
+        internal static UserAuthResult? AuthenticateUser(string connectionString, string user, string pass)
         {
             using (SqlConnection conn = new SqlConnection(connectionString))
             {
@@ -459,12 +472,12 @@ namespace QuanLyGiuXe.Views
                                 catch { /* non-fatal migration failure */ }
                             }
 
-                            return new {
+                            return new UserAuthResult {
                                 Id = (int)reader["Id"],
-                                Username = reader["Username"].ToString(),
-                                Ten = reader["Ten"].ToString(),
-                                Role = reader["RoleName"]?.ToString() ?? "",
-                                Status = reader["TrangThai"]?.ToString() ?? ""
+                                Username = reader["Username"].ToString() ?? string.Empty,
+                                Ten = reader["Ten"].ToString() ?? string.Empty,
+                                Role = reader["RoleName"]?.ToString() ?? string.Empty,
+                                Status = reader["TrangThai"]?.ToString() ?? string.Empty
                             };
                         }
                     }

@@ -369,7 +369,7 @@ namespace QuanLyGiuXe.ViewModels
             TrangDauCommand = new RelayCommand(_ => { TrangHienTai = 1; LoadTrangAsync(); });
             TrangCuoiCommand = new RelayCommand(_ => { TrangHienTai = TongTrang; LoadTrangAsync(); });
             ResetFilterCommand = new RelayCommand(_ => ResetFilter());
-            ExportExcelCommand = new RelayCommand(_ => ExportExcel());
+            ExportExcelCommand = new RelayCommand(async _ => await ExportExcelAsync());
             EndSessionCommand = new RelayCommand(async _ => await EndSessionAsync(), _ => CanEndSession());
             BaoCaoCaCommand = new RelayCommand(_ => BaoCaoCa());
 
@@ -748,10 +748,19 @@ namespace QuanLyGiuXe.ViewModels
             TrangHienTai = 1;
             await LoadTrangAsync();
 
-            ExportExcel($"BaoCaoCa_{CurrentUserContext.Instance.Username}_{now:yyyyMMdd_HHmm}.xlsx", loginTime, now);
+            bool saved = await ExportExcelAsync($"BaoCaoCa_{CurrentUserContext.Instance.Username}_{now:yyyyMMdd_HHmm}.xlsx", loginTime, now);
+            if (saved)
+            {
+                SessionService.ClearUserShiftStart(CurrentUserContext.Instance.Username);
+                var app = Application.Current as App;
+                if (app != null)
+                {
+                    app.PerformLogout();
+                }
+            }
         }
 
-        private async void ExportExcel(string defaultFileName = null, DateTime? shiftStart = null, DateTime? shiftEnd = null)
+        private async Task<bool> ExportExcelAsync(string defaultFileName = null, DateTime? shiftStart = null, DateTime? shiftEnd = null)
         {
             try
             {
@@ -1015,6 +1024,7 @@ namespace QuanLyGiuXe.ViewModels
 
                     MessageBox.Show("Xuất file Excel thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
                     LoggingService.Instance.LogSecurity("EXPORT", "LichSuViewModel", $"Exported {dataToExport.Count} rows with stats to {sfd.FileName}");
+                    return true;
                 }
             }
             catch (Exception ex)
@@ -1022,6 +1032,7 @@ namespace QuanLyGiuXe.ViewModels
                 LoggingService.Instance.LogError("ExportExcel", "LichSuViewModel", "Lỗi xuất Excel", ex);
                 MessageBox.Show($"Lỗi xuất Excel: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
             }
+            return false;
         }
 
         private bool CanEndSession()
