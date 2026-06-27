@@ -161,6 +161,7 @@ namespace QuanLyGiuXe
             {
                 // 1. Clear session
                 CurrentUserContext.Instance.Clear();
+                SessionService.ClearSession();
                 
                 // 2. Suppress toasts immediately (prevent DB/C3 toasts during transition)
                 ToastNotificationService.Instance.IsSuppressed = true;
@@ -209,8 +210,18 @@ namespace QuanLyGiuXe
             }
         }
 
-        private void StartLoginFlow(Window? windowToClose = null)
+        private async void StartLoginFlow(Window? windowToClose = null)
         {
+            LoggingService.Instance.LogInfo("App", "App", "StartLoginFlow: Checking for saved session.");
+            bool autoLoginSuccess = await System.Threading.Tasks.Task.Run(async () => await TryAutoLoginAsync());
+
+            if (autoLoginSuccess)
+            {
+                LoggingService.Instance.LogInfo("App", "App", "StartLoginFlow: Auto-login successful.");
+                ProceedToMainWindow(windowToClose);
+                return;
+            }
+
             LoggingService.Instance.LogInfo("App", "App", "StartLoginFlow: Showing LoginForm.");
             var loginForm = new QuanLyGiuXe.Views.LoginForm();
             var result = loginForm.ShowDialog();
@@ -219,68 +230,7 @@ namespace QuanLyGiuXe
 
             if (result == System.Windows.Forms.DialogResult.OK)
             {
-                LoggingService.Instance.LogInfo("App", "App", "StartLoginFlow: Login successful.");
-                
-                // Run SQL Server schema migrations and seed offline cache AFTER login (DB connection confirmed)
-                System.Threading.Tasks.Task.Run(async () =>
-                {
-                    try
-                    {
-                        await DatabaseService.EnsureMigrationsAppliedAsync();
-                    }
-                    catch (Exception ex)
-                    {
-                        LoggingService.Instance.LogError("APP_STARTUP_MIGRATION", "Startup", "SQL Server migrations failed", ex);
-                    }
-
-                    try
-                    {
-                        await QuanLyGiuXe.Services.OfflineCache.OfflineCacheService.Instance.PreloadCacheAsync();
-                    }
-                    catch (Exception ex)
-                    {
-                        LoggingService.Instance.LogError("APP_STARTUP_CACHE", "Startup", "Preloading offline cache failed", ex);
-                    }
-                });
-                
-                // Now we can safely close the old window
-                windowToClose?.Close();
-                
-                var main = new MainWindow();
-                this.MainWindow = main;
-                
-                main.Closed += (s, e) => {
-                    if (!_isLoggingOut)
-                    {
-                        SafeShutdown("MainWindowClosedViaX");
-                    }
-                };
-                
-                main.Show();
-                _isLoggingOut = false; 
-                // Re-enable toasts after new window is ready
-                ToastNotificationService.Instance.IsSuppressed = false;
-                LoggingService.Instance.LogInfo("App", "App", "StartLoginFlow: New MainWindow shown.");
-
-                // Trigger non-blocking Phase 6.5 recovery and health checks
-                System.Threading.Tasks.Task.Run(async () =>
-                {
-                    try
-                    {
-                        // 1. Recover active sessions
-                        await QuanLyGiuXe.Services.OfflineCache.SessionRecoveryService.Instance.RestoreActiveSessionsAsync();
-                        // 2. Restore lane states
-                        await QuanLyGiuXe.Services.OfflineCache.SessionRecoveryService.Instance.RestoreLaneStateAsync();
-                        // 3. Restore pending sync items
-                        await QuanLyGiuXe.Services.OfflineCache.SessionRecoveryService.Instance.RestorePendingQueueAsync();
-                        // 4. Start session health monitor
-                        QuanLyGiuXe.Services.OfflineCache.SessionHealthMonitor.Instance.Start();
-                    }
-                    catch (Exception ex)
-                    {
-                        LoggingService.Instance.LogError("APP_STARTUP_RECOVERY", "Startup", "Startup recovery failed", ex);
-                    }
-                });
+                ProceedToMainWindow(windowToClose);
             }
             else
             {
@@ -288,6 +238,143 @@ namespace QuanLyGiuXe
                 windowToClose?.Close(); // Clean up even on cancel
                 SafeShutdown("LoginCancelledByUser");
             }
+        }
+
+        private async Task<bool> TryAutoLoginAsync()
+        {
+            try
+            {
+                var session = SessionService.LoadSession();
+                if (session == null || string.IsNullOrEmpty(session.Username) || string.IsNullOrEmpty(session.EncryptedPassword))
+                {
+                    return false;
+                }
+
+                string decryptedPassword = CredentialEncryptionService.Decrypt(session.EncryptedPassword);
+                if (string.IsNullOrEmpty(decryptedPassword))
+                {
+                    return false;
+                }
+
+                // Verify with DB
+                var dbService = new QuanLyGiuXe.Services.DatabaseService();
+                string connectionString = dbService.GetConnectionString();
+
+                dynamic? userFound = Views.LoginForm.AuthenticateUser(connectionString, session.Username, decryptedPassword);
+                if (userFound != null)
+                {
+                    if (userFound.Status != "Active")
+                    {
+                        LoggingService.Instance.LogInfo("App", "TryAutoLoginAsync", $"Auto-login failed: User {session.Username} is locked/inactive.");
+                        SessionService.ClearSession();
+                        return false;
+                    }
+
+                    int userId = (int)userFound.Id;
+                    var permsService = QuanLyGiuXe.Services.PermissionService.Instance;
+                    
+                    var permissions = await permsService.GetPermissionsForUserAsync(userId);
+                    var (laneIds, siteIds) = await permsService.GetAssignedLanesAndSitesAsync(userId);
+
+                    // If saved session is older than 12 hours, treat it as a new shift start
+                    DateTime loginTime = session.LoginTime;
+                    if (DateTime.Now - loginTime > TimeSpan.FromHours(12))
+                    {
+                        loginTime = DateTime.Now;
+                        SessionService.SaveSession(session.Username, decryptedPassword, loginTime);
+                    }
+
+                    CurrentUserContext.Instance.SetCurrentUser(
+                        userId,
+                        userFound.Username,
+                        userFound.Role,
+                        userFound.Ten,
+                        permissions,
+                        laneIds,
+                        siteIds,
+                        loginTime
+                    );
+
+                    try 
+                    { 
+                        LoggingService.Instance.LogSecurity("AUTO_LOGIN_SUCCESS", "Auth", null, userId: CurrentUserContext.Instance.Id.ToString(), username: CurrentUserContext.Instance.Username); 
+                    } 
+                    catch { }
+
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("App", "TryAutoLoginAsync", "Auto-login failed with exception", ex);
+            }
+            return false;
+        }
+
+        private void ProceedToMainWindow(Window? windowToClose = null)
+        {
+            LoggingService.Instance.LogInfo("App", "App", "ProceedToMainWindow: Launching MainWindow.");
+            
+            // Run SQL Server schema migrations and seed offline cache AFTER login (DB connection confirmed)
+            System.Threading.Tasks.Task.Run(async () =>
+            {
+                try
+                {
+                    await DatabaseService.EnsureMigrationsAppliedAsync();
+                }
+                catch (Exception ex)
+                {
+                    LoggingService.Instance.LogError("APP_STARTUP_MIGRATION", "Startup", "SQL Server migrations failed", ex);
+                }
+
+                try
+                {
+                    await QuanLyGiuXe.Services.OfflineCache.OfflineCacheService.Instance.PreloadCacheAsync();
+                }
+                catch (Exception ex)
+                {
+                    LoggingService.Instance.LogError("APP_STARTUP_CACHE", "Startup", "Preloading offline cache failed", ex);
+                }
+            });
+            
+            // Now we can safely close the old window
+            windowToClose?.Close();
+            
+            var main = new MainWindow();
+            this.MainWindow = main;
+            
+            main.Closed += (s, e) => {
+                if (!_isLoggingOut)
+                {
+                    SafeShutdown("MainWindowClosedViaX");
+                }
+            };
+            
+            main.Show();
+            _isLoggingOut = false; 
+            // Re-enable toasts after new window is ready
+            ToastNotificationService.Instance.IsSuppressed = false;
+            LoggingService.Instance.LogInfo("App", "App", "ProceedToMainWindow: New MainWindow shown.");
+
+            // Trigger non-blocking Phase 6.5 recovery and health checks
+            System.Threading.Tasks.Task.Run(async () =>
+            {
+                try
+                {
+                    // 1. Recover active sessions
+                    await QuanLyGiuXe.Services.OfflineCache.SessionRecoveryService.Instance.RestoreActiveSessionsAsync();
+                    // 2. Restore lane states
+                    await QuanLyGiuXe.Services.OfflineCache.SessionRecoveryService.Instance.RestoreLaneStateAsync();
+                    // 3. Restore pending sync items
+                    await QuanLyGiuXe.Services.OfflineCache.SessionRecoveryService.Instance.RestorePendingQueueAsync();
+                    // 4. Start session health monitor
+                    QuanLyGiuXe.Services.OfflineCache.SessionHealthMonitor.Instance.Start();
+                }
+                catch (Exception ex)
+                {
+                    LoggingService.Instance.LogError("APP_STARTUP_RECOVERY", "Startup", "Startup recovery failed", ex);
+                }
+            });
         }
 
         protected override void OnExit(ExitEventArgs e)

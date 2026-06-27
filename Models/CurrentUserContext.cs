@@ -14,7 +14,7 @@ namespace QuanLyGiuXe.Models
         HashSet<string> Permissions { get; }
         HashSet<int> AssignedLaneIds { get; }
         HashSet<int> AssignedSiteIds { get; }
-        void SetCurrentUser(int id, string username, string role, string ten, IEnumerable<string> permissions, IEnumerable<int> laneIds, IEnumerable<int> siteIds);
+        void SetCurrentUser(int id, string username, string role, string ten, IEnumerable<string> permissions, IEnumerable<int> laneIds, IEnumerable<int> siteIds, DateTime? loginTime = null);
         void UpdatePermissions(IEnumerable<string> permissions);
         void Clear();
     }
@@ -46,7 +46,7 @@ namespace QuanLyGiuXe.Models
         public HashSet<int> AssignedLaneIds { get { lock(_lock) return new HashSet<int>(_assignedLaneIds); } }
         public HashSet<int> AssignedSiteIds { get { lock(_lock) return new HashSet<int>(_assignedSiteIds); } }
 
-        public void SetCurrentUser(int id, string username, string role, string ten, IEnumerable<string> permissions, IEnumerable<int> laneIds, IEnumerable<int> siteIds)
+        public void SetCurrentUser(int id, string username, string role, string ten, IEnumerable<string> permissions, IEnumerable<int> laneIds, IEnumerable<int> siteIds, DateTime? loginTime = null)
         {
             lock (_lock)
             {
@@ -54,7 +54,7 @@ namespace QuanLyGiuXe.Models
                 _username = username ?? string.Empty;
                 _role = role ?? string.Empty;
                 _ten = ten ?? string.Empty;
-                _loginTime = DateTime.Now;
+                _loginTime = loginTime ?? DateTime.Now;
 
                 _permissions.Clear();
                 if (permissions != null)

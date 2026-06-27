@@ -16,6 +16,7 @@ namespace QuanLyGiuXe.Views
         private System.Windows.Forms.Button btnLogin;
         private System.Windows.Forms.Button btnDbConfig;
         private System.Windows.Forms.Label lblMessage;
+        private System.Windows.Forms.CheckBox chkRememberMe;
         
         // Connection string - should be in config, but provided here for demo or loaded from existing appsettings
         private string connectionString = "";
@@ -24,6 +25,23 @@ namespace QuanLyGiuXe.Views
         {
             InitializeComponent();
             LoadConnectionString();
+            LoadSavedSessionDetails();
+        }
+
+        private void LoadSavedSessionDetails()
+        {
+            try
+            {
+                var session = SessionService.LoadSession();
+                if (session != null)
+                {
+                    txtUsername.Text = session.Username;
+                    string decryptedPassword = CredentialEncryptionService.Decrypt(session.EncryptedPassword);
+                    txtPassword.Text = decryptedPassword;
+                    chkRememberMe.Checked = true;
+                }
+            }
+            catch { }
         }
 
         private void LoadConnectionString()
@@ -47,6 +65,7 @@ namespace QuanLyGiuXe.Views
             this.btnLogin = new System.Windows.Forms.Button();
             this.btnDbConfig = new System.Windows.Forms.Button();
             this.lblMessage = new System.Windows.Forms.Label();
+            this.chkRememberMe = new System.Windows.Forms.CheckBox();
             
             System.Windows.Forms.Panel pnlHeader = new System.Windows.Forms.Panel();
             System.Windows.Forms.PictureBox pbLogo = new System.Windows.Forms.PictureBox();
@@ -57,7 +76,7 @@ namespace QuanLyGiuXe.Views
 
             // Form Settings
             this.Text = "Hệ Thống Quản Lý Bãi Xe - Đăng Nhập";
-            this.Size = new Size(450, 580);
+            this.Size = new Size(450, 610);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
@@ -137,11 +156,12 @@ namespace QuanLyGiuXe.Views
             // txtUsername:    Y=45  (h=30)
             // lblPassIcon:   Y=85
             // txtPassword:   Y=110 (h=30)
-            // btnLogin:      Y=160 (h=45)
-            // lblMessage:    Y=215 (h=40)
-            // btnDbConfig:   Y=260 (h=28)
-            // Total needed:  ~300
-            pnlCard.Size = new Size(360, 300);
+            // chkRememberMe: Y=150 (h=25)
+            // btnLogin:      Y=185 (h=45)
+            // lblMessage:    Y=238 (h=35)
+            // btnDbConfig:   Y=280 (h=28)
+            // Total needed:  ~330
+            pnlCard.Size = new Size(360, 330);
             pnlCard.Location = new Point(45, 140);
             pnlCard.BackColor = Color.White;
             pnlCard.Padding = new Padding(30);
@@ -171,9 +191,17 @@ namespace QuanLyGiuXe.Views
             this.txtPassword.PasswordChar = '●';
             this.txtPassword.BorderStyle = BorderStyle.FixedSingle;
 
+            // CheckBox Remember Me
+            this.chkRememberMe.Text = "Ghi nhớ đăng nhập";
+            this.chkRememberMe.Location = new Point(30, 150);
+            this.chkRememberMe.Size = new Size(300, 25);
+            this.chkRememberMe.Font = new Font("Segoe UI", 9.5f);
+            this.chkRememberMe.ForeColor = Color.FromArgb(64, 64, 64);
+            this.chkRememberMe.Cursor = System.Windows.Forms.Cursors.Hand;
+
             // Login Button
             this.btnLogin.Text = "ĐĂNG NHẬP";
-            this.btnLogin.Location = new Point(30, 160);
+            this.btnLogin.Location = new Point(30, 185);
             this.btnLogin.Size = new Size(300, 45);
             this.btnLogin.BackColor = Color.FromArgb(0, 120, 215); // Modern Blue
             this.btnLogin.ForeColor = Color.White;
@@ -184,7 +212,7 @@ namespace QuanLyGiuXe.Views
             this.btnLogin.Click += BtnLogin_Click;
 
             // Error Message
-            this.lblMessage.Location = new Point(30, 215);
+            this.lblMessage.Location = new Point(30, 238);
             this.lblMessage.Size = new Size(300, 35);
             this.lblMessage.ForeColor = Color.Red;
             this.lblMessage.TextAlign = ContentAlignment.MiddleCenter;
@@ -192,7 +220,7 @@ namespace QuanLyGiuXe.Views
 
             // DB Config Button
             this.btnDbConfig.Text = "⚙ Cấu hình CSDL";
-            this.btnDbConfig.Location = new Point(30, 258);
+            this.btnDbConfig.Location = new Point(30, 280);
             this.btnDbConfig.Size = new Size(300, 28);
             this.btnDbConfig.FlatStyle = FlatStyle.Flat;
             this.btnDbConfig.FlatAppearance.BorderSize = 0;
@@ -206,6 +234,7 @@ namespace QuanLyGiuXe.Views
             pnlCard.Controls.Add(this.txtUsername);
             pnlCard.Controls.Add(lblPassIcon);
             pnlCard.Controls.Add(this.txtPassword);
+            pnlCard.Controls.Add(this.chkRememberMe);
             pnlCard.Controls.Add(this.btnLogin);
             pnlCard.Controls.Add(this.lblMessage);
             pnlCard.Controls.Add(this.btnDbConfig);
@@ -283,7 +312,7 @@ namespace QuanLyGiuXe.Views
 
                 // Step 2: Xác thực tài khoản
                 lblMessage.Text = "⏳ Đang xác thực tài khoản...";
-                var userFound = await Task.Run(() => AuthenticateUser(user, pass));
+                var userFound = await Task.Run(() => AuthenticateUser(connectionString, user, pass));
 
                 if (userFound != null)
                 {
@@ -319,6 +348,15 @@ namespace QuanLyGiuXe.Views
                         laneIds,
                         siteIds
                     );
+
+                    if (chkRememberMe.Checked)
+                    {
+                        SessionService.SaveSession(user, pass, CurrentUserContext.Instance.LoginTime);
+                    }
+                    else
+                    {
+                        SessionService.ClearSession();
+                    }
 
                     try { LoggingService.Instance.LogSecurity("LOGIN_SUCCESS", "Auth", null, userId: CurrentUserContext.Instance.Id.ToString(), username: CurrentUserContext.Instance.Username); } catch { }
                     this.DialogResult = DialogResult.OK;
@@ -365,7 +403,7 @@ namespace QuanLyGiuXe.Views
             lblMessage.ForeColor = Color.Blue;
         }
 
-        private dynamic? AuthenticateUser(string user, string pass)
+        internal static dynamic? AuthenticateUser(string connectionString, string user, string pass)
         {
             using (SqlConnection conn = new SqlConnection(connectionString))
             {
