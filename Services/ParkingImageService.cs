@@ -95,7 +95,7 @@ namespace QuanLyGiuXe.Services
             string sessionFolder = $"{timestamp:yyyyMMdd_HHmmss}_{plate}_{dir}";
 
             return Path.Combine(
-                _rootDir,
+                RootDirectory,
                 site,
                 zone,
                 gate,
