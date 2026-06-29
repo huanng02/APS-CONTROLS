@@ -122,7 +122,18 @@ namespace QuanLyGiuXe.Services
 
             var json = JsonConvert.SerializeObject(this, Formatting.Indented);
             File.WriteAllText(path, json);
-            
+
+            // In development mode, sync back to the project root directory so Clean/Rebuild doesn't discard configuration
+            try
+            {
+                var devPath = Path.Combine(AppContext.BaseDirectory, @"..\..\..", fileName);
+                if (Directory.Exists(Path.GetDirectoryName(devPath) ?? "") && File.Exists(devPath))
+                {
+                    File.WriteAllText(devPath, json);
+                }
+            }
+            catch { }
+
             lock (_lock)
             {
                 _cached = this;
@@ -143,7 +154,18 @@ namespace QuanLyGiuXe.Services
 
             var json = JsonConvert.SerializeObject(this, Formatting.Indented);
             File.WriteAllText(path, json);
-            
+
+            // In development mode, sync back to the project root directory so Clean/Rebuild doesn't discard configuration
+            try
+            {
+                var devPath = Path.Combine(AppContext.BaseDirectory, @"..\..\..", fileName);
+                if (Directory.Exists(Path.GetDirectoryName(devPath) ?? "") && File.Exists(devPath))
+                {
+                    File.WriteAllText(devPath, json);
+                }
+            }
+            catch { }
+
             lock (_lock)
             {
                 _draftCached = this;

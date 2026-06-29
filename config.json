@@ -1,11 +1,12 @@
 {
   "ZKTeco": {
+    "ControllerType": 0,
     "Protocol": "TCP",
     "IpAddress": "192.168.1.201",
     "TcpPort": 4370,
     "Timeout": 1000,
     "Password": "",
-    "BarrierDuration": 5,
+    "BarrierDuration": 1,
     "CardCooldownMs": 2000,
     "GateInDoor": 1,
     "GateOutDoor": 2,
@@ -14,22 +15,25 @@
     "Button1Action": "OpenThisDoor",
     "Button2Action": "OpenThisDoor",
     "ForceAllIn": false,
-    "ForceAllOut": false
+    "ForceAllOut": false,
+    "BlockDailyCardForMonthlyPlate": false,
+    "ShowSessionDialog": true,
+    "RequireReasonForManualOpen": true
   },
   "Cameras": {
     "VaoToanCanh": "",
-    "VaoBienSo": "",
-    "RaToanCanh": "rtsp://192.168.1.117:554/user=admin_password=tlJwpbo6_channel=0_stream=0&onvif=0.sdp?real_stream",
+    "VaoBienSo": "rtsp://192.168.1.117:554/user=admin_password=tlJwpbo6_channel=0_stream=0&onvif=0.sdp?real_stream",
+    "RaToanCanh": "",
     "RaBienSo": "rtsp://192.168.1.121:554/user=admin_password=tlJwpbo6_channel=0_stream=0&onvif=0.sdp?real_stream",
     "LaneCameras": [
       {
         "LaneId": 4,
         "ToanCanh": "",
-        "BienSo": ""
+        "BienSo": "rtsp://192.168.1.117:554/user=admin_password=tlJwpbo6_channel=0_stream=0&onvif=0.sdp?real_stream"
       },
       {
         "LaneId": 3,
-        "ToanCanh": "rtsp://192.168.1.117:554/user=admin_password=tlJwpbo6_channel=0_stream=0&onvif=0.sdp?real_stream",
+        "ToanCanh": "",
         "BienSo": "rtsp://192.168.1.121:554/user=admin_password=tlJwpbo6_channel=0_stream=0&onvif=0.sdp?real_stream"
       }
     ],
@@ -39,12 +43,7 @@
     "SaveJpegQuality": 70,
     "SaveMaxWidth": 800,
     "AutoUseSubstream": true,
-    "ShowEntrySnapAtExit": false
-  },
-  "Lpr": {
-    "AutoStart": false,
-    "Command": "python server.py",
-    "WorkingDirectory": "C:/path/to/ai"
+    "ShowEntrySnapAtExit": true
   },
   "Backup": {
     "AutoBackupEnabled": true,

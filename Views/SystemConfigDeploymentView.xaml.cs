@@ -182,7 +182,11 @@ namespace QuanLyGiuXe.Views
                 }
  
                 // 4. Populate and select Lanes for the selected Gate
-                var lanesForGate = _lanes.Where(l => l.GateId == selectedGateId).ToList();
+                var lanesForGate = _lanes
+                    .Where(l => l.GateId == selectedGateId)
+                    .OrderBy(l => (l.DisplayIndex == null || l.DisplayIndex == 0) ? 999 : l.DisplayIndex.Value)
+                    .ThenBy(l => l.Id)
+                    .ToList();
                 R1LaneCombo.ItemsSource = new List<LaneConfig>(lanesForGate);
                 R2LaneCombo.ItemsSource = new List<LaneConfig>(lanesForGate);
                 R3LaneCombo.ItemsSource = new List<LaneConfig>(lanesForGate);
@@ -298,6 +302,8 @@ namespace QuanLyGiuXe.Views
 
                 var lanes = allLanes
                     .Where(l => l.GateId == gateId)
+                    .OrderBy(l => (l.DisplayIndex == null || l.DisplayIndex == 0) ? 999 : l.DisplayIndex.Value)
+                    .ThenBy(l => l.Id)
                     .ToList();
 
                 R1LaneCombo.ItemsSource = new List<LaneConfig>(lanes);
@@ -719,7 +725,10 @@ namespace QuanLyGiuXe.Views
 
             // Refresh the camera list and dropdowns
             int selectedGateId = ZoneCombo.SelectedValue != null ? Convert.ToInt32(ZoneCombo.SelectedValue) : 0;
-            var lanesForGate = _lanes?.Where(l => l.GateId == selectedGateId).ToList() ?? new List<LaneConfig>();
+            var lanesForGate = _lanes?.Where(l => l.GateId == selectedGateId)
+                                      .OrderBy(l => (l.DisplayIndex == null || l.DisplayIndex == 0) ? 999 : l.DisplayIndex.Value)
+                                      .ThenBy(l => l.Id)
+                                      .ToList() ?? new List<LaneConfig>();
             await PopulateLaneCamerasUIAsync(lanesForGate);
 
             // Auto-select the newly added camera for this lane/role
@@ -755,7 +764,10 @@ namespace QuanLyGiuXe.Views
             _cfg = AppConfig.LoadDraft();
 
             int selectedGateId = ZoneCombo.SelectedValue != null ? Convert.ToInt32(ZoneCombo.SelectedValue) : 0;
-            var lanesForGate = _lanes?.Where(l => l.GateId == selectedGateId).ToList() ?? new List<LaneConfig>();
+            var lanesForGate = _lanes?.Where(l => l.GateId == selectedGateId)
+                                      .OrderBy(l => (l.DisplayIndex == null || l.DisplayIndex == 0) ? 999 : l.DisplayIndex.Value)
+                                      .ThenBy(l => l.Id)
+                                      .ToList() ?? new List<LaneConfig>();
             await PopulateLaneCamerasUIAsync(lanesForGate);
         }
 
@@ -1699,7 +1711,11 @@ namespace QuanLyGiuXe.Views
 
                 // Manually cascade: update Lane combos for selected gate
                 var allLanes = await ParkingTopologyService.Instance.GetLanesAsync();
-                var lanesForGate = allLanes.Where(l => l.GateId == selectedGateId).ToList();
+                var lanesForGate = allLanes
+                    .Where(l => l.GateId == selectedGateId)
+                    .OrderBy(l => (l.DisplayIndex == null || l.DisplayIndex == 0) ? 999 : l.DisplayIndex.Value)
+                    .ThenBy(l => l.Id)
+                    .ToList();
 
                 R1LaneCombo.ItemsSource = new List<LaneConfig>(lanesForGate);
                 R2LaneCombo.ItemsSource = new List<LaneConfig>(lanesForGate);
