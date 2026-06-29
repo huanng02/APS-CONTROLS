@@ -107,9 +107,10 @@ namespace QuanLyGiuXe.Views
         private static string? GetPlateCropPath(string? folderPath)
         {
             if (string.IsNullOrEmpty(folderPath)) return null;
-            if (System.IO.Directory.Exists(folderPath))
+            var resolvedFolder = QuanLyGiuXe.Services.ParkingImageService.ResolveSharedFolderPath(folderPath);
+            if (System.IO.Directory.Exists(resolvedFolder))
             {
-                string path = System.IO.Path.Combine(folderPath, "plate_crop.jpg");
+                string path = System.IO.Path.Combine(resolvedFolder, "plate_crop.jpg");
                 if (System.IO.File.Exists(path)) return path;
             }
             return null;

@@ -11,6 +11,7 @@ namespace QuanLyGiuXe.Services
         public CameraConfig Cameras { get; set; } = new();
         public BackupConfig Backup { get; set; } = new();
         public bool ShowLog { get; set; } = true;
+        public string? ImageStoragePath { get; set; }
 
         private static AppConfig? _cached;
         private static AppConfig? _draftCached;

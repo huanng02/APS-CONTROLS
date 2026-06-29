@@ -51,5 +51,6 @@
     "RetentionDays": 30,
     "BackupDirectory": "Backups"
   },
-  "ShowLog": true
+  "ShowLog": true,
+  "ImageStoragePath": ""
 }

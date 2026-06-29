@@ -943,5 +943,74 @@ namespace QuanLyGiuXe.Services
             }
             LoggingService.Instance.LogInfo("MIGRATION", "Execute", $"Migration '{scriptName}' applied successfully.");
         }
+
+        public static async Task MigrateLocalImagePathsAsync(string sharedRoot)
+        {
+            if (string.IsNullOrEmpty(sharedRoot)) return;
+
+            // Trim trailing slashes from sharedRoot to ensure proper combined path syntax
+            sharedRoot = sharedRoot.TrimEnd('\\', '/');
+
+            string localPrefix = @"C:\ProgramData\APS\ParkingImages";
+            string connStr = ConnectionManager.Instance.CurrentConnectionString;
+            if (string.IsNullOrEmpty(connStr)) return;
+
+            try
+            {
+                using (var conn = new SqlConnection(connStr))
+                {
+                    await conn.OpenAsync();
+
+                    // Update XeTrongBai
+                    using (var cmd = new SqlCommand(@"
+                        UPDATE XeTrongBai 
+                        SET AnhXe = REPLACE(AnhXe, @localPrefix, @sharedRoot) 
+                        WHERE AnhXe LIKE @localPrefix + '%'", conn))
+                    {
+                        cmd.Parameters.AddWithValue("@localPrefix", localPrefix);
+                        cmd.Parameters.AddWithValue("@sharedRoot", sharedRoot);
+                        int affected = await cmd.ExecuteNonQueryAsync();
+                        if (affected > 0)
+                        {
+                            LoggingService.Instance.LogInfo("MIGRATION", "ImagePaths", $"Migrated {affected} paths in XeTrongBai");
+                        }
+                    }
+
+                    // Update LichSuXe AnhVao
+                    using (var cmd = new SqlCommand(@"
+                        UPDATE LichSuXe 
+                        SET AnhVao = REPLACE(AnhVao, @localPrefix, @sharedRoot) 
+                        WHERE AnhVao LIKE @localPrefix + '%'", conn))
+                    {
+                        cmd.Parameters.AddWithValue("@localPrefix", localPrefix);
+                        cmd.Parameters.AddWithValue("@sharedRoot", sharedRoot);
+                        int affected = await cmd.ExecuteNonQueryAsync();
+                        if (affected > 0)
+                        {
+                            LoggingService.Instance.LogInfo("MIGRATION", "ImagePaths", $"Migrated {affected} entry paths in LichSuXe");
+                        }
+                    }
+
+                    // Update LichSuXe AnhRa
+                    using (var cmd = new SqlCommand(@"
+                        UPDATE LichSuXe 
+                        SET AnhRa = REPLACE(AnhRa, @localPrefix, @sharedRoot) 
+                        WHERE AnhRa LIKE @localPrefix + '%'", conn))
+                    {
+                        cmd.Parameters.AddWithValue("@localPrefix", localPrefix);
+                        cmd.Parameters.AddWithValue("@sharedRoot", sharedRoot);
+                        int affected = await cmd.ExecuteNonQueryAsync();
+                        if (affected > 0)
+                        {
+                            LoggingService.Instance.LogInfo("MIGRATION", "ImagePaths", $"Migrated {affected} exit paths in LichSuXe");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("MIGRATION_ERROR", "ImagePaths", "Failed to migrate image paths in database", ex);
+            }
+        }
     }
 }

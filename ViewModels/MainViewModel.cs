@@ -2479,7 +2479,7 @@ namespace QuanLyGiuXe.ViewModels
                         int? entrySiteId = xeTrongBai.SiteId;
                         int? entryZoneId = xeTrongBai.ZoneId;
                         int? entryLaneId = xeTrongBai.EntryLaneId;
-                        string? entryImageFolder = xeTrongBai.AnhXe;
+                        string? entryImageFolder = QuanLyGiuXe.Services.ParkingImageService.ResolveSharedFolderPath(xeTrongBai.AnhXe);
 
                         _ = Task.Run(async () =>
                         {
@@ -2822,7 +2822,7 @@ namespace QuanLyGiuXe.ViewModels
             int? entrySiteId = xeTrongBai?.SiteId;
             int? entryZoneId = xeTrongBai?.ZoneId;
             int? entryLaneId = xeTrongBai?.EntryLaneId;
-            string? entryImageFolder = xeTrongBai?.AnhXe; // folder lưu ảnh lúc vào
+            string? entryImageFolder = QuanLyGiuXe.Services.ParkingImageService.ResolveSharedFolderPath(xeTrongBai?.AnhXe); // folder lưu ảnh lúc vào
 
             try
             {
@@ -4041,15 +4041,17 @@ namespace QuanLyGiuXe.ViewModels
                 ImageSource? entryImg = null;
                 ImageSource? exitImg = null;
 
-                if (!string.IsNullOrEmpty(entryFolder) && System.IO.Directory.Exists(entryFolder))
+                var resolvedEntryFolder = QuanLyGiuXe.Services.ParkingImageService.ResolveSharedFolderPath(entryFolder);
+                if (!string.IsNullOrEmpty(resolvedEntryFolder) && System.IO.Directory.Exists(resolvedEntryFolder))
                 {
-                    string path = System.IO.Path.Combine(entryFolder, "plate_crop.jpg");
+                    string path = System.IO.Path.Combine(resolvedEntryFolder, "plate_crop.jpg");
                     if (System.IO.File.Exists(path)) entryImg = LoadImageFromFile(path);
                 }
 
-                if (!string.IsNullOrEmpty(exitFolder) && System.IO.Directory.Exists(exitFolder))
+                var resolvedExitFolder = QuanLyGiuXe.Services.ParkingImageService.ResolveSharedFolderPath(exitFolder);
+                if (!string.IsNullOrEmpty(resolvedExitFolder) && System.IO.Directory.Exists(resolvedExitFolder))
                 {
-                    string path = System.IO.Path.Combine(exitFolder, "plate_crop.jpg");
+                    string path = System.IO.Path.Combine(resolvedExitFolder, "plate_crop.jpg");
                     if (System.IO.File.Exists(path)) exitImg = LoadImageFromFile(path);
                 }
 

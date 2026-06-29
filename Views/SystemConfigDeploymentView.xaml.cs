@@ -65,6 +65,7 @@ namespace QuanLyGiuXe.Views
             ImageQualityBox.Text = qVal.ToString();
             SelectMaxWidthComboItem(_cfg.Cameras.SaveMaxWidth);
             ShowEntrySnapAtExitCheck.IsChecked = _cfg.Cameras.ShowEntrySnapAtExit;
+            ImageStoragePathBox.Text = _cfg.ImageStoragePath ?? string.Empty;
         }
 
         private async void UserControl_Loaded(object sender, RoutedEventArgs e)
@@ -385,7 +386,7 @@ namespace QuanLyGiuXe.Views
             ImageQualityBox.Text = defaultQ.ToString();
             SelectMaxWidthComboItem(_cfg.Cameras.SaveMaxWidth);
             ShowEntrySnapAtExitCheck.IsChecked = _cfg.Cameras.ShowEntrySnapAtExit;
-
+            ImageStoragePathBox.Text = _cfg.ImageStoragePath ?? string.Empty;
             MessageBox.Show("Đã reset về mặc định", "Reset", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
@@ -1138,6 +1139,7 @@ namespace QuanLyGiuXe.Views
                     _cfg.Cameras.SaveMaxWidth = w;
                 }
                 _cfg.Cameras.ShowEntrySnapAtExit = ShowEntrySnapAtExitCheck.IsChecked == true;
+                _cfg.ImageStoragePath = string.IsNullOrWhiteSpace(ImageStoragePathBox.Text) ? null : ImageStoragePathBox.Text.Trim();
 
                 // ForceMode obsolete
                 _cfg.ZKTeco.ForceAllIn = false;

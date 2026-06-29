@@ -341,6 +341,19 @@ namespace QuanLyGiuXe
 
                 try
                 {
+                    var config = AppConfig.Load();
+                    if (!string.IsNullOrEmpty(config.ImageStoragePath))
+                    {
+                        await DatabaseService.MigrateLocalImagePathsAsync(config.ImageStoragePath);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LoggingService.Instance.LogError("APP_STARTUP_IMAGE_MIGRATION", "Startup", "Image path migration failed", ex);
+                }
+
+                try
+                {
                     await QuanLyGiuXe.Services.OfflineCache.OfflineCacheService.Instance.PreloadCacheAsync();
                 }
                 catch (Exception ex)

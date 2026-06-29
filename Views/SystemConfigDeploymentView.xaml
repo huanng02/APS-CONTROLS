@@ -684,6 +684,13 @@
                                                 <CheckBox x:Name="ShowEntrySnapAtExitCheck" Content="Hiển thị ảnh lúc vào tại cổng ra (Show entry snapshot at exit)" FontSize="12" FontWeight="SemiBold" Foreground="#4B5563" Margin="0,15,0,0" VerticalAlignment="Center"/>
                                                 <TextBlock Text="Khi tích chọn, tại cổng ra, các ô ảnh SNAP sẽ hiển thị ảnh toàn cảnh và biển số lúc vào. Ảnh biển số cắt nhỏ ở phần thông tin bên dưới sẽ là của lúc ra. Ảnh chụp lúc ra vẫn được thực hiện và lưu trữ bình thường." Foreground="#9CA3AF" FontSize="10" Margin="20,4,0,0" TextWrapping="Wrap"/>
 
+                                                <!-- Shared Image Storage Path -->
+                                                <StackPanel Margin="0,15,0,0">
+                                                    <TextBlock Text="Đường dẫn lưu trữ hình ảnh dùng chung (Shared Image Storage Path)" Foreground="#4B5563" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                                                    <TextBox x:Name="ImageStoragePathBox" Style="{StaticResource ModernTextBox}" Height="32" VerticalContentAlignment="Center"/>
+                                                    <TextBlock Text="Đường dẫn thư mục chia sẻ mạng UNC (ví dụ: \\192.168.1.50\ParkingImages). Nếu để trống sẽ lưu tại thư mục local ProgramData." Foreground="#9CA3AF" FontSize="10" Margin="0,5,0,0"/>
+                                                </StackPanel>
+
 
                                             </StackPanel>
                                         </Border>

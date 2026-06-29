@@ -27,8 +27,46 @@ namespace QuanLyGiuXe.Services
 
         public string RootDirectory
         {
-            get => _rootDir;
+            get
+            {
+                var config = AppConfig.Load();
+                if (!string.IsNullOrEmpty(config.ImageStoragePath))
+                {
+                    return config.ImageStoragePath;
+                }
+                return _rootDir;
+            }
             set => _rootDir = value;
+        }
+
+        public static string? ResolveSharedFolderPath(string? path)
+        {
+            if (string.IsNullOrEmpty(path)) return path;
+
+            var config = AppConfig.Load();
+            string? sharedRoot = config?.ImageStoragePath;
+            if (string.IsNullOrEmpty(sharedRoot))
+            {
+                return path;
+            }
+
+            // Normalise paths (backslashes)
+            string normalizedPath = path.Replace('/', '\\');
+            string marker = @"\ParkingImages\";
+            int idx = normalizedPath.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+            if (idx >= 0)
+            {
+                string subPath = normalizedPath.Substring(idx + marker.Length);
+                return Path.Combine(sharedRoot, subPath);
+            }
+            
+            string markerAlternative = @"ParkingImages\";
+            if (normalizedPath.StartsWith(markerAlternative, StringComparison.OrdinalIgnoreCase))
+            {
+                return Path.Combine(sharedRoot, normalizedPath.Substring(markerAlternative.Length));
+            }
+
+            return path;
         }
 
         private ParkingImageService() { }

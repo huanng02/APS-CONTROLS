@@ -90,15 +90,18 @@ namespace QuanLyGiuXe.ViewModels
         {
             if (string.IsNullOrEmpty(folderPath)) return null;
 
-            if (System.IO.File.Exists(folderPath))
+            var resolvedFolder = QuanLyGiuXe.Services.ParkingImageService.ResolveSharedFolderPath(folderPath);
+            if (string.IsNullOrEmpty(resolvedFolder)) return null;
+
+            if (System.IO.File.Exists(resolvedFolder))
             {
                 // If it's a file path (for backward compatibility), return it only for the main overview photo
-                return fileName == "full.jpg" ? folderPath : null;
+                return fileName == "full.jpg" ? resolvedFolder : null;
             }
 
-            if (System.IO.Directory.Exists(folderPath))
+            if (System.IO.Directory.Exists(resolvedFolder))
             {
-                string targetPath = System.IO.Path.Combine(folderPath, fileName);
+                string targetPath = System.IO.Path.Combine(resolvedFolder, fileName);
                 if (System.IO.File.Exists(targetPath)) return targetPath;
             }
 
