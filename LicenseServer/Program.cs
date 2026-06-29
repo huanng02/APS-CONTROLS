@@ -55,7 +55,7 @@ using (var scope = app.Services.CreateScope())
         if (conn.State != System.Data.ConnectionState.Open)
             conn.Open();
 
-        // Lấy danh sách cột hiện tại của bảng Machines
+        // 1. Migrate Machines table
         var existingColumns = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
         using (var cmd = conn.CreateCommand())
         {
@@ -65,7 +65,6 @@ using (var scope = app.Services.CreateScope())
                 existingColumns.Add(reader.GetString(1)); // cột "name"
         }
 
-        // Danh sách cột mới cần thêm: (tên, kiểu SQLite)
         var newColumns = new (string Name, string Type)[]
         {
             ("LastActivatedAt", "TEXT NULL"),
@@ -75,6 +74,8 @@ using (var scope = app.Services.CreateScope())
             ("MacAddress",      "TEXT NULL"),
             ("OsVersion",       "TEXT NULL"),
             ("ActivatedFromIp", "TEXT NULL"),
+            ("MotherboardSerial", "TEXT NULL"),
+            ("BiosSerial",      "TEXT NULL"),
         };
 
         foreach (var (colName, colType) in newColumns)
@@ -85,6 +86,36 @@ using (var scope = app.Services.CreateScope())
                 cmd.CommandText = $"ALTER TABLE Machines ADD COLUMN {colName} {colType}";
                 cmd.ExecuteNonQuery();
                 Console.WriteLine($"[DB Migration] Added column Machines.{colName}");
+            }
+        }
+
+        // 2. Migrate Licenses table
+        var existingLicenseColumns = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = "PRAGMA table_info(Licenses)";
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+                existingLicenseColumns.Add(reader.GetString(1));
+        }
+
+        var newLicenseColumns = new (string Name, string Type)[]
+        {
+            ("Product",      "TEXT NULL"),
+            ("CustomerName", "TEXT NULL"),
+            ("LicenseType",  "TEXT NULL"),
+            ("Features",     "TEXT NULL"),
+            ("Version",      "INTEGER DEFAULT 1"),
+        };
+
+        foreach (var (colName, colType) in newLicenseColumns)
+        {
+            if (!existingLicenseColumns.Contains(colName))
+            {
+                using var cmd = conn.CreateCommand();
+                cmd.CommandText = $"ALTER TABLE Licenses ADD COLUMN {colName} {colType}";
+                cmd.ExecuteNonQuery();
+                Console.WriteLine($"[DB Migration] Added column Licenses.{colName}");
             }
         }
     }

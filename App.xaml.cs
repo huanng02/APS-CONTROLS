@@ -94,6 +94,7 @@ namespace QuanLyGiuXe
                         QuanLyGiuXe.Tests.LaneDirectionConsistencyTests.Run();
                         QuanLyGiuXe.Tests.SecurityPermissionMatrixTests.Run();
                         QuanLyGiuXe.Tests.EnterpriseCrudTests.Run();
+                        QuanLyGiuXe.Tests.OfflineLicenseTests.Run();
                         this.Shutdown(0);
                     }
                     catch (Exception ex)

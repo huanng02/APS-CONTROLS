@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="C3 License Administrator" 
         Icon="/LicenseTool;component/Assets/app.ico"
-        Height="650" Width="1100"
+        Height="680" Width="1450"
         WindowStartupLocation="CenterScreen"
         Background="#12131A"
         Foreground="#FFFFFF">
@@ -124,6 +124,10 @@
                     <TextBox x:Name="MaxMachinesBox" Text="4" Style="{StaticResource ModernTextBox}" Margin="0,0,0,20"/>
 
                     <Button Style="{StaticResource AccentButton}" Content="Tạo Key Mới" Click="CreateKey_Click" Height="38"/>
+
+                    <Border Height="1" Background="#242635" Margin="0,16,0,16"/>
+                    <TextBlock Text="BẢN QUYỀN OFFLINE" FontSize="12" FontWeight="Bold" Foreground="#00D2FF" Margin="0,0,0,12"/>
+                    <Button Style="{StaticResource ModernButton}" Content="Tạo Bản Quyền Offline" Click="OfflineGenerator_Click" Height="38" Background="#2F313E"/>
                 </StackPanel>
 
                 <!-- Sidebar Footer -->
@@ -179,9 +183,13 @@
                             </Style>
                         </DataGrid.Resources>
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="License Key" Binding="{Binding LicenseKey}" Width="220"/>
-                            <DataGridTextColumn Header="Trạng thái" Binding="{Binding Status}" Width="110"/>
-                            <DataGridTextColumn Header="Giới hạn máy" Binding="{Binding MaxMachines}" Width="100"/>
+                            <DataGridTextColumn Header="License Key" Binding="{Binding LicenseKey}" Width="200"/>
+                            <DataGridTextColumn Header="Khách hàng" Binding="{Binding CustomerName}" Width="130"/>
+                            <DataGridTextColumn Header="Sản phẩm" Binding="{Binding Product}" Width="80"/>
+                            <DataGridTextColumn Header="Tính năng" Binding="{Binding Features}" Width="140"/>
+                            <DataGridTextColumn Header="Loại" Binding="{Binding LicenseType}" Width="90"/>
+                            <DataGridTextColumn Header="Trạng thái" Binding="{Binding Status}" Width="90"/>
+                            <DataGridTextColumn Header="Giới hạn máy" Binding="{Binding MaxMachines}" Width="90"/>
                             <DataGridTextColumn Header="Ngày hết hạn" Binding="{Binding ExpireAtFormatted}" Width="150"/>
                             <DataGridTemplateColumn Header="Sao chép Key" Width="110">
                                 <DataGridTemplateColumn.CellTemplate>
@@ -256,8 +264,10 @@
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Thiết bị" Binding="{Binding FingerprintShort}" Width="90"/>
                             <DataGridTextColumn Header="Trạng thái" Binding="{Binding Status}" Width="90"/>
-                            <DataGridTextColumn Header="Mã Fingerprint" Binding="{Binding MachineFingerprint}" Width="250"/>
-                            <DataGridTextColumn Header="Ngày kích hoạt" Binding="{Binding CreatedAtFormatted}" Width="150"/>
+                            <DataGridTextColumn Header="Mã Machine ID / Fingerprint" Binding="{Binding MachineFingerprint}" Width="200"/>
+                            <DataGridTextColumn Header="Motherboard" Binding="{Binding MotherboardSerial}" Width="120"/>
+                            <DataGridTextColumn Header="BIOS" Binding="{Binding BiosSerial}" Width="120"/>
+                            <DataGridTextColumn Header="Ngày kích hoạt" Binding="{Binding CreatedAtFormatted}" Width="140"/>
                             <DataGridTextColumn Header="Heartbeat cuối" Binding="{Binding LastSeenAtFormatted}" Width="150"/>
                             <DataGridTemplateColumn Header="Thao tác" Width="140">
                                 <DataGridTemplateColumn.CellTemplate>

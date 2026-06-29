@@ -51,6 +51,20 @@ namespace QuanLyGiuXe.Services
         {
             try
             {
+                // Bypass server heartbeat check for offline activated licenses
+                if (LicenseManager.CurrentStatus == LicenseStatus.Activated && LicenseManager.CurrentLicense != null)
+                {
+                    if (DateTime.TryParse(LicenseManager.CurrentLicense.ExpirationDate, out var expireDate))
+                    {
+                        if (expireDate < DateTime.UtcNow)
+                        {
+                            LicenseManager.CurrentStatus = LicenseStatus.Expired;
+                            NotifyInvalid($"Bản quyền ngoại tuyến đã hết hạn vào ngày: {expireDate.ToLocalTime():yyyy-MM-dd HH:mm:ss}.");
+                        }
+                    }
+                    return;
+                }
+
                 if (!File.Exists(_licenseFilePath))
                 {
                     NotifyInvalid("Không tìm thấy file bản quyền local.");

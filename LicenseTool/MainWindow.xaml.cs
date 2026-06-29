@@ -143,7 +143,9 @@ namespace LicenseTool
                     DiskSerial         = m.DiskSerial ?? "",
                     MacAddress         = m.MacAddress ?? "",
                     OsVersion          = m.OsVersion ?? "",
-                    ActivatedFromIp    = m.ActivatedFromIp ?? ""
+                    ActivatedFromIp    = m.ActivatedFromIp ?? "",
+                    MotherboardSerial  = m.MotherboardSerial ?? "",
+                    BiosSerial         = m.BiosSerial ?? ""
                 }).ToList();
 
                 MachinesGrid.ItemsSource = machineList;
@@ -292,6 +294,15 @@ namespace LicenseTool
                 }
             }
         }
+
+        private void OfflineGenerator_Click(object sender, RoutedEventArgs e)
+        {
+            var offlineWin = new OfflineLicenseGeneratorWindow(GetServerUrl(), _httpClient);
+            if (offlineWin.ShowDialog() == true)
+            {
+                LoadData();
+            }
+        }
     }
 
     public class LicenseViewModel
@@ -302,6 +313,11 @@ namespace LicenseTool
         public string Status { get; set; } = string.Empty;
         public DateTime ExpireAt { get; set; }
         public string ExpireAtFormatted => ExpireAt.Year >= 2999 ? "Vĩnh viễn" : ExpireAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
+        public string Product { get; set; } = "APS";
+        public string CustomerName { get; set; } = string.Empty;
+        public string LicenseType { get; set; } = "Commercial";
+        public string Features { get; set; } = string.Empty;
+        public int Version { get; set; } = 1;
         public List<MachineDto> ActiveMachines { get; set; } = new();
     }
 
@@ -319,6 +335,8 @@ namespace LicenseTool
         public string? MacAddress { get; set; }
         public string? OsVersion { get; set; }
         public string? ActivatedFromIp { get; set; }
+        public string? MotherboardSerial { get; set; }
+        public string? BiosSerial { get; set; }
     }
 
     public class MachineViewModel
@@ -337,6 +355,8 @@ namespace LicenseTool
         public string MacAddress { get; set; } = "";
         public string OsVersion { get; set; } = "";
         public string ActivatedFromIp { get; set; } = "";
+        public string MotherboardSerial { get; set; } = "";
+        public string BiosSerial { get; set; } = "";
 
         // Formatted display
         public string DisplayName => !string.IsNullOrWhiteSpace(MachineName)

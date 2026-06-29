@@ -34,5 +34,8 @@ namespace LicenseServer.Models
 
         /// <summary>IP của client lúc kích hoạt</summary>
         public string? ActivatedFromIp { get; set; }
+
+        public string? MotherboardSerial { get; set; }
+        public string? BiosSerial { get; set; }
     }
 }

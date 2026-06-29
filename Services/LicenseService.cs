@@ -162,6 +162,7 @@ namespace QuanLyGiuXe.Services
         private const string PublicKeyXml = @"<RSAKeyValue><Modulus>ojILooC76YJpMh60RLTCKsgoxexHbG0fKZ0qt1TV32MEu3dDh8DWnuoVL8m6ZcJrS2GOG9837mqc/G435R2mO/+WwgvBysK93kZzrjZZ4iVBaRQ6VXsTeYd+Aj8WawQTkOhDujKC77qYMs2DETbsdp8GGcyf02NTzgV4C43SsYD2CTKdD5IgJ2okUBOIAq2G8lsqS294w6J0hLuelmfOLPd53mHZPX0ufnipU7jwJQp38zljvL5Sjp4QvrjJc3EWAVrunC3hR1LKZs7BLUbjdZWCyLSiBBaSsErW8pSU6KSEC9vjsgfrsCG5bpIvI8WkLelHmyc4uVFprb5InR5J9Q==</Modulus><Exponent>AQAB</Exponent></RSAKeyValue>";
 
         private readonly string _licenseFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "license.lic");
+        private readonly string _offlineLicenseFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "APS", "license.bin");
         private readonly HttpClient _httpClient = new() { Timeout = TimeSpan.FromSeconds(10) };
 
         /// <summary>
@@ -247,13 +248,174 @@ namespace QuanLyGiuXe.Services
             }
         }
 
+        public double CalculateHardwareMatchScore(HardwareDetails local, HardwareDetails licensed)
+        {
+            double score = 0;
+            if (string.Equals(local.Motherboard, licensed.Motherboard, StringComparison.OrdinalIgnoreCase)) score += 50;
+            if (string.Equals(local.Cpu, licensed.Cpu, StringComparison.OrdinalIgnoreCase)) score += 30;
+            if (string.Equals(local.Disk, licensed.Disk, StringComparison.OrdinalIgnoreCase)) score += 15;
+            if (string.Equals(local.Bios, licensed.Bios, StringComparison.OrdinalIgnoreCase)) score += 5;
+            return score;
+        }
+
+        public bool VerifyOfflineLicense(OfflineLicense license, out string errorMsg)
+        {
+            errorMsg = string.Empty;
+
+            if (license == null)
+            {
+                errorMsg = "File bản quyền không hợp lệ hoặc bị lỗi (Corrupted).";
+                LicenseManager.CurrentStatus = LicenseStatus.Corrupted;
+                return false;
+            }
+
+            if (license.Version != 1)
+            {
+                errorMsg = $"Phiên bản bản quyền không được hỗ trợ (Version: {license.Version}).";
+                LicenseManager.CurrentStatus = LicenseStatus.Invalid;
+                return false;
+            }
+
+            // 1. Verify RSA Signature
+            try
+            {
+                var sortedFeatures = license.Features.OrderBy(f => f).ToList();
+                var payload = $"{license.Version}|{license.Product}|{license.Customer}|{license.MachineId}|{license.LicenseType}|{string.Join(",", sortedFeatures)}|{license.Hardware.Cpu}|{license.Hardware.Motherboard}|{license.Hardware.Disk}|{license.Hardware.Bios}|{license.CreatedDate}|{license.ExpirationDate}";
+
+                bool isSignatureValid = false;
+                using (var rsa = new RSACryptoServiceProvider(2048))
+                {
+                    rsa.FromXmlString(PublicKeyXml);
+                    var payloadBytes = Encoding.UTF8.GetBytes(payload);
+                    var sigBytes     = Convert.FromBase64String(license.Signature);
+                    isSignatureValid = rsa.VerifyData(payloadBytes, CryptoConfig.MapNameToOID("SHA256")!, sigBytes);
+                }
+
+                if (!isSignatureValid)
+                {
+                    errorMsg = "Chữ ký bản quyền không hợp lệ hoặc đã bị thay đổi (SignatureInvalid).";
+                    LicenseManager.CurrentStatus = LicenseStatus.SignatureInvalid;
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                errorMsg = $"Lỗi xác thực chữ ký bản quyền: {ex.Message}";
+                LicenseManager.CurrentStatus = LicenseStatus.SignatureInvalid;
+                return false;
+            }
+
+            // 2. Verify Hardware Match
+            var localHw = HardwareFingerprintService.GetHardwareDetails();
+            double score = CalculateHardwareMatchScore(localHw, license.Hardware);
+            if (score < 70)
+            {
+                errorMsg = $"Lỗi phần cứng không khớp (Hardware Match Score: {score}% < 70%).";
+                LicenseManager.CurrentStatus = LicenseStatus.HardwareMismatch;
+                
+                Serilog.Log.Warning("LICENSE_HARDWARE_MISMATCH: Score {Score}%. " +
+                                    "Local: Cpu={LCpu}, Mobo={LMob}, Disk={LDisk}, Bios={LBios}. " +
+                                    "Licensed: Cpu={RCpu}, Mobo={RMob}, Disk={RDisk}, Bios={RBios}.",
+                                    score, localHw.Cpu, localHw.Motherboard, localHw.Disk, localHw.Bios,
+                                    license.Hardware.Cpu, license.Hardware.Motherboard, license.Hardware.Disk, license.Hardware.Bios);
+                return false;
+            }
+
+            // 3. Check Expiration
+            if (DateTime.TryParse(license.ExpirationDate, out var expireDate))
+            {
+                if (expireDate < DateTime.UtcNow)
+                {
+                    errorMsg = $"Bản quyền ngoại tuyến đã hết hạn sử dụng vào ngày: {expireDate.ToLocalTime():yyyy-MM-dd HH:mm:ss} (Expired).";
+                    LicenseManager.CurrentStatus = LicenseStatus.Expired;
+                    return false;
+                }
+            }
+            else
+            {
+                errorMsg = "Định dạng thời gian hết hạn không chính xác.";
+                LicenseManager.CurrentStatus = LicenseStatus.Invalid;
+                return false;
+            }
+
+            // Activated successfully
+            LicenseManager.CurrentLicense = license;
+            LicenseManager.CurrentStatus = LicenseStatus.Activated;
+            return true;
+        }
+
+        public (bool Success, string ErrorMsg) ImportOfflineLicense(string sourceFilePath)
+        {
+            try
+            {
+                if (!File.Exists(sourceFilePath))
+                {
+                    return (false, "Không tìm thấy file bản quyền nguồn.");
+                }
+
+                string json = File.ReadAllText(sourceFilePath, Encoding.UTF8);
+                var license = JsonConvert.DeserializeObject<OfflineLicense>(json);
+                
+                string errorMsg;
+                if (!VerifyOfflineLicense(license, out errorMsg))
+                {
+                    return (false, errorMsg);
+                }
+
+                string dir = Path.GetDirectoryName(_offlineLicenseFilePath)!;
+                if (!Directory.Exists(dir))
+                {
+                    Directory.CreateDirectory(dir);
+                }
+
+                File.WriteAllText(_offlineLicenseFilePath, json, Encoding.UTF8);
+                Serilog.Log.Information("LICENSE_IMPORT_SUCCESS: Activated successfully offline for customer {Customer}.", license.Customer);
+                return (true, string.Empty);
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Error($"LICENSE_IMPORT_EXCEPTION: {ex.Message}");
+                return (false, $"Lỗi nhập bản quyền: {ex.Message}");
+            }
+        }
+
         public bool CheckLicenseOffline(out string errorMsg)
         {
             errorMsg = string.Empty;
 
+            // ── FLOW 1: Check Offline license.bin ──────────────────────────────────
+            if (File.Exists(_offlineLicenseFilePath))
+            {
+                try
+                {
+                    string json = File.ReadAllText(_offlineLicenseFilePath, Encoding.UTF8);
+                    var license = JsonConvert.DeserializeObject<OfflineLicense>(json);
+                    
+                    if (VerifyOfflineLicense(license, out errorMsg))
+                    {
+                        Serilog.Log.Information("LICENSE_VALID_OFFLINE: Offline license is active and validated.");
+                        return true;
+                    }
+                    else
+                    {
+                        Serilog.Log.Warning("LICENSE_INVALID_OFFLINE: {Error}", errorMsg);
+                        return false;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    errorMsg = $"File bản quyền bị hỏng hoặc không đúng định dạng (Corrupted). Chi tiết: {ex.Message}";
+                    LicenseManager.CurrentStatus = LicenseStatus.Corrupted;
+                    Serilog.Log.Error("LICENSE_READ_OFFLINE_ERROR: {Error}", ex.Message);
+                    return false;
+                }
+            }
+
+            // ── FLOW 2: Fallback to old Online license.lic (Backward Compatibility) ──
             if (!File.Exists(_licenseFilePath))
             {
-                errorMsg = "Không tìm thấy file bản quyền (license.lic). Hệ thống cần được kích hoạt.";
+                errorMsg = "Không tìm thấy file bản quyền (license.bin hoặc license.lic). Hệ thống cần được kích hoạt.";
+                LicenseManager.CurrentStatus = LicenseStatus.NotActivated;
                 return false;
             }
 
@@ -266,6 +428,7 @@ namespace QuanLyGiuXe.Services
                 if (license == null)
                 {
                     errorMsg = "File bản quyền không đúng định dạng.";
+                    LicenseManager.CurrentStatus = LicenseStatus.Corrupted;
                     return false;
                 }
 
@@ -285,6 +448,7 @@ namespace QuanLyGiuXe.Services
                 if (!isSignatureValid)
                 {
                     errorMsg = "Bản quyền đã bị chỉnh sửa hoặc chữ ký không hợp lệ! Vui lòng liên hệ nhà quản trị.";
+                    LicenseManager.CurrentStatus = LicenseStatus.SignatureInvalid;
                     return false;
                 }
 
@@ -294,6 +458,7 @@ namespace QuanLyGiuXe.Services
                     if (expireDate < DateTime.UtcNow)
                     {
                         errorMsg = $"Bản quyền đã hết hạn vào ngày: {expireDate.ToLocalTime():yyyy-MM-dd HH:mm:ss}.";
+                        LicenseManager.CurrentStatus = LicenseStatus.Expired;
                         return false;
                     }
                 }

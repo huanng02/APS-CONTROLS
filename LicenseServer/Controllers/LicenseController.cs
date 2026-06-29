@@ -352,6 +352,11 @@ namespace LicenseServer.Controllers
                     l.MaxMachines,
                     l.Status,
                     ExpireAt = l.ExpireDate,
+                    l.Product,
+                    l.CustomerName,
+                    l.LicenseType,
+                    l.Features,
+                    l.Version,
                     ActiveMachines = l.Machines.Select(m => new
                     {
                         MachineFingerprint = m.Fingerprint,
@@ -365,12 +370,136 @@ namespace LicenseServer.Controllers
                         m.DiskSerial,
                         m.MacAddress,
                         m.OsVersion,
-                        m.ActivatedFromIp
+                        m.ActivatedFromIp,
+                        m.MotherboardSerial,
+                        m.BiosSerial
                     }).ToList()
                 })
                 .ToListAsync();
 
             return Ok(list);
+        }
+
+        // POST /api/license/generate-offline
+        [HttpPost("generate-offline")]
+        public async Task<IActionResult> GenerateOffline([FromBody] GenerateOfflineLicenseRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.CustomerName) || string.IsNullOrWhiteSpace(request.MachineId))
+            {
+                return BadRequest(new { Message = "Customer name and Machine ID are required." });
+            }
+
+            // Find or generate a license key
+            var licenseKey = request.LicenseKey?.Trim();
+            License license;
+
+            if (string.IsNullOrEmpty(licenseKey))
+            {
+                licenseKey = GenerateLicenseKey();
+                license = new License
+                {
+                    LicenseKey = licenseKey,
+                    MaxMachines = 4,
+                    Status = "ACTIVE",
+                    CreatedAt = DateTime.UtcNow
+                };
+                _context.Licenses.Add(license);
+            }
+            else
+            {
+                license = await _context.Licenses
+                    .Include(l => l.Machines)
+                    .FirstOrDefaultAsync(l => l.LicenseKey == licenseKey);
+
+                if (license == null)
+                {
+                    // Create license with given key
+                    license = new License
+                    {
+                        LicenseKey = licenseKey,
+                        MaxMachines = 4,
+                        Status = "ACTIVE",
+                        CreatedAt = DateTime.UtcNow
+                    };
+                    _context.Licenses.Add(license);
+                }
+            }
+
+            // Calculate expiration date
+            DateTime expireDate;
+            if (request.ExpireDays == -1)
+            {
+                expireDate = new DateTime(3000, 12, 31, 0, 0, 0, DateTimeKind.Utc);
+            }
+            else
+            {
+                expireDate = DateTime.UtcNow.AddDays(request.ExpireDays);
+            }
+
+            // Update license details
+            license.Product = request.Product ?? "APS";
+            license.CustomerName = request.CustomerName;
+            license.LicenseType = request.LicenseType ?? "Commercial";
+            license.Features = string.Join(",", request.Features.OrderBy(f => f));
+            license.ExpireDate = expireDate;
+            license.Status = "ACTIVE";
+
+            // Find or add machine
+            var machine = license.Machines.FirstOrDefault(m => m.Fingerprint == request.MachineId);
+            if (machine == null)
+            {
+                machine = new Machine
+                {
+                    Fingerprint = request.MachineId,
+                    Status = "ACTIVE",
+                    ActivatedAt = DateTime.UtcNow,
+                    LastHeartbeat = DateTime.UtcNow,
+                    LastActivatedAt = DateTime.UtcNow,
+                    MachineName = $"{request.CustomerName}_{request.MachineId}",
+                    CpuId = request.Hardware.Cpu,
+                    MotherboardSerial = request.Hardware.Motherboard,
+                    DiskSerial = request.Hardware.Disk,
+                    BiosSerial = request.Hardware.Bios,
+                    ActivatedFromIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "offline-generator"
+                };
+                license.Machines.Add(machine);
+            }
+            else
+            {
+                machine.Status = "ACTIVE";
+                machine.LastActivatedAt = DateTime.UtcNow;
+                machine.CpuId = request.Hardware.Cpu;
+                machine.MotherboardSerial = request.Hardware.Motherboard;
+                machine.DiskSerial = request.Hardware.Disk;
+                machine.BiosSerial = request.Hardware.Bios;
+            }
+
+            await _context.SaveChangesAsync();
+
+            // Generate payload and signature
+            var version = 1;
+            var createdDateStr = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
+            var expireDateStr = expireDate.ToString("yyyy-MM-ddTHH:mm:ssZ");
+            var sortedFeatures = request.Features.OrderBy(f => f).ToList();
+            
+            var payload = $"{version}|{license.Product}|{license.CustomerName}|{request.MachineId}|{license.LicenseType}|{string.Join(",", sortedFeatures)}|{request.Hardware.Cpu}|{request.Hardware.Motherboard}|{request.Hardware.Disk}|{request.Hardware.Bios}|{createdDateStr}|{expireDateStr}";
+            var signature = _rsaService.SignData(payload);
+
+            var offlineLicense = new OfflineLicenseResponse
+            {
+                Version = version,
+                Product = license.Product,
+                Customer = license.CustomerName,
+                MachineId = request.MachineId,
+                LicenseType = license.LicenseType,
+                Features = sortedFeatures,
+                Hardware = request.Hardware,
+                CreatedDate = createdDateStr,
+                ExpirationDate = expireDateStr,
+                Signature = signature
+            };
+
+            return Ok(offlineLicense);
         }
 
         // GET /api/license/public-key
@@ -425,5 +554,39 @@ namespace LicenseServer.Controllers
     {
         public string LicenseKey { get; set; } = string.Empty;
         public string MachineFingerprint { get; set; } = string.Empty;
+    }
+
+    public class ServerHardwareDetails
+    {
+        public string Cpu { get; set; } = string.Empty;
+        public string Motherboard { get; set; } = string.Empty;
+        public string Disk { get; set; } = string.Empty;
+        public string Bios { get; set; } = string.Empty;
+    }
+
+    public class GenerateOfflineLicenseRequest
+    {
+        public string? LicenseKey { get; set; }
+        public string Product { get; set; } = "APS";
+        public string CustomerName { get; set; } = string.Empty;
+        public string LicenseType { get; set; } = "Commercial";
+        public List<string> Features { get; set; } = new();
+        public string MachineId { get; set; } = string.Empty;
+        public ServerHardwareDetails Hardware { get; set; } = new();
+        public int ExpireDays { get; set; } = 365;
+    }
+
+    public class OfflineLicenseResponse
+    {
+        public int Version { get; set; } = 1;
+        public string Product { get; set; } = "APS";
+        public string Customer { get; set; } = string.Empty;
+        public string MachineId { get; set; } = string.Empty;
+        public string LicenseType { get; set; } = "Commercial";
+        public List<string> Features { get; set; } = new();
+        public ServerHardwareDetails Hardware { get; set; } = new();
+        public string CreatedDate { get; set; } = string.Empty;
+        public string ExpirationDate { get; set; } = string.Empty;
+        public string Signature { get; set; } = string.Empty;
     }
 }
