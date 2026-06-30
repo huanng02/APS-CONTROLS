@@ -93,7 +93,8 @@
                             <!-- DataGrid -->
                             <DataGrid ItemsSource="{Binding Items}" 
                                       SelectedItem="{Binding DataContext.SelectedItem, RelativeSource={RelativeSource AncestorType=UserControl}, Mode=TwoWay}"
-                                      Style="{StaticResource ModernDataGrid}">
+                                      Style="{StaticResource ModernDataGrid}"
+                                      IsReadOnly="True">
                                 <DataGrid.RowStyle>
                                     <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
                                         <Setter Property="Background" Value="{Binding NgayHetHan, Converter={StaticResource ExpColorConv}}"/>
