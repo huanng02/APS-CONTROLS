@@ -108,7 +108,7 @@
     </UserControl.Resources>
 
     <Grid>
-        <TabControl Style="{StaticResource EnterpriseTabControl}" SelectedIndex="{Binding ActiveTabIndex, Mode=TwoWay}" Margin="5">
+        <TabControl Style="{StaticResource EnterpriseTabControl}" SelectedIndex="{Binding ActiveTabIndex, Mode=TwoWay}" SelectionChanged="TabControl_SelectionChanged" Margin="5">
             
             <!-- ═══════════════════════════════════════════════════════════ -->
             <!-- TAB 1: CẤU HÌNH HỆ THỐNG                                    -->

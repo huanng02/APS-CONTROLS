@@ -32,6 +32,13 @@ namespace QuanLyGiuXe.Views
 
             _cameras = new FilterInfoCollection(FilterCategory.VideoInputDevice);
 
+            PopulateUIFromConfig();
+        }
+
+        private void PopulateUIFromConfig()
+        {
+            if (_cfg == null) return;
+
             IpBox.Text = _cfg.ZKTeco.IpAddress;
             PortBox.Text = _cfg.ZKTeco.TcpPort.ToString();
             PwdBox.Text = _cfg.ZKTeco.Password;
@@ -1051,6 +1058,7 @@ namespace QuanLyGiuXe.Views
                 var prevBtn1 = _cfg.ZKTeco.Button1Action;
                 var prevBtn2 = _cfg.ZKTeco.Button2Action;
                 var prevShowEntrySnap = _cfg.Cameras.ShowEntrySnapAtExit;
+                var prevImageStoragePath = _cfg.ImageStoragePath;
 
                 var prevLaneCameras = _cfg.Cameras.LaneCameras?.Select(x => new LaneCameraSetting
                 {
@@ -1264,6 +1272,19 @@ namespace QuanLyGiuXe.Views
                 AddChange("Button1Action", prevBtn1, _cfg.ZKTeco.Button1Action);
                 AddChange("Button2Action", prevBtn2, _cfg.ZKTeco.Button2Action);
                 AddChange("Hiện ảnh vào tại cổng ra", prevShowEntrySnap, _cfg.Cameras.ShowEntrySnapAtExit);
+
+                if (prevImageStoragePath != _cfg.ImageStoragePath)
+                {
+                    if (changes.Length > 0) changes.Append("; ");
+                    changes.Append($"Đường dẫn lưu trữ hình ảnh: '{prevImageStoragePath}' -> '{_cfg.ImageStoragePath}'");
+                    auditTasks.Add(ConfigurationAuditService.Instance.RecordChangeAsync(
+                        "Camera",
+                        "System Settings",
+                        "Đường dẫn lưu trữ hình ảnh",
+                        prevImageStoragePath ?? string.Empty,
+                        _cfg.ImageStoragePath ?? string.Empty
+                    ));
+                }
 
                 // Compare lane camera changes and write to audit log
                 foreach (var item in _laneCameraCombos)
@@ -1808,6 +1829,17 @@ namespace QuanLyGiuXe.Views
                 {
                     ImageQualitySlider.Value = val;
                 }
+            }
+        }
+
+        private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (e.Source is System.Windows.Controls.TabControl tc && tc.SelectedIndex == 0)
+            {
+                // Reload configuration draft when returning to Tab 1
+                AppConfig.ClearDraftCache();
+                _cfg = AppConfig.LoadDraft();
+                PopulateUIFromConfig();
             }
         }
     }
