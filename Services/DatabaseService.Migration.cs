@@ -566,6 +566,10 @@ namespace QuanLyGiuXe.Services
                     string scriptPathShiftPerm = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260626_add_shift_report_permission.sql");
                     await ExecuteMigrationScriptAsync(conn, "20260626_add_shift_report_permission.sql", scriptPathShiftPerm);
 
+                    // 19. Execute Workstation Failover Support migration (20260630_failover_support.sql)
+                    string scriptPathFailover = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260630_failover_support.sql");
+                    await ExecuteMigrationScriptAsync(conn, "20260630_failover_support.sql", scriptPathFailover);
+
                     _baseSchemaChecked = true;
                     _migrationsApplied = true; // so that standard migrations are skipped post-login
                     LoggingService.Instance.LogInfo("DB_INIT", "EnsureBaseSchemaAndAdminSeededAsync", "Database successfully initialized and seeded.");
