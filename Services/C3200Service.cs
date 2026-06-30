@@ -1,10 +1,14 @@
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Data.SqlClient;
 using System.Diagnostics;
+using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.IO;
 using QuanLyGiuXe.Models;
 
 namespace QuanLyGiuXe.Services
@@ -20,6 +24,21 @@ namespace QuanLyGiuXe.Services
         public int InOutState { get; set; }
         public int VerifyMode { get; set; }
         public string RawData { get; set; } = "";
+        public string ControllerIp { get; set; } = ""; // Mới: Xác định từ controller nào
+    }
+
+    /// <summary>Lưu trữ kết nối cho từng Controller.</summary>
+    public class ControllerConnection
+    {
+        public string IpAddress { get; set; } = string.Empty;
+        public int Port { get; set; } = 4370;
+        public string Password { get; set; } = string.Empty;
+        public int TimeoutMs { get; set; } = 4000;
+        public int BarrierDuration { get; set; } = 5;
+
+        public IntPtr Handle { get; set; } = IntPtr.Zero;
+        public CancellationTokenSource? Cts { get; set; }
+        public bool IsConnected => Handle != IntPtr.Zero;
     }
 
     /// <summary>
@@ -59,8 +78,8 @@ namespace QuanLyGiuXe.Services
 
         // ──────────────────────────────────────────────────────────────────────────
 
-        private IntPtr _handle = IntPtr.Zero;
-        private CancellationTokenSource? _cts;
+        private IntPtr _handle = IntPtr.Zero; // Primary connection handle for legacy compatibility
+        private CancellationTokenSource? _cts; // Primary polling CTS
         private static readonly object _globalSdkLock = new();
         private static readonly SemaphoreSlim _connectionSemaphore = new(1, 1);
 
@@ -71,11 +90,17 @@ namespace QuanLyGiuXe.Services
         private int _barrierDuration = 5;
         private string? _lastRawEventSignature = null;
 
-        public bool IsConnected => _handle != IntPtr.Zero;
+        // Concurrent connection manager
+        private readonly ConcurrentDictionary<string, ControllerConnection> _connections = new(StringComparer.OrdinalIgnoreCase);
+
+        public bool IsConnected => GetConnection(_ip)?.IsConnected ?? false;
         public string LastError { get; private set; } = "";
 
-        /// <summary>Sự kiện quẹt thẻ: (cardNo, doorNumber, inOutState).</summary>
+        /// <summary>Sự kiện quẹt thẻ legacy: (cardNo, doorNumber, inOutState).</summary>
         public event Action<string, int, int>? OnCardScanned;
+
+        /// <summary>Sự kiện quẹt thẻ mở rộng (có IP controller).</summary>
+        public event Action<string, int, int, string>? OnCardScannedEx;
 
         /// <summary>Sự kiện đầy đủ từ RTLog (bao gồm tất cả dữ liệu).</summary>
         public event Action<C3200Event>? OnEvent;
@@ -95,6 +120,23 @@ namespace QuanLyGiuXe.Services
             _password = password;
             _timeoutMs = timeoutMs > 0 ? timeoutMs : 4000;
             _barrierDuration = barrierDuration is > 0 and <= 254 ? barrierDuration : 5;
+
+            var conn = _connections.GetOrAdd(ip, new ControllerConnection { IpAddress = ip });
+            conn.Port = port;
+            conn.Password = password;
+            conn.TimeoutMs = _timeoutMs;
+            conn.BarrierDuration = _barrierDuration;
+        }
+
+        public ControllerConnection? GetConnection(string ip)
+        {
+            _connections.TryGetValue(ip, out var conn);
+            return conn;
+        }
+
+        public List<ControllerConnection> GetAllActiveConnections()
+        {
+            return _connections.Values.ToList();
         }
 
         // ── Kiểm tra quyền sở hữu controller ────────────────────────────────────
@@ -106,7 +148,6 @@ namespace QuanLyGiuXe.Services
         /// </summary>
         public static bool IsOwnerOfController(string? pcIp)
         {
-            // Nếu PcIp chưa được cấu hình → không giới hạn (tương thích ngược)
             if (string.IsNullOrWhiteSpace(pcIp) ||
                 pcIp.Equals("127.0.0.1", StringComparison.OrdinalIgnoreCase))
                 return true;
@@ -117,11 +158,10 @@ namespace QuanLyGiuXe.Services
 
         /// <summary>
         /// Trả về tập hợp tất cả IPv4 thực của máy hiện tại.
-        /// Loại bỏ: loopback, APIPA (169.254.x.x), tunnel, interface ảo (VMware, VPN…).
         /// </summary>
-        public static System.Collections.Generic.HashSet<string> GetLocalIpAddresses()
+        public static HashSet<string> GetLocalIpAddresses()
         {
-            var result = new System.Collections.Generic.HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var result = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             try
             {
                 foreach (var nic in System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces())
@@ -132,7 +172,6 @@ namespace QuanLyGiuXe.Services
                         nic.NetworkInterfaceType == System.Net.NetworkInformation.NetworkInterfaceType.Tunnel)
                         continue;
 
-                    // Bỏ qua interface ảo
                     var desc = nic.Description.ToLowerInvariant();
                     var name = nic.Name.ToLowerInvariant();
                     if (desc.Contains("virtual") || desc.Contains("vmware") ||
@@ -154,7 +193,6 @@ namespace QuanLyGiuXe.Services
             }
             catch { }
 
-            // Fallback qua DNS nếu không tìm được gì
             if (result.Count == 0)
             {
                 try
@@ -172,46 +210,109 @@ namespace QuanLyGiuXe.Services
             return result;
         }
 
+        private static async Task<bool> IsActiveOwnerOfControllerAsync(string ip)
+        {
+            try
+            {
+                var allControllers = await ParkingTopologyService.Instance.GetControllersAsync();
+                var matchedCtrl = allControllers.FirstOrDefault(c => c.IsActive && c.IpAddress.Trim().Equals(ip.Trim(), StringComparison.OrdinalIgnoreCase));
+                if (matchedCtrl == null) return true;
+
+                string myId = WorkstationMonitorService.Instance.CurrentWorkstationId;
+                if (string.IsNullOrEmpty(myId))
+                {
+                    // Fall back to PcIp legacy check if Monitor Service not yet up
+                    return IsOwnerOfController(matchedCtrl.PcIp);
+                }
+
+                string connStr = ConnectionManager.Instance.CurrentConnectionString;
+                using (var conn = new SqlConnection(connStr))
+                {
+                    await conn.OpenAsync();
+                    string sql = @"
+                        SELECT lo.ActiveWorkstationId, lo.PrimaryWorkstationId
+                        FROM LaneOwnership lo
+                        JOIN dbo.Barriers b ON lo.LaneId = b.LaneId
+                        WHERE b.ControllerId = @ctrlId AND b.IsActive = 1";
+
+                    using (var cmd = new SqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@ctrlId", matchedCtrl.Id);
+                        using (var reader = await cmd.ExecuteReaderAsync())
+                        {
+                            bool hasEntries = false;
+                            while (await reader.ReadAsync())
+                            {
+                                hasEntries = true;
+                                string activeId = reader.IsDBNull(0) ? string.Empty : reader.GetString(0);
+                                if (activeId.Equals(myId, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    return true; // We are the active owner
+                                }
+                            }
+
+                            if (!hasEntries)
+                            {
+                                return IsOwnerOfController(matchedCtrl.PcIp);
+                            }
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                return true; // fail-safe
+            }
+            return false;
+        }
+
         // ── Kết nối ───────────────────────────────────────────────────────────────
 
         public async Task<bool> ConnectAsync()
         {
-            // ── Kiểm tra quyền sở hữu PcIp trước khi kết nối ──
+            return await ConnectToControllerAsync(_ip);
+        }
+
+        public async Task<bool> ConnectToControllerAsync(string ip)
+        {
             try
             {
-                var allControllers = await ParkingTopologyService.Instance.GetControllersAsync();
-                var matchedCtrl = allControllers
-                    .FirstOrDefault(c => c.IsActive &&
-                        c.IpAddress.Trim().Equals(_ip.Trim(), StringComparison.OrdinalIgnoreCase));
-
-                if (matchedCtrl != null && !string.IsNullOrWhiteSpace(matchedCtrl.PcIp))
+                bool isOwner = await IsActiveOwnerOfControllerAsync(ip);
+                if (!isOwner)
                 {
-                    if (!IsOwnerOfController(matchedCtrl.PcIp))
-                    {
-                        var myIps = string.Join(", ", GetLocalIpAddresses());
-                        LoggingService.Instance.LogWarning("C3_CONNECT_ABORT", "C3200Service",
-                            $"Từ chối kết nối đến controller {_ip} vì thuộc về máy {matchedCtrl.PcIp}. Máy hiện tại: {myIps}");
-                        LastError = $"Controller thuộc về máy {matchedCtrl.PcIp}";
-                        return false;
-                    }
+                    var myIps = string.Join(", ", GetLocalIpAddresses());
+                    LoggingService.Instance.LogWarning("C3_CONNECT_ABORT", "C3200Service",
+                        $"Từ chối kết nối đến controller {ip} vì không phải active owner. Máy hiện tại: {myIps}");
+                    LastError = $"Không có quyền active owner đối với controller {ip}";
+                    return false;
                 }
             }
             catch (Exception ex)
             {
-                // Fail-safe: nếu lỗi kiểm tra (ví dụ DB offline), vẫn tiếp tục cho phép kết nối để tránh gián đoạn
                 LoggingService.Instance.LogError("C3_CONNECT_OWNER_CHECK_ERROR", "C3200Service",
                     "Lỗi khi kiểm tra PcIp ownership, tiếp tục kết nối (fail-safe).", ex);
             }
 
             return await ErrorHandling.SafeExecutionService.SafeExecuteAsync(async () => 
             {
+                var conn = _connections.GetOrAdd(ip, new ControllerConnection { IpAddress = ip });
+                
                 await _connectionSemaphore.WaitAsync();
                 try
                 {
-                    DisconnectInternal();
+                    if (conn.IsConnected)
+                    {
+                        return true;
+                    }
+
                     IntPtr handle = await Task.Run(() => {
                         IntPtr h = IntPtr.Zero;
-                        foreach (var parameters in BuildConnectCandidates())
+                        string baseParams = $"protocol=TCP,ipaddress={ip},port={conn.Port},timeout={conn.TimeoutMs},device=1";
+                        string[] candidates = string.IsNullOrWhiteSpace(conn.Password) 
+                            ? new[] { baseParams, baseParams + ",password=", baseParams + ",passwd=" }
+                            : new[] { baseParams + $",password={conn.Password}", baseParams + $",passwd={conn.Password}", baseParams };
+                        
+                        foreach (var parameters in candidates)
                         {
                             lock (_globalSdkLock)
                             {
@@ -225,16 +326,26 @@ namespace QuanLyGiuXe.Services
                     if (handle == IntPtr.Zero)
                     {
                         LastError = $"Kết nối thất bại (sdkError={GetSdkError()})";
-                        _handle = IntPtr.Zero;
-                        DetectedLockCount = -1;
-                        OnConnectionChanged?.Invoke(false);
+                        conn.Handle = IntPtr.Zero;
+                        if (ip.Equals(_ip, StringComparison.OrdinalIgnoreCase))
+                        {
+                            _handle = IntPtr.Zero;
+                            DetectedLockCount = -1;
+                            OnConnectionChanged?.Invoke(false);
+                        }
                         return false;
                     }
 
-                    _handle = handle;
-                    DetectedLockCount = GetLockCount(handle); // Query model capabilities immediately upon connect (before polling start)
-                    OnConnectionChanged?.Invoke(true);
-                    StartPolling();
+                    conn.Handle = handle;
+
+                    if (ip.Equals(_ip, StringComparison.OrdinalIgnoreCase))
+                    {
+                        _handle = handle;
+                        DetectedLockCount = GetLockCount(handle);
+                        OnConnectionChanged?.Invoke(true);
+                    }
+
+                    StartPollingForConnection(conn);
                     return true;
                 }
                 finally
@@ -251,7 +362,6 @@ namespace QuanLyGiuXe.Services
 
         public int GetLockCount(IntPtr specificHandle = default)
         {
-            // If checking on already connected device, return cached lock count to avoid active SDK polling contention
             if (specificHandle == IntPtr.Zero)
             {
                 if (IsConnected && DetectedLockCount > 0)
@@ -287,7 +397,10 @@ namespace QuanLyGiuXe.Services
             _connectionSemaphore.Wait();
             try
             {
-                DisconnectInternal();
+                foreach (var conn in _connections.Values)
+                {
+                    DisconnectControllerInternal(conn);
+                }
             }
             finally
             {
@@ -295,83 +408,110 @@ namespace QuanLyGiuXe.Services
             }
         }
 
-        private void DisconnectInternal()
+        public void DisconnectController(string ip)
         {
-            StopPolling();
-            lock (_globalSdkLock)
+            _connectionSemaphore.Wait();
+            try
             {
-                if (_handle != IntPtr.Zero)
+                if (_connections.TryGetValue(ip, out var conn))
                 {
-                    try { PLDisconnect(_handle); } catch { }
-                    _handle = IntPtr.Zero;
+                    DisconnectControllerInternal(conn);
                 }
-                DetectedLockCount = -1;
+            }
+            finally
+            {
+                _connectionSemaphore.Release();
             }
         }
 
-        private string[] BuildConnectCandidates()
+        private void DisconnectControllerInternal(ControllerConnection conn)
         {
-            string baseParams = $"protocol=TCP,ipaddress={_ip},port={_port},timeout={_timeoutMs},device=1";
-
-            if (string.IsNullOrWhiteSpace(_password))
-                return [baseParams, baseParams + ",password=", baseParams + ",passwd="];
-
-            return [
-                baseParams + $",password={_password}",
-                baseParams + $",passwd={_password}",
-                baseParams
-            ];
+            StopPollingForConnection(conn);
+            lock (_globalSdkLock)
+            {
+                if (conn.Handle != IntPtr.Zero)
+                {
+                    try { PLDisconnect(conn.Handle); } catch { }
+                    conn.Handle = IntPtr.Zero;
+                }
+                if (conn.IpAddress.Equals(_ip, StringComparison.OrdinalIgnoreCase))
+                {
+                    _handle = IntPtr.Zero;
+                    DetectedLockCount = -1;
+                    OnConnectionChanged?.Invoke(false);
+                }
+            }
         }
 
         // ── Mở / Đóng barrier ────────────────────────────────────────────────────
 
-        /// <summary>Mở barrier. doorNumber: 1 = cửa vào, 2 = cửa ra.</summary>
-        public async Task<bool> OpenBarrierAsync(int doorNumber = 1)
+        /// <summary>Mở barrier theo LaneId cấu hình trong topology.</summary>
+        public async Task<bool> OpenBarrierAsync(int laneId)
         {
             return await ErrorHandling.SafeExecutionService.SafeExecuteAsync(async () => 
             {
-                if (!IsConnected && !await ConnectAsync())
-                    return false;
-
-                StopPolling();
-
-                // Gửi lệnh ngay trên kết nối hiện tại
-                int r = -1;
-                lock (_globalSdkLock)
+                var allControllers = await ParkingTopologyService.Instance.GetControllersAsync();
+                var allBarriers = await ParkingTopologyService.Instance.GetBarriersAsync();
+                
+                var barrier = allBarriers.FirstOrDefault(b => b.LaneId == laneId && b.IsActive);
+                if (barrier == null)
                 {
-                    if (_handle != IntPtr.Zero)
+                    // Fallback to legacy OpenBarrier if laneId acts as physical door number on primary controller
+                    return await OpenBarrierLegacyAsync(laneId);
+                }
+
+                var ctrl = allControllers.FirstOrDefault(c => c.Id == barrier.ControllerId && c.IsActive);
+                if (ctrl == null)
+                {
+                    LastError = $"Không tìm thấy Controller cho LaneId {laneId}";
+                    return false;
+                }
+
+                string ip = ctrl.IpAddress;
+
+                if (!_connections.TryGetValue(ip, out var conn) || !conn.IsConnected)
+                {
+                    bool ok = await ConnectToControllerAsync(ip);
+                    if (!ok || !_connections.TryGetValue(ip, out conn) || !conn.IsConnected)
                     {
-                        r = PLControlDevice(_handle, 1, doorNumber, 1, _barrierDuration, 0, "");
+                        LastError = $"Controller {ip} chưa kết nối";
+                        return false;
                     }
                 }
 
-                // Nếu thất bại → reconnect rồi thử lại 1 lần
+                StopPollingForConnection(conn);
+
+                int r = -1;
+                lock (_globalSdkLock)
+                {
+                    if (conn.Handle != IntPtr.Zero)
+                    {
+                        r = PLControlDevice(conn.Handle, 1, barrier.RelayNumber, 1, conn.BarrierDuration, 0, "");
+                    }
+                }
+
                 if (r < 0)
                 {
-                    Disconnect();
+                    DisconnectController(ip);
                     await Task.Delay(50);
-                    if (!await ConnectAsync())
+                    if (await ConnectToControllerAsync(ip) && _connections.TryGetValue(ip, out conn) && conn.IsConnected)
                     {
-                        LastError = "Reconnect thất bại";
-                        return false;
-                    }
-
-                    StopPolling();
-                    lock (_globalSdkLock)
-                    {
-                        if (_handle != IntPtr.Zero)
+                        StopPollingForConnection(conn);
+                        lock (_globalSdkLock)
                         {
-                            r = PLControlDevice(_handle, 1, doorNumber, 1, _barrierDuration, 0, "");
+                            if (conn.Handle != IntPtr.Zero)
+                            {
+                                r = PLControlDevice(conn.Handle, 1, barrier.RelayNumber, 1, conn.BarrierDuration, 0, "");
+                            }
                         }
                     }
                 }
 
-                StartPolling();
+                StartPollingForConnection(conn);
 
-                // log SDK return for diagnostics
                 try
                 {
-                    var dbg = $"{DateTime.Now:O}\tOpenBarrier\tdoor={doorNumber}\tret={r}\tsdk={GetSdkError()}\n";
+                    var dbg = $"{DateTime.Now:O}\tOpenBarrier\tLaneId={laneId}\tController={ip}\trelay={barrier.RelayNumber}\tret={r}\tsdk={GetSdkError()}\n";
                     File.AppendAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ButtonPressDebug.txt"), dbg);
                 }
                 catch { }
@@ -382,18 +522,17 @@ namespace QuanLyGiuXe.Services
                     return false;
                 }
 
-                // success: keep LastError empty but record ret for trace
                 LastError = $"ret={r}";
                 try
                 {
-                    var topo = EventBus.Instance.ResolveTopologyForReader(doorNumber == 1 ? 1 : 3);
+                    var topo = EventBus.Instance.ResolveTopologyForReader(barrier.RelayNumber == 1 ? 1 : 3);
                     EventBus.Instance.Publish(new RealtimeEvent
                     {
                         Timestamp = DateTime.Now,
                         EventType = "BARRIER_OPEN",
                         Severity = RealtimeEventSeverity.Success,
                         Source = "C3200Service",
-                        Message = $"Mở Barrier thành công tại Cổng: '{topo.Gate}', Làn: '{topo.Lane}'",
+                        Message = $"Mở Barrier thành công tại Làn ID: '{laneId}'",
                         Site = topo.Site,
                         Zone = topo.Zone,
                         Gate = topo.Gate,
@@ -403,46 +542,76 @@ namespace QuanLyGiuXe.Services
                 catch { }
                 return true;
             }, 
-            source: $"C3200Service.OpenBarrier({doorNumber})",
+            source: $"C3200Service.OpenBarrier({laneId})",
             defaultValue: false,
             friendlyMessage: "Lỗi lệnh điều khiển Barrier.");
+        }
+
+        /// <summary>Mở barrier legacy. doorNumber: 1 = cửa vào, 2 = cửa ra.</summary>
+        public async Task<bool> OpenBarrierLegacyAsync(int doorNumber = 1)
+        {
+            var conn = _connections.GetOrAdd(_ip, new ControllerConnection { IpAddress = _ip });
+            if (!conn.IsConnected && !await ConnectToControllerAsync(_ip))
+                return false;
+
+            StopPollingForConnection(conn);
+
+            int r = -1;
+            lock (_globalSdkLock)
+            {
+                if (conn.Handle != IntPtr.Zero)
+                {
+                    r = PLControlDevice(conn.Handle, 1, doorNumber, 1, conn.BarrierDuration, 0, "");
+                }
+            }
+
+            if (r < 0)
+            {
+                DisconnectController(_ip);
+                await Task.Delay(50);
+                if (await ConnectToControllerAsync(_ip) && _connections.TryGetValue(_ip, out conn) && conn.IsConnected)
+                {
+                    StopPollingForConnection(conn);
+                    lock (_globalSdkLock)
+                    {
+                        if (conn.Handle != IntPtr.Zero)
+                        {
+                            r = PLControlDevice(conn.Handle, 1, doorNumber, 1, conn.BarrierDuration, 0, "");
+                        }
+                    }
+                }
+            }
+
+            StartPollingForConnection(conn);
+
+            try
+            {
+                var dbg = $"{DateTime.Now:O}\tOpenBarrierLegacy\tdoor={doorNumber}\tret={r}\tsdk={GetSdkError()}\n";
+                File.AppendAllText(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ButtonPressDebug.txt"), dbg);
+            }
+            catch { }
+
+            return r >= 0;
         }
 
         /// <summary>Đóng barrier. doorNumber: 1 = cửa vào, 2 = cửa ra.</summary>
         public Task<bool> CloseBarrierAsync(int doorNumber = 1)
         {
-            if (!IsConnected) return Task.FromResult(false);
+            var conn = GetConnection(_ip);
+            if (conn == null || !conn.IsConnected) return Task.FromResult(false);
 
             try
             {
-                // operationID=2 (CancelAlarm / close)
                 int r = -1;
                 lock (_globalSdkLock)
                 {
-                    if (_handle != IntPtr.Zero)
+                    if (conn.Handle != IntPtr.Zero)
                     {
-                        r = PLControlDevice(_handle, 2, doorNumber, 0, 0, 0, "");
+                        r = PLControlDevice(conn.Handle, 2, doorNumber, 0, 0, 0, "");
                     }
                 }
                 if (r >= 0)
                 {
-                    try
-                    {
-                        var topo = EventBus.Instance.ResolveTopologyForReader(doorNumber == 1 ? 1 : 3);
-                        EventBus.Instance.Publish(new RealtimeEvent
-                        {
-                            Timestamp = DateTime.Now,
-                            EventType = "BARRIER_CLOSE",
-                            Severity = RealtimeEventSeverity.Info,
-                            Source = "C3200Service",
-                            Message = $"Lệnh đóng Barrier gửi thành công cho Cổng: '{topo.Gate}', Làn: '{topo.Lane}'",
-                            Site = topo.Site,
-                            Zone = topo.Zone,
-                            Gate = topo.Gate,
-                            Lane = topo.Lane
-                        });
-                    }
-                    catch { }
                     return Task.FromResult(true);
                 }
 
@@ -458,32 +627,37 @@ namespace QuanLyGiuXe.Services
 
         // ── RTLog polling (nhận sự kiện quẹt thẻ) ────────────────────────────────
 
-        private void StartPolling()
+        private void StartPollingForConnection(ControllerConnection conn)
         {
-            _cts = new CancellationTokenSource();
-            _ = PollRTLogAsync(_cts.Token);
+            lock (_globalSdkLock)
+            {
+                StopPollingForConnection(conn);
+                conn.Cts = new CancellationTokenSource();
+                _ = PollRTLogForConnectionAsync(conn, conn.Cts.Token);
+            }
         }
 
-        private void StopPolling()
+        private void StopPollingForConnection(ControllerConnection conn)
         {
-            _cts?.Cancel();
-            _cts = null;
+            conn.Cts?.Cancel();
+            conn.Cts = null;
         }
 
-        private async Task PollRTLogAsync(CancellationToken token)
+        private async Task PollRTLogForConnectionAsync(ControllerConnection conn, CancellationToken token)
         {
             var buffer = new byte[4096];
+            string ip = conn.IpAddress;
 
-            while (!token.IsCancellationRequested && IsConnected)
+            while (!token.IsCancellationRequested && conn.IsConnected)
             {
                 try
                 {
                     int result = -1;
                     lock (_globalSdkLock)
                     {
-                        if (_handle != IntPtr.Zero)
+                        if (conn.Handle != IntPtr.Zero)
                         {
-                            result = PLGetRTLog(_handle, buffer, buffer.Length);
+                            result = PLGetRTLog(conn.Handle, buffer, buffer.Length);
                         }
                     }
 
@@ -491,9 +665,14 @@ namespace QuanLyGiuXe.Services
                     {
                         lock (_globalSdkLock)
                         {
-                            _handle = IntPtr.Zero;
+                            try { PLDisconnect(conn.Handle); } catch { }
+                            conn.Handle = IntPtr.Zero;
                         }
-                        OnConnectionChanged?.Invoke(false);
+                        if (ip.Equals(_ip, StringComparison.OrdinalIgnoreCase))
+                        {
+                            _handle = IntPtr.Zero;
+                            OnConnectionChanged?.Invoke(false);
+                        }
                         break;
                     }
 
@@ -503,7 +682,8 @@ namespace QuanLyGiuXe.Services
                         string rawData = nullIndex >= 0 
                             ? Encoding.UTF8.GetString(buffer, 0, nullIndex) 
                             : Encoding.UTF8.GetString(buffer);
-                        ParseEvent(rawData);
+                        
+                        ParseEventForConnection(rawData, ip);
                     }
                 }
                 catch (OperationCanceledException) { break; }
@@ -511,9 +691,14 @@ namespace QuanLyGiuXe.Services
                 {
                     lock (_globalSdkLock)
                     {
-                        _handle = IntPtr.Zero;
+                        try { PLDisconnect(conn.Handle); } catch { }
+                        conn.Handle = IntPtr.Zero;
                     }
-                    OnConnectionChanged?.Invoke(false);
+                    if (ip.Equals(_ip, StringComparison.OrdinalIgnoreCase))
+                    {
+                        _handle = IntPtr.Zero;
+                        OnConnectionChanged?.Invoke(false);
+                    }
                     break;
                 }
 
@@ -521,17 +706,18 @@ namespace QuanLyGiuXe.Services
             }
         }
 
-        private void ParseEvent(string data)
+        private void ParseEventForConnection(string data, string controllerIp)
         {
-            foreach (var record in data.Split(["\r\n", "\n"], StringSplitOptions.RemoveEmptyEntries))
+            foreach (var record in data.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries))
             {
                 var evt = TryParseRecord(record);
                 if (evt == null) continue;
 
-                Debug.WriteLine($"📡 C3200 Event: card={evt.CardNo}, door={evt.Door}, " +
+                evt.ControllerIp = controllerIp;
+
+                Debug.WriteLine($"📡 C3200 Event [{controllerIp}]: card={evt.CardNo}, door={evt.Door}, " +
                     $"event={evt.EventType}, inout={evt.InOutState}, verify={evt.VerifyMode}, time={evt.Time}");
 
-                // Only write log when there is a change event (card swiped, button pressed, or sensor state changed)
                 bool isCardSwiped = !string.IsNullOrEmpty(evt.CardNo) && evt.CardNo != "0";
                 string currentSig = $"{evt.CardNo}_{evt.Door}_{evt.EventType}_{evt.InOutState}";
                 bool hasChanged = isCardSwiped || currentSig != _lastRawEventSignature;
@@ -541,7 +727,7 @@ namespace QuanLyGiuXe.Services
                     _lastRawEventSignature = currentSig;
                     try
                     {
-                        LoggingService.Instance.LogInfo("C3200_RAW_EVENT", "C3200Service", $"Raw event: card={evt.CardNo}, door={evt.Door}, event={evt.EventType}, inout={evt.InOutState}");
+                        LoggingService.Instance.LogInfo("C3200_RAW_EVENT", "C3200Service", $"Raw event [{controllerIp}]: card={evt.CardNo}, door={evt.Door}, event={evt.EventType}, inout={evt.InOutState}");
                     }
                     catch { }
                 }
@@ -549,25 +735,22 @@ namespace QuanLyGiuXe.Services
                 OnEvent?.Invoke(evt);
 
                 if (!string.IsNullOrEmpty(evt.CardNo) && evt.CardNo != "0")
+                {
                     OnCardScanned?.Invoke(evt.CardNo, evt.Door, evt.InOutState);
+                    OnCardScannedEx?.Invoke(evt.CardNo, evt.Door, evt.InOutState, controllerIp);
+                }
             }
         }
 
-        /// <summary>
-        /// Parse RTLog record. C3-200 trả 2 format:
-        /// CSV: "2024-01-01 12:00:00,Pin,CardNo,Door,EventType,InOutState,VerifyMode"
-        /// Key=Value: "time=...,cardno=...,door=...,..."
-        /// </summary>
         private static C3200Event? TryParseRecord(string record)
         {
             if (string.IsNullOrWhiteSpace(record)) return null;
 
             var evt = new C3200Event { RawData = record };
 
-            // Key=value format
             if (record.Contains('='))
             {
-                foreach (var part in record.Split([',', '\t']))
+                foreach (var part in record.Split(new[] { ',', '\t' }))
                 {
                     var trimmed = part.Trim();
                     var eqIdx = trimmed.IndexOf('=');
@@ -590,7 +773,6 @@ namespace QuanLyGiuXe.Services
                 return evt;
             }
 
-            // CSV format: Time,Pin,CardNo,Door,EventType,InOutState,VerifyMode
             var fields = record.Split(',');
             if (fields.Length >= 7)
             {
@@ -621,13 +803,9 @@ namespace QuanLyGiuXe.Services
             catch { return -9999; }
         }
 
-        /// <summary>
-        /// Test connection with detailed diagnostics. Does not change instance state.
-        /// Returns tuple: (success, sdkError, diagnosticText, triedParams, dllArch)
-        /// </summary>
         public static (bool Success, int SdkError, string Diagnostic, string[] TriedParams, string DllArch) TestConnectDetailed(string ip, int port, string password, int timeoutMs)
         {
-            var tried = new System.Collections.Generic.List<string>();
+            var tried = new List<string>();
             bool success = false;
             int sdkErr = 0;
             string diag = string.Empty;
@@ -635,8 +813,7 @@ namespace QuanLyGiuXe.Services
             try
             {
                 string baseParams = $"protocol=TCP,ipaddress={ip},port={port},timeout={timeoutMs},device=1";
-                // variants
-                var candidates = new System.Collections.Generic.List<string>();
+                var candidates = new List<string>();
                 if (string.IsNullOrWhiteSpace(password))
                 {
                     candidates.Add(baseParams);
@@ -662,7 +839,6 @@ namespace QuanLyGiuXe.Services
                         }
                         if (handle != IntPtr.Zero)
                         {
-                            // immediate disconnect
                             try 
                             { 
                                 lock (_globalSdkLock)
@@ -677,7 +853,6 @@ namespace QuanLyGiuXe.Services
                         }
                         else
                         {
-                            // read sdk error
                             try 
                             { 
                                 lock (_globalSdkLock)
@@ -701,7 +876,6 @@ namespace QuanLyGiuXe.Services
                     }
                 }
 
-                // diagnostic text
                 try
                 {
                     var temp = Instance?.GetDiagnosticText();
@@ -711,7 +885,6 @@ namespace QuanLyGiuXe.Services
             }
             catch { }
 
-            // detect DLL arch
             string dllArch = DetectPlcommproArch();
 
             return (success, sdkErr, diag, tried.ToArray(), dllArch);
@@ -722,15 +895,14 @@ namespace QuanLyGiuXe.Services
             try
             {
                 var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-                var path = System.IO.Path.Combine(baseDir, "plcommpro.dll");
-                if (!System.IO.File.Exists(path)) return "MISSING";
+                var path = Path.Combine(baseDir, "plcommpro.dll");
+                if (!File.Exists(path)) return "MISSING";
 
-                using var fs = new System.IO.FileStream(path, System.IO.FileMode.Open, System.IO.FileAccess.Read);
-                using var br = new System.IO.BinaryReader(fs);
-                // DOS header e_lfanew at 0x3C
-                fs.Seek(0x3C, System.IO.SeekOrigin.Begin);
+                using var fs = new FileStream(path, FileMode.Open, FileAccess.Read);
+                using var br = new BinaryReader(fs);
+                fs.Seek(0x3C, SeekOrigin.Begin);
                 int peOffset = br.ReadInt32();
-                fs.Seek(peOffset + 4, System.IO.SeekOrigin.Begin);
+                fs.Seek(peOffset + 4, SeekOrigin.Begin);
                 ushort machine = br.ReadUInt16();
                 return machine == 0x8664 ? "x64" : machine == 0x14c ? "x86" : ("0x" + machine.ToString("X"));
             }

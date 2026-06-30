@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using QuanLyGiuXe.Services;
 
@@ -12,30 +13,39 @@ namespace QuanLyGiuXe.Services
     {
         private readonly DatabaseService _db = new DatabaseService();
 
-        public async Task ProcessGateActionAsync(int physicalDoor, Dictionary<string, Bitmap> currentFrames, string actionType, string? note = null)
+        public async Task ProcessGateActionAsync(int laneId, Dictionary<string, Bitmap> currentFrames, string actionType, string? note = null)
         {
             // Software-triggered gate open action requires strict permission and scope validation
             if (actionType == "MANUAL_OPEN" || actionType == "MANUAL")
             {
                 AuthorizationGuard.Protect("OPEN_BARRIER", "Manual Barrier Opening");
-                int readerNo = (physicalDoor == 1) ? 1 : 3;
-                var mapping = ReaderLaneMappingService.Instance.GetMappingByReader(readerNo);
-                int laneId = mapping?.LaneId ?? physicalDoor;
                 AuthorizationGuard.ProtectLane(laneId, "Manual Barrier Opening");
             }
 
             try
             {
                 // 1. Chụp và lưu ảnh ngay lập tức để tránh trễ hình
-                var (platePath, fullPath) = SaveCurrentImages(physicalDoor, currentFrames, actionType);
+                var (platePath, fullPath) = await SaveCurrentImagesAsync(laneId, currentFrames, actionType);
 
                 // 2. Gọi lệnh mở cổng (Hardware)
-                bool opened = await C3200Service.Instance.OpenBarrierAsync(physicalDoor);
+                bool opened = await C3200Service.Instance.OpenBarrierAsync(laneId);
 
                 // 3. Ghi vào Database
+                byte? physicalDoor = null;
+                try
+                {
+                    var allBarriers = await ParkingTopologyService.Instance.GetBarriersAsync();
+                    var barrier = allBarriers.FirstOrDefault(b => b.LaneId == laneId && b.IsActive);
+                    if (barrier != null)
+                    {
+                        physicalDoor = (byte)barrier.RelayNumber;
+                    }
+                }
+                catch { }
+
                 _db.InsertButtonPressLog(
                     DateTime.Now,
-                    (byte?)physicalDoor,
+                    physicalDoor,
                     null, // EventType
                     null, // InOutState
                     actionType == "MANUAL" ? "MANUAL" : "BUTTON", // CardNo/Pin
@@ -58,7 +68,7 @@ namespace QuanLyGiuXe.Services
             }
         }
 
-        private (string? PlatePath, string? FullPath) SaveCurrentImages(int door, Dictionary<string, Bitmap> frames, string prefix)
+        private async Task<(string? PlatePath, string? FullPath)> SaveCurrentImagesAsync(int laneId, Dictionary<string, Bitmap> frames, string prefix)
         {
             var config = AppConfig.Load();
             int jpegQuality = config?.Cameras?.SaveJpegQuality ?? 70;
@@ -71,21 +81,46 @@ namespace QuanLyGiuXe.Services
             string? platePath = null;
             string? fullPath = null;
 
-            // Xác định key camera dựa trên số cổng
-            string fullKey = door == 1 ? "Vao1" : "Ra1";
-            string plateKey = door == 1 ? "Vao2" : "Ra2";
+            // Xác định key camera dựa trên chiều của làn
+            string fullKey = "Vao1";
+            string plateKey = "Vao2";
+
+            try
+            {
+                var lanes = await ParkingTopologyService.Instance.GetLanesAsync();
+                var lane = lanes.FirstOrDefault(l => l.Id == laneId);
+                if (lane != null)
+                {
+                    string direction = lane.Direction ?? "IN";
+                    fullKey = direction.ToUpper() == "IN" ? "Vao1" : "Ra1";
+                    plateKey = direction.ToUpper() == "IN" ? "Vao2" : "Ra2";
+
+                    var allCameras = await ParkingTopologyService.Instance.GetCamerasAsync();
+                    var laneCams = allCameras.Where(c => c.LaneId == laneId && c.IsActive).ToList();
+                    
+                    var tc = laneCams.FirstOrDefault(c => c.CameraKey.Contains("ToanCanh") || c.CameraKey.Contains("1"));
+                    var bs = laneCams.FirstOrDefault(c => c.CameraKey.Contains("BienSo") || c.CameraKey.Contains("2"));
+
+                    if (tc != null) fullKey = tc.CameraKey;
+                    else if (laneCams.Any()) fullKey = $"Lane_{laneId}_ToanCanh";
+
+                    if (bs != null) plateKey = bs.CameraKey;
+                    else if (laneCams.Any()) plateKey = $"Lane_{laneId}_BienSo";
+                }
+            }
+            catch { }
 
             lock (frames) // Đảm bảo an toàn luồng khi truy cập Dictionary
             {
                 if (frames.TryGetValue(fullKey, out var fullBmp))
                 {
-                    fullPath = Path.Combine(imagesDir, $"{stamp}_{prefix}_door{door}_full.jpg");
+                    fullPath = Path.Combine(imagesDir, $"{stamp}_{prefix}_lane{laneId}_full.jpg");
                     SaveCompressedJpeg(fullBmp, fullPath, jpegQuality, maxWidth);
                 }
 
                 if (frames.TryGetValue(plateKey, out var plateBmp))
                 {
-                    platePath = Path.Combine(imagesDir, $"{stamp}_{prefix}_door{door}_plate.jpg");
+                    platePath = Path.Combine(imagesDir, $"{stamp}_{prefix}_lane{laneId}_plate.jpg");
                     SaveCompressedJpeg(plateBmp, platePath, jpegQuality, maxWidth);
                 }
             }

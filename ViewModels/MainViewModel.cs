@@ -786,14 +786,19 @@ namespace QuanLyGiuXe.ViewModels
 
         public int? GetDbLaneIdForUiIndex(int uiLaneIndex)
         {
-            var activeMappings = ReaderLaneMappingService.Instance.GetAll()
-                .Where(m => m.IsEnabled)
-                .ToList();
-            
-            var distinctLaneIds = activeMappings
-                .Select(m => m.LaneId)
-                .Distinct()
-                .ToList();
+            var distinctLaneIds = WorkstationMonitorService.Instance.GetActiveLaneIds();
+
+            if (distinctLaneIds == null || distinctLaneIds.Count == 0)
+            {
+                var activeMappings = ReaderLaneMappingService.Instance.GetAll()
+                    .Where(m => m.IsEnabled)
+                    .ToList();
+                
+                distinctLaneIds = activeMappings
+                    .Select(m => m.LaneId)
+                    .Distinct()
+                    .ToList();
+            }
 
             try
             {
@@ -803,7 +808,6 @@ namespace QuanLyGiuXe.ViewModels
                     distinctLaneIds = distinctLaneIds
                         .OrderBy(id => {
                             var lane = lanes.FirstOrDefault(l => l.Id == id);
-                            // If DisplayIndex is null/0, default to 999 to place it at the end, or tie-break with Id
                             return (lane?.DisplayIndex == null || lane.DisplayIndex == 0) ? 999 : lane.DisplayIndex.Value;
                         })
                         .ThenBy(id => id)
@@ -1684,12 +1688,79 @@ namespace QuanLyGiuXe.ViewModels
                 
                 // 8. Khởi động Auto Sync Engine (Phase 6.2)
                 AutoSyncService.Instance.Start();
+
+                // 9. Khởi động Failover Workstation Monitor
+                WorkstationMonitorService.Instance.OnActiveLanesChanged += async () => await HandleActiveLanesChangedAsync();
+                WorkstationMonitorService.Instance.Start();
                 
                 LoggingService.Instance.LogInfo("VMInit", "MainViewModel", "Async initialization complete");
             }
             catch (Exception ex)
             {
                 LoggingService.Instance.LogError("VMInitError", "MainViewModel", "Async init failed", ex);
+            }
+        }
+
+        private async Task HandleActiveLanesChangedAsync()
+        {
+            try
+            {
+                var activeLaneIds = WorkstationMonitorService.Instance.GetActiveLaneIds();
+                var allControllers = await ParkingTopologyService.Instance.GetControllersAsync();
+                var allBarriers = await ParkingTopologyService.Instance.GetBarriersAsync();
+
+                // Connect to controllers that are now active for us
+                foreach (var laneId in activeLaneIds)
+                {
+                    var barrier = allBarriers.FirstOrDefault(b => b.LaneId == laneId && b.IsActive);
+                    if (barrier != null)
+                    {
+                        var ctrl = allControllers.FirstOrDefault(c => c.Id == barrier.ControllerId && c.IsActive);
+                        if (ctrl != null)
+                        {
+                            C3200Service.Instance.Configure(
+                                ip: ctrl.IpAddress, port: 4370,
+                                password: "", timeoutMs: 4000,
+                                barrierDuration: 5);
+
+                            await C3200Service.Instance.ConnectToControllerAsync(ctrl.IpAddress);
+                        }
+                    }
+                }
+
+                // Disconnect controllers that are no longer active for us
+                var activeIps = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var laneId in activeLaneIds)
+                {
+                    var barrier = allBarriers.FirstOrDefault(b => b.LaneId == laneId && b.IsActive);
+                    if (barrier != null)
+                    {
+                        var ctrl = allControllers.FirstOrDefault(c => c.Id == barrier.ControllerId && c.IsActive);
+                        if (ctrl != null) activeIps.Add(ctrl.IpAddress);
+                    }
+                }
+
+                var connected = C3200Service.Instance.GetAllActiveConnections();
+                foreach (var conn in connected)
+                {
+                    if (!activeIps.Contains(conn.IpAddress))
+                    {
+                        C3200Service.Instance.DisconnectController(conn.IpAddress);
+                    }
+                }
+
+                // Trigger UI refresh of lane visibilities
+                if (System.Windows.Application.Current != null && System.Windows.Application.Current.Dispatcher != null)
+                {
+                    await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                    {
+                        CalculateLaneVisibilities();
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("FAILOVER", "ActiveLanesChanged", "Error handling active lanes change in MainViewModel", ex);
             }
         }
 

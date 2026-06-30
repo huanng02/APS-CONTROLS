@@ -98,9 +98,18 @@ namespace QuanLyGiuXe
             RFIDEventRouterService.Instance.RegisterHandler(new AdminOverrideHandler());
 
             RFIDService.Instance.OnCardScanned += RawRfidScanned;
-            C3200Service.Instance.OnCardScanned += RawC3200Scanned;
+            C3200Service.Instance.OnCardScannedEx += RawC3200ScannedEx;
             // subscribe to full RT events to record button presses
             C3200Service.Instance.OnEvent += OnC3200Event;
+
+            WorkstationMonitorService.Instance.OnActiveLanesChanged += () =>
+            {
+                Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    _mainViewModel?.CalculateLaneVisibilities();
+                    ReloadCameras();
+                }));
+            };
             
             // UI RBAC
             ApplyPermissions();
@@ -141,7 +150,7 @@ namespace QuanLyGiuXe
         {
             // IMPORTANT: Unsubscribe from all global events to prevent leaks and duplication!
             RFIDService.Instance.OnCardScanned -= RawRfidScanned;
-            C3200Service.Instance.OnCardScanned -= RawC3200Scanned;
+            C3200Service.Instance.OnCardScannedEx -= RawC3200ScannedEx;
             C3200Service.Instance.OnEvent -= OnC3200Event;
 
             // Stop LPR process if running
@@ -445,6 +454,51 @@ namespace QuanLyGiuXe
         {
             int readerNo = (door - 1) * 2 + (inOutState == 1 ? 2 : 1);
             Task.Run(async () => await RFIDEventRouterService.Instance.RouteEventAsync(uid, readerNo, door));
+        }
+
+        private void RawC3200ScannedEx(string uid, int door, int inOutState, string controllerIp)
+        {
+            Task.Run(async () =>
+            {
+                int readerNo = await ResolveReaderNoAsync(controllerIp, door, inOutState);
+                await RFIDEventRouterService.Instance.RouteEventAsync(uid, readerNo, door);
+            });
+        }
+
+        private async Task<int> ResolveReaderNoAsync(string controllerIp, int door, int inOutState)
+        {
+            try
+            {
+                var allControllers = await ParkingTopologyService.Instance.GetControllersAsync();
+                var allBarriers = await ParkingTopologyService.Instance.GetBarriersAsync();
+
+                var ctrl = allControllers.FirstOrDefault(c => c.IpAddress.Trim().Equals(controllerIp.Trim(), StringComparison.OrdinalIgnoreCase) && c.IsActive);
+                if (ctrl == null) return (door - 1) * 2 + (inOutState == 1 ? 2 : 1);
+
+                var barrier = allBarriers.FirstOrDefault(b => b.ControllerId == ctrl.Id && b.RelayNumber == door && b.IsActive);
+                if (barrier == null) return (door - 1) * 2 + (inOutState == 1 ? 2 : 1);
+
+                int laneId = barrier.LaneId ?? 0;
+
+                var vm = _mainViewModel;
+                if (vm != null)
+                {
+                    if (vm.GetDbLaneIdForUiIndex(1) == laneId)
+                    {
+                        return inOutState == 1 ? 2 : 1;
+                    }
+                    else if (vm.GetDbLaneIdForUiIndex(2) == laneId)
+                    {
+                        return inOutState == 1 ? 4 : 3;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("FAILOVER", "ResolveReaderNo", "Error resolving reader number for failover event", ex);
+            }
+
+            return (door - 1) * 2 + (inOutState == 1 ? 2 : 1);
         }
 
         // ── Xử lý quẹt thẻ (dùng chung cho RFID USB + C3-200) ───────────────────
@@ -832,10 +886,14 @@ namespace QuanLyGiuXe
             // Start dynamic lane cameras if any are configured
             bool startedAnyDynamic = false;
             var activeKeys = new System.Collections.Generic.List<string>();
+            var activeLaneIds = WorkstationMonitorService.Instance.GetActiveLaneIds();
             if (cfg.LaneCameras != null && cfg.LaneCameras.Count > 0)
             {
                 foreach (var lc in cfg.LaneCameras)
                 {
+                    if (activeLaneIds.Count > 0 && !activeLaneIds.Contains(lc.LaneId))
+                        continue;
+
                     if (!string.IsNullOrEmpty(lc.ToanCanh))
                     {
                         string key = $"Lane_{lc.LaneId}_ToanCanh";
@@ -879,10 +937,14 @@ namespace QuanLyGiuXe
                 var targetConfigs = new System.Collections.Generic.Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                 bool startedAnyDynamic = false;
 
+                var activeLaneIds = WorkstationMonitorService.Instance.GetActiveLaneIds();
                 if (cfg.LaneCameras != null && cfg.LaneCameras.Count > 0)
                 {
                     foreach (var lc in cfg.LaneCameras)
                     {
+                        if (activeLaneIds.Count > 0 && !activeLaneIds.Contains(lc.LaneId))
+                            continue;
+
                         if (!string.IsNullOrEmpty(lc.ToanCanh))
                         {
                             targetConfigs[$"Lane_{lc.LaneId}_ToanCanh"] = lc.ToanCanh;

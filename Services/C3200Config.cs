@@ -7,6 +7,7 @@ namespace QuanLyGiuXe.Services
 {
     public sealed class AppConfig
     {
+        public string WorkstationId { get; set; } = string.Empty;
         public ZKTecoConfig ZKTeco { get; set; } = new();
         public CameraConfig Cameras { get; set; } = new();
         public BackupConfig Backup { get; set; } = new();
@@ -37,6 +38,12 @@ namespace QuanLyGiuXe.Services
                         var json = File.ReadAllText(path);
                         var cfg = JsonConvert.DeserializeObject<AppConfig>(json) ?? new AppConfig();
                         try { LoggingService.Instance.LogInfo("ConfigLoaded", "AppConfig", $"Loaded config from {path}"); } catch { }
+                        if (string.IsNullOrWhiteSpace(cfg.WorkstationId))
+                        {
+                            cfg.WorkstationId = Guid.NewGuid().ToString();
+                            var jsonToSave = JsonConvert.SerializeObject(cfg, Formatting.Indented);
+                            try { File.WriteAllText(path, jsonToSave); } catch { }
+                        }
                         _cached = cfg;
                         return cfg;
                     }
@@ -45,7 +52,16 @@ namespace QuanLyGiuXe.Services
                     }
                 }
 
-                _cached = new AppConfig();
+                var newCfg = new AppConfig();
+                newCfg.WorkstationId = Guid.NewGuid().ToString();
+                try
+                {
+                    var defaultPath = Path.Combine(AppContext.BaseDirectory, fileName);
+                    var jsonToSave = JsonConvert.SerializeObject(newCfg, Formatting.Indented);
+                    File.WriteAllText(defaultPath, jsonToSave);
+                }
+                catch { }
+                _cached = newCfg;
                 return _cached;
             }
         }

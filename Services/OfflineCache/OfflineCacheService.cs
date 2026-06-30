@@ -86,7 +86,12 @@ namespace QuanLyGiuXe.Services.OfflineCache
                         IsSynced INTEGER DEFAULT 0,
                         SiteId INTEGER,
                         ZoneId INTEGER,
-                        EntryLaneId INTEGER
+                        EntryLaneId INTEGER,
+                        ExitLaneId INTEGER,
+                        EntryWorkstationId TEXT,
+                        ExitWorkstationId TEXT,
+                        EntryControllerId INTEGER,
+                        ExitControllerId INTEGER
                     );
 
                     CREATE INDEX IF NOT EXISTS idx_localxe_cardid ON LocalXeTrongBai(CardId);
@@ -160,6 +165,10 @@ namespace QuanLyGiuXe.Services.OfflineCache
                         EntryLaneId INTEGER,
                         ExitLaneId INTEGER,
                         CreatedUtc DATETIME,
+                        EntryWorkstationId TEXT,
+                        ExitWorkstationId TEXT,
+                        EntryControllerId INTEGER,
+                        ExitControllerId INTEGER,
                         FOREIGN KEY (SiteId) REFERENCES ParkingSites(Id),
                         FOREIGN KEY (ZoneId) REFERENCES ParkingZones(Id),
                         FOREIGN KEY (EntryLaneId) REFERENCES Lanes(Id),
@@ -235,6 +244,60 @@ namespace QuanLyGiuXe.Services.OfflineCache
                 try
                 {
                     using (var cmd = new SqliteCommand("ALTER TABLE C3Controllers ADD COLUMN PcIp TEXT NOT NULL DEFAULT '127.0.0.1';", conn))
+                        cmd.ExecuteNonQuery();
+                }
+                catch { }
+                try
+                {
+                    using (var cmd = new SqliteCommand("ALTER TABLE LocalXeTrongBai ADD COLUMN ExitLaneId INTEGER;", conn))
+                        cmd.ExecuteNonQuery();
+                }
+                catch { }
+                try
+                {
+                    using (var cmd = new SqliteCommand("ALTER TABLE LocalXeTrongBai ADD COLUMN EntryWorkstationId TEXT;", conn))
+                        cmd.ExecuteNonQuery();
+                }
+                catch { }
+                try
+                {
+                    using (var cmd = new SqliteCommand("ALTER TABLE LocalXeTrongBai ADD COLUMN ExitWorkstationId TEXT;", conn))
+                        cmd.ExecuteNonQuery();
+                }
+                catch { }
+                try
+                {
+                    using (var cmd = new SqliteCommand("ALTER TABLE LocalXeTrongBai ADD COLUMN EntryControllerId INTEGER;", conn))
+                        cmd.ExecuteNonQuery();
+                }
+                catch { }
+                try
+                {
+                    using (var cmd = new SqliteCommand("ALTER TABLE LocalXeTrongBai ADD COLUMN ExitControllerId INTEGER;", conn))
+                        cmd.ExecuteNonQuery();
+                }
+                catch { }
+                try
+                {
+                    using (var cmd = new SqliteCommand("ALTER TABLE VehicleSessions ADD COLUMN EntryWorkstationId TEXT;", conn))
+                        cmd.ExecuteNonQuery();
+                }
+                catch { }
+                try
+                {
+                    using (var cmd = new SqliteCommand("ALTER TABLE VehicleSessions ADD COLUMN ExitWorkstationId TEXT;", conn))
+                        cmd.ExecuteNonQuery();
+                }
+                catch { }
+                try
+                {
+                    using (var cmd = new SqliteCommand("ALTER TABLE VehicleSessions ADD COLUMN EntryControllerId INTEGER;", conn))
+                        cmd.ExecuteNonQuery();
+                }
+                catch { }
+                try
+                {
+                    using (var cmd = new SqliteCommand("ALTER TABLE VehicleSessions ADD COLUMN ExitControllerId INTEGER;", conn))
                         cmd.ExecuteNonQuery();
                 }
                 catch { }
@@ -530,7 +593,7 @@ namespace QuanLyGiuXe.Services.OfflineCache
 
         // --- Local Active Session Management ---
 
-        public async Task SaveActiveSessionLocalAsync(int cardId, string bienSo, DateTime time, string anhXe, int? siteId = null, int? zoneId = null, int? entryLaneId = null)
+        public async Task SaveActiveSessionLocalAsync(int cardId, string bienSo, DateTime time, string anhXe, int? siteId = null, int? zoneId = null, int? entryLaneId = null, string? entryWorkstationId = null, int? entryControllerId = null)
         {
             using var conn = new SqliteConnection(_connectionString);
             await conn.OpenAsync();
@@ -545,8 +608,8 @@ namespace QuanLyGiuXe.Services.OfflineCache
                     await delCmd.ExecuteNonQueryAsync();
                 }
 
-                string sql = @"INSERT INTO LocalXeTrongBai (CardId, BienSo, ThoiGianVao, AnhXe, SiteId, ZoneId, EntryLaneId, IsSynced) 
-                               VALUES (@cardId, @bienSo, @time, @anh, @siteId, @zoneId, @entryLaneId, 0)";
+                string sql = @"INSERT INTO LocalXeTrongBai (CardId, BienSo, ThoiGianVao, AnhXe, SiteId, ZoneId, EntryLaneId, EntryWorkstationId, EntryControllerId, IsSynced) 
+                               VALUES (@cardId, @bienSo, @time, @anh, @siteId, @zoneId, @entryLaneId, @entryWorkstationId, @entryControllerId, 0)";
                 using var cmd = new SqliteCommand(sql, conn, tx);
                 cmd.Parameters.AddWithValue("@cardId", cardId);
                 cmd.Parameters.AddWithValue("@bienSo", bienSo ?? string.Empty);
@@ -555,6 +618,8 @@ namespace QuanLyGiuXe.Services.OfflineCache
                 cmd.Parameters.AddWithValue("@siteId", (object?)siteId ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@zoneId", (object?)zoneId ?? DBNull.Value);
                 cmd.Parameters.AddWithValue("@entryLaneId", (object?)entryLaneId ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@entryWorkstationId", (object?)entryWorkstationId ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("@entryControllerId", (object?)entryControllerId ?? DBNull.Value);
                 await cmd.ExecuteNonQueryAsync();
 
                 await tx.CommitAsync();

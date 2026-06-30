@@ -14,11 +14,15 @@ namespace QuanLyGiuXe.Models
         public string AnhVao { get; set; } = string.Empty;
         public string AnhRa { get; set; } = string.Empty;
 
-        // Multi-zone fields
         public int? SiteId { get; set; }
         public int? ZoneId { get; set; }
         public int? EntryLaneId { get; set; }
         public int? ExitLaneId { get; set; }
+
+        public string? EntryWorkstationId { get; set; }
+        public string? ExitWorkstationId { get; set; }
+        public int? EntryControllerId { get; set; }
+        public int? ExitControllerId { get; set; }
 
         public DateTime CreatedUtc { get; set; } = DateTime.UtcNow;
 

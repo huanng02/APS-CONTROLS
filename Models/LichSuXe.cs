@@ -30,11 +30,15 @@ namespace QuanLyGiuXe.Models
         public string AnhVao { get; set; }
         public string AnhRa { get; set; }
 
-        // Multi-zone fields
         public int? SiteId { get; set; }
         public int? ZoneId { get; set; }
         public int? EntryLaneId { get; set; }
         public int? ExitLaneId { get; set; }
+
+        public string? EntryWorkstationId { get; set; }
+        public string? ExitWorkstationId { get; set; }
+        public int? EntryControllerId { get; set; }
+        public int? ExitControllerId { get; set; }
 
         // Helper properties for display
         public string SiteName { get; set; } = string.Empty;

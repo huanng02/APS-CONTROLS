@@ -1545,24 +1545,49 @@ namespace QuanLyGiuXe.Services
 
         // Add an entry when a vehicle enters. Primary key for identification is uid (CardUID).
         // Parameters: uid (CardUID), bienSo (nullable), anhXe (nullable)
-        public void ThemXe(int cardId, string bienSo, string anhXe, int? siteId = null, int? zoneId = null, int? entryLaneId = null)
+        public void ThemXe(int cardId, string bienSo, string anhXe, int? siteId = null, int? zoneId = null, int? entryLaneId = null, string? entryWorkstationId = null, int? entryControllerId = null)
         {
-            Task.Run(() => ThemXeAsync(cardId, bienSo, anhXe, siteId, zoneId, entryLaneId)).GetAwaiter().GetResult();
+            Task.Run(() => ThemXeAsync(cardId, bienSo, anhXe, siteId, zoneId, entryLaneId, entryWorkstationId, entryControllerId)).GetAwaiter().GetResult();
         }
 
-        public async Task<bool> ThemXeAsync(int cardId, string bienSo, string anhXe, int? siteId = null, int? zoneId = null, int? entryLaneId = null)
+        public async Task<bool> ThemXeAsync(int cardId, string bienSo, string anhXe, int? siteId = null, int? zoneId = null, int? entryLaneId = null, string? entryWorkstationId = null, int? entryControllerId = null)
         {
             if (cardId <= 0) return false;
 
+            if (string.IsNullOrEmpty(entryWorkstationId))
+            {
+                entryWorkstationId = WorkstationMonitorService.Instance.CurrentWorkstationId;
+            }
+            if (!entryControllerId.HasValue && entryLaneId.HasValue)
+            {
+                try
+                {
+                    using (var conn = new SqlConnection(GetConnectionString()))
+                    {
+                        await conn.OpenAsync();
+                        using (var cmd = new SqlCommand("SELECT TOP 1 ControllerId FROM dbo.Barriers WHERE LaneId = @laneId AND IsActive = 1", conn))
+                        {
+                            cmd.Parameters.AddWithValue("@laneId", entryLaneId.Value);
+                            var val = await cmd.ExecuteScalarAsync();
+                            if (val != null && val != DBNull.Value)
+                            {
+                                entryControllerId = Convert.ToInt32(val);
+                            }
+                        }
+                    }
+                }
+                catch { }
+            }
+
             // 1. Transaction-safe local SQLite Save FIRST (Crash-Safe Session Commit!)
-            await OfflineCacheService.Instance.SaveActiveSessionLocalAsync(cardId, bienSo, DateTime.Now, anhXe, siteId, zoneId, entryLaneId);
+            await OfflineCacheService.Instance.SaveActiveSessionLocalAsync(cardId, bienSo, DateTime.Now, anhXe, siteId, zoneId, entryLaneId, entryWorkstationId, entryControllerId);
 
             // 2. Perform write to SQL Server or Queue if offline
             var newRecord = (Id: cardId, BienSo: bienSo ?? string.Empty, ThoiGianVao: DateTime.Now);
 
             return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
                 "INSERT_XE_VAO",
-                new { CardId = cardId, BienSo = bienSo, AnhXe = anhXe, Time = DateTime.Now, SiteId = siteId, ZoneId = zoneId, EntryLaneId = entryLaneId },
+                new { CardId = cardId, BienSo = bienSo, AnhXe = anhXe, Time = DateTime.Now, SiteId = siteId, ZoneId = zoneId, EntryLaneId = entryLaneId, EntryWorkstationId = entryWorkstationId, EntryControllerId = entryControllerId },
                 async conn =>
                 {
                     // Check if already in lot
@@ -1572,7 +1597,7 @@ namespace QuanLyGiuXe.Services
                         int exists = Convert.ToInt32(await checkCmd.ExecuteScalarAsync());
                         if (exists > 0) return;
                     }
-                    using (SqlCommand cmd = new SqlCommand( @"INSERT INTO XeTrongBai (CardId, BienSo, ThoiGianVao, AnhXe, SiteId, ZoneId, EntryLaneId) VALUES (@CardId, @BienSo, @Time, @AnhXe, @SiteId, @ZoneId, @EntryLane)", conn))
+                    using (SqlCommand cmd = new SqlCommand( @"INSERT INTO XeTrongBai (CardId, BienSo, ThoiGianVao, AnhXe, SiteId, ZoneId, EntryLaneId, EntryWorkstationId, EntryControllerId) VALUES (@CardId, @BienSo, @Time, @AnhXe, @SiteId, @ZoneId, @EntryLane, @EntryWorkstation, @EntryController)", conn))
                     {
                         cmd.Parameters.AddWithValue("@CardId", cardId);
                         cmd.Parameters.AddWithValue("@BienSo", string.IsNullOrEmpty(bienSo) ? (object)DBNull.Value : bienSo);
@@ -1581,6 +1606,8 @@ namespace QuanLyGiuXe.Services
                         cmd.Parameters.AddWithValue("@SiteId", (object?)siteId ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("@ZoneId", (object?)zoneId ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("@EntryLane", (object?)entryLaneId ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@EntryWorkstation", (object?)entryWorkstationId ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@EntryController", (object?)entryControllerId ?? DBNull.Value);
                         await cmd.ExecuteNonQueryAsync();
                     }
                 },
@@ -1940,16 +1967,16 @@ namespace QuanLyGiuXe.Services
             );
         }
 
-        public void LuuLichSu(string bienSo, DateTime vao, DateTime ra, double tien, string anhXe, string cardUid = null, int? siteId = null, int? zoneId = null, int? entryLaneId = null, int? exitLaneId = null)
+        public void LuuLichSu(string bienSo, DateTime vao, DateTime ra, double tien, string anhXe, string cardUid = null, int? siteId = null, int? zoneId = null, int? entryLaneId = null, int? exitLaneId = null, string? entryWorkstationId = null, string? exitWorkstationId = null, int? entryControllerId = null, int? exitControllerId = null)
         {
-            Task.Run(() => LuuLichSuAsync(bienSo, vao, ra, tien, anhXe, cardUid, siteId, zoneId, entryLaneId, exitLaneId)).GetAwaiter().GetResult();
+            Task.Run(() => LuuLichSuAsync(bienSo, vao, ra, tien, anhXe, cardUid, siteId, zoneId, entryLaneId, exitLaneId, null, entryWorkstationId, exitWorkstationId, entryControllerId, exitControllerId)).GetAwaiter().GetResult();
         }
 
-        public async Task<bool> LuuLichSuAsync(string bienSo, DateTime vao, DateTime ra, double tien, string anhXe, string cardUid = null, int? siteId = null, int? zoneId = null, int? entryLaneId = null, int? exitLaneId = null, string anhVao = null)
+        public async Task<bool> LuuLichSuAsync(string bienSo, DateTime vao, DateTime ra, double tien, string anhXe, string cardUid = null, int? siteId = null, int? zoneId = null, int? entryLaneId = null, int? exitLaneId = null, string anhVao = null, string? entryWorkstationId = null, string? exitWorkstationId = null, int? entryControllerId = null, int? exitControllerId = null)
         {
             return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
                 "INSERT_LICH_SU",
-                new { BienSo = bienSo, Vao = vao, Ra = ra, Tien = tien, AnhXe = anhXe, AnhVao = anhVao, CardUid = cardUid, SiteId = siteId, ZoneId = zoneId, EntryLaneId = entryLaneId, ExitLaneId = exitLaneId },
+                new { BienSo = bienSo, Vao = vao, Ra = ra, Tien = tien, AnhXe = anhXe, AnhVao = anhVao, CardUid = cardUid, SiteId = siteId, ZoneId = zoneId, EntryLaneId = entryLaneId, ExitLaneId = exitLaneId, EntryWorkstationId = entryWorkstationId, ExitWorkstationId = exitWorkstationId, EntryControllerId = entryControllerId, ExitControllerId = exitControllerId },
                 async conn =>
                 {
                     int? cardId = null;
@@ -1971,7 +1998,53 @@ namespace QuanLyGiuXe.Services
                             if (v != null && v != DBNull.Value) cardId = Convert.ToInt32(v);
                         }
                     }
-                    using (SqlCommand cmd = new SqlCommand( @"INSERT INTO LichSuXe (CardId, BienSo, ThoiGianVao, ThoiGianRa, Tien, AnhVao, AnhRa, SiteId, ZoneId, EntryLaneId, ExitLaneId) VALUES (@cardId, @bs, @vao, @ra, @tien, @anhVao, @anhRa, @siteId, @zoneId, @entryLane, @exitLane)", conn))
+
+                    // Auto-resolve workstation/controller IDs
+                    if (string.IsNullOrEmpty(entryWorkstationId) && cardId.HasValue)
+                    {
+                        try
+                        {
+                            using (var cmd = new SqlCommand("SELECT TOP 1 EntryWorkstationId FROM XeTrongBai WHERE CardId = @cardId", conn))
+                            {
+                                cmd.Parameters.AddWithValue("@cardId", cardId.Value);
+                                var val = await cmd.ExecuteScalarAsync();
+                                if (val != null && val != DBNull.Value) entryWorkstationId = val.ToString();
+                            }
+                        }
+                        catch { }
+                    }
+                    if (!entryControllerId.HasValue && entryLaneId.HasValue)
+                    {
+                        try
+                        {
+                            using (var cmd = new SqlCommand("SELECT TOP 1 ControllerId FROM dbo.Barriers WHERE LaneId = @laneId AND IsActive = 1", conn))
+                            {
+                                cmd.Parameters.AddWithValue("@laneId", entryLaneId.Value);
+                                var val = await cmd.ExecuteScalarAsync();
+                                if (val != null && val != DBNull.Value) entryControllerId = Convert.ToInt32(val);
+                            }
+                        }
+                        catch { }
+                    }
+                    if (string.IsNullOrEmpty(exitWorkstationId))
+                    {
+                        exitWorkstationId = WorkstationMonitorService.Instance.CurrentWorkstationId;
+                    }
+                    if (!exitControllerId.HasValue && exitLaneId.HasValue)
+                    {
+                        try
+                        {
+                            using (var cmd = new SqlCommand("SELECT TOP 1 ControllerId FROM dbo.Barriers WHERE LaneId = @laneId AND IsActive = 1", conn))
+                            {
+                                cmd.Parameters.AddWithValue("@laneId", exitLaneId.Value);
+                                var val = await cmd.ExecuteScalarAsync();
+                                if (val != null && val != DBNull.Value) exitControllerId = Convert.ToInt32(val);
+                            }
+                        }
+                        catch { }
+                    }
+
+                    using (SqlCommand cmd = new SqlCommand( @"INSERT INTO LichSuXe (CardId, BienSo, ThoiGianVao, ThoiGianRa, Tien, AnhVao, AnhRa, SiteId, ZoneId, EntryLaneId, ExitLaneId, EntryWorkstationId, ExitWorkstationId, EntryControllerId, ExitControllerId) VALUES (@cardId, @bs, @vao, @ra, @tien, @anhVao, @anhRa, @siteId, @zoneId, @entryLane, @exitLane, @entryWS, @exitWS, @entryCtrl, @exitCtrl)", conn))
                     {
                         cmd.Parameters.AddWithValue("@cardId", (object?)cardId ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("@bs", string.IsNullOrEmpty(bienSo) ? (object?)DBNull.Value : bienSo);
@@ -1984,6 +2057,10 @@ namespace QuanLyGiuXe.Services
                         cmd.Parameters.AddWithValue("@zoneId", (object?)zoneId ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("@entryLane", (object?)entryLaneId ?? DBNull.Value);
                         cmd.Parameters.AddWithValue("@exitLane", (object?)exitLaneId ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@entryWS", (object?)entryWorkstationId ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@exitWS", (object?)exitWorkstationId ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@entryCtrl", (object?)entryControllerId ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@exitCtrl", (object?)exitControllerId ?? DBNull.Value);
                         await cmd.ExecuteNonQueryAsync();
                     }
                 },
