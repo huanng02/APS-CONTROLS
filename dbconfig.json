@@ -5,9 +5,9 @@
   "Username": "appuser",
   "Password": "AQAAANCMnd8BFdERjHoAwE/Cl\u002BsBAAAA9rPVrQPQAUWf7luN09FNigAAAAACAAAAAAAQZgAAAAEAACAAAADFHr9N6k0sHyaQz6TRJP7vqAYusmVEFKmxLhtVFg5BOgAAAAAOgAAAAAIAACAAAACXgHYWIQqhfc7p0xjiZ1/YXtwyOiHiywz3AGlHdU5S3BAAAAC7KCR83jb\u002Buxu4kkOYCEtuQAAAAEm1XZ6QBcZWufhuxzsCnocHx2\u002BTLTUuknwA/D/m4nRuIdmiwHNIbDdT8f4gajeSxQTA4OhyVGfUCAMCpH163N8=",
   
-  "SecondaryServerIP": "192.168.2.10",
-  "SecondaryPort": "1433",
+  "SecondaryServerIP": "192.168.1.50",
+  "SecondaryPort": "1434",
   "SecondaryDatabase": "BaiXe",
-  "SecondaryUsername": "appuser",
-  "SecondaryPassword": "AQAAANCMnd8BFdERjHoAwE/Cl\u002BsBAAAA9rPVrQPQAUWf7luN09FNigAAAAACAAAAAAAQZgAAAAEAACAAAADFHr9N6k0sHyaQz6TRJP7vqAYusmVEFKmxLhtVFg5BOgAAAAAOgAAAAAIAACAAAACXgHYWIQqhfc7p0xjiZ1/YXtwyOiHiywz3AGlHdU5S3BAAAAC7KCR83jb\u002Buxu4kkOYCEtuQAAAAEm1XZ6QBcZWufhuxzsCnocHx2\u002BTLTUuknwA/D/m4nRuIdmiwHNIbDdT8f4gajeSxQTA4OhyVGfUCAMCpH163N8="
+  "SecondaryUsername": "",
+  "SecondaryPassword": ""
 }

@@ -1,5 +1,5 @@
 {
-  "WorkstationId": "532711c8-71cc-4972-bccf-da6c51edee28",
+  "WorkstationId": "82dabb34-da1a-4dff-b7f1-a108ec94151f",
   "ZKTeco": {
     "ControllerType": 0,
     "Protocol": "TCP",
@@ -22,18 +22,18 @@
     "RequireReasonForManualOpen": false
   },
   "Cameras": {
-    "VaoToanCanh": "rtsp://192.168.1.117:554/user=admin_password=tlJwpbo6_channel=0_stream=0&onvif=0.sdp?real_stream",
+    "VaoToanCanh": "",
     "VaoBienSo": "",
     "RaToanCanh": "",
     "RaBienSo": "",
     "LaneCameras": [
       {
-        "LaneId": 1005,
-        "ToanCanh": "rtsp://192.168.1.117:554/user=admin_password=tlJwpbo6_channel=0_stream=0&onvif=0.sdp?real_stream",
-        "BienSo": ""
+        "LaneId": 1008,
+        "ToanCanh": "",
+        "BienSo": "rtsp://192.168.1.117:554/user=admin_password=tlJwpbo6_channel=0_stream=0&onvif=0.sdp?real_stream"
       },
       {
-        "LaneId": 3,
+        "LaneId": 4,
         "ToanCanh": "",
         "BienSo": "rtsp://192.168.1.121:554/user=admin_password=tlJwpbo6_channel=0_stream=0&onvif=0.sdp?real_stream"
       }
@@ -45,6 +45,7 @@
     "SaveMaxWidth": 800,
     "AutoUseSubstream": true,
     "ShowEntrySnapAtExit": true
+  },
   },
   "Backup": {
     "AutoBackupEnabled": true,

@@ -181,6 +181,7 @@ namespace QuanLyGiuXe
                 _ = System.Threading.Tasks.Task.Run(() => {
                     ConnectionMonitorService.Instance.Stop();
                     ConnectivityStateService.Instance.Stop();
+                    QuanLyGiuXe.Services.DatabaseSyncService.Instance.Stop();
                     QuanLyGiuXe.Services.Connection.AutoReconnectService.Instance.Stop();
                     QuanLyGiuXe.Services.Connection.CameraDiagnosticsService.Instance.Stop();
                     QuanLyGiuXe.Services.OfflineCache.AutoSyncService.Instance.Stop();
@@ -449,6 +450,7 @@ namespace QuanLyGiuXe
                 // Dừng toàn bộ các dịch vụ chạy nền để giải phóng luồng hoàn toàn
                 ConnectionMonitorService.Instance.Stop();
                 ConnectivityStateService.Instance.Stop();
+                QuanLyGiuXe.Services.DatabaseSyncService.Instance.Stop();
                 QuanLyGiuXe.Services.Connection.AutoReconnectService.Instance.Stop();
                 QuanLyGiuXe.Services.Connection.CameraDiagnosticsService.Instance.Stop();
                 QuanLyGiuXe.Services.OfflineCache.AutoSyncService.Instance.Stop();

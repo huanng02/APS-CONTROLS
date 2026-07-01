@@ -1765,6 +1765,9 @@ namespace QuanLyGiuXe.ViewModels
                 // 8. Khởi động Auto Sync Engine (Phase 6.2)
                 AutoSyncService.Instance.Start();
 
+                // 8.5. Khởi động Database Sync Service (C# Bidirectional Sync)
+                DatabaseSyncService.Instance.Start();
+
                 // 9. Khởi động cấu hình làn và controller cục bộ
                 await InitializeLocalLanesAsync();
                 

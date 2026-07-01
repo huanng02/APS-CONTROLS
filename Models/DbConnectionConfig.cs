@@ -21,6 +21,10 @@ namespace QuanLyGiuXe.Models
         
         public string BuildConnectionString(int timeout = 15)
         {
+            if (string.IsNullOrWhiteSpace(Username))
+            {
+                return $"Server={ServerIP},{Port};Database={Database};Integrated Security=True;TrustServerCertificate=True;Connect Timeout={timeout};";
+            }
             string decryptedPassword = CredentialEncryptionService.Decrypt(Password);
             return $"Server={ServerIP},{Port};Database={Database};User Id={Username};Password={decryptedPassword};TrustServerCertificate=True;Connect Timeout={timeout};";
         }
@@ -28,6 +32,10 @@ namespace QuanLyGiuXe.Models
         public string BuildSecondaryConnectionString(int timeout = 15)
         {
             if (string.IsNullOrWhiteSpace(SecondaryServerIP)) return string.Empty;
+            if (string.IsNullOrWhiteSpace(SecondaryUsername))
+            {
+                return $"Server={SecondaryServerIP},{SecondaryPort};Database={SecondaryDatabase};Integrated Security=True;TrustServerCertificate=True;Connect Timeout={timeout};";
+            }
             string decryptedPassword = CredentialEncryptionService.Decrypt(SecondaryPassword);
             return $"Server={SecondaryServerIP},{SecondaryPort};Database={SecondaryDatabase};User Id={SecondaryUsername};Password={decryptedPassword};TrustServerCertificate=True;Connect Timeout={timeout};";
         }
