@@ -1,4 +1,5 @@
 {
+  "WorkstationId": "532711c8-71cc-4972-bccf-da6c51edee28",
   "ZKTeco": {
     "ControllerType": 0,
     "Protocol": "TCP",
@@ -16,20 +17,20 @@
     "Button2Action": "OpenThisDoor",
     "ForceAllIn": false,
     "ForceAllOut": false,
-    "BlockDailyCardForMonthlyPlate": false,
-    "ShowSessionDialog": true,
-    "RequireReasonForManualOpen": true
+    "BlockDailyCardForMonthlyPlate": true,
+    "ShowSessionDialog": false,
+    "RequireReasonForManualOpen": false
   },
   "Cameras": {
-    "VaoToanCanh": "",
-    "VaoBienSo": "rtsp://192.168.1.117:554/user=admin_password=tlJwpbo6_channel=0_stream=0&onvif=0.sdp?real_stream",
+    "VaoToanCanh": "rtsp://192.168.1.117:554/user=admin_password=tlJwpbo6_channel=0_stream=0&onvif=0.sdp?real_stream",
+    "VaoBienSo": "",
     "RaToanCanh": "",
-    "RaBienSo": "rtsp://192.168.1.121:554/user=admin_password=tlJwpbo6_channel=0_stream=0&onvif=0.sdp?real_stream",
+    "RaBienSo": "",
     "LaneCameras": [
       {
-        "LaneId": 4,
-        "ToanCanh": "",
-        "BienSo": "rtsp://192.168.1.117:554/user=admin_password=tlJwpbo6_channel=0_stream=0&onvif=0.sdp?real_stream"
+        "LaneId": 1005,
+        "ToanCanh": "rtsp://192.168.1.117:554/user=admin_password=tlJwpbo6_channel=0_stream=0&onvif=0.sdp?real_stream",
+        "BienSo": ""
       },
       {
         "LaneId": 3,
@@ -52,5 +53,5 @@
     "BackupDirectory": "Backups"
   },
   "ShowLog": true,
-  "ImageStoragePath": ""
+  "ImageStoragePath": "\\\\192.168.1.50\\ParkingImages"
 }

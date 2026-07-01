@@ -148,6 +148,93 @@ namespace QuanLyGiuXe.ViewModels
             set { _lane2BienSo = value; OnPropertyChanged(nameof(Lane2BienSo)); }
         }
 
+        private string _workstationId = "";
+        public string WorkstationId
+        {
+            get => _workstationId;
+            set 
+            { 
+                _workstationId = value; 
+                OnPropertyChanged(nameof(WorkstationId)); 
+                OnPropertyChanged(nameof(WorkstationLabel));
+            }
+        }
+
+        public string WorkstationLabel
+        {
+            get
+            {
+                if (IsRunningOnDatabaseServer())
+                {
+                    return "MÁY CHỦ";
+                }
+                return (!string.IsNullOrEmpty(_workstationId) && _workstationId.ToUpper().Contains("SERVER")) ? "MÁY CHỦ" : "MÁY TRẠM";
+            }
+        }
+
+        private bool IsRunningOnDatabaseServer()
+        {
+            try
+            {
+                var config = ConnectionManager.Instance.CurrentConfig;
+                string serverHost = config?.ServerIP?.Trim();
+                if (string.IsNullOrEmpty(serverHost)) return false;
+
+                // Loopback checks
+                if (serverHost == "." || 
+                    serverHost.Equals("localhost", StringComparison.OrdinalIgnoreCase) || 
+                    serverHost.Equals("127.0.0.1") || 
+                    serverHost.Equals("::1"))
+                {
+                    return true;
+                }
+
+                // Machine name check
+                string localHostName = System.Net.Dns.GetHostName();
+                if (serverHost.Equals(localHostName, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+
+                // Resolve server IP and local IPs to compare
+                var localIPs = System.Net.Dns.GetHostEntry(localHostName).AddressList;
+                System.Net.IPAddress[] serverIPs;
+                try
+                {
+                    serverIPs = System.Net.Dns.GetHostEntry(serverHost).AddressList;
+                }
+                catch
+                {
+                    // If serverHost is an IP address, GetHostEntry might throw on some setups,
+                    // so try parsing directly
+                    if (System.Net.IPAddress.TryParse(serverHost, out var parsedIP))
+                    {
+                        serverIPs = new[] { parsedIP };
+                    }
+                    else
+                    {
+                        return false;
+                    }
+                }
+
+                foreach (var localIP in localIPs)
+                {
+                    foreach (var serverIP in serverIPs)
+                    {
+                        if (localIP.Equals(serverIP))
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // fail-safe
+            }
+            return false;
+        }
+
         private string _lane2TrangThai = "Chờ xe...";
         public string Lane2TrangThai
         {
@@ -786,19 +873,7 @@ namespace QuanLyGiuXe.ViewModels
 
         public int? GetDbLaneIdForUiIndex(int uiLaneIndex)
         {
-            var distinctLaneIds = WorkstationMonitorService.Instance.GetActiveLaneIds();
-
-            if (distinctLaneIds == null || distinctLaneIds.Count == 0)
-            {
-                var activeMappings = ReaderLaneMappingService.Instance.GetAll()
-                    .Where(m => m.IsEnabled)
-                    .ToList();
-                
-                distinctLaneIds = activeMappings
-                    .Select(m => m.LaneId)
-                    .Distinct()
-                    .ToList();
-            }
+            var distinctLaneIds = ReaderLaneMappingService.Instance.GetActiveLaneIds();
 
             try
             {
@@ -1375,6 +1450,7 @@ namespace QuanLyGiuXe.ViewModels
         public MainViewModel()
         {
             var cfg = AppConfig.Load();
+            WorkstationId = cfg.WorkstationId;
             UpdateLaneStatusColor(1, _lane1TrangThai);
             UpdateLaneStatusColor(2, _lane2TrangThai);
 
@@ -1689,9 +1765,8 @@ namespace QuanLyGiuXe.ViewModels
                 // 8. Khởi động Auto Sync Engine (Phase 6.2)
                 AutoSyncService.Instance.Start();
 
-                // 9. Khởi động Failover Workstation Monitor
-                WorkstationMonitorService.Instance.OnActiveLanesChanged += async () => await HandleActiveLanesChangedAsync();
-                WorkstationMonitorService.Instance.Start();
+                // 9. Khởi động cấu hình làn và controller cục bộ
+                await InitializeLocalLanesAsync();
                 
                 LoggingService.Instance.LogInfo("VMInit", "MainViewModel", "Async initialization complete");
             }
@@ -1701,11 +1776,11 @@ namespace QuanLyGiuXe.ViewModels
             }
         }
 
-        private async Task HandleActiveLanesChangedAsync()
+        private async Task InitializeLocalLanesAsync()
         {
             try
             {
-                var activeLaneIds = WorkstationMonitorService.Instance.GetActiveLaneIds();
+                var activeLaneIds = ReaderLaneMappingService.Instance.GetActiveLaneIds();
                 var allControllers = await ParkingTopologyService.Instance.GetControllersAsync();
                 var allBarriers = await ParkingTopologyService.Instance.GetBarriersAsync();
 
@@ -1760,7 +1835,7 @@ namespace QuanLyGiuXe.ViewModels
             }
             catch (Exception ex)
             {
-                LoggingService.Instance.LogError("FAILOVER", "ActiveLanesChanged", "Error handling active lanes change in MainViewModel", ex);
+                LoggingService.Instance.LogError("LOCAL_LANES", "InitializeLocalLanes", "Error handling local lanes initialization in MainViewModel", ex);
             }
         }
 

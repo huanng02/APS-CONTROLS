@@ -91,10 +91,19 @@ namespace QuanLyGiuXe
                 {
                     try
                     {
-                        QuanLyGiuXe.Tests.LaneDirectionConsistencyTests.Run();
-                        QuanLyGiuXe.Tests.SecurityPermissionMatrixTests.Run();
-                        QuanLyGiuXe.Tests.EnterpriseCrudTests.Run();
-                        QuanLyGiuXe.Tests.OfflineLicenseTests.Run();
+                        // Force ConnectivityStateService to ONLINE state for test environment
+                        typeof(ConnectivityStateService).GetProperty("CurrentState")?
+                            .SetValue(ConnectivityStateService.Instance, ConnectionStateEnum.ONLINE);
+                        typeof(ConnectivityStateService).GetProperty("ActiveServer")?
+                            .SetValue(ConnectivityStateService.Instance, ActiveServerEnum.PRIMARY);
+
+                        System.Threading.Tasks.Task.Run(() =>
+                        {
+                            QuanLyGiuXe.Tests.LaneDirectionConsistencyTests.Run();
+                            QuanLyGiuXe.Tests.SecurityPermissionMatrixTests.Run();
+                            QuanLyGiuXe.Tests.EnterpriseCrudTests.Run();
+                            QuanLyGiuXe.Tests.OfflineLicenseTests.Run();
+                        }).Wait();
                         this.Shutdown(0);
                     }
                     catch (Exception ex)

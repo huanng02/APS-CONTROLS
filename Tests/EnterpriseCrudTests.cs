@@ -289,6 +289,7 @@ namespace QuanLyGiuXe.Tests
                     var rfidRes = http.GetAsync("http://localhost:5050/api/rfid/TEST_CARD_API_999").Result;
                     Assert(rfidRes.IsSuccessStatusCode, "GET /api/rfid/{uid} failed");
                     string rfidJson = rfidRes.Content.ReadAsStringAsync().Result;
+                    Console.WriteLine("DEBUG RFID JSON: " + rfidJson);
 
                     Assert(rfidJson.Contains("TEST_CARD_API_999"), "RFID API response should contain card UID");
                     Assert(rfidJson.Contains("TEST API Employee"), "RFID API response should contain owner name");

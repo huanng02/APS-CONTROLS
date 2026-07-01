@@ -15,8 +15,15 @@ namespace QuanLyGiuXe.Services
         RECONNECTING
     }
 
+    public enum ActiveServerEnum
+    {
+        PRIMARY,
+        SECONDARY,
+        OFFLINE
+    }
+
     /// <summary>
-    /// Chuyên trách giám sát kết nối SQL Server realtime.
+    /// Chuyên trách giám sát kết nối SQL Server realtime (Primary + Secondary).
     /// Heartbeat: 5 giây.
     /// Thread-safe & Async.
     /// </summary>
@@ -33,6 +40,7 @@ namespace QuanLyGiuXe.Services
 
         // ── State ─────────────────────────────────────────────────────────────────
         private ConnectionStateEnum _currentState = ConnectionStateEnum.OFFLINE;
+        private ActiveServerEnum _activeServer = ActiveServerEnum.PRIMARY;
         private bool _isInitialized = false;
         private bool _isSimulatingOffline = false;
         private bool _forceTimeout = false;
@@ -103,6 +111,20 @@ namespace QuanLyGiuXe.Services
 
         public string MonitorThreadState => _isInitialized ? "RUNNING" : "STOPPED";
 
+        public ActiveServerEnum ActiveServer
+        {
+            get => _activeServer;
+            private set
+            {
+                if (_activeServer != value)
+                {
+                    _activeServer = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(StatusText));
+                }
+            }
+        }
+
         public ConnectionStateEnum CurrentState
         {
             get => _currentState;
@@ -130,8 +152,8 @@ namespace QuanLyGiuXe.Services
 
         public string StatusText => CurrentState switch
         {
-            ConnectionStateEnum.ONLINE => "SQL ONLINE",
-            ConnectionStateEnum.OFFLINE => "SQL OFFLINE",
+            ConnectionStateEnum.ONLINE => ActiveServer == ActiveServerEnum.PRIMARY ? "SQL PRIMARY ONLINE" : "SQL SECONDARY ONLINE",
+            ConnectionStateEnum.OFFLINE => "SQL OFFLINE (LOCAL CACHE)",
             ConnectionStateEnum.RECONNECTING => "ĐANG KẾT NỐI...",
             _ => "UNKNOWN"
         };
@@ -173,6 +195,13 @@ namespace QuanLyGiuXe.Services
 
         public async Task<bool> CheckConnectionAsync(CancellationToken token = default)
         {
+            var config = ConnectionManager.Instance.CurrentConfig;
+            string connStr = config.BuildConnectionString(timeout: ConnectionTimeoutSeconds);
+            return await CheckServerAsync(connStr, token).ConfigureAwait(false);
+        }
+
+        public async Task<bool> CheckServerAsync(string connStr, CancellationToken token = default)
+        {
             if (IsSimulatingOffline || ForceHeartbeatFail) return false;
 
             var sw = System.Diagnostics.Stopwatch.StartNew();
@@ -183,9 +212,6 @@ namespace QuanLyGiuXe.Services
                     await Task.Delay(5000, token); // Force 5s delay
                     return false;
                 }
-
-                var config = ConnectionManager.Instance.CurrentConfig;
-                string connStr = config.BuildConnectionString(timeout: ConnectionTimeoutSeconds);
 
                 using var conn = new SqlConnection(connStr);
                 await conn.OpenAsync(token).ConfigureAwait(false);
@@ -209,25 +235,76 @@ namespace QuanLyGiuXe.Services
         {
             while (!token.IsCancellationRequested)
             {
-                bool success = await CheckConnectionAsync(token).ConfigureAwait(false);
+                var config = ConnectionManager.Instance.CurrentConfig;
+                string primaryConnStr = config.BuildConnectionString(timeout: ConnectionTimeoutSeconds);
+                string secondaryConnStr = config.BuildSecondaryConnectionString(timeout: ConnectionTimeoutSeconds);
 
-                if (success)
+                // 1. Check Primary Server
+                bool primaryOk = await CheckServerAsync(primaryConnStr, token).ConfigureAwait(false);
+
+                if (primaryOk)
                 {
+                    if (ActiveServer != ActiveServerEnum.PRIMARY)
+                    {
+                        var oldActive = ActiveServer;
+                        ActiveServer = ActiveServerEnum.PRIMARY;
+                        ConnectionManager.Instance.SwitchToPrimary();
+                        
+                        if (oldActive == ActiveServerEnum.SECONDARY)
+                        {
+                            ToastNotificationService.Instance.ShowToast("Đã kết nối lại với Máy chủ Chính (Primary Server)!", ToastType.Success);
+                            LoggingService.Instance.LogInfo("CONNECTIVITY", "SQL", "Reconnected back to Primary Server.");
+                            _ = Task.Run(async () => await OfflineCache.AutoSyncService.Instance.TriggerSyncNowAsync());
+                        }
+                    }
                     CurrentState = ConnectionStateEnum.ONLINE;
                     RetryCount = 0;
                     CurrentRetryDelaySeconds = HeartbeatIntervalSeconds;
                 }
                 else
                 {
-                    RetryCount++;
-                    if (CurrentState == ConnectionStateEnum.ONLINE)
+                    // 2. Check Secondary Server if Primary failed
+                    bool secondaryOk = false;
+                    if (!string.IsNullOrWhiteSpace(secondaryConnStr))
                     {
-                        CurrentState = ConnectionStateEnum.OFFLINE;
-                        ReconnectAttempts = 0;
+                        secondaryOk = await CheckServerAsync(secondaryConnStr, token).ConfigureAwait(false);
                     }
-                    
-                    CurrentState = ConnectionStateEnum.RECONNECTING;
-                    ReconnectAttempts++;
+
+                    if (secondaryOk)
+                    {
+                        if (ActiveServer != ActiveServerEnum.SECONDARY)
+                        {
+                            var oldActive = ActiveServer;
+                            ActiveServer = ActiveServerEnum.SECONDARY;
+                            ConnectionManager.Instance.SwitchToSecondary();
+                            
+                            if (oldActive == ActiveServerEnum.PRIMARY)
+                            {
+                                ToastNotificationService.Instance.ShowToast("Mất kết nối máy chủ chính. Đã tự động chuyển sang máy chủ dự phòng (Secondary Server)!", ToastType.Warning);
+                                LoggingService.Instance.LogWarning("CONNECTIVITY", "SQL", "Primary Server offline. Switched to Secondary Server.");
+                                _ = Task.Run(async () => await OfflineCache.AutoSyncService.Instance.TriggerSyncNowAsync());
+                            }
+                        }
+                        CurrentState = ConnectionStateEnum.ONLINE;
+                        RetryCount = 0;
+                        CurrentRetryDelaySeconds = HeartbeatIntervalSeconds;
+                    }
+                    else
+                    {
+                        // Both servers are offline
+                        RetryCount++;
+                        if (CurrentState == ConnectionStateEnum.ONLINE)
+                        {
+                            ActiveServer = ActiveServerEnum.OFFLINE;
+                            CurrentState = ConnectionStateEnum.OFFLINE;
+                            ReconnectAttempts = 0;
+                        }
+                        else
+                        {
+                            CurrentState = ConnectionStateEnum.RECONNECTING;
+                            ReconnectAttempts++;
+                        }
+                    }
                 }
 
                 try
@@ -245,12 +322,16 @@ namespace QuanLyGiuXe.Services
         {
             if (oldState != ConnectionStateEnum.ONLINE && newState == ConnectionStateEnum.ONLINE)
             {
-                ToastNotificationService.Instance.ShowToast("Kết nối SQL Server thành công!", ToastType.Success);
-                LoggingService.Instance.LogInfo("CONNECTIVITY", "SQL", "SQL Server connection restored.");
+                string serverName = ActiveServer == ActiveServerEnum.PRIMARY ? "chính (Primary)" : "dự phòng (Secondary)";
+                ToastNotificationService.Instance.ShowToast($"Kết nối cơ sở dữ liệu {serverName} thành công!", ToastType.Success);
+                LoggingService.Instance.LogInfo("CONNECTIVITY", "SQL", $"SQL Server connection restored on {ActiveServer} server.");
+                
+                // Kích hoạt đồng bộ hóa dữ liệu ngoại tuyến ngay lập tức
+                _ = Task.Run(async () => await OfflineCache.AutoSyncService.Instance.TriggerSyncNowAsync());
             }
             else if (oldState == ConnectionStateEnum.ONLINE && newState != ConnectionStateEnum.ONLINE)
             {
-                ToastNotificationService.Instance.ShowToast("Mất kết nối SQL Server! Đang thử kết nối lại...", ToastType.Error);
+                ToastNotificationService.Instance.ShowToast("Mất kết nối SQL Server! Đang chạy chế độ offline SQLite...", ToastType.Error);
                 LoggingService.Instance.LogError("CONNECTIVITY", "SQL", "SQL Server connection lost.", null);
             }
         }

@@ -251,6 +251,12 @@ namespace QuanLyGiuXe.ViewModels
         private string _detailControllerPcIp = string.Empty;
         public string DetailControllerPcIp { get => _detailControllerPcIp; set { _detailControllerPcIp = value; OnPropertyChanged(); } }
 
+        private string _detailControllerServerIpLabel = string.Empty;
+        public string DetailControllerServerIpLabel { get => _detailControllerServerIpLabel; set { _detailControllerServerIpLabel = value; OnPropertyChanged(); } }
+
+        private string _detailControllerPcIpLabel = string.Empty;
+        public string DetailControllerPcIpLabel { get => _detailControllerPcIpLabel; set { _detailControllerPcIpLabel = value; OnPropertyChanged(); } }
+
         private string _detailControllerZone = string.Empty;
         public string DetailControllerZone { get => _detailControllerZone; set { _detailControllerZone = value; OnPropertyChanged(); } }
 
@@ -900,9 +906,33 @@ namespace QuanLyGiuXe.ViewModels
             DetailControllerName = controller.ControllerName;
             DetailControllerIp = controller.IpAddress;
             DetailControllerServerIp = controller.ServerIp;
+            DetailControllerServerIpLabel = IsLocalIpAddress(controller.ServerIp) ? " (Cục bộ/Database)" : " (Máy chủ từ xa)";
             DetailControllerPcIp = controller.PcIp;
+            DetailControllerPcIpLabel = IsLocalIpAddress(controller.PcIp) ? " (Trực thuộc máy này)" : " (Từ xa)";
             DetailControllerZone = controller.GateName; // repurposed Zone to GateName display in UI details panel
             DetailControllerIsActive = controller.IsActive;
+        }
+
+        private bool IsLocalIpAddress(string ip)
+        {
+            if (string.IsNullOrWhiteSpace(ip)) return false;
+            try
+            {
+                if (ip == "." || ip.Equals("localhost", StringComparison.OrdinalIgnoreCase) || ip.Equals("127.0.0.1") || ip.Equals("::1"))
+                    return true;
+
+                string hostName = System.Net.Dns.GetHostName();
+                if (ip.Equals(hostName, StringComparison.OrdinalIgnoreCase))
+                    return true;
+
+                var localIPs = System.Net.Dns.GetHostEntry(hostName).AddressList;
+                if (System.Net.IPAddress.TryParse(ip, out var targetIP))
+                {
+                    return localIPs.Contains(targetIP);
+                }
+            }
+            catch { }
+            return false;
         }
 
         private void UpdateReaderDetail(ReaderLaneMapping reader)

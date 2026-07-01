@@ -278,6 +278,9 @@
                     <!-- COLUMN 1: FORM INPUT -->
                     <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="25,20">
                         <StackPanel>
+                            <!-- I. MÁY CHỦ CHÍNH (PRIMARY SERVER) -->
+                            <TextBlock Text="I. MÁY CHỦ CHÍNH (PRIMARY SERVER)" FontSize="13" FontWeight="Bold" Foreground="#2563eb" Margin="0,5,0,12"/>
+                            
                             <!-- IP & PORT Row -->
                             <Grid Margin="0,0,0,14">
                                 <Grid.ColumnDefinitions>
@@ -602,6 +605,116 @@
                                                 </Style>
                                             </ComboBox.ItemContainerStyle>
                                         </ComboBox>
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+
+                            <!-- II. MÁY CHỦ DỰ PHÒNG (SECONDARY SERVER) -->
+                            <TextBlock Text="II. MÁY CHỦ DỰ PHÒNG (SECONDARY SERVER)" FontSize="13" FontWeight="Bold" Foreground="#2563eb" Margin="0,15,0,12"/>
+                            
+                            <!-- Secondary IP & PORT Row -->
+                            <Grid Margin="0,0,0,14">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="110"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Margin="0,0,12,0">
+                                    <TextBlock Text="ĐỊA CHỈ SERVER DỰ PHÒNG" Style="{StaticResource ModernFieldLabel}"/>
+                                    <Border Style="{StaticResource InputContainerStyle}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="42"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Path Data="M19 15v4H5v-4h14m1-2H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1v-6c0-.55-.45-1-1-1zM19 5v4H5V5h14m1-2H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1V4c0-.55-.45-1-1-1z" 
+                                                  Fill="#94a3b8" Width="16" Height="16" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="1" Text="192.168.2.10 (Bỏ trống nếu không dùng)" Foreground="#94a3b8" VerticalAlignment="Center" FontSize="13.5" IsHitTestVisible="False">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Text, ElementName=txtSecondaryServerIP}" Value="">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                            <TextBox x:Name="txtSecondaryServerIP" Grid.Column="1" Style="{StaticResource EmbeddedTextBoxStyle}"
+                                                     Text="{Binding SecondaryServerIP, UpdateSourceTrigger=PropertyChanged}" GotFocus="InputField_GotFocus" LostFocus="InputField_LostFocus"/>
+                                        </Grid>
+                                    </Border>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="CỔNG DỰ PHÒNG" Style="{StaticResource ModernFieldLabel}"/>
+                                    <Border Style="{StaticResource InputContainerStyle}">
+                                        <TextBox x:Name="txtSecondaryPort" Style="{StaticResource EmbeddedTextBoxStyle}" Padding="15,0"
+                                                 Text="{Binding SecondaryPort, UpdateSourceTrigger=PropertyChanged}" GotFocus="InputField_GotFocus" LostFocus="InputField_LostFocus"/>
+                                    </Border>
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- Secondary SQL Username -->
+                            <StackPanel Margin="0,0,0,14">
+                                <TextBlock Text="TÀI KHOẢN SQL DỰ PHÒNG" Style="{StaticResource ModernFieldLabel}"/>
+                                <Border Style="{StaticResource InputContainerStyle}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="42"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Path Data="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" 
+                                              Fill="#94a3b8" Width="16" Height="16" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="1" Text="sa" Foreground="#94a3b8" VerticalAlignment="Center" FontSize="13.5" IsHitTestVisible="False">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Text, ElementName=txtSecondaryUsername}" Value="">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        <TextBox x:Name="txtSecondaryUsername" Grid.Column="1" Style="{StaticResource EmbeddedTextBoxStyle}"
+                                                 Text="{Binding SecondaryUsername, UpdateSourceTrigger=PropertyChanged}" GotFocus="InputField_GotFocus" LostFocus="InputField_LostFocus"/>
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+
+                            <!-- Secondary Password -->
+                            <StackPanel Margin="0,0,0,14">
+                                <TextBlock Text="MẬT KHẨU DỰ PHÒNG" Style="{StaticResource ModernFieldLabel}"/>
+                                <Border Style="{StaticResource InputContainerStyle}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="42"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Path Data="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" 
+                                              Fill="#94a3b8" Width="16" Height="16" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        <TextBox x:Name="txtSecondaryPassword" Grid.Column="1" Style="{StaticResource EmbeddedTextBoxStyle}"
+                                                 Text="{Binding SecondaryPassword, UpdateSourceTrigger=PropertyChanged}" GotFocus="InputField_GotFocus" LostFocus="InputField_LostFocus"/>
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+
+                            <!-- Secondary Database Name -->
+                            <StackPanel Margin="0,0,0,20">
+                                <TextBlock Text="DATABASE DỰ PHÒNG" Style="{StaticResource ModernFieldLabel}"/>
+                                <Border Style="{StaticResource InputContainerStyle}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="42"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Path Data="M12 2C6.48 2 2 4.02 2 6.5s4.48 4.5 10 4.5 10-2.02 10-4.5S17.52 2 12 2zm0 13c-5.52 0-10-2.02-10-4.5V15c0 2.48 4.48 4.5 10 4.5s10-2.02 10-4.5v-4.5c0 2.48-4.48 4.5-10 4.5zm0-4.5c-5.52 0-10-2.02-10-4.5V9c0 2.48 4.48 4.5 10 4.5s10-2.02 10-4.5V7.5c0 2.48-4.48 4.5-10 4.5z" 
+                                              Fill="#94a3b8" Width="16" Height="16" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        <TextBox x:Name="txtSecondaryDatabase" Grid.Column="1" Style="{StaticResource EmbeddedTextBoxStyle}"
+                                                 Text="{Binding SecondaryDatabase, UpdateSourceTrigger=PropertyChanged}" GotFocus="InputField_GotFocus" LostFocus="InputField_LostFocus"/>
                                     </Grid>
                                 </Border>
                             </StackPanel>

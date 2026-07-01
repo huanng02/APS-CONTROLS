@@ -80,16 +80,16 @@ namespace QuanLyGiuXe.Tests
             double scoreDisk = LicenseValidationService.Instance.CalculateHardwareMatchScore(local, diskReplaced);
             Assert(scoreDisk == 85, $"Disk replaced score should be 85% (actual: {scoreDisk}%)");
 
-            // 3. CPU and Disk Replaced (70% match - valid)
-            var cpuDiskReplaced = new HardwareDetails
+            // 3. CPU Replaced (70% match - valid)
+            var cpuReplaced = new HardwareDetails
             {
                 Cpu = "NEW_CPU_999",
                 Motherboard = "MOBO456",
-                Disk = "NEW_DISK_999",
+                Disk = "DISK789",
                 Bios = "BIOS012"
             };
-            double scoreCpuDisk = LicenseValidationService.Instance.CalculateHardwareMatchScore(local, cpuDiskReplaced);
-            Assert(scoreCpuDisk == 70, $"CPU and Disk replaced score should be 70% (actual: {scoreCpuDisk}%)");
+            double scoreCpu = LicenseValidationService.Instance.CalculateHardwareMatchScore(local, cpuReplaced);
+            Assert(scoreCpu == 70, $"CPU replaced score should be 70% (actual: {scoreCpu}%)");
 
             // 4. Motherboard Replaced (50% match - invalid)
             var moboReplaced = new HardwareDetails

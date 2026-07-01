@@ -48,6 +48,7 @@ namespace QuanLyGiuXe.Services
             _currentConfig = DbConnectionConfig.LoadFromFile();
             // Giải mã mật khẩu DPAPI sang dạng thô chạy trong bộ nhớ
             _currentConfig.Password = CredentialEncryptionService.Decrypt(_currentConfig.Password);
+            _currentConfig.SecondaryPassword = CredentialEncryptionService.Decrypt(_currentConfig.SecondaryPassword);
             CurrentConnectionString = _currentConfig.BuildConnectionString();
             LoggingService.Instance.LogInfo("ConnectionManager", "Init",
                 $"Đã load config: {_currentConfig.ServerIP}:{_currentConfig.Port}/{_currentConfig.Database}");
@@ -122,19 +123,48 @@ namespace QuanLyGiuXe.Services
                 Port     = newConfig.Port,
                 Database = newConfig.Database,
                 Username = newConfig.Username,
-                Password = CredentialEncryptionService.Encrypt(CredentialEncryptionService.Decrypt(newConfig.Password))
+                Password = CredentialEncryptionService.Encrypt(CredentialEncryptionService.Decrypt(newConfig.Password)),
+
+                SecondaryServerIP = newConfig.SecondaryServerIP,
+                SecondaryPort     = newConfig.SecondaryPort,
+                SecondaryDatabase = newConfig.SecondaryDatabase,
+                SecondaryUsername = newConfig.SecondaryUsername,
+                SecondaryPassword = string.IsNullOrEmpty(newConfig.SecondaryPassword) ? "" : CredentialEncryptionService.Encrypt(CredentialEncryptionService.Decrypt(newConfig.SecondaryPassword))
             };
             DbConnectionConfig.SaveToFile(configToSave);
 
             // Cập nhật cấu hình thô chạy trong bộ nhớ
             _currentConfig = newConfig;
             _currentConfig.Password = CredentialEncryptionService.Decrypt(newConfig.Password);
+            _currentConfig.SecondaryPassword = CredentialEncryptionService.Decrypt(newConfig.SecondaryPassword);
             CurrentConnectionString = _currentConfig.BuildConnectionString();
 
             LoggingService.Instance.LogInfo("ConnectionManager", "UpdateConnection",
                 $"Connection đã đổi sang: {_currentConfig.ServerIP}:{_currentConfig.Port}/{_currentConfig.Database}");
 
             ConnectionChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        public void SwitchToPrimary()
+        {
+            string primaryConnStr = _currentConfig.BuildConnectionString();
+            if (CurrentConnectionString != primaryConnStr)
+            {
+                CurrentConnectionString = primaryConnStr;
+                LoggingService.Instance.LogInfo("ConnectionManager", "Switch", "Switched database connection string to Primary Server.");
+                ConnectionChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+
+        public void SwitchToSecondary()
+        {
+            string secondaryConnStr = _currentConfig.BuildSecondaryConnectionString();
+            if (!string.IsNullOrEmpty(secondaryConnStr) && CurrentConnectionString != secondaryConnStr)
+            {
+                CurrentConnectionString = secondaryConnStr;
+                LoggingService.Instance.LogInfo("ConnectionManager", "Switch", "Switched database connection string to Secondary Server.");
+                ConnectionChanged?.Invoke(this, EventArgs.Empty);
+            }
         }
 
         /// <summary>

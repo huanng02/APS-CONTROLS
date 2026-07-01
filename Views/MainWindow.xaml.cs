@@ -101,15 +101,7 @@ namespace QuanLyGiuXe
             C3200Service.Instance.OnCardScannedEx += RawC3200ScannedEx;
             // subscribe to full RT events to record button presses
             C3200Service.Instance.OnEvent += OnC3200Event;
-
-            WorkstationMonitorService.Instance.OnActiveLanesChanged += () =>
-            {
-                Dispatcher.BeginInvoke(new Action(() =>
-                {
-                    _mainViewModel?.CalculateLaneVisibilities();
-                    ReloadCameras();
-                }));
-            };
+            // Camera and lane layouts will be initialized when the window loads.
             
             // UI RBAC
             ApplyPermissions();
@@ -886,7 +878,7 @@ namespace QuanLyGiuXe
             // Start dynamic lane cameras if any are configured
             bool startedAnyDynamic = false;
             var activeKeys = new System.Collections.Generic.List<string>();
-            var activeLaneIds = WorkstationMonitorService.Instance.GetActiveLaneIds();
+            var activeLaneIds = ReaderLaneMappingService.Instance.GetActiveLaneIds();
             if (cfg.LaneCameras != null && cfg.LaneCameras.Count > 0)
             {
                 foreach (var lc in cfg.LaneCameras)
@@ -937,7 +929,7 @@ namespace QuanLyGiuXe
                 var targetConfigs = new System.Collections.Generic.Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                 bool startedAnyDynamic = false;
 
-                var activeLaneIds = WorkstationMonitorService.Instance.GetActiveLaneIds();
+                var activeLaneIds = ReaderLaneMappingService.Instance.GetActiveLaneIds();
                 if (cfg.LaneCameras != null && cfg.LaneCameras.Count > 0)
                 {
                     foreach (var lc in cfg.LaneCameras)

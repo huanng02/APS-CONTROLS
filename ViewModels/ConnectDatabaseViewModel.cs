@@ -82,6 +82,61 @@ namespace QuanLyGiuXe.ViewModels
             }
         }
 
+        public string SecondaryServerIP
+        {
+            get => _config.SecondaryServerIP;
+            set 
+            { 
+                _config.SecondaryServerIP = value; 
+                OnPropertyChanged(nameof(SecondaryServerIP)); 
+                IsTestSuccessful = false;
+            }
+        }
+
+        public string SecondaryPort
+        {
+            get => _config.SecondaryPort;
+            set 
+            { 
+                _config.SecondaryPort = value; 
+                OnPropertyChanged(nameof(SecondaryPort)); 
+                IsTestSuccessful = false;
+            }
+        }
+
+        public string SecondaryDatabase
+        {
+            get => _config.SecondaryDatabase;
+            set 
+            { 
+                _config.SecondaryDatabase = value; 
+                OnPropertyChanged(nameof(SecondaryDatabase)); 
+                IsTestSuccessful = false;
+            }
+        }
+
+        public string SecondaryUsername
+        {
+            get => _config.SecondaryUsername;
+            set 
+            { 
+                _config.SecondaryUsername = value; 
+                OnPropertyChanged(nameof(SecondaryUsername)); 
+                IsTestSuccessful = false;
+            }
+        }
+
+        public string SecondaryPassword
+        {
+            get => _config.SecondaryPassword;
+            set 
+            { 
+                _config.SecondaryPassword = value; 
+                OnPropertyChanged(nameof(SecondaryPassword)); 
+                IsTestSuccessful = false;
+            }
+        }
+
         private ObservableCollection<DatabaseItem> _databases = new ObservableCollection<DatabaseItem>();
         public ObservableCollection<DatabaseItem> Databases
         {
@@ -247,6 +302,7 @@ namespace QuanLyGiuXe.ViewModels
             
             // Giải mã mật khẩu an toàn từ file dbconfig.json bằng DPAPI
             string decryptedPassword = CredentialEncryptionService.Decrypt(current.Password);
+            string decryptedSecondaryPassword = CredentialEncryptionService.Decrypt(current.SecondaryPassword);
 
             _config = new ConnectionConfig
             {
@@ -255,7 +311,12 @@ namespace QuanLyGiuXe.ViewModels
                 Database = current.Database,
                 Username = current.Username,
                 Password = decryptedPassword,
-                RememberConnection = true
+                RememberConnection = true,
+                SecondaryServerIP = current.SecondaryServerIP,
+                SecondaryPort = current.SecondaryPort,
+                SecondaryDatabase = current.SecondaryDatabase,
+                SecondaryUsername = current.SecondaryUsername,
+                SecondaryPassword = decryptedSecondaryPassword
             };
 
             StatusMessage  = "Chưa kết nối";
@@ -539,6 +600,7 @@ namespace QuanLyGiuXe.ViewModels
         {
             // Mã hóa mật khẩu DPAPI trước khi lưu file cấu hình nếu RememberConnection = true
             string encryptedPassword = RememberConnection ? CredentialEncryptionService.Encrypt(Password) : "";
+            string encryptedSecondaryPassword = RememberConnection ? CredentialEncryptionService.Encrypt(SecondaryPassword) : "";
 
             var configToSave = new DbConnectionConfig
             {
@@ -546,7 +608,12 @@ namespace QuanLyGiuXe.ViewModels
                 Port = Port,
                 Database = Database,
                 Username = Username,
-                Password = encryptedPassword
+                Password = encryptedPassword,
+                SecondaryServerIP = SecondaryServerIP,
+                SecondaryPort = SecondaryPort,
+                SecondaryDatabase = SecondaryDatabase,
+                SecondaryUsername = SecondaryUsername,
+                SecondaryPassword = encryptedSecondaryPassword
             };
 
             var currentConfig = new DbConnectionConfig
@@ -555,7 +622,12 @@ namespace QuanLyGiuXe.ViewModels
                 Port = Port,
                 Database = Database,
                 Username = Username,
-                Password = Password // Thô để chạy trong bộ nhớ
+                Password = Password, // Thô để chạy trong bộ nhớ
+                SecondaryServerIP = SecondaryServerIP,
+                SecondaryPort = SecondaryPort,
+                SecondaryDatabase = SecondaryDatabase,
+                SecondaryUsername = SecondaryUsername,
+                SecondaryPassword = SecondaryPassword // Thô để chạy trong bộ nhớ
             };
 
             // Cập nhật cấu hình thô chạy trong bộ nhớ

@@ -113,6 +113,10 @@ namespace QuanLyGiuXe.Services
                     string scriptPathFailover = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260630_failover_support.sql");
                     await ExecuteMigrationScriptAsync(conn, "20260630_failover_support.sql", scriptPathFailover);
 
+                    // 17. 20260701_remove_failover_support.sql
+                    string scriptPathRemoveFailover = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Migrations", "20260701_remove_failover_support.sql");
+                    await ExecuteMigrationScriptAsync(conn, "20260701_remove_failover_support.sql", scriptPathRemoveFailover);
+
                     _migrationsApplied = true;
                     LoggingService.Instance.LogInfo("MIGRATION", "Ensure", "SQL Server topology migrations applied successfully.");
                 }

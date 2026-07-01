@@ -410,5 +410,14 @@ namespace QuanLyGiuXe.Services
                 );
             });
         }
+
+        public List<int> GetActiveLaneIds()
+        {
+            return GetAll()
+                .Where(m => m.IsEnabled)
+                .Select(m => m.LaneId)
+                .Distinct()
+                .ToList();
+        }
     }
 }

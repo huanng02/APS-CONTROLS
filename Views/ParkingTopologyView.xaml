@@ -1044,18 +1044,26 @@
                                                 <TextBlock Text="IP Server" Style="{StaticResource InfoLabelStyle}"/>
                                                 <Border Background="#E8F8F5" CornerRadius="6" Padding="10,6"
                                                         HorizontalAlignment="Left" Margin="0,0,0,12">
-                                                    <TextBlock Text="{Binding DetailControllerServerIp}" FontSize="14"
-                                                               FontWeight="SemiBold" FontFamily="Consolas, Segoe UI"
-                                                               Foreground="#16A085"/>
+                                                    <StackPanel Orientation="Vertical">
+                                                        <TextBlock Text="{Binding DetailControllerServerIp}" FontSize="14"
+                                                                   FontWeight="SemiBold" FontFamily="Consolas, Segoe UI"
+                                                                   Foreground="#16A085"/>
+                                                        <TextBlock Text="{Binding DetailControllerServerIpLabel}" FontSize="11"
+                                                                   FontWeight="Bold" Foreground="#1ABC9C" Margin="0,2,0,0"/>
+                                                    </StackPanel>
                                                 </Border>
                                             </StackPanel>
                                             <StackPanel Grid.Column="2">
                                                 <TextBlock Text="IP Máy trạm (PC)" Style="{StaticResource InfoLabelStyle}"/>
                                                 <Border Background="#FEF9E7" CornerRadius="6" Padding="10,6"
                                                         HorizontalAlignment="Left" Margin="0,0,0,12">
-                                                    <TextBlock Text="{Binding DetailControllerPcIp}" FontSize="14"
-                                                               FontWeight="SemiBold" FontFamily="Consolas, Segoe UI"
-                                                               Foreground="#D35400"/>
+                                                    <StackPanel Orientation="Vertical">
+                                                        <TextBlock Text="{Binding DetailControllerPcIp}" FontSize="14"
+                                                                   FontWeight="SemiBold" FontFamily="Consolas, Segoe UI"
+                                                                   Foreground="#D35400"/>
+                                                        <TextBlock Text="{Binding DetailControllerPcIpLabel}" FontSize="11"
+                                                                   FontWeight="Bold" Foreground="#E67E22" Margin="0,2,0,0"/>
+                                                    </StackPanel>
                                                 </Border>
                                             </StackPanel>
                                             <StackPanel Grid.Column="3">

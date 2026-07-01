@@ -134,57 +134,7 @@ namespace QuanLyGiuXe.Services
 
         private string GetWorkingConnection()
         {
-            // Use cached connection if it was checked recently (within 5 minutes)
-            if (_cachedWorkingConnection != null && (DateTime.Now - _lastCheckTime).TotalMinutes < 5)
-            {
-                return _cachedWorkingConnection;
-            }
-
-            // Try primary connection with a SHORT timeout (2 seconds)
-            string primaryWithTimeout = primaryConnection;
-            if (!primaryWithTimeout.Contains("Connect Timeout") && !primaryWithTimeout.Contains("Connection Timeout"))
-            {
-                primaryWithTimeout += ";Connect Timeout=2;";
-            }
-
-            try
-            {
-                using (SqlConnection conn = new SqlConnection(primaryWithTimeout))
-                {
-                    conn.Open();
-                    _cachedWorkingConnection = primaryConnection;
-                    _lastCheckTime = DateTime.Now;
-                    return primaryConnection;
-                }
-            }
-            catch
-            {
-                // fallback to backup
-                LoggingService.Instance.LogWarning("DBConn", "DatabaseService", "Primary DB failed, trying backup...");
-            }
-
-            try
-            {
-                string backupWithTimeout = backupConnection;
-                if (!backupWithTimeout.Contains("Connect Timeout"))
-                {
-                    backupWithTimeout += ";Connect Timeout=2;";
-                }
-
-                using (SqlConnection conn = new SqlConnection(backupWithTimeout))
-                {
-                    conn.Open();
-                    _cachedWorkingConnection = backupConnection;
-                    _lastCheckTime = DateTime.Now;
-                    return backupConnection;
-                }
-            }
-            catch
-            {
-                // Last ditch effort: return primary and let the caller handle the long timeout/error
-                _cachedWorkingConnection = primaryConnection; 
-                return primaryConnection;
-            }
+            return ConnectionManager.Instance.CurrentConnectionString;
         }
         /// <summary>
         /// Lookup an RFIDCard by plate (BienSo). Returns null if not found.
@@ -1556,7 +1506,7 @@ namespace QuanLyGiuXe.Services
 
             if (string.IsNullOrEmpty(entryWorkstationId))
             {
-                entryWorkstationId = WorkstationMonitorService.Instance.CurrentWorkstationId;
+                entryWorkstationId = AppConfig.Load().WorkstationId;
             }
             if (!entryControllerId.HasValue && entryLaneId.HasValue)
             {
@@ -2028,7 +1978,7 @@ namespace QuanLyGiuXe.Services
                     }
                     if (string.IsNullOrEmpty(exitWorkstationId))
                     {
-                        exitWorkstationId = WorkstationMonitorService.Instance.CurrentWorkstationId;
+                        exitWorkstationId = AppConfig.Load().WorkstationId;
                     }
                     if (!exitControllerId.HasValue && exitLaneId.HasValue)
                     {

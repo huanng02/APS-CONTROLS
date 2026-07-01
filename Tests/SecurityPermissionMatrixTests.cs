@@ -204,9 +204,14 @@ namespace QuanLyGiuXe.Tests
             var origLanes = CurrentUserContext.Instance.AssignedLaneIds;
             var origSites = CurrentUserContext.Instance.AssignedSiteIds;
 
+            string origConnStr = ConnectionManager.Instance.CurrentConnectionString;
             try
             {
                 CurrentUserContext.Instance.SetCurrentUser(1, "admin", "Admin", "Administrator", origPermissions, origLanes, origSites);
+
+                // Temporarily inject invalid connection string via reflection to simulate offline/failure state
+                typeof(ConnectionManager).GetProperty("CurrentConnectionString")?
+                    .SetValue(ConnectionManager.Instance, "Server=127.0.0.99,9999;Database=invalid;Connect Timeout=2;TrustServerCertificate=True;");
 
                 // Attempting to run SavePermissionChangesAsync when SQL server is offline.
                 // In headless tests, it should fail to connect to SQL Server and throw an exception,
@@ -227,6 +232,10 @@ namespace QuanLyGiuXe.Tests
             }
             finally
             {
+                // Restore original connection string
+                typeof(ConnectionManager).GetProperty("CurrentConnectionString")?
+                    .SetValue(ConnectionManager.Instance, origConnStr);
+
                 // Restore original user context
                 CurrentUserContext.Instance.SetCurrentUser(origId, origUsername, origRole, origTen, origPermissions, origLanes, origSites);
             }

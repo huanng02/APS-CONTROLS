@@ -218,52 +218,12 @@ namespace QuanLyGiuXe.Services
                 var matchedCtrl = allControllers.FirstOrDefault(c => c.IsActive && c.IpAddress.Trim().Equals(ip.Trim(), StringComparison.OrdinalIgnoreCase));
                 if (matchedCtrl == null) return true;
 
-                string myId = WorkstationMonitorService.Instance.CurrentWorkstationId;
-                if (string.IsNullOrEmpty(myId))
-                {
-                    // Fall back to PcIp legacy check if Monitor Service not yet up
-                    return IsOwnerOfController(matchedCtrl.PcIp);
-                }
-
-                string connStr = ConnectionManager.Instance.CurrentConnectionString;
-                using (var conn = new SqlConnection(connStr))
-                {
-                    await conn.OpenAsync();
-                    string sql = @"
-                        SELECT lo.ActiveWorkstationId, lo.PrimaryWorkstationId
-                        FROM LaneOwnership lo
-                        JOIN dbo.Barriers b ON lo.LaneId = b.LaneId
-                        WHERE b.ControllerId = @ctrlId AND b.IsActive = 1";
-
-                    using (var cmd = new SqlCommand(sql, conn))
-                    {
-                        cmd.Parameters.AddWithValue("@ctrlId", matchedCtrl.Id);
-                        using (var reader = await cmd.ExecuteReaderAsync())
-                        {
-                            bool hasEntries = false;
-                            while (await reader.ReadAsync())
-                            {
-                                hasEntries = true;
-                                string activeId = reader.IsDBNull(0) ? string.Empty : reader.GetString(0);
-                                if (activeId.Equals(myId, StringComparison.OrdinalIgnoreCase))
-                                {
-                                    return true; // We are the active owner
-                                }
-                            }
-
-                            if (!hasEntries)
-                            {
-                                return IsOwnerOfController(matchedCtrl.PcIp);
-                            }
-                        }
-                    }
-                }
+                return IsOwnerOfController(matchedCtrl.PcIp);
             }
             catch
             {
                 return true; // fail-safe
             }
-            return false;
         }
 
         // ── Kết nối ───────────────────────────────────────────────────────────────
