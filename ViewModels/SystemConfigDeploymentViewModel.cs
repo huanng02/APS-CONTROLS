@@ -12,6 +12,9 @@ namespace QuanLyGiuXe.ViewModels
 {
     public class SystemConfigDeploymentViewModel : BaseViewModel
     {
+        // ── Topology View Model ─────────────────────────────────────────
+        public ParkingTopologyViewModel TopologyViewModel { get; } = new ParkingTopologyViewModel();
+
         // ── Active Tab Index ───────────────────────────────────────────
         private int _activeTabIndex;
         public int ActiveTabIndex
@@ -23,7 +26,7 @@ namespace QuanLyGiuXe.ViewModels
                 {
                     _activeTabIndex = value;
                     OnPropertyChanged();
-                    if (_activeTabIndex == 1)
+                    if (_activeTabIndex == 2) // Development Center is now tab index 2
                     {
                         LoadAllData();
                     }

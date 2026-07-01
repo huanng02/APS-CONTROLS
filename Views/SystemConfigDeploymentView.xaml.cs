@@ -1648,11 +1648,11 @@ namespace QuanLyGiuXe.Views
 
                 MessageBox.Show("Đã lưu cấu hình vào bản nháp thành công!\n\nHệ thống sẽ tự động chuyển bạn đến Development Center để tiến hành triển khai.", "Lưu cấu hình", MessageBoxButton.OK, MessageBoxImage.Information);
                 
-                // Auto-switch to Tab 2 (Development Center)
+                // Auto-switch to Tab 3 (Development Center, now index 2)
                 if (DataContext is SystemConfigDeploymentViewModel vm)
                 {
                     vm.RefreshCommand.Execute(null);
-                    vm.ActiveTabIndex = 1;
+                    vm.ActiveTabIndex = 2;
                 }
             }
             catch (Exception ex)
@@ -1834,12 +1834,33 @@ namespace QuanLyGiuXe.Views
 
         private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (e.Source is System.Windows.Controls.TabControl tc && tc.SelectedIndex == 0)
+            if (e.Source is System.Windows.Controls.TabControl tc && tc.SelectedIndex == 1) // Cấu hình thiết bị is now index 1
             {
                 // Reload configuration draft when returning to Tab 1
                 AppConfig.ClearDraftCache();
                 _cfg = AppConfig.LoadDraft();
                 PopulateUIFromConfig();
+            }
+        }
+
+        private async void SaveTopology_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Mark pending changes in deployment service so Development Center knows there are new changes
+                await DeploymentService.Instance.MarkPendingChangesAsync();
+                
+                MessageBox.Show("Cấu hình sơ đồ bãi xe đã được ghi nhận bản nháp thành công!\n\nHệ thống sẽ tự động chuyển bạn đến Development Center để tiến hành triển khai.", "Lưu sơ đồ", MessageBoxButton.OK, MessageBoxImage.Information);
+                
+                if (DataContext is SystemConfigDeploymentViewModel vm)
+                {
+                    vm.RefreshCommand.Execute(null);
+                    vm.ActiveTabIndex = 2;
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Lỗi khi ghi nhận cấu hình: {ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
     }

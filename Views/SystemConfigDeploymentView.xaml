@@ -111,9 +111,32 @@
         <TabControl Style="{StaticResource EnterpriseTabControl}" SelectedIndex="{Binding ActiveTabIndex, Mode=TwoWay}" SelectionChanged="TabControl_SelectionChanged" Margin="5">
             
             <!-- ═══════════════════════════════════════════════════════════ -->
+            <!-- TAB 0: SƠ ĐỒ & THIẾT BỊ                                      -->
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <TabItem Header="🗺️ SƠ ĐỒ &amp; THIẾT BỊ">
+                <Grid Background="#F4F6F8">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <local:ParkingTopologyView Grid.Row="0" DataContext="{Binding TopologyViewModel}"/>
+
+                    <!-- FOOTER: SAVE BUTTON -->
+                    <Border Grid.Row="1" Background="#F8FAFC" BorderBrush="#E5E7EB" BorderThickness="0,1,0,0" Padding="20,15">
+                        <Grid>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Button Style="{StaticResource ModernButton}" Width="180" Background="#10B981" Foreground="White" FontWeight="Bold" Height="38" Click="SaveTopology_Click" Content="💾 LƯU CẤU HÌNH"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- ═══════════════════════════════════════════════════════════ -->
             <!-- TAB 1: CẤU HÌNH HỆ THỐNG                                    -->
             <!-- ═══════════════════════════════════════════════════════════ -->
-            <TabItem Header="⚙️ CẤU HÌNH HỆ THỐNG ZKTECO C3">
+            <TabItem Header="⚙️ CẤU HÌNH THIẾT BỊ ZKTECO C3">
                 <Grid Background="#F4F6F8">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="260"/>

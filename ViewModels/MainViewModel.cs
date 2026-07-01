@@ -1527,7 +1527,7 @@ namespace QuanLyGiuXe.ViewModels
             RealtimeEventFeedCommand = new RelayCommand(_ => SetView(new RealtimeEventFeedViewModel()));
             LichSuCommand = new RelayCommand(_ => SetView(new LichSuViewModel()));
             DatabaseExplorerCommand = new SecureCommand("DATABASE_EXPLORER", _ => SetView(new DatabaseExplorerViewModel()));
-            DeploymentCenterCommand = new RelayCommand(_ => SetView(new SystemConfigDeploymentViewModel { ActiveTabIndex = 1 }));
+            DeploymentCenterCommand = new RelayCommand(_ => SetView(new SystemConfigDeploymentViewModel { ActiveTabIndex = 2 }));
             ToggleUserPopupCommand = new RelayCommand(_ => IsUserPopupOpen = !IsUserPopupOpen);
             EditProfileCommand = new RelayCommand(_ =>
             {

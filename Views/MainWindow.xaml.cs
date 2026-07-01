@@ -304,7 +304,6 @@ namespace QuanLyGiuXe
                 : Visibility.Collapsed;
 
             btnDashboard.Visibility = PermissionService.Instance.CheckPermission("VIEW_DASHBOARD") ? Visibility.Visible : Visibility.Collapsed;
-            btnTopologySettings.Visibility = PermissionService.Instance.CheckPermission("CONFIG_SYSTEM") ? Visibility.Visible : Visibility.Collapsed;
 
             btnSQLTool.Visibility = PermissionService.Instance.CheckPermission("DATABASE_EXPLORER") ? Visibility.Visible : Visibility.Collapsed;
             btnBackupRestore.Visibility = PermissionService.Instance.CheckPermission("BACKUP_RESTORE") ? Visibility.Visible : Visibility.Collapsed;
@@ -608,10 +607,7 @@ namespace QuanLyGiuXe
                 {
                     btnMonitoringDashboard.IsChecked = true;
                 }
-                else if (vm.CurrentView is ParkingTopologyViewModel)
-                {
-                    btnTopologySettings.IsChecked = true;
-                }
+
 
                 else if (vm.CurrentView is PersonnelExplorerViewModel)
                 {
@@ -1528,7 +1524,7 @@ namespace QuanLyGiuXe
         {
             if (DataContext is MainViewModel vm)
             {
-                vm.SetView(new ParkingTopologyViewModel());
+                vm.SetView(new SystemConfigDeploymentViewModel { ActiveTabIndex = 0 });
             }
         }
 
