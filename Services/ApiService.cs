@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
@@ -22,46 +22,37 @@ public class ApiService
         {
             // Bước 1: Tạo bản sao an toàn (Deep Copy) để tránh lỗi AccessViolation trong .NET 8
             using (Bitmap frameToProcess = new Bitmap(bitmap))
-            using (Bitmap resized = new Bitmap(640, 480))
+            using (var ms = new MemoryStream())
             {
-                using (Graphics g = Graphics.FromImage(resized))
+                // Bước 2: Ép lưu định dạng Jpeg chuẩn (Giữ nguyên độ phân giải gốc để tăng độ chính xác nhận diện)
+                frameToProcess.Save(ms, ImageFormat.Jpeg);
+                byte[] byteArray = ms.ToArray();
+
+                if (byteArray.Length == 0) return "Lỗi nén ảnh";
+
+                using (var content = new MultipartFormDataContent())
                 {
-                    g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
-                    g.DrawImage(frameToProcess, 0, 0, 640, 480);
-                }
+                    var imageContent = new ByteArrayContent(byteArray);
+                    imageContent.Headers.ContentType = MediaTypeHeaderValue.Parse("image/jpeg");
 
-                using (var ms = new MemoryStream())
-                {
-                    // Bước 2: Ép lưu định dạng Jpeg chuẩn
-                    resized.Save(ms, ImageFormat.Jpeg);
-                    byte[] byteArray = ms.ToArray();
+                    // "image" phải khớp với request.files['image'] bên Python
+                    content.Add(imageContent, "image", "frame.jpg");
 
-                    if (byteArray.Length == 0) return "Lỗi nén ảnh";
+                    // Bước 3: Gọi API và đợi phản hồi
+                    var response = await client.PostAsync("http://127.0.0.1:5001/process_plate", content);
 
-                    using (var content = new MultipartFormDataContent())
+                    if (response.IsSuccessStatusCode)
                     {
-                        var imageContent = new ByteArrayContent(byteArray);
-                        imageContent.Headers.ContentType = MediaTypeHeaderValue.Parse("image/jpeg");
+                        var json = await response.Content.ReadAsStringAsync();
+                        var result = JsonConvert.DeserializeObject<PlateResponse>(json);
 
-                        // "image" phải khớp với request.files['image'] bên Python
-                        content.Add(imageContent, "image", "frame.jpg");
-
-                        // Bước 3: Gọi API và đợi phản hồi
-                        var response = await client.PostAsync("http://127.0.0.1:5001/process_plate", content);
-
-                        if (response.IsSuccessStatusCode)
+                        if (result?.results != null && result.results.Count > 0)
                         {
-                            var json = await response.Content.ReadAsStringAsync();
-                            var result = JsonConvert.DeserializeObject<PlateResponse>(json);
-
-                            if (result?.results != null && result.results.Count > 0)
-                            {
-                                return result.results[0].plate;
-                            }
-                            return "Không thấy biển";
+                            return result.results[0].plate;
                         }
-                        return $"Lỗi Server: {response.StatusCode}";
+                        return "Không thấy biển";
                     }
+                    return $"Lỗi Server: {response.StatusCode}";
                 }
             }
         }

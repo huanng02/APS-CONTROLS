@@ -2068,6 +2068,7 @@ namespace QuanLyGiuXe.ViewModels
                 }
 
                 string recognizedPlate = string.Empty;
+                string detectedVehicleType = string.Empty;
                 byte[]? plateCropBytes = null;
                 Mat? plateRawFrame = null;
                 Mat? fullFrame = null;
@@ -2186,12 +2187,40 @@ namespace QuanLyGiuXe.ViewModels
                             var lprResult = await lprTask;
                             recognizedPlate = lprResult.Plate;
                             plateCropBytes = lprResult.PlateCropBytes;
+                            detectedVehicleType = lprResult.VehicleType;
                         }
                         catch (Exception lprEx)
                         {
                             LoggingService.Instance.LogError("LprError", "MainViewModel", $"Failed to run LPR on captured frame", lprEx);
                         }
                         lprCompleted = DateTime.Now;
+                    }
+
+                    // ─── 1.5. VALIDATE VEHICLE TYPE COMPATIBILITY ───
+                    if (!string.IsNullOrEmpty(recognizedPlate) && !string.IsNullOrEmpty(detectedVehicleType))
+                    {
+                        var lxList = await db.GetLoaiXeAsync();
+                        var cardLx = lxList.FirstOrDefault(x => x.Id == card.LoaiXeId);
+                        if (cardLx != null && !string.IsNullOrEmpty(cardLx.TenLoai))
+                        {
+                            string cardLxName = cardLx.TenLoai.ToLower();
+                            string detectedLx = detectedVehicleType.ToLower();
+
+                            if (cardLxName.Contains("xe máy") && detectedLx == "oto")
+                            {
+                                SetLaneStatus(uiLaneIndex, "❌ Lỗi: Xe ô tô nhưng quẹt thẻ xe máy!");
+                                SetLanePlate(uiLaneIndex, recognizedPlate);
+                                LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
+                                return;
+                            }
+                            else if (cardLxName.Contains("ô tô") && detectedLx == "xe_may")
+                            {
+                                SetLaneStatus(uiLaneIndex, "❌ Lỗi: Xe máy nhưng quẹt thẻ ô tô!");
+                                SetLanePlate(uiLaneIndex, recognizedPlate);
+                                LaneRuntimeManager.Instance.UnlockLane(dbLaneId);
+                                return;
+                            }
+                        }
                     }
 
                     // ─── 2. CHECK ACCESS ───

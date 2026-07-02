@@ -246,24 +246,7 @@
                                         </TextBlock>
                                     </StackPanel>
                                 </RadioButton>
-                                <RadioButton x:Name="btnRFIDNonRenewable" Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Tag="RFID_NonRenewable" Click="MoRFIDNonRenewable_Click" ToolTip="Thẻ không gia hạn">
-                                    <StackPanel Orientation="Horizontal">
-                                        <Path Data="M21,11.5V15C21,16.11 20.11,17 19,17H5C3.9,17 3,16.11 3,15V11.5C4.38,11.5 5.5,10.38 5.5,9C5.5,7.62 4.38,6.5 3,6.5V3C3,1.89 3.9,1 5,1H19C20.11,1 21,1.89 21,3V6.5C19.62,6.5 18.5,7.62 18.5,9C18.5,10.38 19.62,11.5 21,11.5M19,3H5V5.59C6.45,6.19 7.5,7.62 7.5,9C7.5,10.38 6.45,11.81 5,12.41V15H19V12.41C17.55,11.81 16.5,10.38 16.5,9C16.5,7.62 17.55,6.19 19,5.59V3M13,5V7H11V5H13M13,9V11H11V9H13M13,13V15H11V13H13Z" 
-                                              Fill="White" Width="18" Height="18" Stretch="Uniform" VerticalAlignment="Center"/>
-                                        <TextBlock Text=" Thẻ không gia hạn" Margin="10,0,0,0">
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsSidebarExpanded}" Value="False">
-                                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
-                                        </TextBlock>
-                                    </StackPanel>
-                                </RadioButton>
+                                
                                 <RadioButton x:Name="btnLoaiXe" Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Tag="LoaiXe" Click="OpenModule_Click" ToolTip="Loại xe">
                                     <StackPanel Orientation="Horizontal">
                                         <Path Data="M18.92,6.01C18.72,5.42 18.16,5 17.5,5H6.5C5.84,5 5.28,5.42 5.08,6.01L3,12V20A1,1 0 0,0 4,21H5A1,1 0 0,0 6,20V19H18V20A1,1 0 0,0 19,21H20A1,1 0 0,0 21,20V12L18.92,6.01M6.5,7H17.5L18.5,10H5.5L6.5,7M19,17H5V12H19V17M7.5,13A1.5,1.5 0 0,0 6,14.5A1.5,1.5 0 0,0 7.5,16A1.5,1.5 0 0,0 9,14.5A1.5,1.5 0 0,0 7.5,13M16.5,13A1.5,1.5 0 0,0 15,14.5A1.5,1.5 0 0,0 16.5,16A1.5,1.5 0 0,0 18,14.5A1.5,1.5 0 0,0 16.5,13Z" 

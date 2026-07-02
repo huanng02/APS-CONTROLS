@@ -296,12 +296,7 @@ namespace QuanLyGiuXe
                 ? Visibility.Visible 
                 : Visibility.Collapsed;
 
-            btnRFIDNonRenewable.Visibility = (PermissionService.Instance.CheckPermission("MANAGE_PRICING") ||
-                                              PermissionService.Instance.CheckPermission("RFID_CREATE") ||
-                                              PermissionService.Instance.CheckPermission("RFID_UPDATE") ||
-                                              PermissionService.Instance.CheckPermission("RFID_DELETE")) 
-                ? Visibility.Visible 
-                : Visibility.Collapsed;
+            
 
             btnDashboard.Visibility = PermissionService.Instance.CheckPermission("VIEW_DASHBOARD") ? Visibility.Visible : Visibility.Collapsed;
 
@@ -609,14 +604,7 @@ namespace QuanLyGiuXe
                 }
 
 
-                else if (vm.CurrentView is PersonnelAndCardTabsViewModel tabsVm)
-                {
-                    if (tabsVm.ActiveTabIndex == 1)
-                        btnRFIDNonRenewable.IsChecked = true;
-                    else
-                        btnPersonnelExplorer.IsChecked = true;
-                }
-                else if (vm.CurrentView is SystemConfigDeploymentViewModel configVm)
+                else  if (vm.CurrentView is SystemConfigDeploymentViewModel configVm)
                 {
                     btnSystemConfigDeployment.IsChecked = true;
                 }
@@ -1029,16 +1017,16 @@ namespace QuanLyGiuXe
                 return;
             }
 
-            // Throttling: 1 second per lane
+            // Throttling: 300 milliseconds per lane
             DateTime now = DateTime.Now;
             if (uiLaneIndex == 1)
             {
-                if ((now - _lastAutoScanTime1).TotalMilliseconds < 1000) return;
+                if ((now - _lastAutoScanTime1).TotalMilliseconds < 300) return;
                 _lastAutoScanTime1 = now;
             }
             else
             {
-                if ((now - _lastAutoScanTime2).TotalMilliseconds < 1000) return;
+                if ((now - _lastAutoScanTime2).TotalMilliseconds < 300) return;
                 _lastAutoScanTime2 = now;
             }
 

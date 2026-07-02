@@ -18,6 +18,9 @@ namespace QuanLyGiuXe.Services
 
         /// <summary>Ảnh vùng biển số đã cắt (ROI) từ server, dạng JPEG bytes. Null nếu không detect.</summary>
         public byte[]? PlateCropBytes { get; set; }
+
+        /// <summary>Loại xe nhận diện được ("xe_may" hoặc "oto")</summary>
+        public string VehicleType { get; set; } = string.Empty;
     }
 
     public class PlateRecognitionService
@@ -130,6 +133,7 @@ namespace QuanLyGiuXe.Services
                 if (json?.Status == "success" && json.Results?.Count > 0)
                 {
                     result.Plate = json.Results[0].Plate ?? string.Empty;
+                    result.VehicleType = json.Results[0].VehicleType ?? string.Empty;
                 }
 
                 // Parse crop image base64 nếu server trả về
@@ -168,5 +172,8 @@ namespace QuanLyGiuXe.Services
 
         [JsonProperty("confidence_yolo")]
         public double ConfidenceYolo { get; set; }
+
+        [JsonProperty("vehicle_type")]
+        public string VehicleType { get; set; } = string.Empty;
     }
 }
