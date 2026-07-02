@@ -33,7 +33,7 @@ namespace QuanLyGiuXe.ViewModels
         public string BienSoNhap
         {
             get => _bienSoNhap;
-            set { _bienSoNhap = value; OnPropertyChanged(nameof(BienSoNhap)); }
+            set { _bienSoNhap = FormatLicensePlate(value); OnPropertyChanged(nameof(BienSoNhap)); }
         }
 
         private bool _isLprAvailable = false;
@@ -97,7 +97,7 @@ namespace QuanLyGiuXe.ViewModels
         public string Lane1BienSo
         {
             get => _lane1BienSo;
-            set { _lane1BienSo = value; OnPropertyChanged(nameof(Lane1BienSo)); }
+            set { _lane1BienSo = FormatLicensePlate(value); OnPropertyChanged(nameof(Lane1BienSo)); }
         }
 
         private string _lane1TrangThai = "Chờ xe...";
@@ -145,7 +145,7 @@ namespace QuanLyGiuXe.ViewModels
         public string Lane2BienSo
         {
             get => _lane2BienSo;
-            set { _lane2BienSo = value; OnPropertyChanged(nameof(Lane2BienSo)); }
+            set { _lane2BienSo = FormatLicensePlate(value); OnPropertyChanged(nameof(Lane2BienSo)); }
         }
 
         private string _workstationId = "";
@@ -1414,12 +1414,111 @@ namespace QuanLyGiuXe.ViewModels
             }
         }
 
+        public static string FormatLicensePlate(string plate, string vehicleType = "")
+        {
+            if (string.IsNullOrEmpty(plate)) return string.Empty;
+            
+            // Loại bỏ ký tự đặc biệt, viết hoa
+            string clean = System.Text.RegularExpressions.Regex.Replace(plate, @"[^A-Za-z0-9]", "").ToUpper();
+            
+            if (clean.Length < 6) return plate.ToUpper();
+
+            string province = clean.Substring(0, 2);
+            char seriesChar = clean[2];
+            bool isCar = false;
+            
+            // Nếu thuộc nhóm xe con thông dụng ở tất cả các tỉnh (A, B, C, D) hoặc F (Hà Nội, HCM và một số tỉnh lẻ cũ)
+            if ("ABCDF".Contains(seriesChar))
+            {
+                isCar = true;
+            }
+            // Nếu là các chữ cái khác (G, H, K, L...), chỉ được coi là ô tô nếu ở Hà Nội (30-33) hoặc TP.HCM (50-59)
+            else if ("EGHIKLMNPRSTUVWXYZ".Contains(seriesChar))
+            {
+                int provNum;
+                if (int.TryParse(province, out provNum))
+                {
+                    if ((provNum >= 30 && provNum <= 33) || (provNum >= 50 && provNum <= 59))
+                    {
+                        isCar = true;
+                    }
+                }
+            }
+
+            // 1. Biển 9 ký tự (ví dụ: 29A123456 hoặc 29AA12345 hoặc 30LD12345)
+            if (clean.Length == 9)
+            {
+                // Kiểm tra biển liên doanh / nước ngoài xe con (bắt đầu bằng 2 số, 2 chữ cái như LD, DA, NN, NG, QT...)
+                string letters2 = clean.Substring(2, 2);
+                bool isSpecialCar = false;
+                string specialTypes = "LD,DA,NN,NG,QT,MD";
+                if (char.IsLetter(clean[2]) && char.IsLetter(clean[3]))
+                {
+                    if (specialTypes.Contains(letters2))
+                    {
+                        isSpecialCar = true;
+                    }
+                }
+                
+                if (isSpecialCar)
+                {
+                    // Ô tô liên doanh: 30LD - 12345
+                    return $"{clean.Substring(0, 4)} - {clean.Substring(4)}";
+                }
+                else
+                {
+                    // Xe máy: 29-A123456 hoặc 29-AA12345
+                    return $"{clean.Substring(0, 2)}-{clean.Substring(2)}";
+                }
+            }
+
+            // 2. Biển 8 ký tự (ví dụ: 29A11234 hoặc 30A12345 hoặc 73K99999)
+            if (clean.Length == 8)
+            {
+                // Nếu 5 ký tự cuối là số -> Kiểm tra xem có phải Ô tô không
+                bool last5AreDigits = true;
+                for (int i = 3; i < 8; i++)
+                {
+                    if (!char.IsDigit(clean[i])) { last5AreDigits = false; break; }
+                }
+
+                if (last5AreDigits && char.IsLetter(clean[2]) && isCar)
+                {
+                    // Ô tô: 30A - 12345
+                    return $"{clean.Substring(0, 3)} - {clean.Substring(3)}";
+                }
+                else
+                {
+                    // Xe máy: 29-A11234 hoặc 73-K99999
+                    return $"{clean.Substring(0, 2)}-{clean.Substring(2)}";
+                }
+            }
+
+            // 3. Biển 7 ký tự (ví dụ: 30A1234 - biển ô tô 4 số cũ)
+            if (clean.Length == 7)
+            {
+                if (char.IsLetter(clean[2]) && isCar)
+                {
+                    // Ô tô 4 số: 30A - 1234
+                    return $"{clean.Substring(0, 3)} - {clean.Substring(3)}";
+                }
+                else
+                {
+                    // Xe máy 4 số: 29-A1234
+                    return $"{clean.Substring(0, 2)}-{clean.Substring(2)}";
+                }
+            }
+
+            return clean;
+        }
+
         public void SetLanePlate(int lane, string plate)
         {
+            string formattedPlate = FormatLicensePlate(plate);
             Application.Current?.Dispatcher?.BeginInvoke(new Action(() =>
             {
-                if (lane == 1) Lane1BienSo = plate;
-                else if (lane == 2) Lane2BienSo = plate;
+                if (lane == 1) Lane1BienSo = formattedPlate;
+                else if (lane == 2) Lane2BienSo = formattedPlate;
             }));
         }
 

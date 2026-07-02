@@ -1052,7 +1052,7 @@ namespace QuanLyGiuXe
                         {
                             if (!string.IsNullOrEmpty(plate) && plate.Length > 4)
                             {
-                                string formattedPlate = plate.Trim().ToUpper();
+                                string formattedPlate = ViewModels.MainViewModel.FormatLicensePlate(plate, lprResult.VehicleType);
                                 mainVm.BienSoNhap = formattedPlate;
                                 mainVm.IsLprAvailable = true;
 

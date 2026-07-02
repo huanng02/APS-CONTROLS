@@ -691,6 +691,10 @@ namespace QuanLyGiuXe.Services
 
         public async Task<DateTime?> GetXeVaoTimeByBienSoAsync(string bienSo)
         {
+            if (!string.IsNullOrEmpty(bienSo))
+            {
+                bienSo = new string(bienSo.Where(char.IsLetterOrDigit).ToArray()).ToUpper();
+            }
             return await ConnectivityAwareRepository.Instance.ExecuteReadAsync<DateTime?>(
                 "GET_XE_VAO_TIME",
                 async conn =>
@@ -1502,6 +1506,10 @@ namespace QuanLyGiuXe.Services
 
         public async Task<bool> ThemXeAsync(int cardId, string bienSo, string anhXe, int? siteId = null, int? zoneId = null, int? entryLaneId = null, string? entryWorkstationId = null, int? entryControllerId = null)
         {
+            if (!string.IsNullOrEmpty(bienSo))
+            {
+                bienSo = new string(bienSo.Where(char.IsLetterOrDigit).ToArray()).ToUpper();
+            }
             if (cardId <= 0) return false;
 
             if (string.IsNullOrEmpty(entryWorkstationId))
@@ -1766,6 +1774,10 @@ namespace QuanLyGiuXe.Services
 
         public async Task<(int Id, int CardId, string BienSo, DateTime ThoiGianVao)?> GetXeTrongBaiRecordByPlateAsync(string bienSo)
         {
+            if (!string.IsNullOrEmpty(bienSo))
+            {
+                bienSo = new string(bienSo.Where(char.IsLetterOrDigit).ToArray()).ToUpper();
+            }
             if (ConnectivityStateService.Instance.IsSimulatingOffline || !ConnectivityStateService.Instance.IsOnline)
             {
                 var local = await OfflineCacheService.Instance.GetXeTrongBaiRecordByPlateLocalAsync(bienSo);
@@ -1924,6 +1936,10 @@ namespace QuanLyGiuXe.Services
 
         public async Task<bool> LuuLichSuAsync(string bienSo, DateTime vao, DateTime ra, double tien, string anhXe, string cardUid = null, int? siteId = null, int? zoneId = null, int? entryLaneId = null, int? exitLaneId = null, string anhVao = null, string? entryWorkstationId = null, string? exitWorkstationId = null, int? entryControllerId = null, int? exitControllerId = null)
         {
+            if (!string.IsNullOrEmpty(bienSo))
+            {
+                bienSo = new string(bienSo.Where(char.IsLetterOrDigit).ToArray()).ToUpper();
+            }
             return await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
                 "INSERT_LICH_SU",
                 new { BienSo = bienSo, Vao = vao, Ra = ra, Tien = tien, AnhXe = anhXe, AnhVao = anhVao, CardUid = cardUid, SiteId = siteId, ZoneId = zoneId, EntryLaneId = entryLaneId, ExitLaneId = exitLaneId, EntryWorkstationId = entryWorkstationId, ExitWorkstationId = exitWorkstationId, EntryControllerId = entryControllerId, ExitControllerId = exitControllerId },
