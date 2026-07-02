@@ -1942,6 +1942,7 @@ namespace QuanLyGiuXe.ViewModels
                     "MonitoringDashboardViewModel" => "Giám sát bãi đỗ xe",
                     "ParkingTopologyViewModel" => "Cấu hình & Kiểm tra Sơ đồ",
                     "SystemConfigDeploymentViewModel" => "Cấu hình & Triển khai",
+                    "PersonnelAndCardTabsViewModel" => "Nhân sự & Thẻ",
                     _ => CurrentView.GetType().Name
                 };
                 LoggingService.Instance.LogInfo("TAB_CLOSE", "UI", $"Đóng tab: {oldTabName}");
@@ -1960,6 +1961,7 @@ namespace QuanLyGiuXe.ViewModels
                     "MonitoringDashboardViewModel" => "Giám sát bãi đỗ xe",
                     "ParkingTopologyViewModel" => "Cấu hình & Kiểm tra Sơ đồ",
                     "SystemConfigDeploymentViewModel" => "Cấu hình & Triển khai",
+                    "PersonnelAndCardTabsViewModel" => "Nhân sự & Thẻ",
                     _ => view.GetType().Name
                 };
                 LoggingService.Instance.LogInfo("TAB_OPEN", "UI", $"Chuyển sang tab: {tabName}");

@@ -609,9 +609,12 @@ namespace QuanLyGiuXe
                 }
 
 
-                else if (vm.CurrentView is PersonnelExplorerViewModel)
+                else if (vm.CurrentView is PersonnelAndCardTabsViewModel tabsVm)
                 {
-                    btnPersonnelExplorer.IsChecked = true;
+                    if (tabsVm.ActiveTabIndex == 1)
+                        btnRFIDNonRenewable.IsChecked = true;
+                    else
+                        btnPersonnelExplorer.IsChecked = true;
                 }
                 else if (vm.CurrentView is SystemConfigDeploymentViewModel configVm)
                 {
@@ -1532,7 +1535,15 @@ namespace QuanLyGiuXe
         {
             if (DataContext is MainViewModel vm)
             {
-                vm.SetView(new PersonnelExplorerViewModel());
+                vm.SetView(new PersonnelAndCardTabsViewModel { ActiveTabIndex = 0 });
+            }
+        }
+
+        private void MoRFIDNonRenewable_Click(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is MainViewModel vm)
+            {
+                vm.SetView(new PersonnelAndCardTabsViewModel { ActiveTabIndex = 1 });
             }
         }
 
@@ -1585,10 +1596,7 @@ namespace QuanLyGiuXe
                         content = new QuanLyGiuXe.Views.RFIDCardView(false);
                         title = "Quản lý RFID";
                         break;
-                    case "RFID_NonRenewable":
-                        content = new QuanLyGiuXe.Views.RFIDCardView(true);
-                        title = "Quản lý Thẻ Không Gia Hạn";
-                        break;
+
                     case "BangGia":
                         content = new QuanLyGiuXe.Views.BangGiaView();
                         title = "Bảng giá (Quản trị)";

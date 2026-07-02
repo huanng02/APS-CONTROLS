@@ -246,7 +246,7 @@
                                         </TextBlock>
                                     </StackPanel>
                                 </RadioButton>
-                                <RadioButton x:Name="btnRFIDNonRenewable" Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Tag="RFID_NonRenewable" Click="OpenModule_Click" ToolTip="Thẻ không gia hạn">
+                                <RadioButton x:Name="btnRFIDNonRenewable" Style="{StaticResource SidebarButtonStyle}" GroupName="MainSidebar" Tag="RFID_NonRenewable" Click="MoRFIDNonRenewable_Click" ToolTip="Thẻ không gia hạn">
                                     <StackPanel Orientation="Horizontal">
                                         <Path Data="M21,11.5V15C21,16.11 20.11,17 19,17H5C3.9,17 3,16.11 3,15V11.5C4.38,11.5 5.5,10.38 5.5,9C5.5,7.62 4.38,6.5 3,6.5V3C3,1.89 3.9,1 5,1H19C20.11,1 21,1.89 21,3V6.5C19.62,6.5 18.5,7.62 18.5,9C18.5,10.38 19.62,11.5 21,11.5M19,3H5V5.59C6.45,6.19 7.5,7.62 7.5,9C7.5,10.38 6.45,11.81 5,12.41V15H19V12.41C17.55,11.81 16.5,10.38 16.5,9C16.5,7.62 17.55,6.19 19,5.59V3M13,5V7H11V5H13M13,9V11H11V9H13M13,13V15H11V13H13Z" 
                                               Fill="White" Width="18" Height="18" Stretch="Uniform" VerticalAlignment="Center"/>
@@ -563,6 +563,9 @@
                     </DataTemplate>
                     <DataTemplate DataType="{x:Type viewmodels:PersonnelExplorerViewModel}">
                         <local:PersonnelExplorerView/>
+                    </DataTemplate>
+                    <DataTemplate DataType="{x:Type viewmodels:PersonnelAndCardTabsViewModel}">
+                        <local:PersonnelAndCardTabsView/>
                     </DataTemplate>
                     <DataTemplate DataType="{x:Type viewmodels:RealtimeEventFeedViewModel}">
                         <local:RealtimeEventFeedView/>

@@ -1,5 +1,5 @@
 {
-  "WorkstationId": "82dabb34-da1a-4dff-b7f1-a108ec94151f",
+  "WorkstationId": "e07bf79b-854a-457f-b924-353adf7fcc28",
   "ZKTeco": {
     "ControllerType": 0,
     "Protocol": "TCP",
@@ -18,8 +18,8 @@
     "ForceAllIn": false,
     "ForceAllOut": false,
     "BlockDailyCardForMonthlyPlate": true,
-    "ShowSessionDialog": false,
-    "RequireReasonForManualOpen": false
+    "ShowSessionDialog": true,
+    "RequireReasonForManualOpen": true
   },
   "Cameras": {
     "VaoToanCanh": "",
@@ -28,14 +28,14 @@
     "RaBienSo": "",
     "LaneCameras": [
       {
-        "LaneId": 1008,
-        "ToanCanh": "",
-        "BienSo": "rtsp://192.168.1.117:554/user=admin_password=tlJwpbo6_channel=0_stream=0&onvif=0.sdp?real_stream"
-      },
-      {
         "LaneId": 4,
         "ToanCanh": "",
         "BienSo": "rtsp://192.168.1.121:554/user=admin_password=tlJwpbo6_channel=0_stream=0&onvif=0.sdp?real_stream"
+      },
+      {
+        "LaneId": 3,
+        "ToanCanh": "",
+        "BienSo": "rtsp://192.168.1.117:554/user=admin_password=tlJwpbo6_channel=0_stream=0&onvif=0.sdp?real_stream"
       }
     ],
     "AutoSyncFromDb": false,
@@ -45,7 +45,6 @@
     "SaveMaxWidth": 800,
     "AutoUseSubstream": true,
     "ShowEntrySnapAtExit": true
-  },
   },
   "Backup": {
     "AutoBackupEnabled": true,
