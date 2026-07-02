@@ -95,7 +95,7 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel>
-                        <TextBlock Text="INFO" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                        <TextBlock Text="THÔNG TIN" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}"/>
                         <TextBlock Text="{Binding InfoCount}" FontSize="24" FontWeight="ExtraBold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,4,0,0"/>
                     </StackPanel>
                     <TextBlock Grid.Column="1" Text="🔵" FontSize="24" Opacity="0.3" VerticalAlignment="Center"/>
@@ -113,7 +113,7 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel>
-                        <TextBlock Text="SUCCESS" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                        <TextBlock Text="THÀNH CÔNG" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}"/>
                         <TextBlock Text="{Binding SuccessCount}" FontSize="24" FontWeight="ExtraBold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,4,0,0"/>
                     </StackPanel>
                     <TextBlock Grid.Column="1" Text="🟢" FontSize="24" Opacity="0.3" VerticalAlignment="Center"/>
@@ -131,7 +131,7 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel>
-                        <TextBlock Text="WARNING" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                        <TextBlock Text="CẢNH BÁO" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}"/>
                         <TextBlock Text="{Binding WarningCount}" FontSize="24" FontWeight="ExtraBold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,4,0,0"/>
                     </StackPanel>
                     <TextBlock Grid.Column="1" Text="🟡" FontSize="24" Opacity="0.3" VerticalAlignment="Center"/>
@@ -149,7 +149,7 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel>
-                        <TextBlock Text="ERROR" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                        <TextBlock Text="LỖI" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}"/>
                         <TextBlock Text="{Binding ErrorCount}" FontSize="24" FontWeight="ExtraBold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,4,0,0"/>
                     </StackPanel>
                     <TextBlock Grid.Column="1" Text="🟠" FontSize="24" Opacity="0.3" VerticalAlignment="Center"/>
@@ -167,7 +167,7 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel>
-                        <TextBlock Text="CRITICAL" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}"/>
+                        <TextBlock Text="NGHIÊM TRỌNG" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextSecondaryBrush}"/>
                         <TextBlock Text="{Binding CriticalCount}" FontSize="24" FontWeight="ExtraBold" Foreground="{StaticResource TextPrimaryBrush}" Margin="0,4,0,0"/>
                     </StackPanel>
                     <TextBlock Grid.Column="1" Text="🔴" FontSize="24" Opacity="0.3" VerticalAlignment="Center"/>

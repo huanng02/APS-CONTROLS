@@ -72,21 +72,21 @@
                                   Style="{StaticResource ModernComboBox}" 
                                   Width="120" Height="36"
                                   SelectionChanged="CboStatusFilter_SelectionChanged">
-                            <ComboBoxItem Content="All" IsSelected="True"/>
-                            <ComboBoxItem Content="Active"/>
-                            <ComboBoxItem Content="Disabled"/>
+                            <ComboBoxItem Content="Tất cả" IsSelected="True"/>
+                            <ComboBoxItem Content="Hoạt động"/>
+                            <ComboBoxItem Content="Đã khóa"/>
                         </ComboBox>
                     </StackPanel>
 
-                    <Button Grid.Column="1" Content="↺ Refresh" Click="BtnRefresh_Click" Style="{StaticResource ModernOutlineButton}" Height="36" Padding="15,0"/>
+                    <Button Grid.Column="1" Content="↺ Tải lại" Click="BtnRefresh_Click" Style="{StaticResource ModernOutlineButton}" Height="36" Padding="15,0"/>
                 </Grid>
 
                 <!-- Row 2: Action Buttons -->
                 <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,5,0,0">
                     <Button x:Name="BtnAdd" Content="＋ Thêm" Click="BtnAdd_Click" Style="{StaticResource ModernButton}" Height="36" Padding="15,0" Margin="0,0,10,0"/>
                     <Button x:Name="BtnEdit" Content="✏ Sửa" Click="BtnEdit_Click" Style="{StaticResource ModernButton}" Background="{StaticResource SuccessBrush}" Height="36" Padding="15,0" Margin="0,0,10,0"/>
-                    <Button x:Name="BtnDisable" Content="⊘ Disable" Click="BtnDisable_Click" Style="{StaticResource DangerButton}" Height="36" Padding="15,0" Margin="0,0,10,0"/>
-                    <Button x:Name="BtnResetPassword" Content="🔑 Reset Password" Click="BtnResetPassword_Click" Style="{StaticResource ModernOutlineButton}" Height="36" Padding="15,0" Margin="0,0,10,0"/>
+                    <Button x:Name="BtnDisable" Content="⊘ Khóa tài khoản" Click="BtnDisable_Click" Style="{StaticResource DangerButton}" Height="36" Padding="15,0" Margin="0,0,10,0"/>
+                    <Button x:Name="BtnResetPassword" Content="🔑 Đổi mật khẩu" Click="BtnResetPassword_Click" Style="{StaticResource ModernOutlineButton}" Height="36" Padding="15,0" Margin="0,0,10,0"/>
                     <Border Width="1" Background="{StaticResource BorderLightBrush}" Margin="10,5" VerticalAlignment="Stretch"/>
                     <Button x:Name="BtnPermissionMatrix" Content="🛡 Ma trận quyền" Click="BtnPermissionMatrix_Click" Style="{StaticResource ModernOutlineButton}" Height="36" Padding="15,0" Margin="10,0,10,0"/>
                     <Button x:Name="BtnAuditHistory" Content="📜 Nhật ký Audit" Click="BtnAuditHistory_Click" Style="{StaticResource ModernOutlineButton}" Height="36" Padding="15,0"/>
@@ -101,9 +101,9 @@
                       Margin="0"
                       MouseDoubleClick="GridUsers_MouseDoubleClick">
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="60" FontWeight="SemiBold"/>
+                    <DataGridTextColumn Header="Mã" Binding="{Binding Id}" Width="60" FontWeight="SemiBold"/>
                     <DataGridTextColumn Header="Họ &amp; Tên" Binding="{Binding Ten}" Width="*"/>
-                    <DataGridTextColumn Header="Username" Binding="{Binding Username}" Width="150"/>
+                    <DataGridTextColumn Header="Tên tài khoản" Binding="{Binding Username}" Width="150"/>
                     <DataGridTextColumn Header="Vai trò" Binding="{Binding RoleName}" Width="150"/>
                     
                     <DataGridTemplateColumn Header="Trạng thái" Width="120">

@@ -41,8 +41,8 @@
                         <StackPanel Margin="0,0,0,8">
                             <TextBlock Text="Loại Kết Nối" Foreground="#4B5563" FontSize="11" FontWeight="SemiBold" Margin="0,0,0,3"/>
                             <ComboBox x:Name="CameraTypeCombo" Height="35" Style="{StaticResource ModernComboBox}" SelectionChanged="CameraTypeCombo_SelectionChanged">
-                                <ComboBoxItem Content="IP Camera (RTSP URL)" Tag="IP"/>
-                                <ComboBoxItem Content="USB Camera" Tag="USB"/>
+                                <ComboBoxItem Content="Camera IP (Đường dẫn RTSP)" Tag="IP"/>
+                                <ComboBoxItem Content="Camera USB" Tag="USB"/>
                             </ComboBox>
                         </StackPanel>
                         
@@ -84,7 +84,7 @@
                                         <ComboBoxItem Content="Xiongmai/Generic" Tag="XM"/>
                                         <ComboBoxItem Content="Hikvision" Tag="HIK"/>
                                         <ComboBoxItem Content="Dahua" Tag="DAHUA"/>
-                                        <ComboBoxItem Content="Custom URL" Tag="CUSTOM"/>
+                                        <ComboBoxItem Content="Đường dẫn tùy chỉnh" Tag="CUSTOM"/>
                                     </ComboBox>
                                 </StackPanel>
                             </Grid>

@@ -65,7 +65,7 @@
                 <!-- Revenue Today -->
                 <StackPanel Grid.Column="6" Orientation="Horizontal" HorizontalAlignment="Center">
                     <TextBlock Text="&#xE94C;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="#DC2626" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <TextBlock Text="DOANH THU NAY: " FontSize="10" FontWeight="Bold" Foreground="#475569" VerticalAlignment="Center"/>
+                    <TextBlock Text="DOANH THU HÔM NAY: " FontSize="10" FontWeight="Bold" Foreground="#475569" VerticalAlignment="Center"/>
                     <TextBlock Text="{Binding DoanhThuHomNay, StringFormat={}{0:N0} đ}" FontSize="13" FontWeight="Bold" Foreground="#7F1D1D" VerticalAlignment="Center" Margin="4,0,0,0"/>
                 </StackPanel>
             </Grid>
@@ -344,12 +344,12 @@
 
                         <!-- Row 2: Khu vực, Vùng, Doanh thu, Khung giờ -->
                         <StackPanel Grid.Row="2" Grid.Column="0">
-                            <TextBlock Text="Khu vực (Site)" Style="{StaticResource FilterLabelStyle}"/>
+                            <TextBlock Text="Khu vực" Style="{StaticResource FilterLabelStyle}"/>
                             <ComboBox ItemsSource="{Binding SiteList}" SelectedItem="{Binding SelectedSite, Mode=TwoWay}"/>
                         </StackPanel>
 
                         <StackPanel Grid.Row="2" Grid.Column="2">
-                            <TextBlock Text="Vùng (Zone)" Style="{StaticResource FilterLabelStyle}"/>
+                            <TextBlock Text="Vùng" Style="{StaticResource FilterLabelStyle}"/>
                             <ComboBox ItemsSource="{Binding ZoneList}" SelectedItem="{Binding SelectedZone, Mode=TwoWay}"/>
                         </StackPanel>
 
@@ -560,15 +560,15 @@
 
                             <DataGrid.ContextMenu>
                                 <ContextMenu>
-                                    <MenuItem Header="Copy Plate Number" />
-                                    <MenuItem Header="Print Receipt" />
+                                    <MenuItem Header="Sao chép biển số" />
+                                    <MenuItem Header="In hóa đơn" />
                                     <Separator />
                                     <MenuItem Header="Xử lý kết thúc phiên" Command="{Binding EndSessionCommand}" />
                                 </ContextMenu>
                             </DataGrid.ContextMenu>
 
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="50"/>
+                                <DataGridTextColumn Header="Mã" Binding="{Binding Id}" Width="50"/>
                                 <DataGridTextColumn Header="BIỂN SỐ / PLATE" Binding="{Binding BienSo}" Width="100" FontWeight="Bold"/>
                                 <DataGridTextColumn Header="LOẠI VÉ / TICKET" Binding="{Binding LoaiVeName}" Width="90"/>
                                 <DataGridTextColumn Header="LOẠI XE / VEHICLE" Binding="{Binding LoaiXeName}" Width="90"/>

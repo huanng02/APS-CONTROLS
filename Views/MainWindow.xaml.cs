@@ -206,7 +206,7 @@ namespace QuanLyGiuXe
                                         if (DataContext is MainViewModel vm)
                                         {
                                             vm.IsLprAvailable = false;
-                                            vm.LprStatusLabel = "APS Vision AI: Stopped";
+                                            vm.LprStatusLabel = "APS Vision AI: Đã dừng";
                                         }
                                     }));
                                 };
@@ -217,7 +217,7 @@ namespace QuanLyGiuXe
 
                                 if (DataContext is MainViewModel vm)
                                 {
-                                    vm.LprStatusLabel = "APS Vision AI: Starting";
+                                    vm.LprStatusLabel = "APS Vision AI: Đang khởi động";
                                 }
                             }
                         }
@@ -328,11 +328,11 @@ namespace QuanLyGiuXe
                 LoggingService.Instance.LogInfo("TestRFIDRead", "RFIDService", "Test UID: ABC123", userId: null, plate: null);
                 LoggingService.Instance.LogInfo("TestPlateRecognized", "ParkingLogicService", "Plate: TEST123", userId: null, plate: "TEST123");
                 LoggingService.Instance.LogError("TestError", "App", "This is a test error", new Exception("Test exception"));
-                MessageBox.Show("Test logs generated (check logs folder and AppLogs table).", "Test Logs", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show("Đã tạo log kiểm thử (kiểm tra thư mục logs và bảng AppLogs).", "Kiểm thử Log", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Failed to generate test logs: " + ex.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show("Tạo log kiểm thử thất bại: " + ex.Message, "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

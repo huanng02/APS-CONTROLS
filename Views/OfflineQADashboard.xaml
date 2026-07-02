@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:QuanLyGiuXe.Views"
         xmlns:converters="clr-namespace:QuanLyGiuXe.Converters"
         mc:Ignorable="d"
-        Title="🚀 OFFLINE &amp; MULTI-ZONE RESILIENCY ENGINE QA DASHBOARD" Height="820" Width="1280"
+        Title="🚀 BẢNG ĐIỀU KHIỂN QA GIÁM SÁT NGOẠI TUYẾN &amp; ĐA KHU VỰC" Height="820" Width="1280"
         Background="#12121E" WindowStartupLocation="CenterScreen">
     <Window.Resources>
         <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter" />
@@ -99,8 +99,8 @@
         <Border Grid.Row="0" Background="#1D1D30" CornerRadius="10" Padding="20,15" Margin="0,0,0,15" BorderBrush="#2F2F4A" BorderThickness="1">
             <Grid>
                 <StackPanel>
-                    <TextBlock Text="OFFLINE-FIRST RESILIENCY &amp; MULTI-ZONE TOPO COCKPIT" Foreground="White" FontSize="22" FontWeight="ExtraBold"/>
-                    <TextBlock Text="Phase 8.1 - Enterprise Relational Multi-Zone Architecture, Failover Validation, &amp; Integrity Assurances" Foreground="#8F94FB" FontSize="12" FontWeight="SemiBold" Margin="0,3,0,0"/>
+                    <TextBlock Text="BẢNG GIÁM SÁT NGOẠI TUYẾN &amp; ĐA KHU VỰC ĐỒNG BỘ" Foreground="White" FontSize="22" FontWeight="ExtraBold"/>
+                    <TextBlock Text="Giai đoạn 8.1 - Kiến trúc doanh nghiệp đa khu vực, Xác thực chuyển vùng &amp; Đảm bảo toàn vẹn" Foreground="#8F94FB" FontSize="12" FontWeight="SemiBold" Margin="0,3,0,0"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
                     <Border Background="#26FFFFFF" CornerRadius="15" Padding="12,5" Margin="0,0,10,0">
@@ -131,15 +131,15 @@
                 <!-- System State controls -->
                 <Border Grid.Row="0" Background="#1D1D30" CornerRadius="10" Padding="15" BorderBrush="#2F2F4A" BorderThickness="1">
                     <StackPanel>
-                        <TextBlock Text="FAILOVER &amp; EMERGENCIES" Foreground="#FF5722" FontWeight="Bold" FontSize="13" Margin="0,0,0,10"/>
+                        <TextBlock Text="CHUYỂN VÙNG LỖI &amp; KHẨN CẤP" Foreground="#FF5722" FontWeight="Bold" FontSize="13" Margin="0,0,0,10"/>
 
-                        <Button Command="{Binding ForceOfflineCommand}" Content="⚡ FORCE DISCONNECT (OFFLINE)" Background="#E74C3C" Margin="0,0,0,8" Height="36"/>
-                        <Button Command="{Binding ForceOnlineCommand}" Content="🔌 RESTORE CONNECTION (ONLINE)" Background="#2ECC71" Margin="0,0,0,12" Height="36"/>
+                        <Button Command="{Binding ForceOfflineCommand}" Content="⚡ NGẮT KẾT NỐI BẮT BUỘC (NGOẠI TUYẾN)" Background="#E74C3C" Margin="0,0,0,8" Height="36"/>
+                        <Button Command="{Binding ForceOnlineCommand}" Content="🔌 KHÔI PHỤC KẾT NỐI (TRỰC TUYẾN)" Background="#2ECC71" Margin="0,0,0,12" Height="36"/>
 
-                        <TextBlock Text="RECOVERY CONTROLS" Foreground="#3498DB" FontWeight="Bold" FontSize="13" Margin="0,5,0,8"/>
-                        <Button Command="{Binding ForceAutoRepairCommand}" Content="🔧 TRIGGER SESSION AUTO-REPAIR" Background="#8E44AD" Margin="0,0,0,8" Height="36"/>
-                        <Button Command="{Binding TestWriteQueueCommand}" Content="📝 WRITE TEST TRANSACTION" Background="#D35400" Margin="0,0,0,8" Height="36"/>
-                        <Button Command="{Binding StressTestCommand}" Content="💥 MASSIVE QUEUE STRESS TEST" Background="#7F8C8D" Margin="0,0,0,0" Height="36"/>
+                        <TextBlock Text="ĐIỀU KHIỂN PHỤC HỒI" Foreground="#3498DB" FontWeight="Bold" FontSize="13" Margin="0,5,0,8"/>
+                        <Button Command="{Binding ForceAutoRepairCommand}" Content="🔧 TỰ ĐỘNG SỬA PHIÊN QUÉT" Background="#8E44AD" Margin="0,0,0,8" Height="36"/>
+                        <Button Command="{Binding TestWriteQueueCommand}" Content="📝 GHI GIAO DỊCH THỬ NGHIỆM" Background="#D35400" Margin="0,0,0,8" Height="36"/>
+                        <Button Command="{Binding StressTestCommand}" Content="💥 KIỂM TRA ĐỘ BỀN TẢI HÀNG ĐỢI" Background="#7F8C8D" Margin="0,0,0,0" Height="36"/>
                     </StackPanel>
                 </Border>
 
@@ -150,7 +150,7 @@
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="*"/>
                         </Grid.RowDefinitions>
-                        <TextBlock Grid.Row="0" Text="INTEGRATION TEST TRACE" Foreground="#2ECC71" FontWeight="Bold" FontSize="13" Margin="0,0,0,10"/>
+                        <TextBlock Grid.Row="0" Text="LỊCH SỬ KIỂM THỬ TÍCH HỢP" Foreground="#2ECC71" FontWeight="Bold" FontSize="13" Margin="0,0,0,10"/>
                         <TextBox Grid.Row="1" Text="{Binding TestLog}" Background="#0B0B14" Foreground="#2ECC71" 
                                  BorderThickness="1" BorderBrush="#1F1F35" FontFamily="Consolas" FontSize="11" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" IsReadOnly="True"/>
                     </Grid>
@@ -161,7 +161,7 @@
             <TabControl Grid.Column="1" Background="#1D1D30" BorderThickness="1" BorderBrush="#2F2F4A">
                 
                 <!-- TAB 1: TELEMETRY & OFFLINE ENGINE -->
-                <TabItem Header="🛰️  RESILIENCY TELEMETRY">
+                <TabItem Header="🛰️  ĐO LƯỜNG ĐỘ BỀN HỆ THỐNG">
                     <Grid Margin="15">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -173,28 +173,28 @@
                         <UniformGrid Rows="1" Columns="4" Grid.Row="0" Margin="0,0,0,15">
                             <Border Background="#161626" CornerRadius="8" Padding="15" Margin="0,0,10,0" BorderBrush="#2ECC71" BorderThickness="1">
                                 <StackPanel>
-                                    <TextBlock Text="LIVE VEHICLES" Foreground="#AAA" FontSize="11" FontWeight="Bold"/>
+                                    <TextBlock Text="PHƯƠNG TIỆN TRONG BÃI" Foreground="#AAA" FontSize="11" FontWeight="Bold"/>
                                     <TextBlock Text="{Binding TelemetryLiveVehicleCount}" Foreground="#2ECC71" FontSize="26" FontWeight="Bold" Margin="0,5,0,0"/>
                                 </StackPanel>
                             </Border>
 
                             <Border Background="#161626" CornerRadius="8" Padding="15" Margin="0,0,10,0" BorderBrush="#3498DB" BorderThickness="1">
                                 <StackPanel>
-                                    <TextBlock Text="ACTIVE SESSIONS" Foreground="#AAA" FontSize="11" FontWeight="Bold"/>
+                                    <TextBlock Text="PHIÊN ĐANG HOẠT ĐỘNG" Foreground="#AAA" FontSize="11" FontWeight="Bold"/>
                                     <TextBlock Text="{Binding TelemetryActiveSessions}" Foreground="#3498DB" FontSize="26" FontWeight="Bold" Margin="0,5,0,0"/>
                                 </StackPanel>
                             </Border>
 
                             <Border Background="#161626" CornerRadius="8" Padding="15" Margin="0,0,10,0" BorderBrush="#E74C3C" BorderThickness="1">
                                 <StackPanel>
-                                    <TextBlock Text="CORRUPTED SESSIONS" Foreground="#AAA" FontSize="11" FontWeight="Bold"/>
+                                    <TextBlock Text="PHIÊN BỊ LỖI" Foreground="#AAA" FontSize="11" FontWeight="Bold"/>
                                     <TextBlock Text="{Binding TelemetrySuspiciousSessions}" Foreground="#E74C3C" FontSize="26" FontWeight="Bold" Margin="0,5,0,0"/>
                                 </StackPanel>
                             </Border>
 
                             <Border Background="#161626" CornerRadius="8" Padding="15" Margin="0,0,0,0" BorderBrush="#F1C40F" BorderThickness="1">
                                 <StackPanel>
-                                    <TextBlock Text="LOCAL QUEUE SIZE" Foreground="#AAA" FontSize="11" FontWeight="Bold"/>
+                                    <TextBlock Text="KÍCH THƯỚC HÀNG ĐỢI CỤC BỘ" Foreground="#AAA" FontSize="11" FontWeight="Bold"/>
                                     <TextBlock Text="{Binding TelemetryPendingOfflineSync}" Foreground="#F1C40F" FontSize="26" FontWeight="Bold" Margin="0,5,0,0"/>
                                 </StackPanel>
                             </Border>
@@ -208,14 +208,14 @@
                                     <RowDefinition Height="*"/>
                                 </Grid.RowDefinitions>
                                 <StackPanel Orientation="Horizontal" Grid.Row="0" Margin="0,0,0,8">
-                                    <TextBlock Text="LOCAL OFFLINE TRANSACTION QUEUE (SQLite)" Foreground="#8F94FB" FontWeight="Bold"/>
+                                    <TextBlock Text="HÀNG ĐỢI GIAO DỊCH NGOẠI TUYẾN CỤC BỘ (SQLite)" Foreground="#8F94FB" FontWeight="Bold"/>
                                     <TextBlock Text="{Binding Transactions.Count, StringFormat='({0} items)'}" Foreground="Gray" Margin="10,0,0,0" VerticalAlignment="Center"/>
                                 </StackPanel>
                                 <DataGrid Grid.Row="1" ItemsSource="{Binding Transactions}" AutoGenerateColumns="False">
                                     <DataGrid.Columns>
-                                        <DataGridTextColumn Header="Time (UTC)" Binding="{Binding CreatedUtc, StringFormat='yyyy-MM-dd HH:mm:ss'}" Width="150"/>
-                                        <DataGridTextColumn Header="Type" Binding="{Binding TransactionType}" Width="150"/>
-                                        <DataGridTemplateColumn Header="Status" Width="120">
+                                        <DataGridTextColumn Header="Thời gian (UTC)" Binding="{Binding CreatedUtc, StringFormat='yyyy-MM-dd HH:mm:ss'}" Width="150"/>
+                                        <DataGridTextColumn Header="Loại" Binding="{Binding TransactionType}" Width="150"/>
+                                        <DataGridTemplateColumn Header="Trạng thái" Width="120">
                                             <DataGridTemplateColumn.CellTemplate>
                                                 <DataTemplate>
                                                     <Border Background="{Binding StatusColor}" CornerRadius="3" Padding="6,2">
@@ -224,8 +224,8 @@
                                                 </DataTemplate>
                                             </DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
-                                        <DataGridTextColumn Header="Retries" Binding="{Binding RetryCount}" Width="70"/>
-                                        <DataGridTextColumn Header="Errors / Reason" Binding="{Binding ErrorMessage}" Width="*"/>
+                                        <DataGridTextColumn Header="Số lần thử" Binding="{Binding RetryCount}" Width="70"/>
+                                        <DataGridTextColumn Header="Lỗi / Lý do" Binding="{Binding ErrorMessage}" Width="*"/>
                                     </DataGrid.Columns>
                                 </DataGrid>
                             </Grid>
@@ -238,15 +238,15 @@
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="*"/>
                                 </Grid.RowDefinitions>
-                                <TextBlock Grid.Row="0" Text="LIVE SESSION CONSISTENCY AUDIT LOGS" Foreground="#3498DB" FontWeight="Bold" Margin="0,0,0,8"/>
+                                <TextBlock Grid.Row="0" Text="NHẬT KÝ KIỂM TOÁN TÍNH ĐỒNG NHẤT PHIÊN TRỰC TIẾP" Foreground="#3498DB" FontWeight="Bold" Margin="0,0,0,8"/>
                                 <DataGrid Grid.Row="1" ItemsSource="{Binding AuditLogs}" AutoGenerateColumns="False">
                                     <DataGrid.Columns>
-                                        <DataGridTextColumn Header="Time (UTC)" Binding="{Binding CreatedUtc, StringFormat='yyyy-MM-dd HH:mm:ss'}" Width="150"/>
-                                        <DataGridTextColumn Header="Session ID / Card" Binding="{Binding SessionId}" Width="150"/>
-                                        <DataGridTextColumn Header="Event Code" Binding="{Binding EventType}" Width="120"/>
-                                        <DataGridTextColumn Header="Old" Binding="{Binding OldState}" Width="80"/>
-                                        <DataGridTextColumn Header="New" Binding="{Binding NewState}" Width="80"/>
-                                        <DataGridTextColumn Header="Resolution / Audit Details" Binding="{Binding Message}" Width="*"/>
+                                        <DataGridTextColumn Header="Thời gian (UTC)" Binding="{Binding CreatedUtc, StringFormat='yyyy-MM-dd HH:mm:ss'}" Width="150"/>
+                                        <DataGridTextColumn Header="Mã phiên / Số thẻ" Binding="{Binding SessionId}" Width="150"/>
+                                        <DataGridTextColumn Header="Mã sự kiện" Binding="{Binding EventType}" Width="120"/>
+                                        <DataGridTextColumn Header="Cũ" Binding="{Binding OldState}" Width="80"/>
+                                        <DataGridTextColumn Header="Mới" Binding="{Binding NewState}" Width="80"/>
+                                        <DataGridTextColumn Header="Kết quả / Chi tiết kiểm toán" Binding="{Binding Message}" Width="*"/>
                                     </DataGrid.Columns>
                                 </DataGrid>
                             </Grid>
@@ -255,7 +255,7 @@
                 </TabItem>
 
                 <!-- TAB 2: PARKING TOPOLOGY CONFIG -->
-                <TabItem Header="📐  PARKING TOPOLOGY CONFIG">
+                <TabItem Header="📐  CẤU HÌNH SƠ ĐỒ BÃI XE">
                     <Grid Margin="15">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="*"/>
@@ -274,18 +274,18 @@
                                     <RowDefinition Height="*"/>
                                     <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
-                                <TextBlock Grid.Row="0" Text="1. PARKING SITES" Foreground="#8F94FB" FontWeight="Bold" Margin="0,0,0,8"/>
+                                <TextBlock Grid.Row="0" Text="1. CÁC ĐIỂM ĐỖ XE" Foreground="#8F94FB" FontWeight="Bold" Margin="0,0,0,8"/>
                                 <DataGrid Grid.Row="1" ItemsSource="{Binding Sites}" AutoGenerateColumns="False">
                                     <DataGrid.Columns>
-                                        <DataGridTextColumn Header="Id" Binding="{Binding Id}" Width="40"/>
-                                        <DataGridTextColumn Header="Site Code" Binding="{Binding SiteCode}" Width="100"/>
-                                        <DataGridTextColumn Header="Site Name" Binding="{Binding SiteName}" Width="130"/>
-                                        <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="*"/>
-                                        <DataGridTemplateColumn Header="Action" Width="60">
+                                        <DataGridTextColumn Header="Mã" Binding="{Binding Id}" Width="40"/>
+                                        <DataGridTextColumn Header="Mã điểm đỗ" Binding="{Binding SiteCode}" Width="100"/>
+                                        <DataGridTextColumn Header="Tên điểm đỗ" Binding="{Binding SiteName}" Width="130"/>
+                                        <DataGridTextColumn Header="Mô tả" Binding="{Binding Description}" Width="*"/>
+                                        <DataGridTemplateColumn Header="Thao tác" Width="60">
                                             <DataGridTemplateColumn.CellTemplate>
                                                 <DataTemplate>
                                                     <Button Command="{Binding DataContext.DeleteSiteCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
-                                                            CommandParameter="{Binding}" Content="Del" Background="#E74C3C" Padding="6,2" FontSize="10"/>
+                                                            CommandParameter="{Binding}" Content="Xóa" Background="#E74C3C" Padding="6,2" FontSize="10"/>
                                                 </DataTemplate>
                                             </DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
@@ -298,10 +298,10 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="50"/>
                                     </Grid.ColumnDefinitions>
-                                     <TextBox Text="{Binding NewSiteCode, UpdateSourceTrigger=PropertyChanged}" Grid.Column="0" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26" ToolTip="Mã Site"/>
-                                     <TextBox Text="{Binding NewSiteName, UpdateSourceTrigger=PropertyChanged}" Grid.Column="1" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26" ToolTip="Tên Site"/>
+                                     <TextBox Text="{Binding NewSiteCode, UpdateSourceTrigger=PropertyChanged}" Grid.Column="0" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26" ToolTip="Mã điểm đỗ"/>
+                                     <TextBox Text="{Binding NewSiteName, UpdateSourceTrigger=PropertyChanged}" Grid.Column="1" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26" ToolTip="Tên điểm đỗ"/>
                                      <TextBox Text="{Binding NewSiteDesc, UpdateSourceTrigger=PropertyChanged}" Grid.Column="2" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26" ToolTip="Mô tả"/>
-                                     <Button Command="{Binding SaveSiteCommand}" Content="Add" Grid.Column="3" Height="26" Padding="5,0" FontSize="11"/>
+                                     <Button Command="{Binding SaveSiteCommand}" Content="Thêm" Grid.Column="3" Height="26" Padding="5,0" FontSize="11"/>
                                 </Grid>
                             </Grid>
                         </Border>
@@ -314,18 +314,18 @@
                                     <RowDefinition Height="*"/>
                                     <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
-                                <TextBlock Grid.Row="0" Text="2. PARKING ZONES (CAPACITIES)" Foreground="#8F94FB" FontWeight="Bold" Margin="0,0,0,8"/>
+                                <TextBlock Grid.Row="0" Text="2. CÁC KHU VỰC ĐỖ (SỨC CHỨA)" Foreground="#8F94FB" FontWeight="Bold" Margin="0,0,0,8"/>
                                 <DataGrid Grid.Row="1" ItemsSource="{Binding Zones}" AutoGenerateColumns="False">
                                     <DataGrid.Columns>
-                                        <DataGridTextColumn Header="Site" Binding="{Binding SiteId}" Width="40"/>
-                                        <DataGridTextColumn Header="Zone Code" Binding="{Binding ZoneCode}" Width="100"/>
-                                        <DataGridTextColumn Header="Zone Name" Binding="{Binding ZoneName}" Width="130"/>
-                                        <DataGridTextColumn Header="Max Cap" Binding="{Binding MaxCapacity}" Width="70"/>
-                                        <DataGridTemplateColumn Header="Action" Width="60">
+                                        <DataGridTextColumn Header="Điểm đỗ" Binding="{Binding SiteId}" Width="40"/>
+                                        <DataGridTextColumn Header="Mã khu vực" Binding="{Binding ZoneCode}" Width="100"/>
+                                        <DataGridTextColumn Header="Tên khu vực" Binding="{Binding ZoneName}" Width="130"/>
+                                        <DataGridTextColumn Header="Sức chứa tối đa" Binding="{Binding MaxCapacity}" Width="70"/>
+                                        <DataGridTemplateColumn Header="Thao tác" Width="60">
                                             <DataGridTemplateColumn.CellTemplate>
                                                 <DataTemplate>
                                                     <Button Command="{Binding DataContext.DeleteZoneCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
-                                                            CommandParameter="{Binding}" Content="Del" Background="#E74C3C" Padding="6,2" FontSize="10"/>
+                                                            CommandParameter="{Binding}" Content="Xóa" Background="#E74C3C" Padding="6,2" FontSize="10"/>
                                                 </DataTemplate>
                                             </DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
@@ -340,12 +340,12 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="50"/>
                                     </Grid.ColumnDefinitions>
-                                     <ComboBox ItemsSource="{Binding Sites}" SelectedItem="{Binding SelectedZoneSite}" DisplayMemberPath="SiteCode" Grid.Column="0" Margin="0,0,4,0" Background="#222" Height="26" ToolTip="Chọn Site"/>
-                                     <TextBox Text="{Binding NewZoneCode, UpdateSourceTrigger=PropertyChanged}" Grid.Column="1" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26" ToolTip="Mã Zone"/>
-                                     <TextBox Text="{Binding NewZoneName, UpdateSourceTrigger=PropertyChanged}" Grid.Column="2" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26" ToolTip="Tên Zone"/>
+                                     <ComboBox ItemsSource="{Binding Sites}" SelectedItem="{Binding SelectedZoneSite}" DisplayMemberPath="SiteCode" Grid.Column="0" Margin="0,0,4,0" Background="#222" Height="26" ToolTip="Chọn điểm đỗ"/>
+                                     <TextBox Text="{Binding NewZoneCode, UpdateSourceTrigger=PropertyChanged}" Grid.Column="1" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26" ToolTip="Mã khu vực"/>
+                                     <TextBox Text="{Binding NewZoneName, UpdateSourceTrigger=PropertyChanged}" Grid.Column="2" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26" ToolTip="Tên khu vực"/>
                                      <TextBox Text="{Binding NewZoneCapacity, UpdateSourceTrigger=PropertyChanged}" Grid.Column="3" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26" ToolTip="Sức chứa"/>
                                      <TextBox Text="{Binding NewZoneDesc, UpdateSourceTrigger=PropertyChanged}" Grid.Column="4" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26" ToolTip="Mô tả"/>
-                                     <Button Command="{Binding SaveZoneCommand}" Content="Add" Grid.Column="5" Height="26" Padding="5,0" FontSize="11"/>
+                                     <Button Command="{Binding SaveZoneCommand}" Content="Thêm" Grid.Column="5" Height="26" Padding="5,0" FontSize="11"/>
                                 </Grid>
                             </Grid>
                         </Border>
@@ -358,14 +358,14 @@
                                     <RowDefinition Height="*"/>
                                     <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
-                                <TextBlock Grid.Row="0" Text="3. LANES ZONE &amp; PHYSICAL GATE" Foreground="#8F94FB" FontWeight="Bold" Margin="0,0,0,8"/>
+                                <TextBlock Grid.Row="0" Text="3. LÀN XE &amp; CỔNG VẬT LÝ" Foreground="#8F94FB" FontWeight="Bold" Margin="0,0,0,8"/>
                                 <DataGrid Grid.Row="1" ItemsSource="{Binding Lanes}" AutoGenerateColumns="False">
                                     <DataGrid.Columns>
-                                        <DataGridTextColumn Header="Lane Code" Binding="{Binding LaneCode}" Width="100"/>
-                                        <DataGridTextColumn Header="Lane Name" Binding="{Binding LaneName}" Width="110"/>
-                                        <DataGridTextColumn Header="Dir" Binding="{Binding Direction}" Width="50"/>
-                                        <DataGridTextColumn Header="Logic Zone" Binding="{Binding ZoneName}" Width="*"/>
-                                        <DataGridTextColumn Header="Physical Gate" Binding="{Binding GateName}" Width="*"/>
+                                        <DataGridTextColumn Header="Mã làn" Binding="{Binding LaneCode}" Width="100"/>
+                                        <DataGridTextColumn Header="Tên làn" Binding="{Binding LaneName}" Width="110"/>
+                                        <DataGridTextColumn Header="Hướng" Binding="{Binding Direction}" Width="50"/>
+                                        <DataGridTextColumn Header="Khu vực logic" Binding="{Binding ZoneName}" Width="*"/>
+                                        <DataGridTextColumn Header="Cổng vật lý" Binding="{Binding GateName}" Width="*"/>
                                     </DataGrid.Columns>
                                 </DataGrid>
                                 <Grid Grid.Row="2" Margin="0,8,0,0">
@@ -376,9 +376,9 @@
                                         <ColumnDefinition Width="60"/>
                                     </Grid.ColumnDefinitions>
                                      <ComboBox ItemsSource="{Binding Lanes}" SelectedItem="{Binding SelectedLane}" DisplayMemberPath="LaneName" Grid.Column="0" Margin="0,0,4,0" Background="#222" Height="26" ToolTip="Chọn Làn"/>
-                                     <ComboBox ItemsSource="{Binding Zones}" SelectedItem="{Binding SelectedLaneZone}" DisplayMemberPath="ZoneName" Grid.Column="1" Margin="0,0,4,0" Background="#222" Height="26" ToolTip="Chọn Logic Zone (để trống nếu hỗn hợp)"/>
+                                     <ComboBox ItemsSource="{Binding Zones}" SelectedItem="{Binding SelectedLaneZone}" DisplayMemberPath="ZoneName" Grid.Column="1" Margin="0,0,4,0" Background="#222" Height="26" ToolTip="Chọn khu vực logic (để trống nếu hỗn hợp)"/>
                                      <ComboBox ItemsSource="{Binding Gates}" SelectedItem="{Binding SelectedLaneGate}" DisplayMemberPath="GateName" Grid.Column="2" Margin="0,0,4,0" Background="#222" Height="26" ToolTip="Chọn Physical Gate"/>
-                                     <Button Command="{Binding AssignLaneCommand}" Content="Assign" Grid.Column="3" Height="26" Padding="5,0" FontSize="11"/>
+                                     <Button Command="{Binding AssignLaneCommand}" Content="Gán làn" Grid.Column="3" Height="26" Padding="5,0" FontSize="11"/>
                                 </Grid>
                             </Grid>
                         </Border>
@@ -391,19 +391,19 @@
                                     <RowDefinition Height="*"/>
                                     <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
-                                <TextBlock Grid.Row="0" Text="4. C3 CONTROLLERS PLACEMENT" Foreground="#8F94FB" FontWeight="Bold" Margin="0,0,0,8"/>
+                                <TextBlock Grid.Row="0" Text="4. PHÂN BỔ BỘ ĐIỀU KHIỂN C3" Foreground="#8F94FB" FontWeight="Bold" Margin="0,0,0,8"/>
                                 <DataGrid Grid.Row="1" ItemsSource="{Binding Controllers}" AutoGenerateColumns="False">
                                     <DataGrid.Columns>
-                                        <DataGridTextColumn Header="Name" Binding="{Binding ControllerName}" Width="120"/>
-                                        <DataGridTextColumn Header="IP Address" Binding="{Binding IpAddress}" Width="110"/>
-                                        <DataGridTextColumn Header="Server IP" Binding="{Binding ServerIp}" Width="110"/>
-                                        <DataGridTextColumn Header="PC IP" Binding="{Binding PcIp}" Width="110"/>
-                                        <DataGridTextColumn Header="Assigned Gate" Binding="{Binding GateName}" Width="*"/>
-                                        <DataGridTemplateColumn Header="Action" Width="60">
+                                        <DataGridTextColumn Header="Tên bộ điều khiển" Binding="{Binding ControllerName}" Width="120"/>
+                                        <DataGridTextColumn Header="Địa chỉ IP" Binding="{Binding IpAddress}" Width="110"/>
+                                        <DataGridTextColumn Header="IP Máy chủ" Binding="{Binding ServerIp}" Width="110"/>
+                                        <DataGridTextColumn Header="IP Máy tính" Binding="{Binding PcIp}" Width="110"/>
+                                        <DataGridTextColumn Header="Cổng được gán" Binding="{Binding GateName}" Width="*"/>
+                                        <DataGridTemplateColumn Header="Thao tác" Width="60">
                                             <DataGridTemplateColumn.CellTemplate>
                                                 <DataTemplate>
                                                     <Button Command="{Binding DataContext.DeleteControllerCommand, RelativeSource={RelativeSource AncestorType=Window}}" 
-                                                            CommandParameter="{Binding}" Content="Del" Background="#E74C3C" Padding="6,2" FontSize="10"/>
+                                                            CommandParameter="{Binding}" Content="Xóa" Background="#E74C3C" Padding="6,2" FontSize="10"/>
                                                 </DataTemplate>
                                             </DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
@@ -420,10 +420,10 @@
                                     </Grid.ColumnDefinitions>
                                      <TextBox Text="{Binding NewControllerName, UpdateSourceTrigger=PropertyChanged}" Grid.Column="0" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26" ToolTip="Tên Controller"/>
                                      <TextBox Text="{Binding NewControllerIp, UpdateSourceTrigger=PropertyChanged}" Grid.Column="1" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26" ToolTip="Tủ IP"/>
-                                     <TextBox Text="{Binding NewControllerServerIp, UpdateSourceTrigger=PropertyChanged}" Grid.Column="2" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26" ToolTip="Server IP"/>
+                                     <TextBox Text="{Binding NewControllerServerIp, UpdateSourceTrigger=PropertyChanged}" Grid.Column="2" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26" ToolTip="IP Máy chủ"/>
                                      <TextBox Text="{Binding NewControllerPcIp, UpdateSourceTrigger=PropertyChanged}" Grid.Column="3" Margin="0,0,4,0" Background="#222" Foreground="White" BorderThickness="1" BorderBrush="#444" VerticalContentAlignment="Center" Height="26" ToolTip="Máy PC IP"/>
                                      <ComboBox ItemsSource="{Binding Gates}" SelectedItem="{Binding SelectedControllerGate}" DisplayMemberPath="GateName" Grid.Column="4" Margin="0,0,4,0" Background="#222" Height="26" ToolTip="Chọn Cổng"/>
-                                     <Button Command="{Binding SaveControllerCommand}" Content="Add" Grid.Column="5" Height="26" Padding="5,0" FontSize="11"/>
+                                     <Button Command="{Binding SaveControllerCommand}" Content="Thêm" Grid.Column="5" Height="26" Padding="5,0" FontSize="11"/>
                                 </Grid>
                             </Grid>
                         </Border>
@@ -431,7 +431,7 @@
                 </TabItem>
 
                 <!-- TAB 3: RESILIENCY & MULTI-ZONE INTEGRATION QA -->
-                <TabItem Header="🏆  MULTI-ZONE QA AUTOMATED SUITE">
+                <TabItem Header="🏆  BỘ KIỂM THỬ QA TỰ ĐỘNG ĐA KHU VỰC">
                     <Grid Margin="15">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
@@ -442,10 +442,10 @@
                         <Border Grid.Row="0" Background="#161626" CornerRadius="8" Padding="20" Margin="0,0,0,15" BorderBrush="#8E44AD" BorderThickness="1">
                             <Grid>
                                 <StackPanel>
-                                    <TextBlock Text="INTEGRATION RESILIENCY CERTIFICATION ENGINE" Foreground="White" FontSize="16" FontWeight="Bold"/>
-                                    <TextBlock Text="Pressing the master button below will automatically run all 5 complex failover topologies, dynamic mapping, and SQLite offline recovery tests sequentially." Foreground="#AAA" FontSize="11" Margin="0,5,0,0"/>
+                                    <TextBlock Text="HỆ THỐNG XÁC NHẬN ĐỘ BỀN TÍCH HỢP" Foreground="White" FontSize="16" FontWeight="Bold"/>
+                                    <TextBlock Text="Nhấn nút chính dưới đây sẽ tự động chạy toàn bộ 5 kịch bản lỗi chuyển vùng phức tạp, ánh xạ động và khôi phục SQLite ngoại tuyến tuần tự." Foreground="#AAA" FontSize="11" Margin="0,5,0,0"/>
                                 </StackPanel>
-                                <Button Command="{Binding RunAllTestsCommand}" Content="🚀 RUN FULL INTEGRATION QA SUITE" Background="#8E44AD" HorizontalAlignment="Right" VerticalAlignment="Center" Padding="25,12" FontSize="13" FontWeight="Bold"/>
+                                <Button Command="{Binding RunAllTestsCommand}" Content="🚀 CHẠY TOÀN BỘ BỘ KIỂM THỬ TÍCH HỢP QA" Background="#8E44AD" HorizontalAlignment="Right" VerticalAlignment="Center" Padding="25,12" FontSize="13" FontWeight="Bold"/>
                             </Grid>
                         </Border>
 
@@ -462,10 +462,10 @@
                                                 <ColumnDefinition Width="100"/>
                                             </Grid.ColumnDefinitions>
                                             <StackPanel Grid.Column="0">
-                                                <TextBlock Text="TEST SCENARIO 1: Site &amp; Zone Initialization" Foreground="#F39C12" FontWeight="Bold" FontSize="13" Margin="0,0,0,5"/>
-                                                <TextBlock Text="Verifies relational schema creation, seeding of VINHOME/B1/B2 default topologies, and setting maximum capacities." TextWrapping="Wrap" Foreground="#AAA" FontSize="11"/>
+                                                <TextBlock Text="KỊCH BẢN KIỂM THỬ 1: Khởi tạo Điểm &amp; Khu vực" Foreground="#F39C12" FontWeight="Bold" FontSize="13" Margin="0,0,0,5"/>
+                                                <TextBlock Text="Xác minh tạo sơ đồ quan hệ, thiết lập cấu hình mặc định VINHOME/B1/B2 và thiết lập sức chứa tối đa." TextWrapping="Wrap" Foreground="#AAA" FontSize="11"/>
                                             </StackPanel>
-                                            <Button Command="{Binding RunTest1Command}" Content="Run T1" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right" Background="#34495E" Padding="12,8" FontSize="11"/>
+                                            <Button Command="{Binding RunTest1Command}" Content="Chạy T1" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right" Background="#34495E" Padding="12,8" FontSize="11"/>
                                         </Grid>
                                     </Border>
 
@@ -477,10 +477,10 @@
                                                 <ColumnDefinition Width="100"/>
                                             </Grid.ColumnDefinitions>
                                             <StackPanel Grid.Column="0">
-                                                <TextBlock Text="TEST SCENARIO 2: Lane &amp; Controller Assignment" Foreground="#F39C12" FontWeight="Bold" FontSize="13" Margin="0,0,0,5"/>
-                                                <TextBlock Text="Maps physical checkpoints (LANE-1, LANE-2) and C3-200 controllers directly to logical zones without hardcoding." TextWrapping="Wrap" Foreground="#AAA" FontSize="11"/>
+                                                <TextBlock Text="KỊCH BẢN KIỂM THỬ 2: Gán Làn &amp; Bộ điều khiển" Foreground="#F39C12" FontWeight="Bold" FontSize="13" Margin="0,0,0,5"/>
+                                                <TextBlock Text="Ánh xạ các làn kiểm soát vật lý (LANE-1, LANE-2) và bộ điều khiển C3-200 trực tiếp tới khu vực logic." TextWrapping="Wrap" Foreground="#AAA" FontSize="11"/>
                                             </StackPanel>
-                                            <Button Command="{Binding RunTest2Command}" Content="Run T2" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right" Background="#34495E" Padding="12,8" FontSize="11"/>
+                                            <Button Command="{Binding RunTest2Command}" Content="Chạy T2" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right" Background="#34495E" Padding="12,8" FontSize="11"/>
                                         </Grid>
                                     </Border>
 
@@ -492,10 +492,10 @@
                                                 <ColumnDefinition Width="100"/>
                                             </Grid.ColumnDefinitions>
                                             <StackPanel Grid.Column="0">
-                                                <TextBlock Text="TEST SCENARIO 3: Live Scan Dynamic Derivation" Foreground="#F39C12" FontWeight="Bold" FontSize="13" Margin="0,0,0,5"/>
-                                                <TextBlock Text="Performs simulated entry swipes and asserts that vehicle count is calculated dynamically strictly from active sessions (never increments)." TextWrapping="Wrap" Foreground="#AAA" FontSize="11"/>
+                                                <TextBlock Text="KỊCH BẢN KIỂM THỬ 3: Tính toán Phiên quét động" Foreground="#F39C12" FontWeight="Bold" FontSize="13" Margin="0,0,0,5"/>
+                                                <TextBlock Text="Thực hiện mô phỏng quẹt thẻ vào và xác nhận rằng số lượng xe được tính toán động từ các phiên đang hoạt động." TextWrapping="Wrap" Foreground="#AAA" FontSize="11"/>
                                             </StackPanel>
-                                            <Button Command="{Binding RunTest3Command}" Content="Run T3" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right" Background="#34495E" Padding="12,8" FontSize="11"/>
+                                            <Button Command="{Binding RunTest3Command}" Content="Chạy T3" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right" Background="#34495E" Padding="12,8" FontSize="11"/>
                                         </Grid>
                                     </Border>
 
@@ -507,10 +507,10 @@
                                                 <ColumnDefinition Width="100"/>
                                             </Grid.ColumnDefinitions>
                                             <StackPanel Grid.Column="0">
-                                                <TextBlock Text="TEST SCENARIO 4: Zone Capacity Enforcement" Foreground="#F39C12" FontWeight="Bold" FontSize="13" Margin="0,0,0,5"/>
-                                                <TextBlock Text="Fills the zone to capacity limit, asserts 'Zone Full' warning, and blocks subsequently swiped cards automatically." TextWrapping="Wrap" Foreground="#AAA" FontSize="11"/>
+                                                <TextBlock Text="KỊCH BẢN KIỂM THỬ 4: Giới hạn Sức chứa Khu vực" Foreground="#F39C12" FontWeight="Bold" FontSize="13" Margin="0,0,0,5"/>
+                                                <TextBlock Text="Lấp đầy khu vực tới giới hạn sức chứa, xác nhận cảnh báo 'Khu vực đầy' và tự động chặn thẻ quẹt sau đó." TextWrapping="Wrap" Foreground="#AAA" FontSize="11"/>
                                             </StackPanel>
-                                            <Button Command="{Binding RunTest4Command}" Content="Run T4" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right" Background="#34495E" Padding="12,8" FontSize="11"/>
+                                            <Button Command="{Binding RunTest4Command}" Content="Chạy T4" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right" Background="#34495E" Padding="12,8" FontSize="11"/>
                                         </Grid>
                                     </Border>
 
@@ -522,18 +522,18 @@
                                                 <ColumnDefinition Width="100"/>
                                             </Grid.ColumnDefinitions>
                                             <StackPanel Grid.Column="0">
-                                                <TextBlock Text="TEST SCENARIO 5: Offline-First Failover Sync" Foreground="#F39C12" FontWeight="Bold" FontSize="13" Margin="0,0,0,5"/>
-                                                <TextBlock Text="Forces SQL offline, scans card to write transaction to SQLite queue, re-connects SQL server, and verifies auto-sync of active session." TextWrapping="Wrap" Foreground="#AAA" FontSize="11"/>
+                                                <TextBlock Text="KỊCH BẢN KIỂM THỬ 5: Đồng bộ khi mất kết nối" Foreground="#F39C12" FontWeight="Bold" FontSize="13" Margin="0,0,0,5"/>
+                                                <TextBlock Text="Giả lập mất kết nối SQL, quẹt thẻ để ghi giao dịch vào hàng đợi SQLite, kết nối lại SQL và xác minh tự động đồng bộ phiên hoạt động." TextWrapping="Wrap" Foreground="#AAA" FontSize="11"/>
                                             </StackPanel>
-                                            <Button Command="{Binding RunTest5Command}" Content="Run T5" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right" Background="#34495E" Padding="12,8" FontSize="11"/>
+                                            <Button Command="{Binding RunTest5Command}" Content="Chạy T5" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right" Background="#34495E" Padding="12,8" FontSize="11"/>
                                         </Grid>
                                     </Border>
 
                                     <!-- Help & Info Card -->
                                     <Border Background="#1A1A28" CornerRadius="8" Padding="15" Margin="0,0,0,0" BorderBrush="#2F2F4A" BorderThickness="1">
                                         <StackPanel VerticalAlignment="Center">
-                                            <TextBlock Text="💡 RESILIENCY ENGINE COMPLIANCE INFO" Foreground="#3498DB" FontWeight="Bold" FontSize="12" Margin="0,0,0,3"/>
-                                            <TextBlock Text="All database migrations are verified self-healing. WAL journaling prevents locking. Synchronizations utilize SQLite memory fallback paths safely." TextWrapping="Wrap" Foreground="#888" FontSize="10"/>
+                                            <TextBlock Text="💡 THÔNG TIN TUÂN THỦ HỆ THỐNG PHỤC HỒI" Foreground="#3498DB" FontWeight="Bold" FontSize="12" Margin="0,0,0,3"/>
+                                            <TextBlock Text="Tất cả các bản cập nhật DB đã được xác minh tự phục hồi. Nhật ký WAL ngăn chặn khóa. Đồng bộ hóa sử dụng đường dẫn dự phòng bộ nhớ SQLite an toàn." TextWrapping="Wrap" Foreground="#888" FontSize="10"/>
                                         </StackPanel>
                                     </Border>
 
@@ -547,6 +547,6 @@
         </Grid>
 
         <!-- FOOTER -->
-        <TextBlock Grid.Row="2" Text="Offline Resiliency &amp; Topology Dashboard • Powered by Antigravity Recovery Engine V2" Foreground="#4E4E6A" HorizontalAlignment="Center" Margin="0,12,0,0" FontSize="10" FontWeight="Bold"/>
+        <TextBlock Grid.Row="2" Text="Bảng giám sát Ngoại tuyến &amp; Sơ đồ bãi xe • Phát triển bởi Antigravity Recovery Engine V2" Foreground="#4E4E6A" HorizontalAlignment="Center" Margin="0,12,0,0" FontSize="10" FontWeight="Bold"/>
     </Grid>
 </Window>

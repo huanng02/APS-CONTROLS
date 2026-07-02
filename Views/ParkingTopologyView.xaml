@@ -60,7 +60,7 @@
                     <TextBlock Text="CẤU HÌNH TOPOLOGY &amp; HARDWARE"
                                FontSize="22" FontWeight="Bold" FontFamily="Segoe UI, Inter, Arial"
                                Foreground="{StaticResource TopoPrimaryBrush}"/>
-                    <TextBlock Text="Quản lý cấu trúc bãi xe: Site → Zone → Lane → Reader / Controller"
+                    <TextBlock Text="Quản lý cấu trúc bãi xe: Điểm đỗ → Khu vực → Làn xe → Đầu đọc / Bộ điều khiển"
                                FontSize="13" FontFamily="Segoe UI, Inter, Arial"
                                Foreground="{StaticResource TopoTextSecondaryBrush}"
                                Margin="0,4,0,0"/>
@@ -74,7 +74,7 @@
                             <TextBlock Text="🏢" FontSize="14" VerticalAlignment="Center" Margin="0,0,6,0"/>
                             <TextBlock Text="{Binding Sites.Count}" FontWeight="Bold" FontSize="14"
                                        Foreground="{StaticResource TopoPrimaryBrush}" VerticalAlignment="Center"/>
-                            <TextBlock Text=" Sites" FontSize="12" Foreground="{StaticResource TopoTextSecondaryBrush}"
+                            <TextBlock Text=" Điểm đỗ" FontSize="12" Foreground="{StaticResource TopoTextSecondaryBrush}"
                                        VerticalAlignment="Center"/>
                         </StackPanel>
                     </Border>
@@ -83,7 +83,7 @@
                             <TextBlock Text="📍" FontSize="14" VerticalAlignment="Center" Margin="0,0,6,0"/>
                             <TextBlock Text="{Binding Zones.Count}" FontWeight="Bold" FontSize="14"
                                        Foreground="{StaticResource TopoPrimaryBrush}" VerticalAlignment="Center"/>
-                            <TextBlock Text=" Zones" FontSize="12" Foreground="{StaticResource TopoTextSecondaryBrush}"
+                            <TextBlock Text=" Khu vực" FontSize="12" Foreground="{StaticResource TopoTextSecondaryBrush}"
                                        VerticalAlignment="Center"/>
                         </StackPanel>
                     </Border>
@@ -92,7 +92,7 @@
                             <TextBlock Text="🚗" FontSize="14" VerticalAlignment="Center" Margin="0,0,6,0"/>
                             <TextBlock Text="{Binding Lanes.Count}" FontWeight="Bold" FontSize="14"
                                        Foreground="{StaticResource TopoPrimaryBrush}" VerticalAlignment="Center"/>
-                            <TextBlock Text=" Lanes" FontSize="12" Foreground="{StaticResource TopoTextSecondaryBrush}"
+                            <TextBlock Text=" Làn xe" FontSize="12" Foreground="{StaticResource TopoTextSecondaryBrush}"
                                        VerticalAlignment="Center"/>
                         </StackPanel>
                     </Border>
@@ -101,7 +101,7 @@
                             <TextBlock Text="🧠" FontSize="14" VerticalAlignment="Center" Margin="0,0,6,0"/>
                             <TextBlock Text="{Binding Controllers.Count}" FontWeight="Bold" FontSize="14"
                                        Foreground="{StaticResource TopoPrimaryBrush}" VerticalAlignment="Center"/>
-                            <TextBlock Text=" Controllers" FontSize="12" Foreground="{StaticResource TopoTextSecondaryBrush}"
+                            <TextBlock Text=" Bộ điều khiển" FontSize="12" Foreground="{StaticResource TopoTextSecondaryBrush}"
                                        VerticalAlignment="Center"/>
                         </StackPanel>
                     </Border>
@@ -200,7 +200,7 @@
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Text="TOPOLOGY EXPLORER"
+                                <TextBlock Text="TRÌNH KHÁM PHÁ SƠ ĐỒ"
                                            FontSize="11" FontWeight="Bold" FontFamily="Segoe UI, Inter, Arial"
                                            Foreground="{StaticResource TopoTextSecondaryBrush}"
                                            VerticalAlignment="Center"/>
@@ -316,11 +316,11 @@
                                     <MenuItem Header="✏️ Sửa" Command="{Binding EditSelectedCommand}"/>
                                     <MenuItem Header="🗑️ Xóa" Command="{Binding DeleteSelectedCommand}"/>
                                     <Separator/>
-                                    <MenuItem Header="🏢 Thêm Site" Command="{Binding AddSiteCommand}"/>
+                                    <MenuItem Header="🏢 Thêm Điểm đỗ" Command="{Binding AddSiteCommand}"/>
                                     <MenuItem Header="🚪 Thêm Cổng" Command="{Binding AddGateCommand}"/>
-                                    <MenuItem Header="📍 Thêm Zone" Command="{Binding AddZoneCommand}"/>
-                                    <MenuItem Header="🚗 Thêm Lane" Command="{Binding AddLaneCommand}"/>
-                                    <MenuItem Header="🧠 Thêm Controller" Command="{Binding AddControllerCommand}"/>
+                                    <MenuItem Header="📍 Thêm Khu vực" Command="{Binding AddZoneCommand}"/>
+                                    <MenuItem Header="🚗 Thêm Làn xe" Command="{Binding AddLaneCommand}"/>
+                                    <MenuItem Header="🧠 Thêm Bộ điều khiển" Command="{Binding AddControllerCommand}"/>
                                     <Separator/>
                                     <MenuItem Header="🔄 Làm mới" Command="{Binding RefreshCommand}"/>
                                 </ContextMenu>
@@ -354,7 +354,7 @@
                                            FontSize="18" FontWeight="SemiBold" FontFamily="Segoe UI, Inter, Arial"
                                            Foreground="{StaticResource TopoTextPrimaryBrush}"
                                            HorizontalAlignment="Center"/>
-                                <TextBlock Text="Click vào Site, Zone, Lane hoặc Controller ở panel bên trái để xem chi tiết"
+                                <TextBlock Text="Click vào Điểm đỗ, Khu vực, Làn xe hoặc Bộ điều khiển ở bảng bên trái để xem chi tiết"
                                            FontSize="13" FontFamily="Segoe UI, Inter, Arial"
                                            Foreground="{StaticResource TopoTextMutedBrush}"
                                            HorizontalAlignment="Center" Margin="0,8,0,0"/>
@@ -420,26 +420,26 @@
                                     <Border Style="{StaticResource StatCardStyle}" Margin="0,0,8,8">
                                         <StackPanel>
                                             <TextBlock Text="{Binding DetailTotalZones}" Style="{StaticResource StatNumberStyle}"/>
-                                            <TextBlock Text="Khu vực (Zone)" Style="{StaticResource StatLabelStyle}"/>
+                                            <TextBlock Text="Khu vực" Style="{StaticResource StatLabelStyle}"/>
                                         </StackPanel>
                                     </Border>
                                     <Border Style="{StaticResource StatCardStyle}" Margin="4,0,4,8">
                                         <StackPanel>
                                             <TextBlock Text="{Binding DetailTotalLanes}" Style="{StaticResource StatNumberStyle}"/>
-                                            <TextBlock Text="Làn xe (Lane)" Style="{StaticResource StatLabelStyle}"/>
+                                            <TextBlock Text="Làn xe" Style="{StaticResource StatLabelStyle}"/>
                                         </StackPanel>
                                     </Border>
                                     <Border Style="{StaticResource StatCardStyle}" Margin="4,0,4,8">
                                         <StackPanel>
                                             <TextBlock Text="{Binding DetailTotalControllers}" Style="{StaticResource StatNumberStyle}"/>
-                                            <TextBlock Text="Controller" Style="{StaticResource StatLabelStyle}"/>
+                                            <TextBlock Text="Bộ điều khiển" Style="{StaticResource StatLabelStyle}"/>
                                         </StackPanel>
                                     </Border>
                                     <Border Style="{StaticResource StatCardStyle}" Margin="8,0,0,8">
                                         <StackPanel>
                                             <TextBlock Text="{Binding DetailActiveControllers}" Style="{StaticResource StatNumberStyle}"
                                                        Foreground="{StaticResource TopoSuccessBrush}"/>
-                                            <TextBlock Text="Active Controllers" Style="{StaticResource StatLabelStyle}"/>
+                                            <TextBlock Text="Bộ điều khiển đang hoạt động" Style="{StaticResource StatLabelStyle}"/>
                                         </StackPanel>
                                     </Border>
                                 </UniformGrid>
@@ -515,7 +515,7 @@
                                     <Border Style="{StaticResource StatCardStyle}" Margin="4,0,4,8">
                                         <StackPanel>
                                             <TextBlock Text="{Binding DetailZoneControllers}" Style="{StaticResource StatNumberStyle}"/>
-                                            <TextBlock Text="Controller" Style="{StaticResource StatLabelStyle}"/>
+                                            <TextBlock Text="Bộ điều khiển" Style="{StaticResource StatLabelStyle}"/>
                                         </StackPanel>
                                     </Border>
                                     <Border Style="{StaticResource StatCardStyle}" Margin="8,0,0,8">
@@ -619,7 +619,7 @@
                                                 </StackPanel>
                                                 <TextBlock FontSize="13" FontFamily="Segoe UI, Inter, Arial"
                                                            Foreground="{StaticResource TopoTextSecondaryBrush}">
-                                                    <Run Text="Zone:"/>
+                                                    <Run Text="Khu vực:"/>
                                                     <Run Text="{Binding DetailLaneZone, Mode=OneWay}"/>
                                                     <Run Text=" • "/>
                                                     <Run Text="{Binding DetailLaneCode, Mode=OneWay}"/>
@@ -763,7 +763,7 @@
                                 <!-- Reader Mappings -->
                                 <Border Style="{StaticResource DetailCardStyle}">
                                     <StackPanel>
-                                        <TextBlock Text="📡 Reader Mappings" FontSize="16" FontWeight="SemiBold"
+                                        <TextBlock Text="📡 Ánh xạ đầu đọc" FontSize="16" FontWeight="SemiBold"
                                                    FontFamily="Segoe UI, Inter, Arial"
                                                    Foreground="{StaticResource TopoTextPrimaryBrush}" Margin="0,0,0,16"/>
 
@@ -785,7 +785,7 @@
                                                                 <TextBlock FontSize="13" FontWeight="SemiBold"
                                                                            FontFamily="Segoe UI, Inter, Arial"
                                                                            Foreground="{StaticResource TopoTextPrimaryBrush}">
-                                                                    <Run Text="Reader #"/>
+                                                                    <Run Text="Đầu đọc số "/>
                                                                     <Run Text="{Binding ReaderNo, Mode=OneWay}"/>
                                                                 </TextBlock>
                                                             </StackPanel>
@@ -834,7 +834,7 @@
                                         </ItemsControl>
 
                                         <!-- Empty readers message -->
-                                        <TextBlock Text="Chưa có reader nào được gán cho làn này"
+                                        <TextBlock Text="Chưa có đầu đọc nào được gán cho làn này"
                                                    FontSize="13" FontFamily="Segoe UI, Inter, Arial"
                                                    Foreground="{StaticResource TopoTextMutedBrush}"
                                                    HorizontalAlignment="Center" Margin="0,8,0,0">
@@ -855,7 +855,7 @@
                                 <!-- Camera Mappings -->
                                 <Border Style="{StaticResource DetailCardStyle}">
                                     <StackPanel>
-                                        <TextBlock Text="📹 Camera Mappings" FontSize="16" FontWeight="SemiBold"
+                                        <TextBlock Text="📹 Ánh xạ Camera" FontSize="16" FontWeight="SemiBold"
                                                    FontFamily="Segoe UI, Inter, Arial"
                                                    Foreground="{StaticResource TopoTextPrimaryBrush}" Margin="0,0,0,16"/>
 
@@ -990,7 +990,7 @@
                                                 </StackPanel>
                                                 <TextBlock FontSize="13" FontFamily="Segoe UI, Inter, Arial"
                                                            Foreground="{StaticResource TopoTextSecondaryBrush}">
-                                                    <Run Text="Zone:"/>
+                                                    <Run Text="Khu vực:"/>
                                                     <Run Text="{Binding DetailControllerZone, Mode=OneWay}"/>
                                                 </TextBlock>
                                             </StackPanel>
@@ -1032,7 +1032,7 @@
                                                 <ColumnDefinition Width="*"/>
                                             </Grid.ColumnDefinitions>
                                             <StackPanel Grid.Column="0">
-                                                <TextBlock Text="IP Controller" Style="{StaticResource InfoLabelStyle}"/>
+                                                <TextBlock Text="IP Bộ điều khiển" Style="{StaticResource InfoLabelStyle}"/>
                                                 <Border Background="#F0F4FF" CornerRadius="6" Padding="10,6"
                                                         HorizontalAlignment="Left" Margin="0,0,0,12">
                                                     <TextBlock Text="{Binding DetailControllerIp}" FontSize="14"
@@ -1041,7 +1041,7 @@
                                                 </Border>
                                             </StackPanel>
                                             <StackPanel Grid.Column="1">
-                                                <TextBlock Text="IP Server" Style="{StaticResource InfoLabelStyle}"/>
+                                                <TextBlock Text="IP Máy chủ" Style="{StaticResource InfoLabelStyle}"/>
                                                 <Border Background="#E8F8F5" CornerRadius="6" Padding="10,6"
                                                         HorizontalAlignment="Left" Margin="0,0,0,12">
                                                     <StackPanel Orientation="Vertical">
@@ -1085,7 +1085,7 @@
                                                        FontFamily="Segoe UI, Inter, Arial"
                                                        Foreground="{StaticResource TopoTextPrimaryBrush}"
                                                        VerticalAlignment="Center">
-                                                <Run Text="Reader #"/>
+                                                <Run Text="Đầu đọc số "/>
                                                 <Run Text="{Binding DetailReaderNo, Mode=OneWay}"/>
                                             </TextBlock>
                                         </StackPanel>
@@ -1194,7 +1194,7 @@
                                 <Button Command="{Binding AddSiteCommand}" Style="{StaticResource TopoActionButton}">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="🏢" FontSize="14" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                        <TextBlock Text="Thêm Site" FontSize="13" VerticalAlignment="Center"/>
+                                        <TextBlock Text="Thêm Điểm đỗ" FontSize="13" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </Button>
 
@@ -1208,21 +1208,21 @@
                                 <Button Command="{Binding AddZoneCommand}" Style="{StaticResource TopoActionButton}">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="📍" FontSize="14" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                        <TextBlock Text="Thêm Zone" FontSize="13" VerticalAlignment="Center"/>
+                                         <TextBlock Text="Thêm Khu vực" FontSize="13" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </Button>
 
                                 <Button Command="{Binding AddLaneCommand}" Style="{StaticResource TopoActionButton}">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="🚗" FontSize="14" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                        <TextBlock Text="Thêm Lane" FontSize="13" VerticalAlignment="Center"/>
+                                         <TextBlock Text="Thêm Làn xe" FontSize="13" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </Button>
 
                                 <Button Command="{Binding AddControllerCommand}" Style="{StaticResource TopoActionButton}">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="🧠" FontSize="14" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                        <TextBlock Text="Thêm Controller" FontSize="13" VerticalAlignment="Center"/>
+                                         <TextBlock Text="Thêm Bộ điều khiển" FontSize="13" VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </Button>
 

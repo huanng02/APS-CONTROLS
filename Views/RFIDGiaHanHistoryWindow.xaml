@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:QuanLyGiuXe.Views"
         mc:Ignorable="d"
-        Title="RFID EXTENSION LOGS" Height="700" Width="1100"
+        Title="NHẬT KÝ GIA HẠN RFID" Height="700" Width="1100"
         WindowStartupLocation="CenterScreen" Background="{StaticResource BgLightBrush}">
     <Grid Margin="25">
         <Grid.RowDefinitions>
@@ -19,7 +19,7 @@
                 <Border Background="{StaticResource APSBlueBrush}" CornerRadius="4" Padding="8" Margin="0,0,15,0">
                     <TextBlock Text="📜" Foreground="White" FontSize="18"/>
                 </Border>
-                <TextBlock Text="RFID CARD RENEWAL HISTORY" Style="{StaticResource Heading1Style}" Foreground="{StaticResource APSBlueBrush}"/>
+                <TextBlock Text="LỊCH SỬ GIA HẠN THẺ RFID" Style="{StaticResource Heading1Style}" Foreground="{StaticResource APSBlueBrush}"/>
             </StackPanel>
         </Border>
 
@@ -27,17 +27,17 @@
         <Border Grid.Row="1" Style="{StaticResource EnterpriseCardBorder}" Padding="20" Margin="0,0,0,20">
             <StackPanel Orientation="Horizontal">
                 <StackPanel Margin="0,0,20,0">
-                    <TextBlock Text="START DATE" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold" Margin="0,0,0,6"/>
+                    <TextBlock Text="NGÀY BẮT ĐẦU" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold" Margin="0,0,0,6"/>
                     <DatePicker SelectedDate="{Binding FromDate}" Width="160" Height="36" VerticalContentAlignment="Center"/>
                 </StackPanel>
                 
                 <StackPanel Margin="0,0,20,0">
-                    <TextBlock Text="END DATE" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold" Margin="0,0,0,6"/>
+                    <TextBlock Text="NGÀY KẾT THÚC" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold" Margin="0,0,0,6"/>
                     <DatePicker SelectedDate="{Binding ToDate}" Width="160" Height="36" VerticalContentAlignment="Center"/>
                 </StackPanel>
 
                 <StackPanel Margin="0,0,20,0">
-                    <TextBlock Text="SEARCH (UID, PLATE, NAME...)" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold" Margin="0,0,0,6"/>
+                    <TextBlock Text="TÌM KIẾM (UID, BIỂN SỐ, TÊN...)" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold" Margin="0,0,0,6"/>
                     <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource ModernTextBox}" Width="300" Height="36">
                         <TextBox.InputBindings>
                             <KeyBinding Key="Enter" Command="{Binding SearchCommand}"/>
@@ -46,8 +46,8 @@
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom">
-                    <Button Content="🔍 SEARCH" Command="{Binding SearchCommand}" Style="{StaticResource ModernButton}" Background="{StaticResource APSBlueBrush}" Width="130" Height="38" Margin="0,0,10,0"/>
-                    <Button Content="↻ RESET" Command="{Binding LoadCommand}" Style="{StaticResource ModernOutlineButton}" Width="110" Height="38"/>
+                    <Button Content="🔍 TÌM KIẾM" Command="{Binding SearchCommand}" Style="{StaticResource ModernButton}" Background="{StaticResource APSBlueBrush}" Width="130" Height="38" Margin="0,0,10,0"/>
+                    <Button Content="↻ THIẾT LẬP LẠI" Command="{Binding LoadCommand}" Style="{StaticResource ModernOutlineButton}" Width="110" Height="38"/>
                 </StackPanel>
             </StackPanel>
         </Border>
@@ -57,10 +57,10 @@
             <DataGrid ItemsSource="{Binding History}" AutoGenerateColumns="False" IsReadOnly="True" 
                       Style="{StaticResource ModernDataGrid}">
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="CARD UID" Binding="{Binding CardUID}" Width="150"/>
-                    <DataGridTextColumn Header="IDENTIFIER NAME" Binding="{Binding CardName}" Width="*"/>
-                    <DataGridTextColumn Header="LICENSE PLATE" Binding="{Binding BienSo}" Width="140"/>
-                    <DataGridTextColumn Header="TENURE" Binding="{Binding SoThang}" Width="100">
+                    <DataGridTextColumn Header="UID THẺ" Binding="{Binding CardUID}" Width="150"/>
+                    <DataGridTextColumn Header="TÊN ĐỊNH DANH" Binding="{Binding CardName}" Width="*"/>
+                    <DataGridTextColumn Header="BIỂN SỐ XE" Binding="{Binding BienSo}" Width="140"/>
+                    <DataGridTextColumn Header="THỜI HẠN" Binding="{Binding SoThang}" Width="100">
                         <DataGridTextColumn.ElementStyle>
                             <Style TargetType="TextBlock">
                                 <Setter Property="HorizontalAlignment" Value="Center"/>
@@ -68,8 +68,8 @@
                             </Style>
                         </DataGridTextColumn.ElementStyle>
                     </DataGridTextColumn>
-                    <DataGridTextColumn Header="TRANSACTION DATE" Binding="{Binding NgayGiaHan, StringFormat='dd/MM/yyyy HH:mm'}" Width="180"/>
-                    <DataGridTextColumn Header="NEW EXPIRY" Binding="{Binding NgayHetHanMoi, StringFormat='dd/MM/yyyy'}" Width="160">
+                    <DataGridTextColumn Header="NGÀY GIA HẠN" Binding="{Binding NgayGiaHan, StringFormat='dd/MM/yyyy HH:mm'}" Width="180"/>
+                    <DataGridTextColumn Header="HẠN SỬ DỤNG MỚI" Binding="{Binding NgayHetHanMoi, StringFormat='dd/MM/yyyy'}" Width="160">
                         <DataGridTextColumn.ElementStyle>
                             <Style TargetType="TextBlock">
                                 <Setter Property="FontWeight" Value="Bold"/>

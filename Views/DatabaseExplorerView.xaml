@@ -35,10 +35,10 @@
                     </Grid.ColumnDefinitions>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <TextBlock Text="🗄️" FontSize="18" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                        <TextBlock Text="TABLES" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}" VerticalAlignment="Center" />
+                        <TextBlock Text="BẢNG DỮ LIỆU" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}" VerticalAlignment="Center" />
                     </StackPanel>
-                    <Button Grid.Column="1" Command="{Binding RefreshCommand}" Style="{StaticResource ModernOutlineButton}" Padding="8,4" ToolTip="Reload table list">
-                        <TextBlock Text="↻ Reload" FontSize="11" FontWeight="SemiBold"/>
+                    <Button Grid.Column="1" Command="{Binding RefreshCommand}" Style="{StaticResource ModernOutlineButton}" Padding="8,4" ToolTip="Tải lại danh sách bảng">
+                        <TextBlock Text="↻ Tải lại" FontSize="11" FontWeight="SemiBold"/>
                     </Button>
                 </Grid>
 
@@ -50,7 +50,7 @@
                         Background="{StaticResource APSBlueBrush}" Padding="10,8" Margin="0,15,0,0">
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="🔌" FontSize="13" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                        <TextBlock Text="SWITCH CONNECTION" FontSize="12" FontWeight="Bold" VerticalAlignment="Center"/>
+                        <TextBlock Text="CHUYỂN KẾT NỐI" FontSize="12" FontWeight="Bold" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Button>
 
@@ -70,7 +70,7 @@
         <Border Grid.Column="2" Style="{StaticResource EnterpriseCardBorder}" Padding="0">
             <TabControl Background="Transparent" Style="{StaticResource EnterpriseTabControl}">
                 <!-- DATA TAB -->
-                <TabItem Header="TABLE DATA" FontSize="13" FontWeight="Bold">
+                <TabItem Header="DỮ LIỆU BẢNG" FontSize="13" FontWeight="Bold">
                     <Grid Margin="0,10,0,0">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -136,9 +136,9 @@
                                     <Button Content="◀" Command="{Binding PrevPageCommand}" Style="{StaticResource ModernOutlineButton}" Width="40" Margin="0,0,15,0"/>
                                     
                                     <TextBlock VerticalAlignment="Center" FontSize="13">
-                                        <Run Text="Page " Foreground="{StaticResource TextMutedBrush}"/>
+                                        <Run Text="Trang " Foreground="{StaticResource TextMutedBrush}"/>
                                         <Run Text="{Binding CurrentPageDisplay, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}"/>
-                                        <Run Text=" of " Foreground="{StaticResource TextMutedBrush}"/>
+                                        <Run Text=" / " Foreground="{StaticResource TextMutedBrush}"/>
                                         <Run Text="{Binding TotalPages, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}"/>
                                     </TextBlock>
                                     
@@ -149,15 +149,15 @@
                                 <!-- Total Records -->
                                 <Border Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center" Background="{StaticResource BgLightBrush}" CornerRadius="12" Padding="12,4" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1">
                                     <TextBlock FontSize="12">
-                                        <Run Text="TOTAL: " Foreground="{StaticResource TextMutedBrush}" FontWeight="Bold"/>
+                                        <Run Text="TỔNG CỘNG: " Foreground="{StaticResource TextMutedBrush}" FontWeight="Bold"/>
                                         <Run Text="{Binding TotalRecordsDisplay, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}"/>
-                                        <Run Text=" ROWS" Foreground="{StaticResource TextMutedBrush}" FontWeight="Bold"/>
+                                        <Run Text=" DÒNG" Foreground="{StaticResource TextMutedBrush}" FontWeight="Bold"/>
                                     </TextBlock>
                                 </Border>
 
                                 <!-- Page Size -->
                                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                                    <TextBlock Text="Show:" VerticalAlignment="Center" Style="{StaticResource SubTitleStyle}" Margin="0,0,8,0"/>
+                                    <TextBlock Text="Hiển thị:" VerticalAlignment="Center" Style="{StaticResource SubTitleStyle}" Margin="0,0,8,0"/>
                                     <ComboBox ItemsSource="{Binding PageSizeOptions}" SelectedItem="{Binding PageSize}" Width="70" Style="{StaticResource ModernComboBox}"/>
                                 </StackPanel>
                             </Grid>
@@ -166,7 +166,7 @@
                 </TabItem>
 
                 <!-- SCHEMA TAB -->
-                <TabItem Header="TABLE SCHEMA" FontSize="13" FontWeight="Bold">
+                <TabItem Header="CẤU TRÚC BẢNG" FontSize="13" FontWeight="Bold">
                     <Grid Margin="15">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -182,7 +182,7 @@
                 </TabItem>
 
                 <!-- QUERY EDITOR TAB -->
-                <TabItem Header="SQL QUERY CONSOLE" FontSize="13" FontWeight="Bold">
+                <TabItem Header="BẢNG ĐIỀU KHIỂN TRUY VẤN SQL" FontSize="13" FontWeight="Bold">
                     <Grid Margin="15">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
@@ -201,7 +201,7 @@
                                     <ColumnDefinition Width="Auto" />
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                                    <TextBlock Text="GENERATORS:" VerticalAlignment="Center" Margin="0,0,15,0" Style="{StaticResource SubTitleStyle}" FontWeight="Bold" />
+                                    <TextBlock Text="CÔNG CỤ TẠO TRUY VẤN:" VerticalAlignment="Center" Margin="0,0,15,0" Style="{StaticResource SubTitleStyle}" FontWeight="Bold" />
                                     <Button Content="SELECT" Command="{Binding GenerateSelectCommand}" Style="{StaticResource ModernButton}" Background="{StaticResource APSBlueBrush}" Margin="0,0,5,0" Height="32" Padding="15,0"/>
                                     <Button Content="INSERT" Command="{Binding GenerateInsertCommand}" Style="{StaticResource ModernButton}" Background="{StaticResource APSBlueBrush}" Margin="0,0,5,0" Height="32" Padding="15,0"/>
                                     <Button Content="UPDATE" Command="{Binding GenerateUpdateCommand}" Style="{StaticResource ModernButton}" Background="{StaticResource APSBlueBrush}" Margin="0,0,5,0" Height="32" Padding="15,0"/>
@@ -210,7 +210,7 @@
                                 <Button Grid.Column="2" Command="{Binding ExecuteQueryCommand}" Style="{StaticResource ModernButton}" Background="{StaticResource SuccessBrush}" Height="36" Padding="20,0">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="▶" Margin="0,0,10,0"/>
-                                        <TextBlock Text="RUN QUERY (F5)" FontWeight="Bold"/>
+                                        <TextBlock Text="CHẠY TRUY VẤN (F5)" FontWeight="Bold"/>
                                     </StackPanel>
                                 </Button>
                             </Grid>
@@ -237,7 +237,7 @@
                                     <RowDefinition Height="*"/>
                                 </Grid.RowDefinitions>
                                 <Border Background="{StaticResource APSBlueBrush}" Padding="15,8" CornerRadius="4,4,0,0">
-                                    <TextBlock Text="QUERY RESULTS" Foreground="White" FontWeight="Bold" FontSize="12"/>
+                                    <TextBlock Text="KẾT QUẢ TRUY VẤN" Foreground="White" FontWeight="Bold" FontSize="12"/>
                                 </Border>
                                 <Grid Grid.Row="1" Visibility="{Binding IsQueryLoading, Converter={StaticResource BoolToVis}}">
                                     <ProgressBar IsIndeterminate="True" Height="2" Background="Transparent" Foreground="{StaticResource APSBlueBrush}"/>
@@ -254,18 +254,18 @@
                                 <Button Content="⏮" Command="{Binding QueryFirstPageCommand}" Style="{StaticResource ModernOutlineButton}" Width="40" Margin="0,0,5,0"/>
                                 <Button Content="◀" Command="{Binding QueryPrevPageCommand}" Style="{StaticResource ModernOutlineButton}" Width="40" Margin="0,0,15,0"/>
                                 <TextBlock VerticalAlignment="Center" FontSize="12">
-                                    <Run Text="Page " Foreground="{StaticResource TextMutedBrush}"/>
+                                    <Run Text="Trang " Foreground="{StaticResource TextMutedBrush}"/>
                                     <Run Text="{Binding QueryCurrentPageDisplay, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}"/>
-                                    <Run Text=" of " Foreground="{StaticResource TextMutedBrush}"/>
+                                    <Run Text=" / " Foreground="{StaticResource TextMutedBrush}"/>
                                     <Run Text="{Binding QueryTotalPages, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}"/>
                                 </TextBlock>
                                 <Button Content="▶" Command="{Binding QueryNextPageCommand}" Style="{StaticResource ModernOutlineButton}" Width="40" Margin="15,0,5,0"/>
                                 <Button Content="⏭" Command="{Binding QueryLastPageCommand}" Style="{StaticResource ModernOutlineButton}" Width="40" Margin="0,0,20,0"/>
                                 <Border Background="{StaticResource BgLightBrush}" CornerRadius="12" Padding="12,4" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1">
                                     <TextBlock FontSize="11">
-                                        <Run Text="TOTAL: " Foreground="{StaticResource TextMutedBrush}" FontWeight="Bold"/>
+                                        <Run Text="TỔNG CỘNG: " Foreground="{StaticResource TextMutedBrush}" FontWeight="Bold"/>
                                         <Run Text="{Binding QueryTotalRecordsDisplay, Mode=OneWay}" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}"/>
-                                        <Run Text=" ROWS" Foreground="{StaticResource TextMutedBrush}" FontWeight="Bold"/>
+                                        <Run Text=" DÒNG" Foreground="{StaticResource TextMutedBrush}" FontWeight="Bold"/>
                                     </TextBlock>
                                 </Border>
                             </StackPanel>

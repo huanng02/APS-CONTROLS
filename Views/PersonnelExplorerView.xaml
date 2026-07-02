@@ -482,7 +482,7 @@
                                              <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                                                  <Button Content="📥 Tải Template" Click="DownloadTemplate_Click" 
                                                          Style="{StaticResource TopoOutlineButton}" Height="32" Padding="12,0" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                                 <Button Content="📁 Import Excel" Click="OpenImport_Click" 
+                                                 <Button Content="📁 Nhập từ Excel" Click="OpenImport_Click" 
                                                          Style="{StaticResource TopoOutlineButton}" Height="32" Padding="12,0" Margin="0,0,8,0" VerticalAlignment="Center"/>
                                                  <Button Content="➕ Thêm nhân viên" 
                                                          Style="{StaticResource TopoActionButton}" Height="32" Padding="12,0" Margin="0" VerticalAlignment="Center"
@@ -540,9 +540,9 @@
                                                  <ComboBox SelectedValue="{Binding DeptEmpStatusFilter, Mode=TwoWay}" 
                                                            SelectedValuePath="Content" Style="{StaticResource ModernComboBox}" 
                                                            Width="90" Height="32" VerticalAlignment="Center">
-                                                     <ComboBoxItem Content="All" IsSelected="True"/>
-                                                     <ComboBoxItem Content="Active"/>
-                                                     <ComboBoxItem Content="Inactive"/>
+                                                     <ComboBoxItem Content="Tất cả" IsSelected="True"/>
+                                                     <ComboBoxItem Content="Hoạt động"/>
+                                                     <ComboBoxItem Content="Ngừng hoạt động"/>
                                                  </ComboBox>
                                              </StackPanel>
 

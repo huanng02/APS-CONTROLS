@@ -29,7 +29,7 @@
                 <Border Background="{StaticResource APSBlueBrush}" CornerRadius="4" Padding="10" Margin="0,0,15,0">
                     <TextBlock Text="📊" FontSize="20" Foreground="White" VerticalAlignment="Center"/>
                 </Border>
-                <TextBlock Text="SYSTEM DASHBOARD" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}" VerticalAlignment="Center"/>
+                <TextBlock Text="DASHBOARD HỆ THỐNG" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}" VerticalAlignment="Center"/>
                 <Border Background="{StaticResource BgLightBrush}" BorderBrush="{StaticResource APSBlueBrush}" BorderThickness="1" CornerRadius="15" Padding="12,5" Margin="20,0,0,0" VerticalAlignment="Center">
                     <TextBlock Text="{Binding SelectedDateRangeDisplay}" Foreground="{StaticResource APSBlueBrush}" FontWeight="SemiBold" FontSize="12"/>
                 </Border>
@@ -74,7 +74,7 @@
                         <Button Command="{Binding ExportCommand}" Margin="15,0,0,0" Style="{StaticResource ModernButton}" Background="{StaticResource SuccessBrush}" Padding="15,8">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="📥" Margin="0,0,8,0"/>
-                                <TextBlock x:Name="btnText" Text="Export Excel" FontWeight="SemiBold"/>
+                                <TextBlock x:Name="btnText" Text="Xuất Excel" FontWeight="SemiBold"/>
                             </StackPanel>
                         </Button>
                     </StackPanel>
@@ -103,7 +103,7 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <StackPanel>
-                                <TextBlock Text="YARD STATUS" Style="{StaticResource SubTitleStyle}"/>
+                                <TextBlock Text="TRẠNG THÁI BÃI XE" Style="{StaticResource SubTitleStyle}"/>
                                 <StackPanel Orientation="Horizontal" Margin="0,5,0,0">
                                     <TextBlock Text="{Binding XeTrongBai}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}"/>
                                     <TextBlock Text="/" FontSize="20" FontWeight="SemiBold" Foreground="{StaticResource TextMutedBrush}" VerticalAlignment="Bottom" Margin="2,0,2,4"/>
@@ -122,7 +122,7 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <StackPanel>
-                                <TextBlock Text="TRAFFIC FLOW" Style="{StaticResource SubTitleStyle}"/>
+                                <TextBlock Text="LƯỢT XE RA VÀO" Style="{StaticResource SubTitleStyle}"/>
                                 <TextBlock Text="{Binding LuotXeVao}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource WarningBrush}" Margin="0,5,0,0"/>
                             </StackPanel>
                             <TextBlock Grid.Column="1" Text="📈" FontSize="32" Opacity="0.3" VerticalAlignment="Center"/>
@@ -137,7 +137,7 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <StackPanel>
-                                <TextBlock Text="TOTAL REVENUE" Style="{StaticResource SubTitleStyle}"/>
+                                <TextBlock Text="TỔNG DOANH THU" Style="{StaticResource SubTitleStyle}"/>
                                 <TextBlock Text="{Binding DoanhThu, StringFormat={}{0:N0} đ}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource SuccessBrush}" Margin="0,5,0,0"/>
                             </StackPanel>
                             <TextBlock Grid.Column="1" Text="💰" FontSize="32" Opacity="0.3" VerticalAlignment="Center"/>
@@ -152,7 +152,7 @@
                                 <ColumnDefinition Width="Auto"/>
                             </Grid.ColumnDefinitions>
                             <StackPanel>
-                                <TextBlock Text="ACTIVE TICKETS" Style="{StaticResource SubTitleStyle}"/>
+                                <TextBlock Text="VÉ ĐANG HOẠT ĐỘNG" Style="{StaticResource SubTitleStyle}"/>
                                 <TextBlock Text="{Binding VeActive}" FontSize="28" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}" Margin="0,5,0,0"/>
                             </StackPanel>
                             <TextBlock Grid.Column="1" Text="💳" FontSize="32" Opacity="0.3" VerticalAlignment="Center"/>
@@ -270,7 +270,7 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
-                            <TextBlock Text="REVENUE OVERVIEW" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}" Margin="0,0,0,15"/>
+                            <TextBlock Text="TỔNG QUAN DOANH THU" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}" Margin="0,0,0,15"/>
                             <lvc:CartesianChart Grid.Row="1" Series="{Binding RevenueSeries}" Margin="0,10,0,0">
                                 <lvc:CartesianChart.AxisX>
                                     <lvc:Axis Labels="{Binding RevenueLabels}" />
@@ -289,7 +289,7 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
-                            <TextBlock Text="HOURLY TRAFFIC" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}" Margin="0,0,0,15"/>
+                            <TextBlock Text="TẦN SUẤT XE THEO GIỜ" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}" Margin="0,0,0,15"/>
                             <lvc:CartesianChart Grid.Row="1" Series="{Binding HourlySeries}" Margin="0,10,0,0">
                                 <lvc:CartesianChart.AxisX>
                                     <lvc:Axis Labels="{Binding HourlyLabels}" />
@@ -319,10 +319,10 @@
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
                             
-                            <TextBlock Text="YARD STATUS" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}" Margin="0,0,0,15"/>
+                            <TextBlock Text="TRẠNG THÁI BÃI XE" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}" Margin="0,0,0,15"/>
                             
                             <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10">
-                                <TextBlock Text="Capacity: " Style="{StaticResource SubTitleStyle}"/>
+                                <TextBlock Text="Sức chứa: " Style="{StaticResource SubTitleStyle}"/>
                                 <TextBlock Text="{Binding TongCho}" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold"/>
                             </StackPanel>
 
@@ -335,12 +335,12 @@
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Grid.Column="0">
-                                    <TextBlock Text="Occupied" Style="{StaticResource SubTitleStyle}"/>
+                                    <TextBlock Text="Đã đỗ" Style="{StaticResource SubTitleStyle}"/>
                                     <TextBlock Text="{Binding XeTrongBai}" FontSize="24" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}"/>
                                     <TextBlock Text="{Binding TyLeLapDay, StringFormat={}{0:N1}%}" Style="{StaticResource SubTitleStyle}" Foreground="{StaticResource APSBlueBrush}"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1">
-                                    <TextBlock Text="Available" Style="{StaticResource SubTitleStyle}"/>
+                                    <TextBlock Text="Còn trống" Style="{StaticResource SubTitleStyle}"/>
                                     <TextBlock Text="{Binding ChoTrong}" FontSize="24" FontWeight="Bold" Foreground="{StaticResource SuccessBrush}"/>
                                 </StackPanel>
                             </Grid>
@@ -359,7 +359,7 @@
                                 </Border.Style>
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="⚠️" Margin="0,0,10,0"/>
-                                    <TextBlock Text="Yard is near capacity!" Foreground="{StaticResource APSRedBrush}" FontWeight="SemiBold"/>
+                                    <TextBlock Text="Bãi xe sắp đầy!" Foreground="{StaticResource APSRedBrush}" FontWeight="SemiBold"/>
                                 </StackPanel>
                             </Border>
                         </Grid>
@@ -373,14 +373,14 @@
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
                             
-                            <TextBlock Text="RECENT ACTIVITY" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}" Margin="0,0,0,15"/>
+                            <TextBlock Text="SỰ KIỆN GẦN ĐÂY" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}" Margin="0,0,0,15"/>
                             
                             <DataGrid Grid.Row="1" ItemsSource="{Binding RecentActivities}" Style="{StaticResource ModernDataGrid}">
                                 <DataGrid.Columns>
-                                    <DataGridTextColumn Header="PLATE NO" Binding="{Binding BienSo}" Width="150" FontWeight="Bold"/>
-                                    <DataGridTextColumn Header="TIME" Binding="{Binding ThoiGian, StringFormat=dd/MM/yyyy HH:mm:ss}" Width="150"/>
+                                    <DataGridTextColumn Header="BIỂN SỐ" Binding="{Binding BienSo}" Width="150" FontWeight="Bold"/>
+                                    <DataGridTextColumn Header="THỜI GIAN" Binding="{Binding ThoiGian, StringFormat=dd/MM/yyyy HH:mm:ss}" Width="150"/>
                                     
-                                    <DataGridTemplateColumn Header="ACTION" Width="100">
+                                    <DataGridTemplateColumn Header="HÀNH ĐỘNG" Width="100">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
                                                 <Border Padding="10,2" CornerRadius="12" HorizontalAlignment="Left">
@@ -415,8 +415,8 @@
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
 
-                                    <DataGridTextColumn Header="TYPE" Binding="{Binding TheLoai}" Width="120"/>
-                                    <DataGridTextColumn Header="FEE" Binding="{Binding GiaTien, StringFormat={}{0:N0} đ}" Width="*"/>
+                                    <DataGridTextColumn Header="LOẠI XE" Binding="{Binding TheLoai}" Width="120"/>
+                                    <DataGridTextColumn Header="PHÍ BÃI XE" Binding="{Binding GiaTien, StringFormat={}{0:N0} đ}" Width="*"/>
                                 </DataGrid.Columns>
                             </DataGrid>
                         </Grid>

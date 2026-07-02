@@ -271,7 +271,7 @@
                         <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding SelectedLichSu.ThoiGianVao, StringFormat='dd/MM/yyyy HH:mm:ss'}" FontSize="12.5" Margin="0,4,0,4"/>
 
                         <!-- Row 5: In Lane -->
-                        <TextBlock Grid.Row="5" Grid.Column="0" Text="Làn vào / In Lane:" FontSize="12.5" FontWeight="SemiBold" Foreground="#64748B" Margin="0,4,10,4"/>
+                        <TextBlock Grid.Row="5" Grid.Column="0" Text="Làn vào:" FontSize="12.5" FontWeight="SemiBold" Foreground="#64748B" Margin="0,4,10,4"/>
                         <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding SelectedLichSu.EntryLaneName}" FontSize="12.5" Margin="0,4,0,4"/>
 
                         <!-- Row 6: Out Time -->
@@ -279,15 +279,15 @@
                         <TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding SelectedLichSu.ThoiGianRa, StringFormat='dd/MM/yyyy HH:mm:ss', TargetNullValue='Chưa ra'}" FontSize="12.5" Margin="0,4,0,4"/>
 
                         <!-- Row 7: Out Lane -->
-                        <TextBlock Grid.Row="7" Grid.Column="0" Text="Làn ra / Out Lane:" FontSize="12.5" FontWeight="SemiBold" Foreground="#64748B" Margin="0,4,10,4"/>
+                        <TextBlock Grid.Row="7" Grid.Column="0" Text="Làn ra:" FontSize="12.5" FontWeight="SemiBold" Foreground="#64748B" Margin="0,4,10,4"/>
                         <TextBlock Grid.Row="7" Grid.Column="1" Text="{Binding SelectedLichSu.ExitLaneName, TargetNullValue='-'}" FontSize="12.5" Margin="0,4,0,4"/>
 
                         <!-- Row 8: Site -->
-                        <TextBlock Grid.Row="8" Grid.Column="0" Text="Khu vực / Site:" FontSize="12.5" FontWeight="SemiBold" Foreground="#64748B" Margin="0,4,10,4"/>
+                        <TextBlock Grid.Row="8" Grid.Column="0" Text="Khu vực:" FontSize="12.5" FontWeight="SemiBold" Foreground="#64748B" Margin="0,4,10,4"/>
                         <TextBlock Grid.Row="8" Grid.Column="1" Text="{Binding SelectedLichSu.SiteName, TargetNullValue='-'}" FontSize="12.5" Margin="0,4,0,4"/>
 
                         <!-- Row 9: Zone -->
-                        <TextBlock Grid.Row="9" Grid.Column="0" Text="Vùng / Zone:" FontSize="12.5" FontWeight="SemiBold" Foreground="#64748B" Margin="0,4,10,4"/>
+                        <TextBlock Grid.Row="9" Grid.Column="0" Text="Vùng:" FontSize="12.5" FontWeight="SemiBold" Foreground="#64748B" Margin="0,4,10,4"/>
                         <TextBlock Grid.Row="9" Grid.Column="1" Text="{Binding SelectedLichSu.ZoneName, TargetNullValue='-'}" FontSize="12.5" Margin="0,4,0,4"/>
 
                         <!-- Row 10: Parking Duration -->

@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:sys="clr-namespace:System;assembly=System.Runtime"
         xmlns:local="clr-namespace:QuanLyGiuXe.Converters"
-        Title="📋 Production System Log — Real-time Feed" 
+        Title="📋 Nhật ký hệ thống vận hành — Thời gian thực" 
         Height="850" Width="1400" 
         WindowStartupLocation="CenterScreen"
         Background="#F0F2F5">
@@ -82,7 +82,7 @@
                 <Grid>
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                     <StackPanel>
-                        <TextBlock Text="INFO" FontSize="9" FontWeight="ExtraBold" Foreground="#95A5A6"/>
+                        <TextBlock Text="THÔNG TIN" FontSize="9" FontWeight="ExtraBold" Foreground="#95A5A6"/>
                         <TextBlock Text="{Binding InfoCount}" FontSize="26" FontWeight="ExtraBold" Foreground="#2980B9" Margin="0,2,0,0"/>
                     </StackPanel>
                     <TextBlock Grid.Column="1" Text="🔵" FontSize="24" Opacity="0.25" VerticalAlignment="Center"/>
@@ -95,7 +95,7 @@
                 <Grid>
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                     <StackPanel>
-                        <TextBlock Text="SUCCESS" FontSize="9" FontWeight="ExtraBold" Foreground="#95A5A6"/>
+                        <TextBlock Text="THÀNH CÔNG" FontSize="9" FontWeight="ExtraBold" Foreground="#95A5A6"/>
                         <TextBlock Text="{Binding SuccessCount}" FontSize="26" FontWeight="ExtraBold" Foreground="#27AE60" Margin="0,2,0,0"/>
                     </StackPanel>
                     <TextBlock Grid.Column="1" Text="🟢" FontSize="24" Opacity="0.25" VerticalAlignment="Center"/>
@@ -108,7 +108,7 @@
                 <Grid>
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                     <StackPanel>
-                        <TextBlock Text="WARNING" FontSize="9" FontWeight="ExtraBold" Foreground="#95A5A6"/>
+                        <TextBlock Text="CẢNH BÁO" FontSize="9" FontWeight="ExtraBold" Foreground="#95A5A6"/>
                         <TextBlock Text="{Binding WarningCount}" FontSize="26" FontWeight="ExtraBold" Foreground="#F39C12" Margin="0,2,0,0"/>
                     </StackPanel>
                     <TextBlock Grid.Column="1" Text="🟡" FontSize="24" Opacity="0.25" VerticalAlignment="Center"/>
@@ -121,7 +121,7 @@
                 <Grid>
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                     <StackPanel>
-                        <TextBlock Text="ERROR" FontSize="9" FontWeight="ExtraBold" Foreground="#95A5A6"/>
+                        <TextBlock Text="LỖI" FontSize="9" FontWeight="ExtraBold" Foreground="#95A5A6"/>
                         <TextBlock Text="{Binding ErrorCount}" FontSize="26" FontWeight="ExtraBold" Foreground="#E74C3C" Margin="0,2,0,0"/>
                     </StackPanel>
                     <TextBlock Grid.Column="1" Text="🟠" FontSize="24" Opacity="0.25" VerticalAlignment="Center"/>
@@ -134,7 +134,7 @@
                 <Grid>
                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                     <StackPanel>
-                        <TextBlock Text="CRITICAL" FontSize="9" FontWeight="ExtraBold" Foreground="#95A5A6"/>
+                        <TextBlock Text="NGHIÊM TRỌNG" FontSize="9" FontWeight="ExtraBold" Foreground="#95A5A6"/>
                         <TextBlock Text="{Binding CriticalCount}" FontSize="26" FontWeight="ExtraBold" Foreground="#C0392B" Margin="0,2,0,0"/>
                     </StackPanel>
                     <TextBlock Grid.Column="1" Text="🔴" FontSize="24" Opacity="0.25" VerticalAlignment="Center"/>
@@ -156,7 +156,7 @@
 
                 <!-- Level Filter -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,20,0">
-                    <TextBlock Text="Level:" FontSize="12" FontWeight="Bold" Foreground="#7F8C8D" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="Cấp độ:" FontSize="12" FontWeight="Bold" Foreground="#7F8C8D" Margin="0,0,8,0" VerticalAlignment="Center"/>
                     <ComboBox ItemsSource="{Binding Levels}" 
                               SelectedItem="{Binding SelectedLevel}" 
                               Style="{StaticResource ModernComboBox}" Width="120"/>
@@ -164,7 +164,7 @@
 
                 <!-- Event Type Filter -->
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,20,0">
-                    <TextBlock Text="Type:" FontSize="12" FontWeight="Bold" Foreground="#7F8C8D" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="Loại:" FontSize="12" FontWeight="Bold" Foreground="#7F8C8D" Margin="0,0,8,0" VerticalAlignment="Center"/>
                     <ComboBox ItemsSource="{Binding EventTypes}" 
                               SelectedItem="{Binding SelectedEventType}" 
                               Style="{StaticResource ModernComboBox}" Width="150"/>
@@ -187,8 +187,8 @@
                             Content="{Binding AutoScroll, Converter={StaticResource AutoScrollConverter}}"
                             Style="{StaticResource ModernOutlineButton}" Margin="0,0,8,0" Padding="12,6"/>
 
-                    <Button Content="🗑 Clear" Command="{Binding ClearLogCommand}" Style="{StaticResource DangerButton}" Margin="0,0,8,0" Padding="12,6"/>
-                    <Button Content="📥 Export Excel" Command="{Binding ExportLogCommand}" Style="{StaticResource ModernButton}" Padding="12,6"/>
+                    <Button Content="🗑 Xóa sạch" Command="{Binding ClearLogCommand}" Style="{StaticResource DangerButton}" Margin="0,0,8,0" Padding="12,6"/>
+                    <Button Content="📥 Xuất Excel" Command="{Binding ExportLogCommand}" Style="{StaticResource ModernButton}" Padding="12,6"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -402,7 +402,7 @@
                                                         <!-- Column 1: Machine/IP/Device -->
                                                         <StackPanel Grid.Column="0" Margin="0,0,10,0">
                                                             <Grid Margin="0,0,0,3" Visibility="{Binding MachineName, Converter={StaticResource StringToVis}}">
-                                                                <TextBlock Text="🖥️ Machine:" FontSize="10" Foreground="#95A5A6"/>
+                                                                <TextBlock Text="🖥️ Máy tính:" FontSize="10" Foreground="#95A5A6"/>
                                                                 <TextBlock Text="{Binding MachineName}" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Right" Foreground="#2C3E50"/>
                                                             </Grid>
                                                             <Grid Margin="0,0,0,3" Visibility="{Binding IpAddress, Converter={StaticResource StringToVis}}">
@@ -410,7 +410,7 @@
                                                                 <TextBlock Text="{Binding IpAddress}" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Right" Foreground="#2C3E50" FontFamily="Consolas"/>
                                                             </Grid>
                                                             <Grid Margin="0,0,0,3" Visibility="{Binding DeviceName, Converter={StaticResource StringToVis}}">
-                                                                <TextBlock Text="📱 Device:" FontSize="10" Foreground="#95A5A6"/>
+                                                                <TextBlock Text="📱 Thiết bị:" FontSize="10" Foreground="#95A5A6"/>
                                                                 <TextBlock Text="{Binding DeviceName}" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Right" Foreground="#2C3E50"/>
                                                             </Grid>
                                                         </StackPanel>
@@ -418,17 +418,17 @@
                                                         <!-- Column 2: Session/Correlation -->
                                                         <StackPanel Grid.Column="1" Margin="10,0">
                                                             <Grid Margin="0,0,0,3" Visibility="{Binding SessionId, Converter={StaticResource StringToVis}}">
-                                                                <TextBlock Text="🔑 Session:" FontSize="10" Foreground="#95A5A6"/>
+                                                                <TextBlock Text="🔑 Phiên làm việc:" FontSize="10" Foreground="#95A5A6"/>
                                                                 <TextBlock Text="{Binding SessionId}" FontSize="9" HorizontalAlignment="Right" Foreground="#7F8C8D" FontFamily="Consolas" 
                                                                            TextTrimming="CharacterEllipsis" MaxWidth="140" ToolTip="{Binding SessionId}"/>
                                                             </Grid>
                                                             <Grid Margin="0,0,0,3" Visibility="{Binding CorrelationId, Converter={StaticResource StringToVis}}">
-                                                                <TextBlock Text="🔗 Trace:" FontSize="10" Foreground="#95A5A6"/>
+                                                                <TextBlock Text="🔗 Vết theo dõi:" FontSize="10" Foreground="#95A5A6"/>
                                                                 <TextBlock Text="{Binding CorrelationId}" FontSize="9" HorizontalAlignment="Right" Foreground="#7F8C8D" FontFamily="Consolas"
                                                                            TextTrimming="CharacterEllipsis" MaxWidth="140" ToolTip="{Binding CorrelationId}"/>
                                                             </Grid>
                                                             <Grid Margin="0,0,0,3" Visibility="{Binding TestName, Converter={StaticResource StringToVis}}">
-                                                                <TextBlock Text="🧪 Test:" FontSize="10" Foreground="#95A5A6"/>
+                                                                <TextBlock Text="🧪 Kiểm thử:" FontSize="10" Foreground="#95A5A6"/>
                                                                 <TextBlock Text="{Binding TestName}" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Right" Foreground="#E74C3C"/>
                                                             </Grid>
                                                         </StackPanel>
@@ -436,15 +436,15 @@
                                                         <!-- Column 3: Performance Metrics -->
                                                         <StackPanel Grid.Column="2" Margin="10,0,0,0">
                                                             <Grid Margin="0,0,0,3" Visibility="{Binding DurationMs, Converter={StaticResource NullableToVis}}">
-                                                                <TextBlock Text="⏱️ Duration:" FontSize="10" Foreground="#95A5A6"/>
+                                                                <TextBlock Text="⏱️ Thời lượng:" FontSize="10" Foreground="#95A5A6"/>
                                                                 <TextBlock Text="{Binding DurationMs, StringFormat='{}{0} ms'}" FontSize="10" FontWeight="Bold" HorizontalAlignment="Right" Foreground="#27AE60"/>
                                                             </Grid>
                                                             <Grid Margin="0,0,0,3" Visibility="{Binding RetryCount, Converter={StaticResource NullableToVis}}">
-                                                                <TextBlock Text="🔄 Retries:" FontSize="10" Foreground="#95A5A6"/>
+                                                                <TextBlock Text="🔄 Số lần thử:" FontSize="10" Foreground="#95A5A6"/>
                                                                 <TextBlock Text="{Binding RetryCount}" FontSize="10" FontWeight="Bold" HorizontalAlignment="Right" Foreground="#F39C12"/>
                                                             </Grid>
                                                             <Grid Margin="0,0,0,3" Visibility="{Binding FileSize, Converter={StaticResource NullableToVis}}">
-                                                                <TextBlock Text="💾 Size:" FontSize="10" Foreground="#95A5A6"/>
+                                                                <TextBlock Text="💾 Kích thước:" FontSize="10" Foreground="#95A5A6"/>
                                                                 <TextBlock Text="{Binding FileSize, StringFormat='{}{0} bytes'}" FontSize="10" FontWeight="SemiBold" HorizontalAlignment="Right" Foreground="#2C3E50"/>
                                                             </Grid>
                                                             <!-- IsRecovered badge -->
@@ -483,7 +483,7 @@
                                                     <Border Grid.Column="0" Background="#FFF5F5" BorderBrush="#FFCDD2" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,0,4,0"
                                                             Visibility="{Binding OldValues, Converter={StaticResource StringToVis}}">
                                                         <DockPanel>
-                                                            <TextBlock DockPanel.Dock="Top" Text="🔴 Previous State" FontSize="9" FontWeight="Bold" Foreground="#C62828" Margin="0,0,0,6"/>
+                                                            <TextBlock DockPanel.Dock="Top" Text="🔴 Trạng thái trước" FontSize="9" FontWeight="Bold" Foreground="#C62828" Margin="0,0,0,6"/>
                                                             <ScrollViewer MaxHeight="100" VerticalScrollBarVisibility="Auto">
                                                                 <TextBlock Text="{Binding OldValues}" FontFamily="Consolas" FontSize="9.5" Foreground="#555" TextWrapping="Wrap"/>
                                                             </ScrollViewer>
@@ -497,7 +497,7 @@
                                                     <Border Grid.Column="2" Background="#E8F5E9" BorderBrush="#C8E6C9" BorderThickness="1" CornerRadius="6" Padding="10" Margin="4,0,0,0"
                                                             Visibility="{Binding NewValues, Converter={StaticResource StringToVis}}">
                                                         <DockPanel>
-                                                            <TextBlock DockPanel.Dock="Top" Text="🟢 Updated State" FontSize="9" FontWeight="Bold" Foreground="#2E7D32" Margin="0,0,0,6"/>
+                                                            <TextBlock DockPanel.Dock="Top" Text="🟢 Trạng thái cập nhật" FontSize="9" FontWeight="Bold" Foreground="#2E7D32" Margin="0,0,0,6"/>
                                                             <ScrollViewer MaxHeight="100" VerticalScrollBarVisibility="Auto">
                                                                 <TextBlock Text="{Binding NewValues}" FontFamily="Consolas" FontSize="9.5" Foreground="#222" TextWrapping="Wrap"/>
                                                             </ScrollViewer>
@@ -510,7 +510,7 @@
                                             <Border Grid.Row="5" Background="#FFF5F5" BorderBrush="#FFEBEE" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,8,0,0"
                                                     Visibility="{Binding Exception, Converter={StaticResource StringToVis}}">
                                                 <DockPanel>
-                                                    <TextBlock DockPanel.Dock="Top" Text="⚠️ Exception Stack Trace" FontSize="9" FontWeight="Bold" Foreground="#E74C3C" Margin="0,0,0,6"/>
+                                                    <TextBlock DockPanel.Dock="Top" Text="⚠️ Vết ngoại lệ hệ thống" FontSize="9" FontWeight="Bold" Foreground="#E74C3C" Margin="0,0,0,6"/>
                                                     <ScrollViewer MaxHeight="120" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
                                                         <TextBlock Text="{Binding Exception}" FontFamily="Consolas" FontSize="9" Foreground="#D32F2F" TextWrapping="Wrap"/>
                                                     </ScrollViewer>
@@ -521,7 +521,7 @@
                                             <Border Grid.Row="5" Margin="0,8,0,0" Background="#F8F9FA" BorderBrush="#E8ECF0" BorderThickness="1" CornerRadius="4" Padding="8"
                                                     Visibility="{Binding AdditionalData, Converter={StaticResource StringToVis}}">
                                                 <DockPanel>
-                                                    <TextBlock DockPanel.Dock="Top" Text="🔧 Additional Payload" FontSize="9" FontWeight="Bold" Foreground="#7F8C8D" Margin="0,0,0,4"/>
+                                                    <TextBlock DockPanel.Dock="Top" Text="🔧 Dữ liệu bổ sung" FontSize="9" FontWeight="Bold" Foreground="#7F8C8D" Margin="0,0,0,4"/>
                                                     <ScrollViewer MaxHeight="80" VerticalScrollBarVisibility="Auto">
                                                         <TextBlock Text="{Binding AdditionalData}" FontFamily="Consolas" FontSize="9" Foreground="#555" TextWrapping="Wrap"/>
                                                     </ScrollViewer>

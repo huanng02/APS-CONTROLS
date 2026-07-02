@@ -164,8 +164,8 @@
 
                             <!-- Header -->
                             <StackPanel Grid.Row="0" Margin="20,0,20,25">
-                                <TextBlock Text="⚡ APS CONTROLS" Foreground="White" FontSize="18" FontWeight="ExtraBold"/>
-                                <TextBlock Text="ZKTeco C3 Series Setup" Foreground="#94A3B8" FontSize="11" Margin="0,4,0,0"/>
+                                <TextBlock Text="⚡ ĐIỀU KHIỂN APS" Foreground="White" FontSize="18" FontWeight="ExtraBold"/>
+                                <TextBlock Text="Cài đặt bộ điều khiển ZKTeco C3" Foreground="#94A3B8" FontSize="11" Margin="0,4,0,0"/>
                             </StackPanel>
 
                             <!-- Menu -->
@@ -182,7 +182,7 @@
                                 <ListBoxItem Style="{StaticResource SidebarItemStyle}">
                                     <StackPanel Margin="15,10">
                                         <TextBlock Text="🏢 2. VỊ TRÍ TOPOLOGY" FontSize="12" FontWeight="Bold"/>
-                                        <TextBlock Text="Chọn Site, Cổng &amp; Thiết bị" FontSize="10" Opacity="0.7" Margin="0,3,0,0"/>
+                                        <TextBlock Text="Chọn Điểm đỗ, Cổng &amp; Thiết bị" FontSize="10" Opacity="0.7" Margin="0,3,0,0"/>
                                     </StackPanel>
                                 </ListBoxItem>
                                 <ListBoxItem Style="{StaticResource SidebarItemStyle}">
@@ -266,7 +266,7 @@
                                                 
                                                 <!-- Timeout -->
                                                 <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,0,0,12">
-                                                    <TextBlock Text="Timeout (ms)" Foreground="#4B5563" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                                                    <TextBlock Text="Thời gian chờ (ms)" Foreground="#4B5563" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4"/>
                                                     <TextBox x:Name="TimeoutBox" Style="{StaticResource ModernTextBox}" Height="36"/>
                                                     <TextBlock Text="Mặc định: 3000 ms" Foreground="#9CA3AF" FontSize="10" Margin="0,3,0,0"/>
                                                 </StackPanel>
@@ -392,7 +392,7 @@
                                                     <TextBlock Text="1" Foreground="#1D4ED8" FontSize="16" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                                 </Border>
                                                 <StackPanel Grid.Column="1" Margin="10,0,0,0">
-                                                    <TextBlock Text="Bãi xe / Chi nhánh (Site)" FontSize="13" FontWeight="Bold" Foreground="#374151" Margin="0,0,0,5"/>
+                                                    <TextBlock Text="Bãi xe / Chi nhánh" FontSize="13" FontWeight="Bold" Foreground="#374151" Margin="0,0,0,5"/>
                                                     <ComboBox x:Name="SiteCombo" Style="{StaticResource ModernComboBox}" Height="36" SelectionChanged="SiteCombo_SelectionChanged"/>
                                                     <TextBlock Text="Chọn phân vùng bãi đỗ xe cần cấu hình" Foreground="#9CA3AF" FontSize="11" Margin="0,4,0,0"/>
                                                 </StackPanel>
@@ -813,7 +813,7 @@
             <!-- ═══════════════════════════════════════════════════════════ -->
             <!-- TAB 2: DEVELOPMENT CENTER                                   -->
             <!-- ═══════════════════════════════════════════════════════════ -->
-            <TabItem Header="🚀 DEVELOPMENT CENTER">
+            <TabItem Header="🚀 TRUNG TÂM PHÁT TRIỂN">
                 <Grid Margin="20">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/> <!-- Header -->
@@ -834,7 +834,7 @@
                                       Width="28" Height="28" 
                                       Stretch="Uniform" 
                                       Margin="0,0,12,0"/>
-                                <TextBlock Text="DEPLOYMENT CENTER &amp; GOVERNANCE" 
+                                <TextBlock Text="TRUNG TÂM TRIỂN KHAI VÀ QUẢN TRỊ" 
                                            FontSize="20" 
                                            FontWeight="Bold" 
                                            Foreground="{StaticResource TopoTextPrimaryBrush}" 

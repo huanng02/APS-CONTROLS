@@ -455,9 +455,9 @@ namespace QuanLyGiuXe.Views
                         // Populate options with ComboBoxItem
                         var options = new List<ComboBoxItem>
                         {
-                            new ComboBoxItem { Content = "IN", Tag = "IN", IsEnabled = analysis.AllowedDirections.Contains(LaneDirection.In) },
-                            new ComboBoxItem { Content = "OUT", Tag = "OUT", IsEnabled = analysis.AllowedDirections.Contains(LaneDirection.Out) },
-                            new ComboBoxItem { Content = "MAINTENANCE", Tag = "MAINTENANCE", IsEnabled = analysis.AllowedDirections.Contains(LaneDirection.Maintenance) }
+                            new ComboBoxItem { Content = "VÀO", Tag = "IN", IsEnabled = analysis.AllowedDirections.Contains(LaneDirection.In) },
+                            new ComboBoxItem { Content = "RA", Tag = "OUT", IsEnabled = analysis.AllowedDirections.Contains(LaneDirection.Out) },
+                            new ComboBoxItem { Content = "BẢO TRÌ", Tag = "MAINTENANCE", IsEnabled = analysis.AllowedDirections.Contains(LaneDirection.Maintenance) }
                         };
 
                         cb.ItemsSource = options;

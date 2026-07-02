@@ -133,7 +133,7 @@ namespace QuanLyGiuXe.ViewModels
             }
         }
 
-        private string _deptEmpStatusFilter = "All";
+        private string _deptEmpStatusFilter = "Tất cả";
         public string DeptEmpStatusFilter
         {
             get => _deptEmpStatusFilter;
@@ -533,7 +533,7 @@ namespace QuanLyGiuXe.ViewModels
                     // Reset department employee filters
                     _deptEmpSearchText = string.Empty;
                     OnPropertyChanged(nameof(DeptEmpSearchText));
-                    _deptEmpStatusFilter = "All";
+                    _deptEmpStatusFilter = "Tất cả";
                     OnPropertyChanged(nameof(DeptEmpStatusFilter));
                     _deptEmpPositionFilter = 0;
                     OnPropertyChanged(nameof(DeptEmpPositionFilter));
@@ -643,13 +643,13 @@ namespace QuanLyGiuXe.ViewModels
             }
 
             // Apply status filter
-            if (DeptEmpStatusFilter == "Active")
+            if (DeptEmpStatusFilter == "Hoạt động")
             {
-                query = query.Where(e => e.Status == "Active");
+                query = query.Where(e => e.Status == "Active" || e.Status == "Hoạt động");
             }
-            else if (DeptEmpStatusFilter == "Inactive")
+            else if (DeptEmpStatusFilter == "Ngừng hoạt động")
             {
-                query = query.Where(e => e.Status == "Inactive");
+                query = query.Where(e => e.Status == "Inactive" || e.Status == "Ngừng hoạt động");
             }
 
             // Apply position filter

@@ -27,16 +27,16 @@
                         <TextBlock Text="🎟" FontSize="20" Foreground="White" VerticalAlignment="Center"/>
                     </Border>
                     <StackPanel>
-                        <TextBlock Text="TICKET TYPES" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}"/>
-                        <TextBlock Text="Manage parking tickets and validity periods" Style="{StaticResource SubTitleStyle}"/>
+                        <TextBlock Text="CÁC LOẠI VÉ" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}"/>
+                        <TextBlock Text="Quản lý các loại vé xe và thời gian hiệu lực" Style="{StaticResource SubTitleStyle}"/>
                     </StackPanel>
                 </StackPanel>
 
                 <!-- Actions -->
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Button Content="Refresh" Command="{Binding LoadCommand}" Style="{StaticResource ModernOutlineButton}" Margin="0,0,10,0"/>
-                    <Button Content="Delete Selected" Command="{Binding DeleteSelectedCommand}" Style="{StaticResource DangerButton}" Margin="0,0,10,0"/>
-                    <Button Content="Add Ticket Type" Command="{Binding AddCommand}" Style="{StaticResource ModernButton}"/>
+                    <Button Content="Làm mới" Command="{Binding LoadCommand}" Style="{StaticResource ModernOutlineButton}" Margin="0,0,10,0"/>
+                    <Button Content="Xóa mục chọn" Command="{Binding DeleteSelectedCommand}" Style="{StaticResource DangerButton}" Margin="0,0,10,0"/>
+                    <Button Content="Thêm loại vé" Command="{Binding AddCommand}" Style="{StaticResource ModernButton}"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -117,13 +117,13 @@
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
                                     
-                                    <Button Grid.Column="0" Content="Edit" 
+                                    <Button Grid.Column="0" Content="Sửa" 
                                             Command="{Binding DataContext.UpdateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                             CommandParameter="{Binding}" 
                                             Style="{StaticResource ModernOutlineButton}" 
                                             Margin="0,0,5,0"/>
                                             
-                                    <Button Grid.Column="1" Content="Delete" 
+                                    <Button Grid.Column="1" Content="Xóa" 
                                             Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" 
                                             CommandParameter="{Binding}" 
                                             Style="{StaticResource DangerButton}" 

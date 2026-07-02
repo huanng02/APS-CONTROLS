@@ -1327,7 +1327,7 @@ namespace QuanLyGiuXe.ViewModels
             set { _isC3Connected = value; OnPropertyChanged(nameof(IsC3Connected)); }
         }
 
-        private string _dbStatusLabel = "Database";
+        private string _dbStatusLabel = "Cơ sở dữ liệu";
         public string DbStatusLabel
         {
             get => _dbStatusLabel;
@@ -1872,7 +1872,7 @@ namespace QuanLyGiuXe.ViewModels
                             IsDbConnected = DbState == Services.Connection.ConnectionState.Connected;
                             DbStatusLabel = DbState switch
                             {
-                                Services.Connection.ConnectionState.Connected => "Database",
+                                Services.Connection.ConnectionState.Connected => "Cơ sở dữ liệu",
                                 Services.Connection.ConnectionState.Reconnecting => "DB (Đang thử lại...)",
                                 _ => "DB (Mất kết nối)"
                             };
@@ -1902,7 +1902,7 @@ namespace QuanLyGiuXe.ViewModels
         /// </summary>
         public void ResetStatus()
         {
-            DbStatusLabel = "Database — Đang kiểm tra";
+            DbStatusLabel = "Cơ sở dữ liệu — Đang kiểm tra";
             C3StatusLabel = "C3-200 — Đang kiểm tra";
             Services.Connection.ConnectionStateService.Instance.ResetState();
         }
@@ -1935,11 +1935,11 @@ namespace QuanLyGiuXe.ViewModels
                 {
                     "TrangChuViewModel" => "Bàn giám sát",
                     "TimKiemViewModel" => "Tìm kiếm xe",
-                    "RealtimeEventFeedViewModel" => "Live Event Feed",
+                    "RealtimeEventFeedViewModel" => "Sự kiện trực tiếp",
                     "LichSuViewModel" => "Lịch sử xe",
-                    "DatabaseExplorerViewModel" => "Mini Database Explorer",
-                    "DashboardViewModel" => "Dashboard Thống kê",
-                    "MonitoringDashboardViewModel" => "Parking Monitoring Dashboard",
+                    "DatabaseExplorerViewModel" => "Khám phá CSDL mini",
+                    "DashboardViewModel" => "Thống kê tổng quan",
+                    "MonitoringDashboardViewModel" => "Giám sát bãi đỗ xe",
                     "ParkingTopologyViewModel" => "Cấu hình & Kiểm tra Sơ đồ",
                     "SystemConfigDeploymentViewModel" => "Cấu hình & Triển khai",
                     _ => CurrentView.GetType().Name
@@ -1953,11 +1953,11 @@ namespace QuanLyGiuXe.ViewModels
                 {
                     "TrangChuViewModel" => "Bàn giám sát",
                     "TimKiemViewModel" => "Tìm kiếm xe",
-                    "RealtimeEventFeedViewModel" => "Live Event Feed",
+                    "RealtimeEventFeedViewModel" => "Sự kiện trực tiếp",
                     "LichSuViewModel" => "Lịch sử xe",
-                    "DatabaseExplorerViewModel" => "Mini Database Explorer",
-                    "DashboardViewModel" => "Dashboard Thống kê",
-                    "MonitoringDashboardViewModel" => "Parking Monitoring Dashboard",
+                    "DatabaseExplorerViewModel" => "Khám phá CSDL mini",
+                    "DashboardViewModel" => "Thống kê tổng quan",
+                    "MonitoringDashboardViewModel" => "Giám sát bãi đỗ xe",
                     "ParkingTopologyViewModel" => "Cấu hình & Kiểm tra Sơ đồ",
                     "SystemConfigDeploymentViewModel" => "Cấu hình & Triển khai",
                     _ => view.GetType().Name

@@ -53,7 +53,7 @@ namespace LicenseTool
             {
                 var ofd = new Microsoft.Win32.OpenFileDialog
                 {
-                    Filter = "Activation Request Files (*.req)|*.req|All Files (*.*)|*.*",
+                    Filter = "Tệp yêu cầu kích hoạt (*.req)|*.req|Tất cả các tệp (*.*)|*.*",
                     Title = "Chọn File Yêu Cầu Kích Hoạt"
                 };
 
@@ -208,7 +208,7 @@ namespace LicenseTool
                 // Prompt to save file
                 var sfd = new Microsoft.Win32.SaveFileDialog
                 {
-                    Filter = "Offline License File (*.bin)|*.bin",
+                    Filter = "Tệp bản quyền ngoại tuyến (*.bin)|*.bin",
                     FileName = "license.bin",
                     Title = "Lưu File Bản Quyền Ngoại Tuyến"
                 };

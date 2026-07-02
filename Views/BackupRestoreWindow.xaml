@@ -37,7 +37,7 @@
                 </Grid.ColumnDefinitions>
                 
                 <StackPanel Grid.Column="0">
-                    <TextBlock Text="BACKUP &amp; RESTORE" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}"/>
+                    <TextBlock Text="SAO LƯU &amp; PHỤC HỒI" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}"/>
                     <TextBlock Text="Bảo vệ an toàn dữ liệu hệ thống Smart Parking" FontSize="14" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,5,0,0"/>
                 </StackPanel>
 
@@ -86,7 +86,7 @@
                                                         Height="30" Padding="10,0" Margin="0,0,8,0">
                                                     <StackPanel Orientation="Horizontal">
                                                         <TextBlock Text="⏪" FontSize="12" Margin="0,0,5,0" VerticalAlignment="Center"/>
-                                                        <TextBlock Text="Restore" FontSize="12" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Phục hồi" FontSize="12" VerticalAlignment="Center"/>
                                                     </StackPanel>
                                                 </Button>
                                                 
@@ -151,7 +151,7 @@
                             </Grid.ColumnDefinitions>
                             <StackPanel Grid.Column="0">
                                 <TextBlock Text="Thời gian lưu trữ (Ngày):" VerticalAlignment="Center" Foreground="{StaticResource TextSecondaryBrush}"/>
-                                <TextBlock Text="Backup cũ hơn sẽ tự xóa" FontSize="11" Opacity="0.6"/>
+                                <TextBlock Text="* Bản sao lưu cũ hơn sẽ tự xóa nếu vượt quá số lượng lưu giữ (thường là 7 ngày)" FontSize="11" Opacity="0.6"/>
                             </StackPanel>
                             <TextBox Grid.Column="1" Text="{Binding RetentionDays}" 
                                      Style="{StaticResource ModernTextBox}"

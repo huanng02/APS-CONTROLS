@@ -97,7 +97,7 @@ namespace QuanLyGiuXe.Views
             sp.Children.Add(_txtFilter);
             sp.Children.Add(new TextBlock { Text = "Cổng:", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(12,0,4,0) });
             _cbDoor = new ComboBox { Width = 80 };
-            _cbDoor.Items.Add("All");
+            _cbDoor.Items.Add("Tất cả");
             _cbDoor.Items.Add("1");
             _cbDoor.Items.Add("2");
             _cbDoor.SelectedIndex = 0;
@@ -274,11 +274,11 @@ namespace QuanLyGiuXe.Views
                         }
                     });
 
-                    MessageBox.Show("Export thành công!", "Excel Export", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show("Xuất thành công!", "Xuất Excel", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show("Export thất bại: " + ex.Message, "Excel Export", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show("Xuất thất bại: " + ex.Message, "Xuất Excel", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
                 finally
                 {
@@ -402,11 +402,11 @@ namespace QuanLyGiuXe.Views
             // images will be created later in the detail pane
 
             _dgLogs.Columns.Add(new DataGridTextColumn { Header = "Thời gian", Binding = new System.Windows.Data.Binding("Timestamp"), Width = 180 });
-            _dgLogs.Columns.Add(new DataGridTextColumn { Header = "Door", Binding = new System.Windows.Data.Binding("Door"), Width = 60 });
-            _dgLogs.Columns.Add(new DataGridTextColumn { Header = "Event", Binding = new System.Windows.Data.Binding("EventType"), Width = 80 });
-            _dgLogs.Columns.Add(new DataGridTextColumn { Header = "Card", Binding = new System.Windows.Data.Binding("CardNo"), Width = 140 });
+            _dgLogs.Columns.Add(new DataGridTextColumn { Header = "Cổng", Binding = new System.Windows.Data.Binding("Door"), Width = 60 });
+            _dgLogs.Columns.Add(new DataGridTextColumn { Header = "Sự kiện", Binding = new System.Windows.Data.Binding("EventType"), Width = 80 });
+            _dgLogs.Columns.Add(new DataGridTextColumn { Header = "Thẻ", Binding = new System.Windows.Data.Binding("CardNo"), Width = 140 });
             _dgLogs.Columns.Add(new DataGridTextColumn { Header = "Hành động", Binding = new System.Windows.Data.Binding("Action"), Width = new DataGridLength(1, DataGridLengthUnitType.Star) });
-            _dgLogs.Columns.Add(new DataGridTextColumn { Header = "Barrier", Binding = new System.Windows.Data.Binding("BarrierResult"), Width = 70 });
+            _dgLogs.Columns.Add(new DataGridTextColumn { Header = "Barie", Binding = new System.Windows.Data.Binding("BarrierResult"), Width = 70 });
             // Plate image column removed — images shown only in detail pane
 
             // Adding DataGrid to the grid
@@ -496,55 +496,55 @@ namespace QuanLyGiuXe.Views
             _tbDoor.SetBinding(TextBox.TextProperty, new System.Windows.Data.Binding("SelectedLog.DoorText") { Mode = System.Windows.Data.BindingMode.OneWay });
             r++;
 
-            details.Children.Add(new TextBlock { Text = "Event:", FontWeight = FontWeights.Bold });
+            details.Children.Add(new TextBlock { Text = "Sự kiện:", FontWeight = FontWeights.Bold });
             _tbEvent = new TextBox { IsReadOnly = true };
             Grid.SetRow(_tbEvent, r); Grid.SetColumn(_tbEvent, 1); details.Children.Add(_tbEvent);
             Grid.SetRow(details.Children[details.Children.Count-2], r); Grid.SetColumn(details.Children[details.Children.Count-2], 0);
             _tbEvent.SetBinding(TextBox.TextProperty, new System.Windows.Data.Binding("SelectedLog.EventTypeText") { Mode = System.Windows.Data.BindingMode.OneWay });
             r++;
 
-            details.Children.Add(new TextBlock { Text = "Card:", FontWeight = FontWeights.Bold });
+            details.Children.Add(new TextBlock { Text = "Thẻ:", FontWeight = FontWeights.Bold });
             _tbCard = new TextBox { IsReadOnly = true };
             Grid.SetRow(_tbCard, r); Grid.SetColumn(_tbCard, 1); details.Children.Add(_tbCard);
             Grid.SetRow(details.Children[details.Children.Count-2], r); Grid.SetColumn(details.Children[details.Children.Count-2], 0);
             _tbCard.SetBinding(TextBox.TextProperty, new System.Windows.Data.Binding("SelectedLog.CardNo") { Mode = System.Windows.Data.BindingMode.OneWay });
             r++;
 
-            details.Children.Add(new TextBlock { Text = "Barrier:", FontWeight = FontWeights.Bold });
+            details.Children.Add(new TextBlock { Text = "Barie:", FontWeight = FontWeights.Bold });
             _tbBarrier = new TextBox { IsReadOnly = true };
             Grid.SetRow(_tbBarrier, r); Grid.SetColumn(_tbBarrier, 1); details.Children.Add(_tbBarrier);
             Grid.SetRow(details.Children[details.Children.Count-2], r); Grid.SetColumn(details.Children[details.Children.Count-2], 0);
             _tbBarrier.SetBinding(TextBox.TextProperty, new System.Windows.Data.Binding("SelectedLog.BarrierText") { Mode = System.Windows.Data.BindingMode.OneWay });
             r++;
 
-            details.Children.Add(new TextBlock { Text = "Action:", FontWeight = FontWeights.Bold });
+            details.Children.Add(new TextBlock { Text = "Hành động:", FontWeight = FontWeights.Bold });
             _tbAction = new TextBox { IsReadOnly = true };
             Grid.SetRow(_tbAction, r); Grid.SetColumn(_tbAction, 1); details.Children.Add(_tbAction);
             Grid.SetRow(details.Children[details.Children.Count-2], r); Grid.SetColumn(details.Children[details.Children.Count-2], 0);
             _tbAction.SetBinding(TextBox.TextProperty, new System.Windows.Data.Binding("SelectedLog.Action") { Mode = System.Windows.Data.BindingMode.OneWay });
             r++;
 
-            details.Children.Add(new TextBlock { Text = "Pin:", FontWeight = FontWeights.Bold });
+            details.Children.Add(new TextBlock { Text = "Mã PIN:", FontWeight = FontWeights.Bold });
             _tbPin = new TextBox { IsReadOnly = true };
             Grid.SetRow(_tbPin, r); Grid.SetColumn(_tbPin, 1); details.Children.Add(_tbPin);
             Grid.SetRow(details.Children[details.Children.Count-2], r); Grid.SetColumn(details.Children[details.Children.Count-2], 0);
             _tbPin.SetBinding(TextBox.TextProperty, new System.Windows.Data.Binding("SelectedLog.Pin") { Mode = System.Windows.Data.BindingMode.OneWay });
             r++;
 
-            details.Children.Add(new TextBlock { Text = "Operator:", FontWeight = FontWeights.Bold });
+            details.Children.Add(new TextBlock { Text = "Người vận hành:", FontWeight = FontWeights.Bold });
             _tbOperator = new TextBox { IsReadOnly = true };
             Grid.SetRow(_tbOperator, r); Grid.SetColumn(_tbOperator, 1); details.Children.Add(_tbOperator);
             Grid.SetRow(details.Children[details.Children.Count-2], r); Grid.SetColumn(details.Children[details.Children.Count-2], 0);
             var convOp = new Services.NullOrEmptyToPlaceholderConverter();
-            _tbOperator.SetBinding(TextBox.TextProperty, new System.Windows.Data.Binding("SelectedLog.Operator") { Mode = System.Windows.Data.BindingMode.OneWay, Converter = convOp, ConverterParameter = "Coming soon" });
+            _tbOperator.SetBinding(TextBox.TextProperty, new System.Windows.Data.Binding("SelectedLog.Operator") { Mode = System.Windows.Data.BindingMode.OneWay, Converter = convOp, ConverterParameter = "Sắp có" });
             r++;
 
-            details.Children.Add(new TextBlock { Text = "Source IP:", FontWeight = FontWeights.Bold });
+            details.Children.Add(new TextBlock { Text = "IP Nguồn:", FontWeight = FontWeights.Bold });
             _tbSourceIp = new TextBox { IsReadOnly = true };
             Grid.SetRow(_tbSourceIp, r); Grid.SetColumn(_tbSourceIp, 1); details.Children.Add(_tbSourceIp);
             Grid.SetRow(details.Children[details.Children.Count-2], r); Grid.SetColumn(details.Children[details.Children.Count-2], 0);
             var conv = new Services.NullOrEmptyToPlaceholderConverter();
-            _tbSourceIp.SetBinding(TextBox.TextProperty, new System.Windows.Data.Binding("SelectedLog.SourceIp") { Mode = System.Windows.Data.BindingMode.OneWay, Converter = conv, ConverterParameter = "Coming soon" });
+            _tbSourceIp.SetBinding(TextBox.TextProperty, new System.Windows.Data.Binding("SelectedLog.SourceIp") { Mode = System.Windows.Data.BindingMode.OneWay, Converter = conv, ConverterParameter = "Sắp có" });
             r++;
 
 
@@ -555,7 +555,7 @@ namespace QuanLyGiuXe.Views
             _tbPlatePath = new TextBox { IsReadOnly = true };
             pathGrid.Children.Add(_tbPlatePath); Grid.SetColumn(_tbPlatePath, 0);
             _tbPlatePath.SetBinding(TextBox.TextProperty, new System.Windows.Data.Binding("SelectedLog.PlateImagePath") { Mode = System.Windows.Data.BindingMode.OneWay });
-            var btnCopyPlate = new Button { Content = "Copy", Width = 64, Height = 28, Margin = new Thickness(8,0,0,0) };
+            var btnCopyPlate = new Button { Content = "Sao chép", Width = 64, Height = 28, Margin = new Thickness(8,0,0,0) };
             btnCopyPlate.Click += (s, e) => { try { Clipboard.SetText(_tbPlatePath.Text ?? string.Empty); } catch { } };
             pathGrid.Children.Add(btnCopyPlate); Grid.SetColumn(btnCopyPlate, 1);
 
@@ -566,7 +566,7 @@ namespace QuanLyGiuXe.Views
             _tbFullPath = new TextBox { IsReadOnly = true };
             pathGridFull.Children.Add(_tbFullPath); Grid.SetColumn(_tbFullPath, 0);
             _tbFullPath.SetBinding(TextBox.TextProperty, new System.Windows.Data.Binding("SelectedLog.FullImagePath") { Mode = System.Windows.Data.BindingMode.OneWay });
-            var btnCopyFull = new Button { Content = "Copy", Width = 64, Height = 28, Margin = new Thickness(8,0,0,0) };
+            var btnCopyFull = new Button { Content = "Sao chép", Width = 64, Height = 28, Margin = new Thickness(8,0,0,0) };
             btnCopyFull.Click += (s, e) => { try { Clipboard.SetText(_tbFullPath.Text ?? string.Empty); } catch { } };
             pathGridFull.Children.Add(btnCopyFull); Grid.SetColumn(btnCopyFull, 1);
 
@@ -575,7 +575,7 @@ namespace QuanLyGiuXe.Views
             stack.Children.Add(pathGrid);
             stack.Children.Add(pathGridFull);
 
-            stack.Children.Add(new TextBlock { Text = "Raw data:", FontWeight = FontWeights.Bold, Margin = new Thickness(0,8,0,0) });
+            stack.Children.Add(new TextBlock { Text = "Dữ liệu thô:", FontWeight = FontWeights.Bold, Margin = new Thickness(0,8,0,0) });
             // compact raw data: 1-2 lines + copy button
             var rawRow = new Grid { Margin = new Thickness(0,4,0,0) };
             rawRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
@@ -595,7 +595,7 @@ namespace QuanLyGiuXe.Views
             Grid.SetColumn(_txtRaw, 0);
             _txtRaw.SetBinding(TextBox.TextProperty, new System.Windows.Data.Binding("SelectedLog.RawData") { Mode = System.Windows.Data.BindingMode.OneWay });
 
-            var btnCopyRaw = new Button { Content = "Copy", Width = 64, Height = 28, Margin = new Thickness(8,0,0,0) };
+            var btnCopyRaw = new Button { Content = "Sao chép", Width = 64, Height = 28, Margin = new Thickness(8,0,0,0) };
             btnCopyRaw.Click += (s, e) =>
             {
                 try { Clipboard.SetText(_txtRaw.Text ?? string.Empty); }
@@ -605,12 +605,12 @@ namespace QuanLyGiuXe.Views
             Grid.SetColumn(btnCopyRaw, 1);
 
             stack.Children.Add(rawRow);
-            stack.Children.Add(new TextBlock { Text = "Notes:", FontWeight = FontWeights.Bold, Margin = new Thickness(0,8,0,0) });
+            stack.Children.Add(new TextBlock { Text = "Ghi chú:", FontWeight = FontWeights.Bold, Margin = new Thickness(0,8,0,0) });
             _txtNotes = new TextBox { IsReadOnly = true };
             _txtNotes.SetBinding(TextBox.TextProperty, new System.Windows.Data.Binding("SelectedLog.Notes") { Mode = System.Windows.Data.BindingMode.OneWay });
             stack.Children.Add(_txtNotes);
             // Export selected detail (Excel)
-            var btnExportDetail = new Button { Content = "Export detail (Excel)", Margin = new Thickness(0,8,0,0), Padding = new Thickness(8,4,8,4), HorizontalAlignment = HorizontalAlignment.Left };
+            var btnExportDetail = new Button { Content = "Xuất chi tiết (Excel)", Margin = new Thickness(0,8,0,0), Padding = new Thickness(8,4,8,4), HorizontalAlignment = HorizontalAlignment.Left };
             btnExportDetail.Click += async (s, e) =>
             {
                 // determine selected log
@@ -622,7 +622,7 @@ namespace QuanLyGiuXe.Views
 
                 if (log == null)
                 {
-                    MessageBox.Show("Không có bản ghi được chọn.", "Export", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show("Không có bản ghi được chọn.", "Xuất dữ liệu", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
@@ -641,17 +641,17 @@ namespace QuanLyGiuXe.Views
                         ws.Cell(1, 1).Value = "Id";
                         ws.Cell(1, 2).Value = "Thời gian";
                         ws.Cell(1, 3).Value = "Cổng";
-                        ws.Cell(1, 4).Value = "Event";
-                        ws.Cell(1, 5).Value = "Card";
-                        ws.Cell(1, 6).Value = "Action";
-                        ws.Cell(1, 7).Value = "Barrier";
-                        ws.Cell(1, 8).Value = "Pin";
-                        ws.Cell(1, 9).Value = "Operator";
-                        ws.Cell(1,10).Value = "Source IP";
-                        ws.Cell(1,11).Value = "PlateImagePath";
-                        ws.Cell(1,12).Value = "FullImagePath";
-                        ws.Cell(1,13).Value = "RawData";
-                        ws.Cell(1,14).Value = "Notes";
+                        ws.Cell(1, 4).Value = "Sự kiện";
+                        ws.Cell(1, 5).Value = "Thẻ";
+                        ws.Cell(1, 6).Value = "Hành động";
+                        ws.Cell(1, 7).Value = "Barie";
+                        ws.Cell(1, 8).Value = "Mã PIN";
+                        ws.Cell(1, 9).Value = "Người vận hành";
+                        ws.Cell(1,10).Value = "IP Nguồn";
+                        ws.Cell(1,11).Value = "Đường dẫn ảnh biển số";
+                        ws.Cell(1,12).Value = "Đường dẫn ảnh toàn cảnh";
+                        ws.Cell(1,13).Value = "Dữ liệu thô";
+                        ws.Cell(1,14).Value = "Ghi chú";
 
                         // values
                         ws.Cell(2, 1).SetValue(log.Id);
@@ -706,11 +706,11 @@ namespace QuanLyGiuXe.Views
                         finally { try { File.Delete(temp); } catch { } }
                     });
 
-                    MessageBox.Show("Export detail thành công!", "Export", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show("Xuất chi tiết thành công!", "Xuất dữ liệu", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show("Export thất bại: " + ex.Message, "Export", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show("Xuất thất bại: " + ex.Message, "Xuất dữ liệu", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
                 finally { try { Mouse.OverrideCursor = null; } catch { } }
             };

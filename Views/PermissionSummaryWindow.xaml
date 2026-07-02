@@ -33,7 +33,7 @@
                               Background="White" RowHeaderWidth="0" GridLinesVisibility="Horizontal" BorderThickness="0"
                               SelectionUnit="FullRow">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="Username" Binding="{Binding Username}" Width="120" FontWeight="Bold"/>
+                            <DataGridTextColumn Header="Tên tài khoản" Binding="{Binding Username}" Width="120" FontWeight="Bold"/>
                             <DataGridTextColumn Header="Họ và Tên" Binding="{Binding Ten}" Width="160"/>
                             <DataGridTextColumn Header="Vai trò (Role)" Binding="{Binding RoleName}" Width="120"/>
                             <DataGridTextColumn Header="Trạng thái" Binding="{Binding TrangThai}" Width="100"/>
@@ -64,7 +64,7 @@
             </TabItem>
 
             <!-- Tab 3: RFID Groups & Physical Schedules -->
-            <TabItem Header="🔑 Physical RFID Access Schedules" Padding="12,6">
+            <TabItem Header="🔑 Lịch trình truy cập RFID vật lý" Padding="12,6">
                 <Grid Margin="10">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>

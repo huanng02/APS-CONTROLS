@@ -119,12 +119,12 @@ namespace QuanLyGiuXe.Services
                 where.Append(" AND UserId = @UserId");
                 parameters.Add(new SqlParameter("@UserId", userId.Value));
             }
-            if (!string.IsNullOrEmpty(actionType) && actionType != "All")
+            if (!string.IsNullOrEmpty(actionType) && actionType != "All" && actionType != "Tất cả")
             {
                 where.Append(" AND ActionType = @ActionType");
                 parameters.Add(new SqlParameter("@ActionType", actionType));
             }
-            if (!string.IsNullOrEmpty(entityType) && entityType != "All")
+            if (!string.IsNullOrEmpty(entityType) && entityType != "All" && entityType != "Tất cả")
             {
                 where.Append(" AND EntityType = @EntityType");
                 parameters.Add(new SqlParameter("@EntityType", entityType));

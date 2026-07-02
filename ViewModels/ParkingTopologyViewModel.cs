@@ -1263,58 +1263,58 @@ namespace QuanLyGiuXe.ViewModels
         private async Task AddController()
         {
             var newItem = new C3ControllerConfig();
-            var dialog = new GenericAddEditWindow(newItem) { Title = "Thêm Controller" };
+            var dialog = new GenericAddEditWindow(newItem) { Title = "Thêm bộ điều khiển" };
             if (dialog.ShowDialog() == true)
             {
                 try
                 {
                     bool success = await ParkingTopologyService.Instance.SaveControllerAsync(newItem);
                     if (success)
-                        MessageBox.Show("Thêm Controller thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                        MessageBox.Show("Thêm bộ điều khiển thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
                     else
-                        MessageBox.Show("Đã lưu Controller vào bộ nhớ tạm (Offline). Dữ liệu sẽ được đồng bộ lên Server sau.", "Thông báo Offline", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        MessageBox.Show("Đã lưu bộ điều khiển vào bộ nhớ tạm (Ngoại tuyến). Dữ liệu sẽ được đồng bộ lên Server sau.", "Thông báo Ngoại tuyến", MessageBoxButton.OK, MessageBoxImage.Warning);
                     await LoadDataAsync();
                     RunPostSaveValidation();
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show(ex.Message, "Lỗi thêm Controller", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show(ex.Message, "Lỗi thêm bộ điều khiển", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
         }
 
         private async Task EditController()
         {
-            var dialog = new GenericAddEditWindow(SelectedController) { Title = "Sửa Controller" };
+            var dialog = new GenericAddEditWindow(SelectedController) { Title = "Sửa bộ điều khiển" };
             if (dialog.ShowDialog() == true)
             {
                 try
                 {
                     bool success = await ParkingTopologyService.Instance.SaveControllerAsync(SelectedController);
                     if (success)
-                        MessageBox.Show("Sửa Controller thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                        MessageBox.Show("Sửa bộ điều khiển thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
                     else
-                        MessageBox.Show("Đã lưu thay đổi vào bộ nhớ tạm (Offline). Dữ liệu sẽ được đồng bộ lên Server sau.", "Thông báo Offline", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        MessageBox.Show("Đã lưu thay đổi vào bộ nhớ tạm (Ngoại tuyến). Dữ liệu sẽ được đồng bộ lên Server sau.", "Thông báo Ngoại tuyến", MessageBoxButton.OK, MessageBoxImage.Warning);
                     await LoadDataAsync();
                     RunPostSaveValidation();
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show(ex.Message, "Lỗi sửa Controller", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show(ex.Message, "Lỗi sửa bộ điều khiển", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
         }
 
         private async Task DeleteController()
         {
-            if (MessageBox.Show("Bạn có chắc muốn xóa controller này?", "Xác nhận", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+            if (MessageBox.Show("Bạn có chắc muốn xóa bộ điều khiển này?", "Xác nhận", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
             {
                 try
                 {
                     bool success = await ParkingTopologyService.Instance.DeleteControllerAsync(SelectedController.Id);
                     if (success)
                     {
-                        MessageBox.Show("Xóa Controller thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
+                        MessageBox.Show("Xóa bộ điều khiển thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
                     }
                     await LoadDataAsync();
                 }

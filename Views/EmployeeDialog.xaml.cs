@@ -199,8 +199,8 @@ namespace QuanLyGiuXe.Views
         {
             var ofd = new OpenFileDialog
             {
-                Filter = "Image Files (*.jpg;*.jpeg;*.png;*.gif)|*.jpg;*.jpeg;*.png;*.gif|All files (*.*)|*.*",
-                Title = "Select Employee Photo"
+                Filter = "Tệp hình ảnh (*.jpg;*.jpeg;*.png;*.gif)|*.jpg;*.jpeg;*.png;*.gif|Tất cả các tệp (*.*)|*.*",
+                Title = "Chọn ảnh nhân viên"
             };
 
             if (ofd.ShowDialog() == true)

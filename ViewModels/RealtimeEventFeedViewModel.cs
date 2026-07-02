@@ -23,10 +23,10 @@ namespace QuanLyGiuXe.ViewModels
         // Active filters list
         public List<string> Filters { get; } = new() 
         { 
-            "All", "Vehicle", "RFID", "Controller", "Reader", "Barrier", "Camera", "User", "System" 
+            "Tất cả", "Xe", "Thẻ RFID", "Bộ điều khiển", "Đầu đọc", "Thanh chắn", "Camera", "Người dùng", "Hệ thống" 
         };
 
-        private string _selectedFilter = "All";
+        private string _selectedFilter = "Tất cả";
         public string SelectedFilter
         {
             get => _selectedFilter;
@@ -74,7 +74,7 @@ namespace QuanLyGiuXe.ViewModels
             ClearCommand = new RelayCommand(_ => ClearFeed());
             PauseCommand = new RelayCommand(_ => IsPaused = !IsPaused);
             ToggleAutoScrollCommand = new RelayCommand(_ => AutoScroll = !AutoScroll);
-            FilterCommand = new RelayCommand(p => SelectedFilter = p?.ToString() ?? "All");
+            FilterCommand = new RelayCommand(p => SelectedFilter = p?.ToString() ?? "Tất cả");
 
             // Register into centralized EventBus
             EventBus.Instance.Subscribe(OnRealtimeEventReceived);
@@ -160,7 +160,7 @@ namespace QuanLyGiuXe.ViewModels
                 }
 
                 // Append to collection if it matches current active filter
-                if (SelectedFilter == "All" || MatchFilter(ev, SelectedFilter))
+                if (SelectedFilter == "Tất cả" || MatchFilter(ev, SelectedFilter))
                 {
                     DisplayEvents.Add(ev);
                     if (DisplayEvents.Count > 500)
@@ -179,7 +179,7 @@ namespace QuanLyGiuXe.ViewModels
             lock (_lock)
             {
                 var filtered = _allEvents.AsEnumerable();
-                if (SelectedFilter != "All")
+                if (SelectedFilter != "Tất cả")
                 {
                     filtered = filtered.Where(e => MatchFilter(e, SelectedFilter));
                 }
@@ -195,16 +195,16 @@ namespace QuanLyGiuXe.ViewModels
         private bool MatchFilter(RealtimeEvent ev, string filter)
         {
             string type = ev.EventType.ToUpper();
-            return filter.ToUpper() switch
+            return filter switch
             {
-                "VEHICLE" => type.Contains("VEHICLE") || type.Contains("ENTRY") || type.Contains("EXIT"),
-                "RFID" => type.Contains("RFID") || type.Contains("CARD"),
-                "CONTROLLER" => type.Contains("CONTROLLER"),
-                "READER" => type.Contains("READER"),
-                "BARRIER" => type.Contains("BARRIER"),
-                "CAMERA" => type.Contains("CAMERA"),
-                "USER" => type.Contains("USER"),
-                "SYSTEM" => type.Contains("SYSTEM") || type.Contains("LOG"),
+                "Xe" => type.Contains("VEHICLE") || type.Contains("ENTRY") || type.Contains("EXIT"),
+                "Thẻ RFID" => type.Contains("RFID") || type.Contains("CARD"),
+                "Bộ điều khiển" => type.Contains("CONTROLLER"),
+                "Đầu đọc" => type.Contains("READER"),
+                "Thanh chắn" => type.Contains("BARRIER"),
+                "Camera" => type.Contains("CAMERA"),
+                "Người dùng" => type.Contains("USER"),
+                "Hệ thống" => type.Contains("SYSTEM") || type.Contains("LOG"),
                 _ => true
             };
         }

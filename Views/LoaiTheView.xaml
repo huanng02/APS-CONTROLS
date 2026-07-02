@@ -12,29 +12,29 @@
         <Border Grid.Row="0" Style="{StaticResource EnterpriseCardBorder}" Padding="15" Margin="0,0,0,15">
             <StackPanel Orientation="Horizontal">
                 <StackPanel Orientation="Vertical" Margin="0,0,15,0">
-                    <TextBlock Text="CATEGORY NAME" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold" Margin="0,0,0,6"/>
+                    <TextBlock Text="TÊN LOẠI THẺ" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold" Margin="0,0,0,6"/>
                     <TextBox Width="250" Style="{StaticResource ModernTextBox}" Text="{Binding TenLoaiThe, UpdateSourceTrigger=PropertyChanged}" />
                 </StackPanel>
 
                 <StackPanel Orientation="Vertical" Margin="0,0,15,0">
-                    <TextBlock Text="UNIT PRICE" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold" Margin="0,0,0,6"/>
+                    <TextBlock Text="ĐƠN GIÁ" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold" Margin="0,0,0,6"/>
                     <TextBox Width="150" Style="{StaticResource ModernTextBox}" Text="{Binding GiaTien, UpdateSourceTrigger=PropertyChanged}" />
                 </StackPanel>
 
                 <StackPanel Orientation="Vertical" Margin="0,0,20,0">
-                    <TextBlock Text="STATUS" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold" Margin="0,0,0,6"/>
+                    <TextBlock Text="TRẠNG THÁI" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold" Margin="0,0,0,6"/>
                     <TextBox Width="150" Style="{StaticResource ModernTextBox}" Text="{Binding TrangThai, UpdateSourceTrigger=PropertyChanged}" />
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom">
-                    <Button Content="➕ ADD" Command="{Binding AddCommand}" Style="{StaticResource ModernButton}" Background="{StaticResource SuccessBrush}" Width="90" Margin="0,0,8,0"/>
-                    <Button Content="💾 SAVE" Command="{Binding UpdateCommand}" Style="{StaticResource ModernButton}" Background="{StaticResource APSBlueBrush}" Width="90" Margin="0,0,8,0"/>
-                    <Button Content="🗑️ DELETE" Command="{Binding DeleteCommand}" Style="{StaticResource DangerButton}" Width="90" Margin="0,0,15,0"/>
+                    <Button Content="➕ THÊM" Command="{Binding AddCommand}" Style="{StaticResource ModernButton}" Background="{StaticResource SuccessBrush}" Width="90" Margin="0,0,8,0"/>
+                    <Button Content="💾 LƯU" Command="{Binding UpdateCommand}" Style="{StaticResource ModernButton}" Background="{StaticResource APSBlueBrush}" Width="90" Margin="0,0,8,0"/>
+                    <Button Content="🗑️ XÓA" Command="{Binding DeleteCommand}" Style="{StaticResource DangerButton}" Width="90" Margin="0,0,15,0"/>
                     
                     <Border Width="1" Background="{StaticResource BorderLightBrush}" Margin="0,5,15,5"/>
                     
-                    <Button Content="↻ RELOAD" Command="{Binding LoadCommand}" Style="{StaticResource ModernOutlineButton}" Width="100" Margin="0,0,8,0"/>
-                    <Button Content="🧹 CLEAR" Command="{Binding ClearCommand}" Style="{StaticResource ModernOutlineButton}" Width="90"/>
+                    <Button Content="↻ TẢI LẠI" Command="{Binding LoadCommand}" Style="{StaticResource ModernOutlineButton}" Width="100" Margin="0,0,8,0"/>
+                    <Button Content="🧹 XÓA TRẮNG" Command="{Binding ClearCommand}" Style="{StaticResource ModernOutlineButton}" Width="90"/>
                 </StackPanel>
             </StackPanel>
         </Border>
@@ -45,9 +45,9 @@
                       Style="{StaticResource ModernDataGrid}"
                       AutoGenerateColumns="False" IsReadOnly="True">
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="IDENTIFIER" Binding="{Binding Id}" Width="100"/>
-                    <DataGridTextColumn Header="CATEGORY NAME" Binding="{Binding TenLoaiThe}" Width="*"/>
-                    <DataGridTextColumn Header="BASE PRICE" Binding="{Binding GiaTien, StringFormat=N0}" Width="150">
+                    <DataGridTextColumn Header="MÃ SỐ" Binding="{Binding Id}" Width="100"/>
+                    <DataGridTextColumn Header="TÊN LOẠI THẺ" Binding="{Binding TenLoaiThe}" Width="*"/>
+                    <DataGridTextColumn Header="GIÁ CƠ BẢN" Binding="{Binding GiaTien, StringFormat=N0}" Width="150">
                         <DataGridTextColumn.ElementStyle>
                             <Style TargetType="TextBlock">
                                 <Setter Property="FontWeight" Value="Bold"/>
@@ -57,7 +57,7 @@
                             </Style>
                         </DataGridTextColumn.ElementStyle>
                     </DataGridTextColumn>
-                    <DataGridTextColumn Header="STATUS" Binding="{Binding TrangThai}" Width="180"/>
+                    <DataGridTextColumn Header="TRẠNG THÁI" Binding="{Binding TrangThai}" Width="180"/>
                 </DataGrid.Columns>
             </DataGrid>
         </Border>

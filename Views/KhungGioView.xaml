@@ -41,7 +41,7 @@
                 </Border>
 
                 <StackPanel>
-                    <TextBlock Text="TIME SLOT CONFIGURATION"
+                    <TextBlock Text="CẤU HÌNH KHUNG GIỜ"
                                Style="{StaticResource Heading2Style}"
                                Foreground="{StaticResource APSBlueBrush}"/>
 
@@ -76,7 +76,7 @@
                     <DataGrid.Columns>
 
                         <!-- SLOT NAME -->
-                        <DataGridTextColumn Header="SLOT NAME"
+                        <DataGridTextColumn Header="TÊN KHUNG GIỜ"
                                             Width="2*"
                                             MinWidth="240"
                                             Binding="{Binding TenKhungGio, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
@@ -100,7 +100,7 @@
                         </DataGridTextColumn>
 
                         <!-- START TIME -->
-                        <DataGridTemplateColumn Header="START TIME"
+                        <DataGridTemplateColumn Header="GIỜ BẮT ĐẦU"
                                                 Width="1.3*"
                                                 MinWidth="160">
 
@@ -125,7 +125,7 @@
                         </DataGridTemplateColumn>
 
                         <!-- END TIME -->
-                        <DataGridTemplateColumn Header="END TIME"
+                        <DataGridTemplateColumn Header="GIỜ KẾT THÚC"
                                                 Width="1.3*"
                                                 MinWidth="160">
 
@@ -150,13 +150,13 @@
                         </DataGridTemplateColumn>
 
                         <!-- OVERNIGHT -->
-                        <DataGridCheckBoxColumn Header="OVERNIGHT"
+                        <DataGridCheckBoxColumn Header="QUA ĐÊM"
                                                 Width="130"
                                                 IsReadOnly="True"
                                                 Binding="{Binding QuaDem, Mode=OneWay}"/>
 
                         <!-- ACTIVE -->
-                        <DataGridCheckBoxColumn Header="ACTIVE"
+                        <DataGridCheckBoxColumn Header="HOẠT ĐỘNG"
                                                 Width="110"
                                                 Binding="{Binding TrangThai, Mode=TwoWay}"/>
 
@@ -198,7 +198,7 @@
                             Orientation="Horizontal"
                             HorizontalAlignment="Right">
 
-                    <Button Content="➕ ADD SLOT"
+                    <Button Content="➕ THÊM KHUNG GIỜ"
                             Command="{Binding AddCommand}"
                             Style="{StaticResource ModernButton}"
                             Background="{StaticResource SuccessBrush}"
@@ -206,7 +206,7 @@
                             Height="40"
                             Margin="0,0,10,0"/>
 
-                    <Button Content="💾 SAVE"
+                    <Button Content="💾 LƯU"
                             Command="{Binding UpdateCommand}"
                             Style="{StaticResource ModernButton}"
                             Background="{StaticResource APSBlueBrush}"
@@ -214,7 +214,7 @@
                             Height="40"
                             Margin="0,0,10,0"/>
 
-                    <Button Content="🗑️ DELETE"
+                    <Button Content="🗑️ XÓA"
                             Command="{Binding DeleteCommand}"
                             Style="{StaticResource DangerButton}"
                             Width="120"

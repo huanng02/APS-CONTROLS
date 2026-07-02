@@ -38,7 +38,7 @@ namespace QuanLyGiuXe.ViewModels
             }
         }
 
-        private string _statusFilter = "All";
+        private string _statusFilter = "Tất cả";
         public string StatusFilter
         {
             get => _statusFilter;

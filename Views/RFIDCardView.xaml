@@ -33,7 +33,7 @@
                              Style="{StaticResource ModernTextBox}"
                              Padding="10,0" Height="36"/>
                              
-                    <TextBlock IsHitTestVisible="False" Text="Search by Card UID or Plate Number..." 
+                    <TextBlock IsHitTestVisible="False" Text="Tìm kiếm theo UID Thẻ hoặc Biển số xe..." 
                                VerticalAlignment="Center" HorizontalAlignment="Left" Margin="12,0,0,0">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock" BasedOn="{StaticResource SubTitleStyle}">
@@ -65,27 +65,27 @@
                         <DockPanel Margin="0,20,0,0">
                             <!-- Toolbars -->
                             <StackPanel Orientation="Horizontal" DockPanel.Dock="Top" Margin="0,0,0,20">
-                                <Button Content="Add New" Command="{Binding DataContext.AddCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                <Button Content="Thêm mới" Command="{Binding DataContext.AddCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                         Style="{StaticResource ModernButton}" Margin="0,0,10,0"
                                         Visibility="{Binding DataContext.CanAdd, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVis}}"/>
                                 
-                                <Button Content="Delete Selected" Command="{Binding DataContext.DeleteSelectedCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                <Button Content="Xóa mục chọn" Command="{Binding DataContext.DeleteSelectedCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                         Style="{StaticResource DangerButton}" Margin="0,0,10,0"
                                         Visibility="{Binding DataContext.CanDelete, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVis}}"/>
                                 
-                                <Button Content="Reload" Command="{Binding DataContext.LoadCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                <Button Content="Tải lại" Command="{Binding DataContext.LoadCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                         Style="{StaticResource ModernOutlineButton}" Margin="0,0,10,0"/>
 
                                 <Separator Margin="10,5" Width="1" Background="{StaticResource BorderLightBrush}"/>
                                 
-                                <Button Content="Export Excel" Command="{Binding DataContext.ExportCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                <Button Content="Xuất Excel" Command="{Binding DataContext.ExportCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                         Style="{StaticResource ModernButton}" Background="{StaticResource SuccessBrush}" Margin="10,0,10,0"/>
                                 
-                                <Button Content="Import Excel" Click="OpenImportExport_Click"
+                                <Button Content="Nhập từ Excel" Click="OpenImportExport_Click"
                                         Style="{StaticResource ModernOutlineButton}" Margin="0,0,10,0"
                                         Visibility="{Binding DataContext.CanAdd, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVis}}"/>
                                 
-                                <Button Content="Download Template" Command="{Binding DataContext.DownloadTemplateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                <Button Content="Tải mẫu Excel" Command="{Binding DataContext.DownloadTemplateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                         Style="{StaticResource ModernOutlineButton}"
                                         Visibility="{Binding DataContext.CanAdd, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource BoolToVis}}"/>
                             </StackPanel>
@@ -110,7 +110,7 @@
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
 
-                                    <DataGridTextColumn Header="Card UID" Binding="{Binding CardUID}" Width="150" FontWeight="SemiBold"/>
+                                    <DataGridTextColumn Header="UID Thẻ" Binding="{Binding CardUID}" Width="150" FontWeight="SemiBold"/>
                                     
                                     <DataGridTextColumn Header="Biển số" Binding="{Binding BienSo}" Width="120"
                                                         Visibility="{Binding DataContext.SelectedTab.Id, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource ColVisConv}, ConverterParameter=MonthlyOnly}"/>
@@ -129,7 +129,7 @@
                                     <DataGridTextColumn Header="Ngày hết hạn" Binding="{Binding NgayHetHan, StringFormat=dd/MM/yyyy}" Width="130"
                                                         Visibility="{Binding DataContext.SelectedTab.Id, RelativeSource={RelativeSource AncestorType=UserControl}, Converter={StaticResource ColVisConv}, ConverterParameter=MonthlyOnly}"/>
                                     
-                                    <DataGridTemplateColumn Header="STATUS" Width="120">
+                                    <DataGridTemplateColumn Header="TRẠNG THÁI" Width="120">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
                                                 <Border CornerRadius="12" Padding="10,2" HorizontalAlignment="Left" Background="{StaticResource BgLightBrush}" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="1">
@@ -139,24 +139,24 @@
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
 
-                                    <DataGridTemplateColumn Header="ACTIONS" Width="220">
+                                    <DataGridTemplateColumn Header="THAO TÁC" Width="220">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
                                                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                                    <Button Content="Renew" Style="{StaticResource ModernButton}" Background="{StaticResource SuccessBrush}" 
+                                                    <Button Content="Gia hạn" Style="{StaticResource ModernButton}" Background="{StaticResource SuccessBrush}" 
                                                             Height="28" Padding="10,0" Margin="2,0" FontSize="11"
                                                             Command="{Binding DataContext.GiaHanCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                             CommandParameter="{Binding}"
                                                             Visibility="{Binding LoaiVeId, Converter={StaticResource LoaiVeToVis}}"
                                                             IsEnabled="{Binding DataContext.CanRenew, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
 
-                                                    <Button Content="Edit" Style="{StaticResource ModernButton}" Background="{StaticResource APSBlueBrush}" 
+                                                    <Button Content="Sửa" Style="{StaticResource ModernButton}" Background="{StaticResource APSBlueBrush}" 
                                                             Height="28" Padding="10,0" Margin="2,0" FontSize="11"
                                                             Command="{Binding DataContext.UpdateCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                             CommandParameter="{Binding}"
                                                             IsEnabled="{Binding DataContext.CanEdit, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
 
-                                                    <Button Content="Delete" Style="{StaticResource DangerButton}" 
+                                                    <Button Content="Xóa" Style="{StaticResource DangerButton}" 
                                                             Height="28" Padding="10,0" Margin="2,0" FontSize="11"
                                                             Command="{Binding DataContext.DeleteCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                             CommandParameter="{Binding}"

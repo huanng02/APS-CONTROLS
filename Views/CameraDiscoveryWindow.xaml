@@ -40,7 +40,7 @@
                           SelectionMode="Single" CanUserAddRows="False" MouseDoubleClick="DiscoveryGrid_MouseDoubleClick">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Hãng Sản Xuất" Binding="{Binding Manufacturer}" Width="150" FontSize="12" FontWeight="SemiBold"/>
-                        <DataGridTextColumn Header="Model" Binding="{Binding Model}" Width="150" FontSize="12"/>
+                        <DataGridTextColumn Header="Dòng máy" Binding="{Binding Model}" Width="150" FontSize="12"/>
                         <DataGridTextColumn Header="Địa Chỉ IP" Binding="{Binding IpAddress}" Width="150" FontSize="12"/>
                         <DataGridTextColumn Header="Cổng ONVIF" Binding="{Binding OnvifPort}" Width="100" FontSize="12"/>
                     </DataGrid.Columns>

@@ -76,7 +76,7 @@
                             <Grid>
                                 <Image Source="{Binding DataContext.AnhChupVao1, RelativeSource={RelativeSource AncestorType=Window}}" Stretch="UniformToFill"/>
                                 <Border Background="#8027AE60" VerticalAlignment="Top" HorizontalAlignment="Left" Padding="5,2" Margin="5">
-                                    <TextBlock Text="SNAP 1" Foreground="White" FontSize="10" FontWeight="Bold"/>
+                                    <TextBlock Text="ẢNH CHỤP 1" Foreground="White" FontSize="10" FontWeight="Bold"/>
                                 </Border>
 
 
@@ -102,7 +102,7 @@
                             <Grid>
                                 <Image Source="{Binding DataContext.AnhChupVao2, RelativeSource={RelativeSource AncestorType=Window}}" Stretch="UniformToFill"/>
                                 <Border Background="#8027AE60" VerticalAlignment="Top" HorizontalAlignment="Left" Padding="5,2" Margin="5">
-                                    <TextBlock Text="SNAP 2" Foreground="White" FontSize="10" FontWeight="Bold"/>
+                                    <TextBlock Text="ẢNH CHỤP 2" Foreground="White" FontSize="10" FontWeight="Bold"/>
                                 </Border>
                             </Grid>
                         </Border>
@@ -437,7 +437,7 @@
                             <Grid>
                                 <Image Source="{Binding DataContext.AnhChupRa1, RelativeSource={RelativeSource AncestorType=Window}}" Stretch="UniformToFill"/>
                                 <Border Background="#80E74C3C" VerticalAlignment="Top" HorizontalAlignment="Left" Padding="5,2" Margin="5">
-                                    <TextBlock Text="SNAP 1" Foreground="White" FontSize="10" FontWeight="Bold"/>
+                                    <TextBlock Text="ẢNH CHỤP 1" Foreground="White" FontSize="10" FontWeight="Bold"/>
                                 </Border>
 
 
@@ -463,7 +463,7 @@
                             <Grid>
                                 <Image Source="{Binding DataContext.AnhChupRa2, RelativeSource={RelativeSource AncestorType=Window}}" Stretch="UniformToFill"/>
                                 <Border Background="#80E74C3C" VerticalAlignment="Top" HorizontalAlignment="Left" Padding="5,2" Margin="5">
-                                    <TextBlock Text="SNAP 2" Foreground="White" FontSize="10" FontWeight="Bold"/>
+                                    <TextBlock Text="ẢNH CHỤP 2" Foreground="White" FontSize="10" FontWeight="Bold"/>
                                 </Border>
                             </Grid>
                         </Border>

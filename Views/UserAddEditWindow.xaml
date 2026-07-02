@@ -53,7 +53,7 @@
                     
                     <StackPanel Grid.Column="0">
                         <TextBlock Text="TÊN ĐĂNG NHẬP *" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold" FontSize="11" Foreground="{StaticResource TextSecondaryBrush}" Margin="0,0,0,8"/>
-                        <TextBox x:Name="TxtUsername" Style="{StaticResource ModernTextBox}" Tag="Username"/>
+                        <TextBox x:Name="TxtUsername" Style="{StaticResource ModernTextBox}" Tag="Tên đăng nhập"/>
                     </StackPanel>
 
                     <StackPanel Grid.Column="2" x:Name="PanelPassword">

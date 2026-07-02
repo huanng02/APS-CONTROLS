@@ -26,8 +26,15 @@ namespace QuanLyGiuXe.Services
             string countSql = "SELECT COUNT(*) FROM dbo.Companies WHERE IsDeleted = 0";
             if (!string.IsNullOrEmpty(search))
                 countSql += " AND (Code LIKE @search OR Name LIKE @search)";
-            if (!string.IsNullOrEmpty(status) && status != "All")
-                countSql += " AND Status = @status";
+            if (!string.IsNullOrEmpty(status) && status != "All" && status != "Tất cả")
+            {
+                if (status == "Hoạt động" || status == "Active")
+                    countSql += " AND (Status = 'Active' OR Status = N'Hoạt động')";
+                else if (status == "Ngừng hoạt động" || status == "Inactive")
+                    countSql += " AND (Status = 'Inactive' OR Status = N'Ngừng hoạt động')";
+                else
+                    countSql += " AND Status = @status";
+            }
 
             string dataSql = @"
                 SELECT Id, Code, Name, Address, Phone, Status, IsDeleted 
@@ -36,8 +43,15 @@ namespace QuanLyGiuXe.Services
 
             if (!string.IsNullOrEmpty(search))
                 dataSql += " AND (Code LIKE @search OR Name LIKE @search)";
-            if (!string.IsNullOrEmpty(status) && status != "All")
-                dataSql += " AND Status = @status";
+            if (!string.IsNullOrEmpty(status) && status != "All" && status != "Tất cả")
+            {
+                if (status == "Hoạt động" || status == "Active")
+                    dataSql += " AND (Status = 'Active' OR Status = N'Hoạt động')";
+                else if (status == "Ngừng hoạt động" || status == "Inactive")
+                    dataSql += " AND (Status = 'Inactive' OR Status = N'Ngừng hoạt động')";
+                else
+                    dataSql += " AND Status = @status";
+            }
 
             dataSql += " ORDER BY Code OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY";
 
@@ -50,7 +64,7 @@ namespace QuanLyGiuXe.Services
                 {
                     if (!string.IsNullOrEmpty(search))
                         cmd.Parameters.AddWithValue("@search", searchPattern);
-                    if (!string.IsNullOrEmpty(status) && status != "All")
+                    if (!string.IsNullOrEmpty(status) && status != "All" && status != "Tất cả" && status != "Hoạt động" && status != "Active" && status != "Ngừng hoạt động" && status != "Inactive")
                         cmd.Parameters.AddWithValue("@status", status);
                     totalCount = (int)cmd.ExecuteScalar();
                 }
@@ -60,7 +74,7 @@ namespace QuanLyGiuXe.Services
                 {
                     if (!string.IsNullOrEmpty(search))
                         cmd.Parameters.AddWithValue("@search", searchPattern);
-                    if (!string.IsNullOrEmpty(status) && status != "All")
+                    if (!string.IsNullOrEmpty(status) && status != "All" && status != "Tất cả" && status != "Hoạt động" && status != "Active" && status != "Ngừng hoạt động" && status != "Inactive")
                         cmd.Parameters.AddWithValue("@status", status);
                     cmd.Parameters.AddWithValue("@offset", pageIndex * pageSize);
                     cmd.Parameters.AddWithValue("@limit", pageSize);
@@ -577,8 +591,15 @@ namespace QuanLyGiuXe.Services
                 whereClause += " AND e.DepartmentId = @departmentId";
             if (positionId.HasValue)
                 whereClause += " AND e.PositionId = @positionId";
-            if (!string.IsNullOrEmpty(status) && status != "All")
-                whereClause += " AND e.Status = @status";
+            if (!string.IsNullOrEmpty(status) && status != "All" && status != "Tất cả")
+            {
+                if (status == "Hoạt động" || status == "Active")
+                    whereClause += " AND (e.Status = 'Active' OR e.Status = N'Hoạt động')";
+                else if (status == "Ngừng hoạt động" || status == "Inactive")
+                    whereClause += " AND (e.Status = 'Inactive' OR e.Status = N'Ngừng hoạt động')";
+                else
+                    whereClause += " AND e.Status = @status";
+            }
 
             string countSql = $@"
                 SELECT COUNT(*) 
@@ -611,7 +632,7 @@ namespace QuanLyGiuXe.Services
                     if (companyId.HasValue) cmd.Parameters.AddWithValue("@companyId", companyId.Value);
                     if (departmentId.HasValue) cmd.Parameters.AddWithValue("@departmentId", departmentId.Value);
                     if (positionId.HasValue) cmd.Parameters.AddWithValue("@positionId", positionId.Value);
-                    if (!string.IsNullOrEmpty(status) && status != "All") cmd.Parameters.AddWithValue("@status", status);
+                    if (!string.IsNullOrEmpty(status) && status != "All" && status != "Tất cả" && status != "Hoạt động" && status != "Active" && status != "Ngừng hoạt động" && status != "Inactive") cmd.Parameters.AddWithValue("@status", status);
 
                     totalCount = (int)cmd.ExecuteScalar();
                 }
@@ -623,7 +644,7 @@ namespace QuanLyGiuXe.Services
                     if (companyId.HasValue) cmd.Parameters.AddWithValue("@companyId", companyId.Value);
                     if (departmentId.HasValue) cmd.Parameters.AddWithValue("@departmentId", departmentId.Value);
                     if (positionId.HasValue) cmd.Parameters.AddWithValue("@positionId", positionId.Value);
-                    if (!string.IsNullOrEmpty(status) && status != "All") cmd.Parameters.AddWithValue("@status", status);
+                    if (!string.IsNullOrEmpty(status) && status != "All" && status != "Tất cả" && status != "Hoạt động" && status != "Active" && status != "Ngừng hoạt động" && status != "Inactive") cmd.Parameters.AddWithValue("@status", status);
                     cmd.Parameters.AddWithValue("@offset", pageIndex * pageSize);
                     cmd.Parameters.AddWithValue("@limit", pageSize);
 

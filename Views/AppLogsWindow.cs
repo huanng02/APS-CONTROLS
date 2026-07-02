@@ -16,7 +16,7 @@ namespace QuanLyGiuXe.Views
 
         public AppLogsWindow()
         {
-            Title = "Application Logs";
+            Title = "Nhật ký ứng dụng";
             Width = 900;
             Height = 600;
 
@@ -30,13 +30,13 @@ namespace QuanLyGiuXe.Views
                 ItemsSource = _items
             };
 
-            _dg.Columns.Add(new DataGridTextColumn { Header = "Time (UTC)", Binding = new System.Windows.Data.Binding("TimestampUtc") { StringFormat = "o" }, Width = 180 });
-            _dg.Columns.Add(new DataGridTextColumn { Header = "Level", Binding = new System.Windows.Data.Binding("Level"), Width = 80 });
-            _dg.Columns.Add(new DataGridTextColumn { Header = "Event", Binding = new System.Windows.Data.Binding("EventType"), Width = 200 });
-            _dg.Columns.Add(new DataGridTextColumn { Header = "Source", Binding = new System.Windows.Data.Binding("Source"), Width = 140 });
-            _dg.Columns.Add(new DataGridTextColumn { Header = "User", Binding = new System.Windows.Data.Binding("UserId"), Width = 100 });
-            _dg.Columns.Add(new DataGridTextColumn { Header = "Plate", Binding = new System.Windows.Data.Binding("Plate"), Width = 120 });
-            _dg.Columns.Add(new DataGridTextColumn { Header = "Details", Binding = new System.Windows.Data.Binding("Details"), Width = new DataGridLength(1, DataGridLengthUnitType.Star) });
+            _dg.Columns.Add(new DataGridTextColumn { Header = "Thời gian (UTC)", Binding = new System.Windows.Data.Binding("TimestampUtc") { StringFormat = "o" }, Width = 180 });
+            _dg.Columns.Add(new DataGridTextColumn { Header = "Cấp độ", Binding = new System.Windows.Data.Binding("Level"), Width = 80 });
+            _dg.Columns.Add(new DataGridTextColumn { Header = "Sự kiện", Binding = new System.Windows.Data.Binding("EventType"), Width = 200 });
+            _dg.Columns.Add(new DataGridTextColumn { Header = "Nguồn", Binding = new System.Windows.Data.Binding("Source"), Width = 140 });
+            _dg.Columns.Add(new DataGridTextColumn { Header = "Người dùng", Binding = new System.Windows.Data.Binding("UserId"), Width = 100 });
+            _dg.Columns.Add(new DataGridTextColumn { Header = "Biển số", Binding = new System.Windows.Data.Binding("Plate"), Width = 120 });
+            _dg.Columns.Add(new DataGridTextColumn { Header = "Chi tiết", Binding = new System.Windows.Data.Binding("Details"), Width = new DataGridLength(1, DataGridLengthUnitType.Star) });
 
             root.Children.Add(_dg);
 

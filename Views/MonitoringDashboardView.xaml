@@ -551,7 +551,7 @@
                                                 </StackPanel>
                                                 <StackPanel Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right">
                                                     <Ellipse Style="{StaticResource StringStateDotStyle}"/>
-                                                    <TextBlock Text="LIVE" FontSize="9" FontWeight="Bold" Foreground="#10B981" HorizontalAlignment="Right" Margin="0,3,0,0"
+                                                    <TextBlock Text="TRỰC TIẾP" FontSize="9" FontWeight="Bold" Foreground="#10B981" HorizontalAlignment="Right" Margin="0,3,0,0"
                                                              Visibility="{Binding IsOnline, Converter={StaticResource BoolToVis}}"/>
                                                 </StackPanel>
                                             </Grid>
@@ -612,7 +612,7 @@
 
                     <Grid Grid.Row="0" Margin="0,0,0,12">
                         <TextBlock Text="NHẬT KÝ THIẾT BỊ HỆ THỐNG" FontSize="14" FontWeight="Bold" Foreground="#1E293B" VerticalAlignment="Center"/>
-                        <TextBlock Text="Real-time Feed" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                        <TextBlock Text="Truyền phát trực tiếp" FontSize="10" FontWeight="SemiBold" Foreground="{StaticResource TextMutedBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
                     </Grid>
 
                     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">

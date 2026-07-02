@@ -18,7 +18,7 @@ namespace QuanLyGiuXe.ViewModels
             set { _sqlText = value; OnPropertyChanged(); }
         }
 
-        private string _statusMessage = "Ready";
+        private string _statusMessage = "Sẵn sàng";
         public string StatusMessage
         {
             get => _statusMessage;
@@ -53,7 +53,7 @@ namespace QuanLyGiuXe.ViewModels
                 SqlText = "";
                 QueryResult = null;
                 ErrorMessage = "";
-                StatusMessage = "Cleared";
+                StatusMessage = "Đã xóa trắng";
             });
         }
 
@@ -63,7 +63,7 @@ namespace QuanLyGiuXe.ViewModels
         private void ExecuteSql()
         {
             ErrorMessage = "";
-            StatusMessage = "Executing...";
+            StatusMessage = "Đang thực thi...";
             QueryResult = null;
 
             if (string.IsNullOrWhiteSpace(SqlText))

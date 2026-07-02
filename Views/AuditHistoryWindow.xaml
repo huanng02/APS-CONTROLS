@@ -103,7 +103,7 @@
                               Margin="0"
                               SelectionChanged="GridLogs_SelectionChanged">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="ID" Binding="{Binding AuditLogId}" Width="60" FontWeight="SemiBold"/>
+                            <DataGridTextColumn Header="Mã" Binding="{Binding AuditLogId}" Width="60" FontWeight="SemiBold"/>
                             <DataGridTextColumn Header="Thời gian" Binding="{Binding CreatedAt, StringFormat=\{0:dd/MM/yyyy HH:mm:ss\}}" Width="140"/>
                             <DataGridTextColumn Header="Hành động" Binding="{Binding ActionType}" Width="150">
                                 <DataGridTextColumn.ElementStyle>
