@@ -947,7 +947,7 @@ namespace QuanLyGiuXe.ViewModels
                 
                 var (_, zoneId, _, siteName, zoneName, maxCapacity, _, gateName) = await ResolveTopologyForLaneAsync(dbLaneId.Value);
                 string displayLocation = !string.IsNullOrEmpty(gateName) ? $"Cổng: {gateName}" : (!string.IsNullOrEmpty(zoneName) ? $"Zone: {zoneName}" : "Chưa cấu hình");
-                string topoText = string.IsNullOrEmpty(siteName) ? "Chưa cấu hình Cổng" : $"Site: {siteName} - {displayLocation}";
+                string topoText = string.IsNullOrEmpty(siteName) ? "Chưa cấu hình Cổng" : $"Bãi xe: {siteName} - {displayLocation}";
                 int count = 0;
                 if (zoneId.HasValue) count = await db.GetXeTrongBaiCountByZoneAsync(zoneId.Value);
 
