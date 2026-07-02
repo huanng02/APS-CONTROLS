@@ -98,7 +98,7 @@ namespace LicenseTool
             string machineId = MachineIdTextBox.Text?.Trim()?.ToUpperInvariant() ?? string.Empty;
             string product = ProductTextBox.Text?.Trim() ?? "APS";
             string licenseType = (LicenseTypeComboBox.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "Commercial";
-            string licenseKey = LicenseKeyTextBox.Text?.Trim() ?? string.Empty;
+            string licenseKey = string.Empty;
 
             if (string.IsNullOrEmpty(customer))
             {

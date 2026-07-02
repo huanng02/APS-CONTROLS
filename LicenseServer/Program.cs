@@ -118,6 +118,15 @@ using (var scope = app.Services.CreateScope())
                 Console.WriteLine($"[DB Migration] Added column Licenses.{colName}");
             }
         }
+
+        // 3. Enforce MaxMachines = 1 for all licenses (policy: 1 machine per license)
+        using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = "UPDATE Licenses SET MaxMachines = 1 WHERE MaxMachines != 1";
+            int updated = cmd.ExecuteNonQuery();
+            if (updated > 0)
+                Console.WriteLine($"[DB Migration] Enforced MaxMachines=1 on {updated} license(s).");
+        }
     }
     catch (Exception ex)
     {

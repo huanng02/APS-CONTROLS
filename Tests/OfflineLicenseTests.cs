@@ -122,8 +122,8 @@ namespace QuanLyGiuXe.Tests
                     Disk = "DISK_TEST",
                     Bios = "BIOS_TEST"
                 },
-                CreatedDate = "2026-06-29T10:00:00Z",
-                ExpirationDate = "2027-06-29T10:00:00Z"
+                CreatedDate = DateTime.UtcNow.AddHours(-1).ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                ExpirationDate = DateTime.UtcNow.AddYears(1).ToString("yyyy-MM-ddTHH:mm:ssZ")
             };
 
             // Sign the payload using the private key

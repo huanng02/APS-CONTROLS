@@ -21,7 +21,6 @@ namespace QuanLyGiuXe.Views
             {
                 var details = HardwareFingerprintService.GetHardwareDetails();
                 FingerprintBox.Text = HardwareFingerprintService.CalculateMachineId(details);
-                ServerUrlBlock.Text = LicenseValidationService.Instance.GetServerUrl();
                 StatusBlock.Text = string.Empty;
             }
             catch (Exception ex)
@@ -50,7 +49,7 @@ namespace QuanLyGiuXe.Views
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Lỗi xuất yêu cầu kích hoạt: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
+                StatusBlock.Text = $"Lỗi xuất yêu cầu: {ex.Message}";
             }
         }
 
@@ -60,14 +59,15 @@ namespace QuanLyGiuXe.Views
             {
                 var ofd = new Microsoft.Win32.OpenFileDialog
                 {
-                    Filter = "Offline License File (*.bin)|*.bin|All Files (*.*)|*.*",
-                    Title = "Chọn File Bản Quyền Ngoại Tuyến"
+                    Filter = "License File (*.bin)|*.bin",
+                    Title = "Chọn File Bản Quyền Kích Hoạt"
                 };
 
                 if (ofd.ShowDialog() == true)
                 {
-                    var result = LicenseValidationService.Instance.ImportOfflineLicense(ofd.FileName);
-                    if (result.Success)
+                    var importResult = LicenseValidationService.Instance.ImportOfflineLicense(ofd.FileName);
+
+                    if (importResult.Success)
                     {
                         IsActivated = true;
                         MessageBox.Show("Kích hoạt bản quyền ngoại tuyến thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -76,26 +76,20 @@ namespace QuanLyGiuXe.Views
                     }
                     else
                     {
-                        StatusBlock.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 101, 101));
-                        StatusBlock.Text = $"Kích hoạt ngoại tuyến thất bại: {result.ErrorMsg}";
-                        MessageBox.Show($"Lỗi bản quyền: {result.ErrorMsg}", "Kích Hoạt Thất Bại", MessageBoxButton.OK, MessageBoxImage.Error);
+                        StatusBlock.Text = $"Bản quyền không hợp lệ: {importResult.ErrorMsg}";
                     }
                 }
             }
             catch (Exception ex)
             {
-                StatusBlock.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 101, 101));
                 StatusBlock.Text = $"Lỗi nhập bản quyền: {ex.Message}";
-                MessageBox.Show($"Lỗi hệ thống: {ex.Message}", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
         private void Border_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (e.ChangedButton == MouseButton.Left)
-            {
                 this.DragMove();
-            }
         }
 
         private void Copy_Click(object sender, RoutedEventArgs e)
@@ -114,58 +108,6 @@ namespace QuanLyGiuXe.Views
         private void Close_Click(object sender, RoutedEventArgs e)
         {
             this.Close();
-        }
-
-        private async void Activate_Click(object sender, RoutedEventArgs e)
-        {
-            string licenseKey = LicenseKeyBox.Text?.Trim() ?? string.Empty;
-            if (string.IsNullOrEmpty(licenseKey))
-            {
-                StatusBlock.Text = "Vui lòng nhập mã kích hoạt.";
-                return;
-            }
-
-            // Disable UI
-            ActivateButton.IsEnabled = false;
-            LicenseKeyBox.IsEnabled = false;
-            StatusBlock.Foreground = System.Windows.Media.Brushes.LightBlue;
-            StatusBlock.Text = "Đang kết nối máy chủ kích hoạt...";
-
-            try
-            {
-                var result = await LicenseValidationService.Instance.ActivateOnlineAsync(licenseKey);
-
-                if (result.Success)
-                {
-                    IsActivated = true;
-                    MessageBox.Show("Kích hoạt bản quyền thành công!", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
-                    this.DialogResult = true;
-                    this.Close();
-                }
-                else
-                {
-                    StatusBlock.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 101, 101));
-                    StatusBlock.Text = result.ErrorMsg;
-                }
-            }
-            catch (Exception ex)
-            {
-                StatusBlock.Foreground = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(255, 101, 101));
-                StatusBlock.Text = $"Lỗi kích hoạt: {ex.Message}";
-            }
-            finally
-            {
-                ActivateButton.IsEnabled = true;
-                LicenseKeyBox.IsEnabled = true;
-            }
-        }
-
-        private void LicenseKeyBox_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Enter)
-            {
-                Activate_Click(this, new RoutedEventArgs());
-            }
         }
     }
 }

@@ -60,71 +60,7 @@ namespace LicenseTool
             LoadData();
         }
 
-        private void IsPermanentCheckBox_Checked(object sender, RoutedEventArgs e)
-        {
-            if (ExpireDaysBox != null)
-            {
-                ExpireDaysBox.IsEnabled = false;
-                ExpireDaysBox.Text = "Vĩnh viễn";
-            }
-        }
 
-        private void IsPermanentCheckBox_Unchecked(object sender, RoutedEventArgs e)
-        {
-            if (ExpireDaysBox != null)
-            {
-                ExpireDaysBox.IsEnabled = true;
-                ExpireDaysBox.Text = "365";
-            }
-        }
-
-        private async void CreateKey_Click(object sender, RoutedEventArgs e)
-        {
-            int days = 365;
-            if (IsPermanentCheckBox.IsChecked == true)
-            {
-                days = -1;
-            }
-            else
-            {
-                if (!int.TryParse(ExpireDaysBox.Text, out days) || days <= 0)
-                {
-                    MessageBox.Show("Vui lòng nhập số ngày hết hạn hợp lệ.", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    return;
-                }
-            }
-
-            if (!int.TryParse(MaxMachinesBox.Text, out var maxMachines) || maxMachines <= 0)
-            {
-                MessageBox.Show("Vui lòng nhập số lượng máy tối đa hợp lệ.", "Lỗi", MessageBoxButton.OK, MessageBoxImage.Warning);
-                return;
-            }
-
-            StatusBlock.Text = "Đang tạo license key...";
-            try
-            {
-                var url = $"{GetServerUrl()}/api/license/create";
-                var requestBody = new { ExpireDays = days, MaxMachines = maxMachines };
-                var content = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
-
-                var response = await _httpClient.PostAsync(url, content);
-                if (!response.IsSuccessStatusCode)
-                {
-                    StatusBlock.Text = $"Không thể tạo license key: {response.StatusCode}";
-                    return;
-                }
-
-                var resString = await response.Content.ReadAsStringAsync();
-                var newKey = JsonConvert.DeserializeAnonymousType(resString, new { LicenseKey = "" });
-
-                MessageBox.Show($"Tạo License Key thành công:\n\n{newKey?.LicenseKey}", "Thông báo", MessageBoxButton.OK, MessageBoxImage.Information);
-                LoadData();
-            }
-            catch (Exception ex)
-            {
-                StatusBlock.Text = $"Lỗi kết nối khi tạo key: {ex.Message}";
-            }
-        }
 
         private void LicensesGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {

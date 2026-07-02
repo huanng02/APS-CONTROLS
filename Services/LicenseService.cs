@@ -248,6 +248,26 @@ namespace QuanLyGiuXe.Services
             }
         }
 
+        public void UpdateOfflineLicenseLastTimeUsed()
+        {
+            try
+            {
+                if (!File.Exists(_offlineLicenseFilePath)) return;
+                var json = File.ReadAllText(_offlineLicenseFilePath, Encoding.UTF8);
+                var license = JsonConvert.DeserializeObject<OfflineLicense>(json);
+                if (license != null)
+                {
+                    license.LastTimeUsedEncrypted = EncryptDate(DateTime.UtcNow);
+                    var updatedJson = JsonConvert.SerializeObject(license, Formatting.Indented);
+                    File.WriteAllText(_offlineLicenseFilePath, updatedJson, Encoding.UTF8);
+                }
+            }
+            catch (Exception ex)
+            {
+                Serilog.Log.Error($"Failed to update offline license last time used: {ex.Message}");
+            }
+        }
+
         public double CalculateHardwareMatchScore(HardwareDetails local, HardwareDetails licensed)
         {
             double score = 0;
@@ -321,10 +341,34 @@ namespace QuanLyGiuXe.Services
                 return false;
             }
 
-            // 3. Check Expiration
+            // 3. Check Expiration and Clock Tampering
+            if (DateTime.TryParse(license.CreatedDate, out var createdDate))
+            {
+                if (DateTime.UtcNow < createdDate.ToUniversalTime() - TimeSpan.FromMinutes(10))
+                {
+                    errorMsg = "Lỗi đồng hồ hệ thống: Thời gian hiện tại nhỏ hơn thời gian bắt đầu bản quyền. Vui lòng cập nhật thời gian chính xác.";
+                    LicenseManager.CurrentStatus = LicenseStatus.Invalid;
+                    return false;
+                }
+            }
+
+            if (!string.IsNullOrEmpty(license.LastTimeUsedEncrypted))
+            {
+                var lastTimeUsed = DecryptDate(license.LastTimeUsedEncrypted);
+                if (lastTimeUsed.HasValue)
+                {
+                    if (DateTime.UtcNow < lastTimeUsed.Value - TimeSpan.FromMinutes(10))
+                    {
+                        errorMsg = "Lỗi đồng hồ hệ thống: Thời gian hiện tại nhỏ hơn thời gian sử dụng gần nhất. Vui lòng cập nhật thời gian chính xác.";
+                        LicenseManager.CurrentStatus = LicenseStatus.Invalid;
+                        return false;
+                    }
+                }
+            }
+
             if (DateTime.TryParse(license.ExpirationDate, out var expireDate))
             {
-                if (expireDate < DateTime.UtcNow)
+                if (expireDate.ToUniversalTime() < DateTime.UtcNow)
                 {
                     errorMsg = $"Bản quyền ngoại tuyến đã hết hạn sử dụng vào ngày: {expireDate.ToLocalTime():yyyy-MM-dd HH:mm:ss} (Expired).";
                     LicenseManager.CurrentStatus = LicenseStatus.Expired;
@@ -394,6 +438,16 @@ namespace QuanLyGiuXe.Services
                     if (VerifyOfflineLicense(license, out errorMsg))
                     {
                         Serilog.Log.Information("LICENSE_VALID_OFFLINE: Offline license is active and validated.");
+                        try
+                        {
+                            license.LastTimeUsedEncrypted = EncryptDate(DateTime.UtcNow);
+                            var updatedJson = JsonConvert.SerializeObject(license, Formatting.Indented);
+                            File.WriteAllText(_offlineLicenseFilePath, updatedJson, Encoding.UTF8);
+                        }
+                        catch (Exception ex)
+                        {
+                            Serilog.Log.Error($"Failed to update last time used in offline license: {ex.Message}");
+                        }
                         return true;
                     }
                     else
@@ -455,7 +509,7 @@ namespace QuanLyGiuXe.Services
                 // 2. Check Expiration
                 if (DateTime.TryParse(license.ExpireAt, out var expireDate))
                 {
-                    if (expireDate < DateTime.UtcNow)
+                    if (expireDate.ToUniversalTime() < DateTime.UtcNow)
                     {
                         errorMsg = $"Bản quyền đã hết hạn vào ngày: {expireDate.ToLocalTime():yyyy-MM-dd HH:mm:ss}.";
                         LicenseManager.CurrentStatus = LicenseStatus.Expired;

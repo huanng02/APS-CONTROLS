@@ -54,13 +54,48 @@ namespace QuanLyGiuXe.Services
                 // Bypass server heartbeat check for offline activated licenses
                 if (LicenseManager.CurrentStatus == LicenseStatus.Activated && LicenseManager.CurrentLicense != null)
                 {
+                    if (DateTime.TryParse(LicenseManager.CurrentLicense.CreatedDate, out var createdDate))
+                    {
+                        if (DateTime.UtcNow < createdDate.ToUniversalTime() - TimeSpan.FromMinutes(10))
+                        {
+                            LicenseManager.CurrentStatus = LicenseStatus.Invalid;
+                            NotifyInvalid("Lỗi đồng hồ hệ thống: Thời gian hiện tại nhỏ hơn thời gian bắt đầu bản quyền. Vui lòng cập nhật thời gian chính xác.");
+                            return;
+                        }
+                    }
+
+                    if (!string.IsNullOrEmpty(LicenseManager.CurrentLicense.LastTimeUsedEncrypted))
+                    {
+                        var lastTimeUsed = LicenseValidationService.Instance.DecryptDate(LicenseManager.CurrentLicense.LastTimeUsedEncrypted);
+                        if (lastTimeUsed.HasValue)
+                        {
+                            if (DateTime.UtcNow < lastTimeUsed.Value - TimeSpan.FromMinutes(10))
+                            {
+                                LicenseManager.CurrentStatus = LicenseStatus.Invalid;
+                                NotifyInvalid("Lỗi đồng hồ hệ thống: Thời gian hiện tại nhỏ hơn thời gian sử dụng gần nhất. Vui lòng cập nhật thời gian chính xác.");
+                                return;
+                            }
+                        }
+                    }
+
                     if (DateTime.TryParse(LicenseManager.CurrentLicense.ExpirationDate, out var expireDate))
                     {
-                        if (expireDate < DateTime.UtcNow)
+                        if (expireDate.ToUniversalTime() < DateTime.UtcNow)
                         {
                             LicenseManager.CurrentStatus = LicenseStatus.Expired;
                             NotifyInvalid($"Bản quyền ngoại tuyến đã hết hạn vào ngày: {expireDate.ToLocalTime():yyyy-MM-dd HH:mm:ss}.");
+                            return;
                         }
+                    }
+
+                    try
+                    {
+                        LicenseValidationService.Instance.UpdateOfflineLicenseLastTimeUsed();
+                        LicenseManager.CurrentLicense.LastTimeUsedEncrypted = LicenseValidationService.Instance.EncryptDate(DateTime.UtcNow);
+                    }
+                    catch (Exception ex)
+                    {
+                        Serilog.Log.Error($"Failed to update offline license last time used: {ex.Message}");
                     }
                     return;
                 }

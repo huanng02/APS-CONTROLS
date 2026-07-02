@@ -112,20 +112,7 @@
 
                     <Border Height="1" Background="#242635" Margin="0,4,0,16"/>
 
-                    <!-- Create Key Section -->
-                    <TextBlock Text="TẠO LICENSE KEY" FontSize="12" FontWeight="Bold" Foreground="#00D2FF" Margin="0,0,0,12"/>
-                    
-                    <TextBlock Text="Thời hạn (ngày):" FontSize="11" Foreground="#8A8F9E" Margin="0,0,0,4"/>
-                    <TextBox x:Name="ExpireDaysBox" Text="365" Style="{StaticResource ModernTextBox}" Margin="0,0,0,8"/>
-                    
-                    <CheckBox x:Name="IsPermanentCheckBox" Content="Vĩnh viễn (Không hết hạn)" Foreground="#8A8F9E" FontSize="12" Margin="0,0,0,16" Checked="IsPermanentCheckBox_Checked" Unchecked="IsPermanentCheckBox_Unchecked"/>
 
-                    <TextBlock Text="Số máy tối đa:" FontSize="11" Foreground="#8A8F9E" Margin="0,0,0,4"/>
-                    <TextBox x:Name="MaxMachinesBox" Text="4" Style="{StaticResource ModernTextBox}" Margin="0,0,0,20"/>
-
-                    <Button Style="{StaticResource AccentButton}" Content="Tạo Key Mới" Click="CreateKey_Click" Height="38"/>
-
-                    <Border Height="1" Background="#242635" Margin="0,16,0,16"/>
                     <TextBlock Text="BẢN QUYỀN OFFLINE" FontSize="12" FontWeight="Bold" Foreground="#00D2FF" Margin="0,0,0,12"/>
                     <Button Style="{StaticResource ModernButton}" Content="Tạo Bản Quyền Offline" Click="OfflineGenerator_Click" Height="38" Background="#2F313E"/>
                 </StackPanel>

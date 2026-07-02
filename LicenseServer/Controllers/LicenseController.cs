@@ -47,7 +47,7 @@ namespace LicenseServer.Controllers
             var license = new License
             {
                 LicenseKey = key,
-                MaxMachines = request.MaxMachines <= 0 ? 4 : request.MaxMachines,
+                MaxMachines = 1,
                 Status = "NOT_ACTIVATED",
                 ExpireDate = expireAt,
                 CreatedAt = DateTime.UtcNow
@@ -399,7 +399,7 @@ namespace LicenseServer.Controllers
                 license = new License
                 {
                     LicenseKey = licenseKey,
-                    MaxMachines = 4,
+                    MaxMachines = 1,
                     Status = "ACTIVE",
                     CreatedAt = DateTime.UtcNow
                 };
@@ -417,7 +417,7 @@ namespace LicenseServer.Controllers
                     license = new License
                     {
                         LicenseKey = licenseKey,
-                        MaxMachines = 4,
+                        MaxMachines = 1,
                         Status = "ACTIVE",
                         CreatedAt = DateTime.UtcNow
                     };
@@ -521,7 +521,7 @@ namespace LicenseServer.Controllers
     public class CreateLicenseRequest
     {
         public int ExpireDays { get; set; } = 365;
-        public int MaxMachines { get; set; } = 4;
+        public int MaxMachines { get; set; } = 1;
     }
 
     public class ActivateLicenseRequest

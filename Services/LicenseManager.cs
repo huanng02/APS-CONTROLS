@@ -49,6 +49,9 @@ namespace QuanLyGiuXe.Services
 
         [JsonProperty("signature")]
         public string Signature { get; set; } = string.Empty;
+
+        [JsonProperty("lastTimeUsedEncrypted")]
+        public string LastTimeUsedEncrypted { get; set; } = string.Empty;
     }
 
     public static class LicenseManager
