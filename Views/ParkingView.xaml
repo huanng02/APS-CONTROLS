@@ -96,6 +96,102 @@
                                 <Border Background="#80000000" VerticalAlignment="Top" HorizontalAlignment="Left" Padding="5,2" Margin="5">
                                     <TextBlock Text="CAM BIỂN SỐ" Foreground="White" FontSize="10" FontWeight="Bold"/>
                                 </Border>
+                                
+                                <!-- Nút cài đặt ROI góc phải -->
+                                <Button x:Name="BtnSettingRoiVao" VerticalAlignment="Top" HorizontalAlignment="Right" 
+                                        Margin="5" Padding="6,3" Background="#80000000" BorderThickness="0"
+                                        Click="BtnSettingRoiVao_Click" Cursor="Hand">
+                                    <TextBlock Text="⚙️ Cân chỉnh ROI" Foreground="White" FontSize="9" FontWeight="SemiBold"/>
+                                </Button>
+                                
+                                <!-- Khung nhận diện LPR 60% trung tâm -->
+                                <Grid x:Name="GridRoiVao" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                      Width="{Binding ActualWidth, ElementName=CameraVao2}"
+                                      Height="{Binding ActualHeight, ElementName=CameraVao2}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="20*"/>
+                                        <ColumnDefinition Width="60*"/>
+                                        <ColumnDefinition Width="20*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="20*"/>
+                                        <RowDefinition Height="60*"/>
+                                        <RowDefinition Height="20*"/>
+                                    </Grid.RowDefinitions>
+                                    <Border Grid.Row="1" Grid.Column="1" BorderBrush="#00FF00" BorderThickness="1.5" CornerRadius="2" IsHitTestVisible="False" Opacity="0.8">
+                                        <Border.Effect>
+                                            <DropShadowEffect Color="Black" BlurRadius="3" ShadowDepth="1" Opacity="0.5"/>
+                                        </Border.Effect>
+                                        <TextBlock Text="Khu Vực Nhận Diện LPR" Foreground="#00FF00" FontSize="8" FontWeight="Bold" Margin="4" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+                                    </Border>
+                                </Grid>
+                                
+                                <!-- Panel Cài đặt ROI Làn Vào (Overlay) -->
+                                <Border x:Name="PanelRoiVao" Background="#F01E293B" CornerRadius="4" Margin="10" Padding="8" 
+                                        VerticalAlignment="Bottom" HorizontalAlignment="Stretch" Visibility="Collapsed">
+                                    <StackPanel>
+                                        <TextBlock Text="CÂN CHỈNH VÙNG QUÉT BIỂN SỐ (LÀN VÀO)" Foreground="White" FontSize="10" FontWeight="Bold" Margin="0,0,0,8"/>
+                                        
+                                        <!-- X Slider -->
+                                        <Grid Margin="0,0,0,4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="65"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="30"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="Lệch trái X:" Foreground="#E2E8F0" FontSize="9" VerticalAlignment="Center"/>
+                                            <Slider x:Name="SliderRoiVaoX" Grid.Column="1" Minimum="0" Maximum="90" Value="20" ValueChanged="SliderRoiVao_ValueChanged"/>
+                                            <TextBlock Grid.Column="2" Text="{Binding Value, ElementName=SliderRoiVaoX, StringFormat={}{0:F0}%}" Foreground="White" FontSize="9" VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                                        </Grid>
+                                        
+                                        <!-- Y Slider -->
+                                        <Grid Margin="0,0,0,4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="65"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="30"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="Lệch trên Y:" Foreground="#E2E8F0" FontSize="9" VerticalAlignment="Center"/>
+                                            <Slider x:Name="SliderRoiVaoY" Grid.Column="1" Minimum="0" Maximum="90" Value="20" ValueChanged="SliderRoiVao_ValueChanged"/>
+                                            <TextBlock Grid.Column="2" Text="{Binding Value, ElementName=SliderRoiVaoY, StringFormat={}{0:F0}%}" Foreground="White" FontSize="9" VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                                        </Grid>
+                                        
+                                        <!-- Width Slider -->
+                                        <Grid Margin="0,0,0,4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="65"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="30"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="Rộng W:" Foreground="#E2E8F0" FontSize="9" VerticalAlignment="Center"/>
+                                            <Slider x:Name="SliderRoiVaoW" Grid.Column="1" Minimum="10" Maximum="100" Value="60" ValueChanged="SliderRoiVao_ValueChanged"/>
+                                            <TextBlock Grid.Column="2" Text="{Binding Value, ElementName=SliderRoiVaoW, StringFormat={}{0:F0}%}" Foreground="White" FontSize="9" VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                                        </Grid>
+                                        
+                                        <!-- Height Slider -->
+                                        <Grid Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="65"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="30"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="Cao H:" Foreground="#E2E8F0" FontSize="9" VerticalAlignment="Center"/>
+                                            <Slider x:Name="SliderRoiVaoH" Grid.Column="1" Minimum="10" Maximum="100" Value="60" ValueChanged="SliderRoiVao_ValueChanged"/>
+                                            <TextBlock Grid.Column="2" Text="{Binding Value, ElementName=SliderRoiVaoH, StringFormat={}{0:F0}%}" Foreground="White" FontSize="9" VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                                        </Grid>
+                                        
+                                        <!-- Buttons -->
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="8"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Button Content="Đóng" Click="BtnCloseRoiVao_Click" Background="#475569" Foreground="White" BorderThickness="0" Padding="5,3" FontSize="9"/>
+                                            <Button Grid.Column="2" Content="Lưu lại" Click="BtnSaveRoiVao_Click" Background="#22C55E" Foreground="White" BorderThickness="0" Padding="5,3" FontSize="9" FontWeight="Bold"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
                             </Grid>
                         </Border>
                         <Border Grid.Column="1" Background="Black" CornerRadius="4" Margin="4,0,0,0">
@@ -456,6 +552,102 @@
                                 <Image x:Name="CameraRa2" Stretch="UniformToFill"/>
                                 <Border Background="#80000000" VerticalAlignment="Top" HorizontalAlignment="Left" Padding="5,2" Margin="5">
                                     <TextBlock Text="CAM BIỂN SỐ" Foreground="White" FontSize="10" FontWeight="Bold"/>
+                                </Border>
+                                
+                                <!-- Nút cài đặt ROI góc phải -->
+                                <Button x:Name="BtnSettingRoiRa" VerticalAlignment="Top" HorizontalAlignment="Right" 
+                                        Margin="5" Padding="6,3" Background="#80000000" BorderThickness="0"
+                                        Click="BtnSettingRoiRa_Click" Cursor="Hand">
+                                    <TextBlock Text="⚙️ Cân chỉnh ROI" Foreground="White" FontSize="9" FontWeight="SemiBold"/>
+                                </Button>
+                                
+                                <!-- Khung nhận diện LPR 60% trung tâm -->
+                                <Grid x:Name="GridRoiRa" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                      Width="{Binding ActualWidth, ElementName=CameraRa2}"
+                                      Height="{Binding ActualHeight, ElementName=CameraRa2}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="20*"/>
+                                        <ColumnDefinition Width="60*"/>
+                                        <ColumnDefinition Width="20*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="20*"/>
+                                        <RowDefinition Height="60*"/>
+                                        <RowDefinition Height="20*"/>
+                                    </Grid.RowDefinitions>
+                                    <Border Grid.Row="1" Grid.Column="1" BorderBrush="#00FF00" BorderThickness="1.5" CornerRadius="2" IsHitTestVisible="False" Opacity="0.8">
+                                        <Border.Effect>
+                                            <DropShadowEffect Color="Black" BlurRadius="3" ShadowDepth="1" Opacity="0.5"/>
+                                        </Border.Effect>
+                                        <TextBlock Text="Khu Vực Nhận Diện LPR" Foreground="#00FF00" FontSize="8" FontWeight="Bold" Margin="4" HorizontalAlignment="Left" VerticalAlignment="Top"/>
+                                    </Border>
+                                </Grid>
+                                
+                                <!-- Panel Cài đặt ROI Làn Ra (Overlay) -->
+                                <Border x:Name="PanelRoiRa" Background="#F01E293B" CornerRadius="4" Margin="10" Padding="8" 
+                                        VerticalAlignment="Bottom" HorizontalAlignment="Stretch" Visibility="Collapsed">
+                                    <StackPanel>
+                                        <TextBlock Text="CÂN CHỈNH VÙNG QUÉT BIỂN SỐ (LÀN RA)" Foreground="White" FontSize="10" FontWeight="Bold" Margin="0,0,0,8"/>
+                                        
+                                        <!-- X Slider -->
+                                        <Grid Margin="0,0,0,4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="65"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="30"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="Lệch trái X:" Foreground="#E2E8F0" FontSize="9" VerticalAlignment="Center"/>
+                                            <Slider x:Name="SliderRoiRaX" Grid.Column="1" Minimum="0" Maximum="90" Value="20" ValueChanged="SliderRoiRa_ValueChanged"/>
+                                            <TextBlock Grid.Column="2" Text="{Binding Value, ElementName=SliderRoiRaX, StringFormat={}{0:F0}%}" Foreground="White" FontSize="9" VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                                        </Grid>
+                                        
+                                        <!-- Y Slider -->
+                                        <Grid Margin="0,0,0,4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="65"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="30"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="Lệch trên Y:" Foreground="#E2E8F0" FontSize="9" VerticalAlignment="Center"/>
+                                            <Slider x:Name="SliderRoiRaY" Grid.Column="1" Minimum="0" Maximum="90" Value="20" ValueChanged="SliderRoiRa_ValueChanged"/>
+                                            <TextBlock Grid.Column="2" Text="{Binding Value, ElementName=SliderRoiRaY, StringFormat={}{0:F0}%}" Foreground="White" FontSize="9" VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                                        </Grid>
+                                        
+                                        <!-- Width Slider -->
+                                        <Grid Margin="0,0,0,4">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="65"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="30"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="Rộng W:" Foreground="#E2E8F0" FontSize="9" VerticalAlignment="Center"/>
+                                            <Slider x:Name="SliderRoiRaW" Grid.Column="1" Minimum="10" Maximum="100" Value="60" ValueChanged="SliderRoiRa_ValueChanged"/>
+                                            <TextBlock Grid.Column="2" Text="{Binding Value, ElementName=SliderRoiRaW, StringFormat={}{0:F0}%}" Foreground="White" FontSize="9" VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                                        </Grid>
+                                        
+                                        <!-- Height Slider -->
+                                        <Grid Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="65"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="30"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="Cao H:" Foreground="#E2E8F0" FontSize="9" VerticalAlignment="Center"/>
+                                            <Slider x:Name="SliderRoiRaH" Grid.Column="1" Minimum="10" Maximum="100" Value="60" ValueChanged="SliderRoiRa_ValueChanged"/>
+                                            <TextBlock Grid.Column="2" Text="{Binding Value, ElementName=SliderRoiRaH, StringFormat={}{0:F0}%}" Foreground="White" FontSize="9" VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                                        </Grid>
+                                        
+                                        <!-- Buttons -->
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="8"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Button Content="Đóng" Click="BtnCloseRoiRa_Click" Background="#475569" Foreground="White" BorderThickness="0" Padding="5,3" FontSize="9"/>
+                                            <Button Grid.Column="2" Content="Lưu lại" Click="BtnSaveRoiRa_Click" Background="#22C55E" Foreground="White" BorderThickness="0" Padding="5,3" FontSize="9" FontWeight="Bold"/>
+                                        </Grid>
+                                    </StackPanel>
                                 </Border>
                             </Grid>
                         </Border>

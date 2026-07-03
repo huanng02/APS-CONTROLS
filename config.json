@@ -1,5 +1,5 @@
 {
-  "WorkstationId": "e07bf79b-854a-457f-b924-353adf7fcc28",
+  "WorkstationId": "4d57abc3-180f-461d-85de-431bc36d4392",
   "ZKTeco": {
     "ControllerType": 0,
     "Protocol": "TCP",
@@ -23,19 +23,27 @@
   },
   "Cameras": {
     "VaoToanCanh": "",
-    "VaoBienSo": "",
+    "VaoBienSo": "rtsp://192.168.1.121:554/user=admin_password=tlJwpbo6_channel=0_stream=0&onvif=0.sdp?real_stream",
     "RaToanCanh": "",
-    "RaBienSo": "",
+    "RaBienSo": "rtsp://192.168.1.117:554/user=admin_password=tlJwpbo6_channel=0_stream=0&onvif=0.sdp?real_stream",
     "LaneCameras": [
-      {
-        "LaneId": 4,
-        "ToanCanh": "",
-        "BienSo": "rtsp://192.168.1.121:554/user=admin_password=tlJwpbo6_channel=0_stream=0&onvif=0.sdp?real_stream"
-      },
       {
         "LaneId": 3,
         "ToanCanh": "",
-        "BienSo": "rtsp://192.168.1.117:554/user=admin_password=tlJwpbo6_channel=0_stream=0&onvif=0.sdp?real_stream"
+        "BienSo": "rtsp://192.168.1.117:554/user=admin_password=tlJwpbo6_channel=0_stream=0&onvif=0.sdp?real_stream",
+        "RoiX": 0.19617021276595734,
+        "RoiY": 0.3034042553191487,
+        "RoiWidth": 0.6,
+        "RoiHeight": 0.5961702127659576
+      },
+      {
+        "LaneId": 4,
+        "ToanCanh": "",
+        "BienSo": "rtsp://192.168.1.121:554/user=admin_password=tlJwpbo6_channel=0_stream=0&onvif=0.sdp?real_stream",
+        "RoiX": 0.2,
+        "RoiY": 0.2957446808510643,
+        "RoiWidth": 0.6,
+        "RoiHeight": 0.6
       }
     ],
     "AutoSyncFromDb": false,

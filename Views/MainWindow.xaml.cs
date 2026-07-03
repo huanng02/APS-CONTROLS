@@ -858,7 +858,7 @@ namespace QuanLyGiuXe
                 int uiLaneForAuto = GetUiLaneIndexForPlateDetection(data.CamKey);
                 if (uiLaneForAuto > 0)
                 {
-                    RunAutoDetection(data.Frame, uiLaneForAuto);
+                    RunAutoDetection(data.Frame, uiLaneForAuto, data.CamKey);
                 }
             };
 
@@ -998,7 +998,7 @@ namespace QuanLyGiuXe
             }
         }
 
-        private async void RunAutoDetection(Mat originalMat, int uiLaneIndex)
+        private async void RunAutoDetection(Mat originalMat, int uiLaneIndex, string camKey)
         {
             if (_isProcessingAuto) return;
 
@@ -1042,7 +1042,7 @@ namespace QuanLyGiuXe
                 using (frameClone)
                 {
                     // Call the high-performance OpenCV-based RecognizePlateAsync directly
-                    var lprResult = await PlateRecognitionService.Instance.RecognizePlateAsync(frameClone);
+                    var lprResult = await PlateRecognitionService.Instance.RecognizePlateAsync(frameClone, camKey);
                     string plate = lprResult.Plate;
 
                     this.Dispatcher.BeginInvoke(new Action(() =>
@@ -1297,7 +1297,7 @@ namespace QuanLyGiuXe
 
                             // BƯỚC 2: GỌI API (Vẫn dùng await)
                             // Trong lúc API chạy, finalBitmap này sẽ an toàn, không bị camera ghi đè
-                            string plate = await ApiService.SendImageAsync(finalBitmap);
+                            string plate = await ApiService.SendImageAsync(finalBitmap, targetCamKey);
 
                             // BƯỚC 3: CẬP NHẬT GIAO DIỆN
                             if (DataContext is MainViewModel vm)

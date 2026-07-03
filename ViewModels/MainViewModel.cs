@@ -1426,21 +1426,27 @@ namespace QuanLyGiuXe.ViewModels
             string province = clean.Substring(0, 2);
             char seriesChar = clean[2];
             bool isCar = false;
-            
-            // Nếu thuộc nhóm xe con thông dụng ở tất cả các tỉnh (A, B, C, D) hoặc F (Hà Nội, HCM và một số tỉnh lẻ cũ)
-            if ("ABCDF".Contains(seriesChar))
+            if (!string.IsNullOrEmpty(vehicleType))
             {
-                isCar = true;
+                isCar = string.Equals(vehicleType, "oto", StringComparison.OrdinalIgnoreCase);
             }
-            // Nếu là các chữ cái khác (G, H, K, L...), chỉ được coi là ô tô nếu ở Hà Nội (30-33) hoặc TP.HCM (50-59)
-            else if ("EGHIKLMNPRSTUVWXYZ".Contains(seriesChar))
+            else
             {
-                int provNum;
-                if (int.TryParse(province, out provNum))
+                // Nếu thuộc nhóm xe con thông dụng ở tất cả các tỉnh (A, B, C, D) hoặc F (Hà Nội, HCM và một số tỉnh lẻ cũ)
+                if ("ABCDF".Contains(seriesChar))
                 {
-                    if ((provNum >= 30 && provNum <= 33) || (provNum >= 50 && provNum <= 59))
+                    isCar = true;
+                }
+                // Nếu là các chữ cái khác (G, H, K, L...), chỉ được coi là ô tô nếu ở Hà Nội (30-33) hoặc TP.HCM (50-59)
+                else if ("EGHIKLMNPRSTUVWXYZ".Contains(seriesChar))
+                {
+                    int provNum;
+                    if (int.TryParse(province, out provNum))
                     {
-                        isCar = true;
+                        if ((provNum >= 30 && provNum <= 33) || (provNum >= 50 && provNum <= 59))
+                        {
+                            isCar = true;
+                        }
                     }
                 }
             }
@@ -2208,7 +2214,7 @@ namespace QuanLyGiuXe.ViewModels
                     Task<LprResult>? lprTask = null;
                     if (plateRawFrame != null && !plateRawFrame.Empty())
                     {
-                        lprTask = PlateRecognitionService.Instance.RecognizePlateAsync(plateRawFrame);
+                        lprTask = PlateRecognitionService.Instance.RecognizePlateAsync(plateRawFrame, plateCamKey);
                     }
 
                     // Reset UI details immediately (Marshal to UI thread)
@@ -3338,7 +3344,7 @@ namespace QuanLyGiuXe.ViewModels
                     {
                         var lprResult =
                             await PlateRecognitionService.Instance
-                            .RecognizePlateAsync(plateRawFrame);
+                            .RecognizePlateAsync(plateRawFrame, lprCamKey2);
 
                         recognizedPlate = lprResult.Plate;
                         plateCropBytes = lprResult.PlateCropBytes;

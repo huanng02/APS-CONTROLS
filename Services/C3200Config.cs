@@ -292,6 +292,10 @@ namespace QuanLyGiuXe.Services
         public int LaneId { get; set; }
         public string ToanCanh { get; set; } = "";
         public string BienSo { get; set; } = "";
+        public double RoiX { get; set; } = 0.2;
+        public double RoiY { get; set; } = 0.2;
+        public double RoiWidth { get; set; } = 0.6;
+        public double RoiHeight { get; set; } = 0.6;
     }
 
     public sealed class BackupConfig

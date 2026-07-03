@@ -100,7 +100,7 @@ namespace QuanLyGiuXe.Services
         /// Nhận diện biển số từ frame camera.
         /// Trả về LprResult gồm biển số và ảnh crop (nếu có).
         /// </summary>
-        public async Task<LprResult> RecognizePlateAsync(Mat frame, CancellationToken ct = default)
+        public async Task<LprResult> RecognizePlateAsync(Mat frame, string cameraId = "", CancellationToken ct = default)
         {
             var result = new LprResult();
 
@@ -109,10 +109,52 @@ namespace QuanLyGiuXe.Services
 
             try
             {
+                double rx = 0.2;
+                double ry = 0.2;
+                double rw = 0.6;
+                double rh = 0.6;
+
+                try
+                {
+                    int laneId = 0;
+                    if (!string.IsNullOrEmpty(cameraId))
+                    {
+                        var parts = cameraId.Split('_');
+                        if (parts.Length >= 2 && parts[0].Equals("Lane", StringComparison.OrdinalIgnoreCase))
+                        {
+                            int.TryParse(parts[1], out laneId);
+                        }
+                    }
+
+                    if (laneId > 0)
+                    {
+                        var cfg = AppConfig.Load();
+                        var laneCam = cfg.Cameras.LaneCameras.Find(c => c.LaneId == laneId);
+                        if (laneCam != null)
+                        {
+                            rx = Math.Max(0.0, Math.Min(1.0, laneCam.RoiX));
+                            ry = Math.Max(0.0, Math.Min(1.0, laneCam.RoiY));
+                            rw = Math.Max(0.0, Math.Min(1.0 - rx, laneCam.RoiWidth));
+                            rh = Math.Max(0.0, Math.Min(1.0 - ry, laneCam.RoiHeight));
+                        }
+                    }
+                }
+                catch { }
+
                 byte[] jpegBytes = await Task.Run(() =>
                 {
-                    Cv2.ImEncode(".jpg", frame, out var buf, _jpegParams);
-                    return buf;
+                    int w = frame.Width;
+                    int h = frame.Height;
+                    int cropX = (int)(w * rx);
+                    int cropY = (int)(h * ry);
+                    int cropW = (int)(w * rw);
+                    int cropH = (int)(h * rh);
+
+                    using (Mat croppedMat = new Mat(frame, new Rect(cropX, cropY, cropW, cropH)))
+                    {
+                        Cv2.ImEncode(".jpg", croppedMat, out var buf, _jpegParams);
+                        return buf;
+                    }
                 }, ct);
 
                 if (jpegBytes == null || jpegBytes.Length == 0)
@@ -122,6 +164,11 @@ namespace QuanLyGiuXe.Services
                 using var imageContent = new ByteArrayContent(jpegBytes);
                 imageContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/jpeg");
                 content.Add(imageContent, "image", "plate.jpg");
+
+                if (!string.IsNullOrEmpty(cameraId))
+                {
+                    content.Add(new StringContent(cameraId), "camera_id");
+                }
 
                 using var response = await _client.PostAsync(LprEndpoint, content, ct);
                 if (!response.IsSuccessStatusCode)
