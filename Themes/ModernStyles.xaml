@@ -1,0 +1,26 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Re-routing old keys to new Branded Colors for compatibility -->
+    <SolidColorBrush x:Key="BgDarkBrush" Color="{StaticResource BgWhiteColor}"/>
+    <SolidColorBrush x:Key="BgCardBrush" Color="{StaticResource BgWhiteColor}"/>
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource TextPrimaryColor}"/>
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource TextSecondaryColor}"/>
+    <SolidColorBrush x:Key="AccentCyanBrush" Color="{StaticResource APSBlueColor}"/>
+    
+    <SolidColorBrush x:Key="InfoBrush" Color="{StaticResource InfoColor}"/>
+    <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource WarningColor}"/>
+    <SolidColorBrush x:Key="ErrorBrush" Color="{StaticResource DangerColor}"/>
+    <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource SuccessColor}"/>
+
+    <!-- DataGrid Colors -->
+    <SolidColorBrush x:Key="BorderLightBrush" Color="{StaticResource BorderLightColor}"/>
+
+    <!-- Legacy Style Aliases -->
+    <Style x:Key="ModernTitleTextBlock" TargetType="TextBlock" BasedOn="{StaticResource Heading2Style}">
+        <Setter Property="Foreground" Value="{StaticResource APSBlueBrush}"/>
+    </Style>
+
+    <Style x:Key="ModernCardBorder" TargetType="Border" BasedOn="{StaticResource EnterpriseCardBorder}"/>
+
+</ResourceDictionary>

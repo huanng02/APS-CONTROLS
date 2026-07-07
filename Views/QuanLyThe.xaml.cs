@@ -1,107 +1,98 @@
-﻿using System;
-using System.Collections.Generic;
+using System;
 using System.Data.SqlClient;
-using System.IO.Ports;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 using QuanLyGiuXe.Services;
+
 namespace QuanLyGiuXe.Views
 {
-    /// <summary>
-    /// Interaction logic for QuanLyThe.xaml
-    /// </summary>
     public partial class QuanLyThe : Window
     {
-        SerialPort port;
         public QuanLyThe()
         {
             InitializeComponent();
-            RFIDService.Instance.OnCardScanned += RFID_OnCardScanned;
+            RFIDEventRouterService.Instance.SetTerminalContext(Environment.MachineName, RFIDContextType.CardEnrollment);
+            CardEnrollmentHandler.OnCardEnrolled += OnCardEnrolledByRouter;
+            LoadEmployees();
         }
-            private void RFID_OnCardScanned(string uid)
+
+        private void LoadEmployees()
         {
-            Dispatcher.Invoke(() =>
+            try
             {
-                txtUID.Text = uid;
-            });
+                var empService = new EnterpriseCrudService();
+                var list = empService.GetEmployeesPaged(string.Empty, null, null, null, "Active", 0, 1000, out _);
+                cbNhanVien.ItemsSource = list;
+            }
+            catch { }
         }
+
+        private void cbLoaiThe_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (lblNhanVien == null || cbNhanVien == null) return;
+            string? loaiThe = (cbLoaiThe.SelectedItem as ComboBoxItem)?.Content?.ToString();
+            if (loaiThe != null && (loaiThe.ToLowerInvariant().Contains("thang") || loaiThe.ToLowerInvariant().Contains("tháng")))
+            {
+                lblNhanVien.Visibility = Visibility.Visible;
+                cbNhanVien.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                lblNhanVien.Visibility = Visibility.Collapsed;
+                cbNhanVien.Visibility = Visibility.Collapsed;
+                cbNhanVien.SelectedIndex = -1;
+            }
+        }
+
         protected override void OnClosed(EventArgs e)
         {
-            RFIDService.Instance.OnCardScanned -= RFID_OnCardScanned;
+            CardEnrollmentHandler.OnCardEnrolled -= OnCardEnrolledByRouter;
+            RFIDEventRouterService.Instance.ResetTerminalToDefault(Environment.MachineName);
             base.OnClosed(e);
         }
 
-
+        private void OnCardEnrolledByRouter(string uid) =>
+            Dispatcher.BeginInvoke(new Action(() => txtUID.Text = uid));
 
         private void SaveCard(object sender, RoutedEventArgs e)
         {
             string uid = RFIDService.ChuanHoaUID(txtUID.Text);
-            string bienSo = txtBienSo.Text;
-            string loaiThe = (cbLoaiThe.SelectedItem as ComboBoxItem)?.Content?.ToString();
-            // VALIDATE 
+            string bienSo = txtBienSo.Text.ToUpper();
+            string? loaiThe = (cbLoaiThe.SelectedItem as ComboBoxItem)?.Content?.ToString();
 
             if (string.IsNullOrEmpty(uid))
-            {
-                MessageBox.Show("❌ Chưa quét thẻ!");
-                return;
-            }
+            { MessageBox.Show("❌ Chưa quét thẻ!"); return; }
 
             if (string.IsNullOrEmpty(bienSo))
-            {
-                MessageBox.Show("❌ Vui lòng nhập biển số!");
-                return;
-            }
+            { MessageBox.Show("❌ Vui lòng nhập biển số!"); return; }
 
             if (string.IsNullOrEmpty(loaiThe))
-            {
-                MessageBox.Show("❌ Vui lòng chọn loại thẻ!");
-                return;
-            }
+            { MessageBox.Show("❌ Vui lòng chọn loại thẻ!"); return; }
 
-            // CHECK FORMAT BIỂN SỐ
-            // Ví dụ hợp lệ: 50A12345 hoặc 50AC12345
             var regex = new System.Text.RegularExpressions.Regex(@"^\d{2}([A-Z]\d{5,6}|[A-Z]{1,2}\d{4,5})$");
-
-            if (!regex.IsMatch(bienSo.ToUpper()))
-            {
-                MessageBox.Show("❌ Biển số không đúng định dạng! (VD: 50A12345)");
-                return;
-            }
+            if (!regex.IsMatch(bienSo))
+            { MessageBox.Show("❌ Biển số không đúng định dạng! (VD: 50A12345)"); return; }
 
             try
             {
-                DatabaseService dbService = new DatabaseService();
+                var db = new DatabaseService();
+                if (db.CheckCardActiveExists(uid))
+                { MessageBox.Show("❌ Thẻ này đang hoạt động trong hệ thống!"); return; }
 
-                // CHECK TRÙNG UID
-                if (dbService.CheckCardExists(uid))
+                int? employeeId = null;
+                if (cbNhanVien.Visibility == Visibility.Visible && cbNhanVien.SelectedValue is int empId)
                 {
-                    MessageBox.Show("❌ Thẻ này đã được đăng ký!");
-                    return;
+                    employeeId = empId;
                 }
 
-                // INSERT
-                dbService.AddRFIDCard(uid, bienSo, loaiThe);
+                db.AddRFIDCards(uid, bienSo, loaiThe, employeeId);
                 MessageBox.Show("✅ Đăng ký thẻ thành công");
             }
-            catch (SqlException ex)
+            catch (SqlException ex) when (ex.Number == 2627)
             {
-                if (ex.Number == 2627) // lỗi duplicate
-                {
-                    MessageBox.Show("❌ Thẻ này đã tồn tại!");
-                }
-                else
-                {
-                    MessageBox.Show("❌ Lỗi: " + ex.Message);
-                }
+                MessageBox.Show("❌ Thẻ này đã tồn tại!");
             }
             catch (Exception ex)
             {
@@ -110,55 +101,42 @@ namespace QuanLyGiuXe.Views
 
             txtUID.Clear();
             txtBienSo.Clear();
-            cbLoaiThe.SelectedIndex = 0; // reset combobox
-
-            txtBienSo.Focus(); // trỏ chuột về nhập biển số
+            cbLoaiThe.SelectedIndex = 0;
+            cbNhanVien.SelectedIndex = -1;
+            txtBienSo.Focus();
         }
+
         private void txtBienSo_PreviewTextInput(object sender, TextCompositionEventArgs e)
         {
-            var textBox = sender as TextBox;
+            if (sender is not TextBox textBox) return;
 
-            // nếu không phải chữ/số → chặn
-            if (!char.IsLetterOrDigit(e.Text, 0))
-            {
-                e.Handled = true;
-                return;
-            }
-            //giới hạn độ dài của biển số là 9
-            if (textBox.Text.Length >= 9)
-            {
-                e.Handled = true;
-                return;
-            }
+            if (!char.IsLetterOrDigit(e.Text, 0) || textBox.Text.Length >= 9)
+            { e.Handled = true; return; }
 
-            // tự xử lý viết hoa
-            string newText = e.Text.ToUpper();
-
-            int selectionStart = textBox.SelectionStart;
-
-            textBox.Text = textBox.Text.Insert(selectionStart, newText);
-            textBox.SelectionStart = selectionStart + newText.Length;
-
-            // chặn input mặc định
+            int pos = textBox.SelectionStart;
+            textBox.Text = textBox.Text.Insert(pos, e.Text.ToUpper());
+            textBox.SelectionStart = pos + 1;
             e.Handled = true;
         }
+
         private void txtBienSo_TextChanged(object sender, TextChangedEventArgs e)
         {
-            var textBox = sender as TextBox;
+            if (sender is not TextBox textBox) return;
 
             int cursor = textBox.SelectionStart;
+            string clean = new(textBox.Text.Where(char.IsLetterOrDigit).ToArray());
+            string upper = clean.ToUpper();
 
-            string newText = new string(
-                textBox.Text
-                .Where(char.IsLetterOrDigit) // loại ký tự rác
-                .ToArray()
-            ).ToUpper();
-
-            if (textBox.Text != newText)
+            if (textBox.Text != upper)
             {
-                textBox.Text = newText;
-                textBox.SelectionStart = cursor;
+                textBox.Text = upper;
+                textBox.SelectionStart = Math.Min(cursor, upper.Length);
             }
+        }
+
+        private void txtUID_TextChanged(object sender, TextChangedEventArgs e)
+        {
+
         }
     }
 }

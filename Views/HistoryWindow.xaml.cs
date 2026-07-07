@@ -1,19 +1,30 @@
-﻿using System.Windows;
-using QuanLyGiuXe.Services;
+using System.Windows;
 using QuanLyGiuXe.ViewModels;
 
 namespace QuanLyGiuXe
 {
-    /// <summary>
-    /// Interaction logic for HistoryWindow.xaml
-    /// </summary>
     public partial class HistoryWindow : Window
     {
-        DatabaseService db = new DatabaseService();
+        private readonly LichSuViewModel VM;
+
         public HistoryWindow()
         {
             InitializeComponent();
-            DataContext = new LichSuViewModel();
+            VM = new LichSuViewModel();
+            DataContext = VM;
+        }
+
+        private void DataGridRow_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            if (sender is System.Windows.Controls.DataGridRow row && row.Item is Models.LichSuXe)
+            {
+                var dialog = new Views.LichSuXeDetailWindow
+                {
+                    Owner = this,
+                    DataContext = this.DataContext
+                };
+                dialog.ShowDialog();
+            }
         }
     }
 }

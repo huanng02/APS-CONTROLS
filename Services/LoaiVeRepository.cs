@@ -1,0 +1,150 @@
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Data.SqlClient;
+using QuanLyGiuXe.Models;
+using QuanLyGiuXe.Services.OfflineCache;
+
+namespace QuanLyGiuXe.Services
+{
+    public class LoaiVeRepository
+    {
+        private readonly DatabaseService _db = new DatabaseService();
+
+        private static List<LoaiVe>? _cachedLoaiVe;
+        private static readonly object _cacheLock = new();
+
+        public static void InvalidateCache()
+        {
+            lock (_cacheLock)
+            {
+                _cachedLoaiVe = null;
+            }
+        }
+
+        public List<LoaiVe> GetAll()
+        {
+            return System.Threading.Tasks.Task.Run(() => GetAllAsync()).GetAwaiter().GetResult();
+        }
+
+        public async System.Threading.Tasks.Task<List<LoaiVe>> GetAllAsync()
+        {
+            lock (_cacheLock)
+            {
+                if (_cachedLoaiVe != null) return _cachedLoaiVe;
+            }
+
+            var list = await ConnectivityAwareRepository.Instance.ExecuteReadAsync<List<LoaiVe>>(
+                "LIST_LOAI_VE",
+                async conn =>
+                {
+                    var list = new List<LoaiVe>();
+                    using (var cmd = new SqlCommand( @"SELECT Id, TenLoai, TrangThai, Detail, CoTheGiaHan FROM LoaiVe", conn))
+                    using (var rdr = await cmd.ExecuteReaderAsync())
+                    {
+                        while (await rdr.ReadAsync())
+                        {
+                            var lv = new LoaiVe
+                            {
+                                Id = rdr["Id"] != DBNull.Value ? Convert.ToInt32(rdr["Id"]) : 0,
+                                TenLoai = rdr["TenLoai"]?.ToString() ?? string.Empty,
+                                TrangThai = rdr["TrangThai"]?.ToString() ?? string.Empty,
+                                Detail = rdr.IsDBNull(rdr.GetOrdinal("Detail")) ? string.Empty : rdr.GetString(rdr.GetOrdinal("Detail")),
+                                CoTheGiaHan = rdr["CoTheGiaHan"] != DBNull.Value && Convert.ToBoolean(rdr["CoTheGiaHan"])
+                            };
+                            list.Add(lv);
+                        }
+                    }
+                    return list;
+                }
+            ) ?? new List<LoaiVe>();
+
+            lock (_cacheLock)
+            {
+                _cachedLoaiVe = list;
+            }
+            return list;
+        }
+
+        public void Insert(LoaiVe lv)
+        {
+            System.Threading.Tasks.Task.Run(() => InsertAsync(lv)).GetAwaiter().GetResult();
+        }
+
+        public async System.Threading.Tasks.Task<bool> InsertAsync(LoaiVe lv)
+        {
+            if (lv == null) return false;
+
+            var success = await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+                "INSERT_LOAI_VE",
+                lv,
+                async conn =>
+                {
+                    using (var cmd = new SqlCommand( @"INSERT INTO LoaiVe (TenLoai, TrangThai, Detail, CoTheGiaHan) VALUES (@ten, @trang, @detail, @coTheGiaHan)", conn))
+                    {
+                        cmd.Parameters.AddWithValue("@ten", lv.TenLoai ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@trang", lv.TrangThai ?? string.Empty);
+                        string detail = string.IsNullOrWhiteSpace(lv.Detail) ? "Chưa có mô tả" : lv.Detail;
+                        cmd.Parameters.AddWithValue("@detail", (object)detail ?? DBNull.Value);
+                        cmd.Parameters.AddWithValue("@coTheGiaHan", lv.CoTheGiaHan);
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+                }
+            );
+            if (success) InvalidateCache();
+            return success;
+        }
+
+        public void Update(LoaiVe lv)
+        {
+            System.Threading.Tasks.Task.Run(() => UpdateAsync(lv)).GetAwaiter().GetResult();
+        }
+
+        public async System.Threading.Tasks.Task<bool> UpdateAsync(LoaiVe lv)
+        {
+            if (lv == null) return false;
+
+            var success = await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+                "UPDATE_LOAI_VE",
+                lv,
+                async conn =>
+                {
+                    using (var cmd = new SqlCommand( @"UPDATE LoaiVe SET TenLoai=@ten, TrangThai=@trang, Detail=@detail, CoTheGiaHan=@coTheGiaHan WHERE Id=@id", conn))
+                    {
+                        cmd.Parameters.AddWithValue("@ten", lv.TenLoai ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@trang", lv.TrangThai ?? string.Empty);
+                        cmd.Parameters.AddWithValue("@detail", string.IsNullOrWhiteSpace(lv.Detail) ? (object)DBNull.Value : lv.Detail);
+                        cmd.Parameters.AddWithValue("@coTheGiaHan", lv.CoTheGiaHan);
+                        cmd.Parameters.AddWithValue("@id", lv.Id);
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+                }
+            );
+            if (success) InvalidateCache();
+            return success;
+        }
+
+        public void Delete(int id)
+        {
+            System.Threading.Tasks.Task.Run(() => DeleteAsync(id)).GetAwaiter().GetResult();
+        }
+
+        public async System.Threading.Tasks.Task<bool> DeleteAsync(int id)
+        {
+            var success = await ConnectivityAwareRepository.Instance.ExecuteWriteAsync(
+                "DELETE_LOAI_VE",
+                new { Id = id },
+                async conn =>
+                {
+                    using (var cmd = new SqlCommand( @"DELETE FROM LoaiVe WHERE Id=@id", conn))
+                    {
+                        cmd.Parameters.AddWithValue("@id", id);
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+                }
+            );
+            if (success) InvalidateCache();
+            return success;
+        }
+    }
+}

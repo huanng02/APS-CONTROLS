@@ -1,0 +1,427 @@
+<Window x:Class="QuanLyGiuXe.DebugTools.Views.DebugToolsView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:QuanLyGiuXe.DebugTools.Views"
+        xmlns:lvc="clr-namespace:LiveCharts.Wpf;assembly=LiveCharts.Wpf"
+        mc:Ignorable="d"
+        Title="APS-CONTROLS QA AUTOMATION CENTER" Height="950" Width="1450"
+        Background="#080A12" Foreground="White"
+        WindowStartupLocation="CenterScreen">
+
+    <Window.Resources>
+        <local:BooleanToBrushConverter x:Key="BoolToBrush"/>
+        <local:BooleanToVisibilityConverter x:Key="BoolToVis"/>
+
+        <SolidColorBrush x:Key="NeonBlue" Color="#00D2FF"/>
+        <SolidColorBrush x:Key="NeonGreen" Color="#39FF14"/>
+        <SolidColorBrush x:Key="NeonRed" Color="#FF3131"/>
+        <SolidColorBrush x:Key="NeonAmber" Color="#FFBD00"/>
+        <SolidColorBrush x:Key="NeonPurple" Color="#BC13FE"/>
+
+        <Style x:Key="GlassCard" TargetType="Border">
+            <Setter Property="Background" Value="#161B2E"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="BorderBrush" Value="#2D334D"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="15"/>
+            <Setter Property="Margin" Value="0,0,0,15"/>
+        </Style>
+
+        <Style x:Key="MetricLabel" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#8B949E"/>
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+        </Style>
+
+        <Style x:Key="QAButton" TargetType="Button">
+            <Setter Property="Background" Value="#1E233D"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Padding" Value="12,8"/>
+            <Setter Property="Margin" Value="0,0,6,6"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#2D334D"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="border" Background="{TemplateBinding Background}" 
+                                BorderBrush="{TemplateBinding BorderBrush}" 
+                                BorderThickness="{TemplateBinding BorderThickness}" 
+                                CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#2D334D"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource NeonBlue}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/> <!-- Header -->
+            <RowDefinition Height="Auto"/> <!-- Summary Strip -->
+            <RowDefinition Height="*"/>    <!-- Body -->
+            <RowDefinition Height="Auto"/> <!-- Footer -->
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Grid Grid.Row="0" Margin="0,0,0,20">
+            <StackPanel Orientation="Horizontal">
+                <Border Background="{StaticResource NeonBlue}" Width="50" Height="50" CornerRadius="8" Margin="0,0,15,0">
+                    <TextBlock Text="QA" Foreground="Black" FontWeight="Black" FontSize="24" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="QA AUTOMATION CENTER" FontSize="26" FontWeight="Black"/>
+                    <TextBlock Text="PHASE 6: PRODUCTION-GRADE TESTING &amp; MONITORING" Foreground="{StaticResource NeonBlue}" FontWeight="Bold" FontSize="11"/>
+                </StackPanel>
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Border Style="{StaticResource GlassCard}" Padding="15,8" Margin="0,0,10,0">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="RAM: " Style="{StaticResource MetricLabel}" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding Perf.RamUsageMb, StringFormat='{}{0} MB'}" Foreground="{StaticResource NeonGreen}" FontWeight="Black" FontSize="16"/>
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource GlassCard}" Padding="15,8" Margin="0,0,10,0">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="CPU: " Style="{StaticResource MetricLabel}" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding Perf.CpuUsage, StringFormat='{}{0}%'}" Foreground="{StaticResource NeonAmber}" FontWeight="Black" FontSize="16"/>
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource GlassCard}" Padding="15,8">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="THREADS: " Style="{StaticResource MetricLabel}" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding Perf.ActiveThreads}" Foreground="{StaticResource NeonBlue}" FontWeight="Black" FontSize="16"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </Grid>
+
+        <!-- Summary Strip -->
+        <Grid Grid.Row="1" Margin="0,0,0,20">
+            <UniformGrid Columns="6">
+                <Border Style="{StaticResource GlassCard}" Margin="0,0,10,0">
+                    <StackPanel>
+                        <TextBlock Text="PASS COUNT" Style="{StaticResource MetricLabel}"/>
+                        <TextBlock Text="{Binding PassCount}" Foreground="{StaticResource NeonGreen}" FontSize="22" FontWeight="Black"/>
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource GlassCard}" Margin="0,0,10,0">
+                    <StackPanel>
+                        <TextBlock Text="FAIL COUNT" Style="{StaticResource MetricLabel}"/>
+                        <TextBlock Text="{Binding FailCount}" Foreground="{StaticResource NeonRed}" FontSize="22" FontWeight="Black"/>
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource GlassCard}" Margin="0,0,10,0">
+                    <StackPanel>
+                        <TextBlock Text="WARNINGS" Style="{StaticResource MetricLabel}"/>
+                        <TextBlock Text="{Binding WarningCount}" Foreground="{StaticResource NeonAmber}" FontSize="22" FontWeight="Black"/>
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource GlassCard}" Margin="0,0,10,0">
+                    <StackPanel>
+                        <TextBlock Text="TOTAL TIME" Style="{StaticResource MetricLabel}"/>
+                        <TextBlock Text="{Binding TotalExecutionTime}" Foreground="White" FontSize="22" FontWeight="Black"/>
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource GlassCard}" Margin="0,0,10,0" Grid.ColumnSpan="2">
+                    <StackPanel>
+                        <TextBlock Text="LAST FAILURE" Style="{StaticResource MetricLabel}"/>
+                        <TextBlock Text="{Binding LastFailure}" Foreground="{StaticResource NeonRed}" FontSize="14" FontWeight="Bold" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                </Border>
+            </UniformGrid>
+        </Grid>
+
+        <!-- Body -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="400"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Sidebar (Controls) -->
+            <ScrollViewer Grid.Column="0" Margin="0,0,20,0" VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <!-- Phase 6: Offline & Sync -->
+                    <Border Style="{StaticResource GlassCard}">
+                        <StackPanel>
+                            <TextBlock Text="🚀 PHASE 6: OFFLINE &amp; SYNC" FontWeight="Bold" Margin="0,0,0,15" Foreground="{StaticResource NeonBlue}"/>
+                            <UniformGrid Columns="2">
+                                <Button Content="FORCE OFFLINE" Command="{Binding ForceOfflineCommand}" Style="{StaticResource QAButton}" Foreground="{StaticResource NeonRed}"/>
+                                <Button Content="FORCE ONLINE" Command="{Binding ForceOnlineCommand}" Style="{StaticResource QAButton}" Foreground="{StaticResource NeonGreen}"/>
+                                <Button Content="FORCE TIMEOUT" Command="{Binding ForceTimeoutCommand}" Style="{StaticResource QAButton}" Foreground="{StaticResource NeonAmber}"/>
+                                <Button Content="HB FAIL" Command="{Binding ForceHeartbeatFailCommand}" Style="{StaticResource QAButton}" Foreground="{StaticResource NeonPurple}"/>
+                            </UniformGrid>
+                            <UniformGrid Columns="2" Margin="0,5,0,0">
+                                <Button Content="RECONNECT" Command="{Binding ForceReconnectCommand}" Style="{StaticResource QAButton}"/>
+                                <Button Content="AUTO RECOVERY" Command="{Binding StartAutoRecoveryCommand}" Style="{StaticResource QAButton}"/>
+                            </UniformGrid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Stress Test Engine -->
+                    <Border Style="{StaticResource GlassCard}">
+                        <StackPanel>
+                            <TextBlock Text="🔥 STRESS TEST ENGINE" FontWeight="Bold" Margin="0,0,0,15" Foreground="{StaticResource NeonRed}"/>
+                            <UniformGrid Columns="2">
+                                <Button Content="RECONNECT x100" Command="{Binding SpamReconnectCommand}" Style="{StaticResource QAButton}"/>
+                                <Button Content="TIMEOUT x50" Command="{Binding SpamTimeoutCommand}" Style="{StaticResource QAButton}"/>
+                                <Button Content="RANDOM DISC" Command="{Binding RandomDisconnectCommand}" Style="{StaticResource QAButton}"/>
+                                <Button Content="FLAPPING" Command="{Binding NetworkFlappingCommand}" Style="{StaticResource QAButton}"/>
+                            </UniformGrid>
+                            <Button Content="SQL RESTART SIM" Command="{Binding SqlRestartSimulationCommand}" Style="{StaticResource QAButton}" HorizontalAlignment="Stretch"/>
+                            <Button Content="MASSIVE QUEUE (10K)" Command="{Binding MassiveQueueCommand}" Style="{StaticResource QAButton}" HorizontalAlignment="Stretch" Foreground="{StaticResource NeonBlue}"/>
+                            
+                            <Grid Margin="0,10,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Button Grid.Column="0" Content="START STRESS" Command="{Binding StartStressTestCommand}" Style="{StaticResource QAButton}" Background="#3D1E1E"/>
+                                <Button Grid.Column="1" Content="STOP STRESS" Command="{Binding StopStressTestCommand}" Style="{StaticResource QAButton}"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Phase 1-3 Legacy Controls -->
+                    <Border Style="{StaticResource GlassCard}">
+                        <Expander Header="PHASE 1-3 LEGACY TOOLS" Foreground="#8B949E" Background="Transparent">
+                            <StackPanel Margin="0,10,0,0">
+                                <TextBlock Text="EXCEPTIONS" Style="{StaticResource MetricLabel}" Margin="0,0,0,5"/>
+                                <UniformGrid Columns="2">
+                                    <Button Content="UI CRASH" Command="{Binding UIExceptionCommand}" Style="{StaticResource QAButton}"/>
+                                    <Button Content="BG ERROR" Command="{Binding BgExceptionCommand}" Style="{StaticResource QAButton}"/>
+                                </UniformGrid>
+                                <TextBlock Text="INTEGRITY" Style="{StaticResource MetricLabel}" Margin="0,5,0,5"/>
+                                <Button Content="VERIFY BACKUP" Command="{Binding CreateBackupCommand}" Style="{StaticResource QAButton}" HorizontalAlignment="Stretch"/>
+                            </StackPanel>
+                        </Expander>
+                    </Border>
+
+                    <!-- Scenarios & Actions -->
+                    <Border Style="{StaticResource GlassCard}">
+                        <StackPanel>
+                            <TextBlock Text="AUTO SCENARIOS" FontWeight="Bold" Margin="0,0,0,10"/>
+                            <Button Content="RUN: SQL KILL SCENARIO" Command="{Binding RunScenarioSqlKillCommand}" Style="{StaticResource QAButton}" HorizontalAlignment="Stretch" FontWeight="Bold" BorderBrush="{StaticResource NeonBlue}" BorderThickness="1"/>
+                            <Button Content="RUN: LONG RUNNING (1H)" Command="{Binding LongRunningTestCommand}" Style="{StaticResource QAButton}" HorizontalAlignment="Stretch"/>
+                            
+                            <Separator Background="#2D334D" Margin="0,10"/>
+                            <Button Content="PURGE LOGS" Command="{Binding ClearResultsCommand}" Style="{StaticResource QAButton}" HorizontalAlignment="Stretch"/>
+                            <Button Content="EXPORT QA JSON" Command="{Binding ExportLogsCommand}" Style="{StaticResource QAButton}" HorizontalAlignment="Stretch" Foreground="{StaticResource NeonGreen}" FontWeight="Bold"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Main Monitor Area -->
+            <Grid Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/> <!-- Connectivity & Sync -->
+                    <RowDefinition Height="250"/>  <!-- Charts -->
+                    <RowDefinition Height="*"/>    <!-- Logs -->
+                </Grid.RowDefinitions>
+
+                <!-- Row 1: Realtime Connectivity & Sync -->
+                <Grid Grid.Row="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" Style="{StaticResource GlassCard}" Margin="0,0,10,15">
+                        <Grid>
+                            <StackPanel>
+                                <TextBlock Text="SQL CONNECTIVITY HEALTH" Style="{StaticResource MetricLabel}"/>
+                                <StackPanel Orientation="Horizontal" Margin="0,5">
+                                    <Ellipse Width="15" Height="15" Fill="{Binding Conn.StatusColor}" VerticalAlignment="Center" Margin="0,0,10,0">
+                                        <Ellipse.Effect>
+                                            <DropShadowEffect Color="{Binding Conn.StatusColor.Color}" BlurRadius="15" ShadowDepth="0"/>
+                                        </Ellipse.Effect>
+                                    </Ellipse>
+                                    <TextBlock Text="{Binding Conn.StatusText}" Foreground="{Binding Conn.StatusColor}" FontSize="24" FontWeight="Black"/>
+                                </StackPanel>
+                                <UniformGrid Columns="2" Margin="0,10,0,0">
+                                    <StackPanel>
+                                        <TextBlock Text="LATENCY" Style="{StaticResource MetricLabel}"/>
+                                        <TextBlock Text="{Binding Conn.HeartbeatLatencyMs, StringFormat='{}{0} ms'}" FontSize="18" FontWeight="Bold" Foreground="{StaticResource NeonGreen}"/>
+                                    </StackPanel>
+                                    <StackPanel>
+                                        <TextBlock Text="RETRIES" Style="{StaticResource MetricLabel}"/>
+                                        <TextBlock Text="{Binding Conn.RetryCount}" FontSize="18" FontWeight="Bold" Foreground="{StaticResource NeonAmber}"/>
+                                    </StackPanel>
+                                    <StackPanel Margin="0,5,0,0">
+                                        <TextBlock Text="THREAD" Style="{StaticResource MetricLabel}"/>
+                                        <TextBlock Text="{Binding Conn.MonitorThreadState}" FontSize="14" FontWeight="Bold" Foreground="{StaticResource NeonBlue}"/>
+                                    </StackPanel>
+                                    <StackPanel Margin="0,5,0,0">
+                                        <TextBlock Text="ATTEMPTS" Style="{StaticResource MetricLabel}"/>
+                                        <TextBlock Text="{Binding Conn.ReconnectAttempts}" FontSize="14" FontWeight="Bold" Foreground="{StaticResource NeonPurple}"/>
+                                    </StackPanel>
+                                </UniformGrid>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Column="1" Style="{StaticResource GlassCard}" Margin="10,0,0,15">
+                        <StackPanel>
+                            <TextBlock Text="SYNC ENGINE MONITOR" Style="{StaticResource MetricLabel}"/>
+                            <Grid Margin="0,10">
+                                <ProgressBar Value="{Binding Sync.SyncProgress}" Height="25" Background="#0D111D" Foreground="{StaticResource NeonBlue}">
+                                    <ProgressBar.Effect>
+                                        <DropShadowEffect Color="#00D2FF" BlurRadius="10" ShadowDepth="0"/>
+                                    </ProgressBar.Effect>
+                                </ProgressBar>
+                                <TextBlock Text="{Binding Sync.SyncProgress, StringFormat='{}{0:F1}%'}" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Black" Foreground="White"/>
+                            </Grid>
+                            <UniformGrid Columns="2">
+                                <StackPanel>
+                                    <TextBlock Text="QUEUE COUNT" Style="{StaticResource MetricLabel}"/>
+                                    <TextBlock Text="{Binding Sync.PendingQueueCount}" FontSize="18" FontWeight="Bold" Foreground="{StaticResource NeonAmber}"/>
+                                </StackPanel>
+                                <StackPanel>
+                                    <TextBlock Text="SYNC SPEED" Style="{StaticResource MetricLabel}"/>
+                                    <TextBlock Text="{Binding Sync.SyncSpeed}" FontSize="18" FontWeight="Bold" Foreground="{StaticResource NeonGreen}"/>
+                                </StackPanel>
+                                <StackPanel Margin="0,5,0,0">
+                                    <TextBlock Text="FAILED" Style="{StaticResource MetricLabel}"/>
+                                    <TextBlock Text="{Binding Sync.FailedSyncCount}" FontSize="14" FontWeight="Bold" Foreground="{StaticResource NeonRed}"/>
+                                </StackPanel>
+                                <StackPanel Margin="0,5,0,0">
+                                    <TextBlock Text="BATCH SIZE" Style="{StaticResource MetricLabel}"/>
+                                    <TextBlock Text="{Binding Sync.CurrentBatchSize}" FontSize="14" FontWeight="Bold" Foreground="{StaticResource NeonPurple}"/>
+                                </StackPanel>
+                            </UniformGrid>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <!-- Row 2: Realtime Charts -->
+                <Grid Grid.Row="1" Margin="0,0,0,15">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" Style="{StaticResource GlassCard}" Margin="0,0,10,0" Padding="5">
+                        <lvc:CartesianChart Series="{Binding LatencySeries}" Hoverable="False" DataTooltip="{x:Null}">
+                            <lvc:CartesianChart.AxisY>
+                                <lvc:Axis Title="Latency (ms)" LabelFormatter="{Binding Formatter}"/>
+                            </lvc:CartesianChart.AxisY>
+                        </lvc:CartesianChart>
+                    </Border>
+
+                    <Border Grid.Column="1" Style="{StaticResource GlassCard}" Margin="10,0,0,0" Padding="5">
+                        <lvc:CartesianChart Series="{Binding ResourceSeries}" Hoverable="False" DataTooltip="{x:Null}">
+                            <lvc:CartesianChart.AxisY>
+                                <lvc:Axis Title="RAM (MB)" LabelFormatter="{Binding Formatter}"/>
+                            </lvc:CartesianChart.AxisY>
+                        </lvc:CartesianChart>
+                    </Border>
+                </Grid>
+
+                <!-- Row 3: Advanced Logs -->
+                <Border Grid.Row="2" Style="{StaticResource GlassCard}" Padding="0" ClipToBounds="True">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <Border Background="#1F243B" Padding="15,8">
+                            <TextBlock Text="REALTIME EXECUTION LOG" FontWeight="Bold" FontSize="11"/>
+                        </Border>
+                        <DataGrid Grid.Row="1" ItemsSource="{Binding TestResults}" AutoGenerateColumns="False" 
+                                  Background="Transparent" BorderThickness="0" IsReadOnly="True" 
+                                  HeadersVisibility="Column" GridLinesVisibility="None" RowHeight="32">
+                            <DataGrid.Resources>
+                                <Style TargetType="DataGridColumnHeader">
+                                    <Setter Property="Background" Value="#1E233D"/>
+                                    <Setter Property="Foreground" Value="#8B949E"/>
+                                    <Setter Property="Padding" Value="10,5"/>
+                                    <Setter Property="FontWeight" Value="Bold"/>
+                                    <Setter Property="FontSize" Value="10"/>
+                                </Style>
+                                <Style TargetType="DataGridRow">
+                                    <Setter Property="Background" Value="Transparent"/>
+                                    <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                                    <Setter Property="BorderBrush" Value="#2D334D"/>
+                                </Style>
+                            </DataGrid.Resources>
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="TIME" Binding="{Binding Timestamp, StringFormat='{}{0:HH:mm:ss.fff}'}" Width="120">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="#586069"/>
+                                            <Setter Property="Margin" Value="10,0"/>
+                                            <Setter Property="FontSize" Value="11"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="CATEGORY" Binding="{Binding Category}" Width="100">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="{StaticResource NeonBlue}"/>
+                                            <Setter Property="FontWeight" Value="Bold"/>
+                                            <Setter Property="FontSize" Value="10"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="TEST CASE" Binding="{Binding TestName}" Width="250">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="White"/>
+                                            <Setter Property="FontWeight" Value="SemiBold"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTemplateColumn Header="STATUS" Width="100">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{Binding Success, Converter={StaticResource BoolToBrush}}" CornerRadius="4" Padding="5,2" Margin="5">
+                                                <TextBlock Text="{Binding StatusLabel}" Foreground="White" FontWeight="Bold" FontSize="10" HorizontalAlignment="Center"/>
+                                            </Border>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTextColumn Header="MESSAGE" Binding="{Binding ErrorMessage}" Width="*">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="FontSize" Value="11"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Success}" Value="False">
+                                                    <Setter Property="Foreground" Value="{StaticResource NeonRed}"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Success}" Value="True">
+                                                    <Setter Property="Foreground" Value="#BBBBBB"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
+
+        <!-- Footer -->
+        <Border Grid.Row="3" Background="#0D111D" Padding="15,8" Margin="0,15,0,0" CornerRadius="4">
+            <Grid>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="SYSTEM STATUS:" Style="{StaticResource MetricLabel}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <TextBlock Text="{Binding CurrentTest}" Foreground="{StaticResource NeonBlue}" FontWeight="Bold" FontSize="12"/>
+                </StackPanel>
+                <TextBlock Text="APS-CONTROLS QA CENTER v6.0.0 (STABLE)" HorizontalAlignment="Right" Foreground="#586069" FontSize="10" VerticalAlignment="Center"/>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

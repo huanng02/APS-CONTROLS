@@ -1,0 +1,26 @@
+<UserControl x:Class="QuanLyGiuXe.Views.PersonnelAndCardTabsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:QuanLyGiuXe.Views"
+             mc:Ignorable="d" 
+             d:DesignHeight="700" d:DesignWidth="1400"
+             Background="{StaticResource TopoPageBgBrush}">
+
+    <Grid>
+        <TabControl Style="{StaticResource EnterpriseTabControl}" SelectedIndex="{Binding ActiveTabIndex, Mode=TwoWay}" Margin="5">
+            
+            <!-- Tab 0: SƠ ĐỒ NHÂN SỰ & THẺ -->
+            <TabItem Header="👤 SƠ ĐỒ NHÂN SỰ &amp; THẺ">
+                <local:PersonnelExplorerView />
+            </TabItem>
+            
+            <!-- Tab 1: THẺ KHÔNG GIA HẠN -->
+            <TabItem x:Name="TabNonRenewable" Header="⚠️ THẺ KHÔNG GIA HẠN">
+                <!-- Assigned in code-behind to pass true to the constructor -->
+            </TabItem>
+            
+        </TabControl>
+    </Grid>
+</UserControl>

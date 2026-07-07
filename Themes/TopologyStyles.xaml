@@ -1,0 +1,462 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:viewmodels="clr-namespace:QuanLyGiuXe.ViewModels"
+                    xmlns:converters="clr-namespace:QuanLyGiuXe.Converters">
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- TOPOLOGY COLOR PALETTE                                      -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <Color x:Key="TopoPrimaryColor">#1E4FA3</Color>
+    <Color x:Key="TopoPrimaryLightColor">#EBF1FF</Color>
+    <Color x:Key="TopoPrimaryHoverColor">#3366CC</Color>
+    <Color x:Key="TopoSuccessColor">#27AE60</Color>
+    <Color x:Key="TopoWarningColor">#F39C12</Color>
+    <Color x:Key="TopoDangerColor">#E74C3C</Color>
+    <Color x:Key="TopoCardBgColor">#FFFFFF</Color>
+    <Color x:Key="TopoPageBgColor">#F5F7FA</Color>
+    <Color x:Key="TopoSidebarBgColor">#FAFBFD</Color>
+    <Color x:Key="TopoBorderColor">#E8ECF1</Color>
+    <Color x:Key="TopoTextPrimaryColor">#1A202C</Color>
+    <Color x:Key="TopoTextSecondaryColor">#718096</Color>
+    <Color x:Key="TopoTextMutedColor">#A0AEC0</Color>
+    <Color x:Key="TopoInBadgeColor">#27AE60</Color>
+    <Color x:Key="TopoOutBadgeColor">#E67E22</Color>
+
+    <SolidColorBrush x:Key="TopoPrimaryBrush" Color="{StaticResource TopoPrimaryColor}"/>
+    <SolidColorBrush x:Key="TopoPrimaryLightBrush" Color="{StaticResource TopoPrimaryLightColor}"/>
+    <SolidColorBrush x:Key="TopoPrimaryHoverBrush" Color="{StaticResource TopoPrimaryHoverColor}"/>
+    <SolidColorBrush x:Key="TopoSuccessBrush" Color="{StaticResource TopoSuccessColor}"/>
+    <SolidColorBrush x:Key="TopoWarningBrush" Color="{StaticResource TopoWarningColor}"/>
+    <SolidColorBrush x:Key="TopoDangerBrush" Color="{StaticResource TopoDangerColor}"/>
+    <SolidColorBrush x:Key="TopoCardBgBrush" Color="{StaticResource TopoCardBgColor}"/>
+    <SolidColorBrush x:Key="TopoPageBgBrush" Color="{StaticResource TopoPageBgColor}"/>
+    <SolidColorBrush x:Key="TopoSidebarBgBrush" Color="{StaticResource TopoSidebarBgColor}"/>
+    <SolidColorBrush x:Key="TopoBorderBrush" Color="{StaticResource TopoBorderColor}"/>
+    <SolidColorBrush x:Key="TopoTextPrimaryBrush" Color="{StaticResource TopoTextPrimaryColor}"/>
+    <SolidColorBrush x:Key="TopoTextSecondaryBrush" Color="{StaticResource TopoTextSecondaryColor}"/>
+    <SolidColorBrush x:Key="TopoTextMutedBrush" Color="{StaticResource TopoTextMutedColor}"/>
+    <SolidColorBrush x:Key="TopoInBadgeBrush" Color="{StaticResource TopoInBadgeColor}"/>
+    <SolidColorBrush x:Key="TopoOutBadgeBrush" Color="{StaticResource TopoOutBadgeColor}"/>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- CONVERTERS                                                  -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+    <converters:StringToVisibilityConverter x:Key="BadgeVisibilityConverter"/>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- STATUS DOT                                                  -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <Style x:Key="StatusDotStyle" TargetType="Ellipse">
+        <Setter Property="Width" Value="8"/>
+        <Setter Property="Height" Value="8"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="Margin" Value="0,0,6,0"/>
+    </Style>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- TOPOLOGY TREEVIEW                                           -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <Style x:Key="TopologyTreeViewStyle" TargetType="TreeView">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled"/>
+        <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
+        <Setter Property="VirtualizingPanel.IsVirtualizing" Value="True"/>
+        <Setter Property="VirtualizingPanel.VirtualizationMode" Value="Recycling"/>
+    </Style>
+
+    <!-- Expand/Collapse Toggle Button (Chevron) -->
+    <Style x:Key="TreeExpanderStyle" TargetType="ToggleButton">
+        <Setter Property="Focusable" Value="False"/>
+        <Setter Property="Width" Value="20"/>
+        <Setter Property="Height" Value="20"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border Background="Transparent" Width="20" Height="20">
+                        <Path x:Name="ExpandPath"
+                              Data="M 4,2 L 12,8 L 4,14"
+                              Stroke="{StaticResource TopoTextMutedBrush}"
+                              StrokeThickness="1.5"
+                              StrokeLineJoin="Round"
+                              StrokeStartLineCap="Round"
+                              StrokeEndLineCap="Round"
+                              HorizontalAlignment="Center"
+                              VerticalAlignment="Center"
+                              RenderTransformOrigin="0.5,0.5">
+                            <Path.RenderTransform>
+                                <RotateTransform Angle="0"/>
+                            </Path.RenderTransform>
+                        </Path>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Trigger.EnterActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="ExpandPath"
+                                                         Storyboard.TargetProperty="(Path.RenderTransform).(RotateTransform.Angle)"
+                                                         To="90" Duration="0:0:0.15"
+                                                         EasingFunction="{x:Null}"/>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.EnterActions>
+                            <Trigger.ExitActions>
+                                <BeginStoryboard>
+                                    <Storyboard>
+                                        <DoubleAnimation Storyboard.TargetName="ExpandPath"
+                                                         Storyboard.TargetProperty="(Path.RenderTransform).(RotateTransform.Angle)"
+                                                         To="0" Duration="0:0:0.15"
+                                                         EasingFunction="{x:Null}"/>
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </Trigger.ExitActions>
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="ExpandPath" Property="Stroke" Value="{StaticResource TopoPrimaryBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- TreeViewItem Style -->
+    <Style x:Key="TopologyTreeViewItemStyle" TargetType="TreeViewItem">
+        <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+        <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}"/>
+        <Setter Property="Visibility" Value="{Binding IsVisible, Converter={StaticResource BoolToVisibilityConverter}}"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="Margin" Value="0,1,0,1"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TreeViewItem">
+                    <StackPanel>
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="Transparent"
+                                BorderThickness="0"
+                                CornerRadius="6"
+                                Margin="2,0,6,0"
+                                Padding="4,6,8,6">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <ToggleButton x:Name="Expander"
+                                              Grid.Column="0"
+                                              Style="{StaticResource TreeExpanderStyle}"
+                                              IsChecked="{Binding Path=IsExpanded, RelativeSource={RelativeSource TemplatedParent}}"
+                                              ClickMode="Press"/>
+                                <ContentPresenter x:Name="PART_Header"
+                                                  Grid.Column="1"
+                                                  ContentSource="Header"
+                                                  VerticalAlignment="Center"
+                                                  Margin="2,0,0,0"/>
+                            </Grid>
+                        </Border>
+                        <ItemsPresenter x:Name="ItemsHost" Margin="16,0,0,0"/>
+                    </StackPanel>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="HasItems" Value="False">
+                            <Setter TargetName="Expander" Property="Visibility" Value="Hidden"/>
+                        </Trigger>
+                        <Trigger Property="IsExpanded" Value="False">
+                            <Setter TargetName="ItemsHost" Property="Visibility" Value="Collapsed"/>
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource TopoPrimaryBrush}"/>
+                            <Setter Property="Foreground" Value="White"/>
+                        </Trigger>
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="IsSelected" Value="False"/>
+                                <Condition Property="IsMouseOver" Value="True"/>
+                            </MultiTrigger.Conditions>
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource TopoPrimaryLightBrush}"/>
+                        </MultiTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- DETAIL CARD STYLE                                           -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <Style x:Key="DetailCardStyle" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource TopoCardBgBrush}"/>
+        <Setter Property="CornerRadius" Value="10"/>
+        <Setter Property="Padding" Value="24"/>
+        <Setter Property="Margin" Value="0,0,0,16"/>
+        <Setter Property="Effect">
+            <Setter.Value>
+                <DropShadowEffect ShadowDepth="1" BlurRadius="8" Opacity="0.08" Color="#000000"/>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- STAT CARD STYLE (for overview numbers)                      -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <Style x:Key="StatCardStyle" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource TopoCardBgBrush}"/>
+        <Setter Property="CornerRadius" Value="8"/>
+        <Setter Property="Padding" Value="16"/>
+        <Setter Property="MinWidth" Value="130"/>
+        <Setter Property="Effect">
+            <Setter.Value>
+                <DropShadowEffect ShadowDepth="0" BlurRadius="6" Opacity="0.06" Color="#000000"/>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- ACTION BUTTON STYLES                                        -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <Style x:Key="TopoActionButton" TargetType="Button">
+        <Setter Property="Background" Value="{StaticResource TopoPrimaryBrush}"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="FontFamily" Value="Segoe UI, Inter, Arial"/>
+        <Setter Property="Padding" Value="14,10"/>
+        <Setter Property="Margin" Value="0,0,0,8"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="border"
+                            Background="{TemplateBinding Background}"
+                            CornerRadius="8"
+                            Padding="{TemplateBinding Padding}"
+                            SnapsToDevicePixels="True">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="border" Property="Background" Value="{StaticResource TopoPrimaryHoverBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="border" Property="Opacity" Value="0.45"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="border" Property="Opacity" Value="0.85"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="TopoOutlineButton" TargetType="Button">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Foreground" Value="{StaticResource TopoPrimaryBrush}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="FontFamily" Value="Segoe UI, Inter, Arial"/>
+        <Setter Property="Padding" Value="14,10"/>
+        <Setter Property="Margin" Value="0,0,0,8"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="border"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{StaticResource TopoBorderBrush}"
+                            BorderThickness="1.5"
+                            CornerRadius="8"
+                            Padding="{TemplateBinding Padding}"
+                            SnapsToDevicePixels="True">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="border" Property="Background" Value="{StaticResource TopoPrimaryLightBrush}"/>
+                            <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource TopoPrimaryBrush}"/>
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="border" Property="Opacity" Value="0.45"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="TopoDangerOutlineButton" TargetType="Button" BasedOn="{StaticResource TopoOutlineButton}">
+        <Setter Property="Foreground" Value="{StaticResource TopoDangerBrush}"/>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Foreground" Value="{StaticResource TopoDangerBrush}"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- TOOLBAR SMALL BUTTON                                        -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <Style x:Key="TopoToolbarButton" TargetType="Button">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Foreground" Value="{StaticResource TopoTextSecondaryBrush}"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="FontFamily" Value="Segoe UI, Inter, Arial"/>
+        <Setter Property="Padding" Value="10,6"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="border"
+                            Background="{TemplateBinding Background}"
+                            CornerRadius="6"
+                            Padding="{TemplateBinding Padding}"
+                            SnapsToDevicePixels="True">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="border" Property="Background" Value="{StaticResource TopoPrimaryLightBrush}"/>
+                            <Setter Property="Foreground" Value="{StaticResource TopoPrimaryBrush}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- SEARCH BOX                                                  -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <Style x:Key="TopoSearchBox" TargetType="TextBox">
+        <Setter Property="Background" Value="{StaticResource TopoCardBgBrush}"/>
+        <Setter Property="Foreground" Value="{StaticResource TopoTextPrimaryBrush}"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="FontFamily" Value="Segoe UI, Inter, Arial"/>
+        <Setter Property="Padding" Value="10,8"/>
+        <Setter Property="BorderThickness" Value="1.5"/>
+        <Setter Property="BorderBrush" Value="{StaticResource TopoBorderBrush}"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <Border x:Name="border"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="8"
+                            SnapsToDevicePixels="True">
+                        <Grid>
+                            <TextBlock x:Name="placeholder"
+                                       Text="🔍 Tìm kiếm topology..."
+                                       Foreground="{StaticResource TopoTextMutedBrush}"
+                                       FontSize="13"
+                                       Margin="12,8,10,8"
+                                       VerticalAlignment="Center"
+                                       Visibility="Collapsed"/>
+                            <ScrollViewer x:Name="PART_ContentHost"
+                                          Margin="10,0"
+                                          VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="Text" Value="">
+                            <Setter TargetName="placeholder" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <Trigger Property="Text" Value="{x:Null}">
+                            <Setter TargetName="placeholder" Property="Visibility" Value="Visible"/>
+                        </Trigger>
+                        <Trigger Property="IsFocused" Value="True">
+                            <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource TopoPrimaryBrush}"/>
+                            <Setter TargetName="placeholder" Property="Visibility" Value="Collapsed"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- DIRECTION BADGE                                             -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <Style x:Key="DirectionBadgeStyle" TargetType="Border">
+        <Setter Property="CornerRadius" Value="4"/>
+        <Setter Property="Padding" Value="8,3"/>
+        <Setter Property="HorizontalAlignment" Value="Left"/>
+    </Style>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- PANEL HEADER TEXT                                            -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <Style x:Key="PanelHeaderStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="FontFamily" Value="Segoe UI, Inter, Arial"/>
+        <Setter Property="Foreground" Value="{StaticResource TopoTextSecondaryBrush}"/>
+        <Setter Property="Margin" Value="0,0,0,12"/>
+    </Style>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- SEPARATOR                                                   -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <Style x:Key="TopoDividerStyle" TargetType="Border">
+        <Setter Property="Height" Value="1"/>
+        <Setter Property="Background" Value="{StaticResource TopoBorderBrush}"/>
+        <Setter Property="Margin" Value="0,8,0,12"/>
+    </Style>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- INFO ROW (Label: Value)                                     -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <Style x:Key="InfoLabelStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontFamily" Value="Segoe UI, Inter, Arial"/>
+        <Setter Property="Foreground" Value="{StaticResource TopoTextSecondaryBrush}"/>
+        <Setter Property="Margin" Value="0,0,0,4"/>
+    </Style>
+
+    <Style x:Key="InfoValueStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="FontFamily" Value="Segoe UI, Inter, Arial"/>
+        <Setter Property="Foreground" Value="{StaticResource TopoTextPrimaryBrush}"/>
+        <Setter Property="Margin" Value="0,0,0,12"/>
+    </Style>
+
+    <Style x:Key="StatNumberStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="28"/>
+        <Setter Property="FontWeight" Value="Bold"/>
+        <Setter Property="FontFamily" Value="Segoe UI, Inter, Arial"/>
+        <Setter Property="Foreground" Value="{StaticResource TopoPrimaryBrush}"/>
+    </Style>
+
+    <Style x:Key="StatLabelStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontFamily" Value="Segoe UI, Inter, Arial"/>
+        <Setter Property="Foreground" Value="{StaticResource TopoTextSecondaryBrush}"/>
+        <Setter Property="Margin" Value="0,4,0,0"/>
+    </Style>
+
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <!-- LOADING SPINNER                                             -->
+    <!-- ═══════════════════════════════════════════════════════════ -->
+    <Style x:Key="LoadingSpinnerStyle" TargetType="Border">
+        <Setter Property="Background" Value="#80FFFFFF"/>
+        <Setter Property="CornerRadius" Value="10"/>
+    </Style>
+
+</ResourceDictionary>

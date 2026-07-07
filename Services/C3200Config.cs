@@ -1,0 +1,309 @@
+using System.IO;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using QuanLyGiuXe.Models;
+
+namespace QuanLyGiuXe.Services
+{
+    public sealed class AppConfig
+    {
+        public string WorkstationId { get; set; } = string.Empty;
+        public ZKTecoConfig ZKTeco { get; set; } = new();
+        public CameraConfig Cameras { get; set; } = new();
+        public BackupConfig Backup { get; set; } = new();
+        public bool ShowLog { get; set; } = true;
+        public string? ImageStoragePath { get; set; }
+
+        private static AppConfig? _cached;
+        private static AppConfig? _draftCached;
+        private static readonly object _lock = new();
+
+        public static AppConfig Load(string fileName = "config.json")
+        {
+            lock (_lock)
+            {
+                if (_cached != null) return _cached;
+
+                var paths = new[]
+                {
+                    Path.Combine(AppContext.BaseDirectory, fileName),
+                    fileName
+                };
+
+                foreach (var path in paths)
+                {
+                    if (!File.Exists(path)) continue;
+                    try
+                    {
+                        var json = File.ReadAllText(path);
+                        var cfg = JsonConvert.DeserializeObject<AppConfig>(json) ?? new AppConfig();
+                        try { LoggingService.Instance.LogInfo("ConfigLoaded", "AppConfig", $"Loaded config from {path}"); } catch { }
+                        if (string.IsNullOrWhiteSpace(cfg.WorkstationId))
+                        {
+                            cfg.WorkstationId = Guid.NewGuid().ToString();
+                            var jsonToSave = JsonConvert.SerializeObject(cfg, Formatting.Indented);
+                            try { File.WriteAllText(path, jsonToSave); } catch { }
+                        }
+                        _cached = cfg;
+                        return cfg;
+                    }
+                    catch
+                    {
+                    }
+                }
+
+                var newCfg = new AppConfig();
+                newCfg.WorkstationId = Guid.NewGuid().ToString();
+                try
+                {
+                    var defaultPath = Path.Combine(AppContext.BaseDirectory, fileName);
+                    var jsonToSave = JsonConvert.SerializeObject(newCfg, Formatting.Indented);
+                    File.WriteAllText(defaultPath, jsonToSave);
+                }
+                catch { }
+                _cached = newCfg;
+                return _cached;
+            }
+        }
+
+        public static AppConfig LoadDraft(string fileName = "config_draft.json")
+        {
+            lock (_lock)
+            {
+                if (_draftCached != null) return _draftCached;
+
+                var draftPath = Path.Combine(AppContext.BaseDirectory, fileName);
+                var activePath = Path.Combine(AppContext.BaseDirectory, "config.json");
+
+                if (!File.Exists(draftPath))
+                {
+                    if (File.Exists(activePath))
+                    {
+                        try
+                        {
+                            File.Copy(activePath, draftPath, true);
+                        }
+                        catch { }
+                    }
+                }
+
+                var paths = new[]
+                {
+                    draftPath,
+                    fileName
+                };
+
+                foreach (var path in paths)
+                {
+                    if (!File.Exists(path)) continue;
+                    try
+                    {
+                        var json = File.ReadAllText(path);
+                        var cfg = JsonConvert.DeserializeObject<AppConfig>(json) ?? new AppConfig();
+                        try { LoggingService.Instance.LogInfo("ConfigLoaded", "AppConfig", $"Loaded draft config from {path}"); } catch { }
+                        _draftCached = cfg;
+                        return cfg;
+                    }
+                    catch
+                    {
+                    }
+                }
+
+                _draftCached = new AppConfig();
+                return _draftCached;
+            }
+        }
+
+        public static void ClearCache()
+        {
+            lock (_lock)
+            {
+                _cached = null;
+                _draftCached = null;
+            }
+        }
+
+        public static void ClearDraftCache()
+        {
+            lock (_lock)
+            {
+                _draftCached = null;
+            }
+        }
+
+        public void Save(string fileName = "config.json")
+        {
+            var path = File.Exists(fileName)
+                ? fileName
+                : Path.Combine(AppContext.BaseDirectory, fileName);
+
+            var json = JsonConvert.SerializeObject(this, Formatting.Indented);
+            File.WriteAllText(path, json);
+
+            // In development mode, sync back to the project root directory so Clean/Rebuild doesn't discard configuration
+            try
+            {
+                var devPath = Path.Combine(AppContext.BaseDirectory, @"..\..\..", fileName);
+                if (Directory.Exists(Path.GetDirectoryName(devPath) ?? "") && File.Exists(devPath))
+                {
+                    File.WriteAllText(devPath, json);
+                }
+            }
+            catch { }
+
+            lock (_lock)
+            {
+                _cached = this;
+            }
+
+            try 
+            { 
+                LoggingService.Instance.LogAudit("SAVE_CONFIG", "AppConfig", Path.GetFileName(path), null, this, source: "AppConfig", details: $"Saved system configuration to {path}");
+            } 
+            catch { }
+        }
+
+        public void SaveDraft(string fileName = "config_draft.json")
+        {
+            var path = File.Exists(fileName)
+                ? fileName
+                : Path.Combine(AppContext.BaseDirectory, fileName);
+
+            var json = JsonConvert.SerializeObject(this, Formatting.Indented);
+            File.WriteAllText(path, json);
+
+            // In development mode, sync back to the project root directory so Clean/Rebuild doesn't discard configuration
+            try
+            {
+                var devPath = Path.Combine(AppContext.BaseDirectory, @"..\..\..", fileName);
+                if (Directory.Exists(Path.GetDirectoryName(devPath) ?? "") && File.Exists(devPath))
+                {
+                    File.WriteAllText(devPath, json);
+                }
+            }
+            catch { }
+
+            lock (_lock)
+            {
+                _draftCached = this;
+            }
+
+            try 
+            { 
+                LoggingService.Instance.LogAudit("SAVE_DRAFT_CONFIG", "AppConfig", Path.GetFileName(path), null, this, source: "AppConfig", details: $"Saved system configuration draft to {path}");
+            } 
+            catch { }
+        }
+    }
+
+    public sealed class ZKTecoConfig
+    {
+        public ControllerType ControllerType { get; set; } = ControllerType.C3200;
+        public string Protocol { get; set; } = "TCP";
+        public string IpAddress { get; set; } = "192.168.1.201";
+        public int TcpPort { get; set; } = 4370;
+        public int Timeout { get; set; } = 3000;
+        public string Password { get; set; } = "";
+        public int BarrierDuration { get; set; } = 5;
+        // Cooldown (ms) to ignore repeated card scans for the same UID
+        public int CardCooldownMs { get; set; } = 2000;
+        // Physical door mapping: which physical door number is used for logical IN/OUT actions
+        // Default: GateIn -> physical door 1, GateOut -> physical door 2
+        public int GateInDoor { get; set; } = 1;
+        public int GateOutDoor { get; set; } = 2;
+        // support comma-separated lists for mapping multiple readers to IN/OUT (e.g. "1,3")
+        public string GateInDoors { get; set; } = "1";
+        public string GateOutDoors { get; set; } = "2";
+        // Button action config: "Disabled" | "OpenThisDoor" | "OpenGroupIn" | "OpenGroupOut"
+        public string Button1Action { get; set; } = "OpenThisDoor";
+        public string Button2Action { get; set; } = "OpenThisDoor";
+
+        // Helpers to parse configured door groups and map physical->logical
+        public HashSet<int> GetInSet()
+        {
+            var set = new HashSet<int>();
+            if (!string.IsNullOrWhiteSpace(GateInDoors))
+            {
+                foreach (var part in GateInDoors.Split(',', System.StringSplitOptions.RemoveEmptyEntries))
+                    if (int.TryParse(part.Trim(), out var v)) set.Add(v);
+            }
+            else
+            {
+                set.Add(GateInDoor);
+            }
+            return set;
+        }
+
+        public HashSet<int> GetOutSet()
+        {
+            var set = new HashSet<int>();
+            if (!string.IsNullOrWhiteSpace(GateOutDoors))
+            {
+                foreach (var part in GateOutDoors.Split(',', System.StringSplitOptions.RemoveEmptyEntries))
+                    if (int.TryParse(part.Trim(), out var v)) set.Add(v);
+            }
+            else
+            {
+                set.Add(GateOutDoor);
+            }
+            return set;
+        }
+
+        public int MapPhysicalToLogical(int door)
+        {
+            if (door == 0) return 0;
+            if (ForceAllIn) return 1;
+            if (ForceAllOut) return 2;
+            var inSet = GetInSet();
+            var outSet = GetOutSet();
+            if (inSet.Contains(door)) return 1;
+            if (outSet.Contains(door)) return 2;
+            return 0;
+        }
+        // If true, force all scans to be treated as IN (no OUT flow)
+        public bool ForceAllIn { get; set; } = false;
+        // If true, force all scans to be treated as OUT (no IN flow)
+        public bool ForceAllOut { get; set; } = false;
+        public bool BlockDailyCardForMonthlyPlate { get; set; } = false;
+        public bool ShowSessionDialog { get; set; } = true;
+        public bool RequireReasonForManualOpen { get; set; } = true;
+    }
+
+    public sealed class CameraConfig
+    {
+        public string VaoToanCanh { get; set; } = "";
+        public string VaoBienSo { get; set; } = "";
+        public string RaToanCanh { get; set; } = "";
+        public string RaBienSo { get; set; } = "";
+        public System.Collections.Generic.List<LaneCameraSetting> LaneCameras { get; set; } = new();
+        // When true the application will sync active DB cameras into config.json automatically.
+        // Set to false to preserve manual edits in config.json and avoid automatic resets.
+        public bool AutoSyncFromDb { get; set; } = true;
+        public int MaxRenderFps { get; set; } = 10;
+        public string TargetResolution { get; set; } = "480x360";
+        public int SaveJpegQuality { get; set; } = 70;
+        public int SaveMaxWidth { get; set; } = 1280;
+        public bool AutoUseSubstream { get; set; } = true;
+        public bool ShowEntrySnapAtExit { get; set; } = false;
+    }
+
+    public sealed class LaneCameraSetting
+    {
+        public int LaneId { get; set; }
+        public string ToanCanh { get; set; } = "";
+        public string BienSo { get; set; } = "";
+        public double RoiX { get; set; } = 0.2;
+        public double RoiY { get; set; } = 0.2;
+        public double RoiWidth { get; set; } = 0.6;
+        public double RoiHeight { get; set; } = 0.6;
+    }
+
+    public sealed class BackupConfig
+    {
+        public bool AutoBackupEnabled { get; set; } = true;
+        // Format "HH:mm"
+        public string BackupTime { get; set; } = "02:00";
+        public int RetentionDays { get; set; } = 30;
+        public string BackupDirectory { get; set; } = "Backups";
+    }
+}

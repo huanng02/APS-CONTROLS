@@ -1,0 +1,42 @@
+<Window x:Class="QuanLyGiuXe.Views.RFIDGiaHanDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Gia hạn thẻ RFID" Height="380" Width="460"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize" Background="{StaticResource BgLightBrush}">
+    <Grid Margin="12">
+        <Border Style="{StaticResource EnterpriseCardBorder}" Padding="20">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Text="GIA HẠN THẺ THÀNH VIÊN" Style="{StaticResource Heading2Style}" Foreground="{StaticResource APSBlueBrush}" Margin="0,0,0,15"/>
+
+                <!-- Info Section -->
+                <Border Grid.Row="1" Background="{StaticResource BgLightBrush}" CornerRadius="6" Padding="12" Margin="0,0,0,15">
+                    <StackPanel>
+                        <TextBlock Text="{Binding CardInfo}" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold"/>
+                        <TextBlock Text="{Binding PlateInfo}" Style="{StaticResource SubTitleStyle}" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Input Section -->
+                <StackPanel Grid.Row="2">
+                    <TextBlock Text="THỜI GIAN GIA HẠN (THÁNG)" Style="{StaticResource BaseTextBlockStyle}" FontWeight="Bold" Margin="0,0,0,6"/>
+                    <TextBox x:Name="txtMonths" Style="{StaticResource ModernTextBox}" Height="40" Text="1" FontSize="16" FontWeight="Bold"/>
+                    <TextBlock x:Name="txtError" Foreground="{StaticResource APSRedBrush}" FontSize="12" Margin="0,5,0,0" TextWrapping="Wrap"/>
+                </StackPanel>
+
+                <!-- Action Buttons -->
+                <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
+                    <Button Content="HỦY BỎ" Style="{StaticResource ModernOutlineButton}" Width="100" Height="38" Margin="0,0,10,0" Click="BtnCancel_Click"/>
+                    <Button Content="XÁC NHẬN GIA HẠN" Style="{StaticResource ModernButton}" Background="{StaticResource SuccessBrush}" Width="180" Height="38" Click="BtnOk_Click"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>
+

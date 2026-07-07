@@ -1,0 +1,1154 @@
+<UserControl x:Class="QuanLyGiuXe.Views.PersonnelExplorerView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:viewmodels="clr-namespace:QuanLyGiuXe.ViewModels"
+             xmlns:converters="clr-namespace:QuanLyGiuXe.Converters"
+             mc:Ignorable="d" 
+             d:DesignHeight="700" d:DesignWidth="1400"
+             Background="{StaticResource TopoPageBgBrush}">
+
+    <UserControl.Resources>
+        <converters:InverseBooleanToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
+    </UserControl.Resources>
+
+    <UserControl.DataContext>
+        <viewmodels:PersonnelExplorerViewModel/>
+    </UserControl.DataContext>
+
+    <Grid>
+        <!-- LOADING OVERLAY -->
+        <Grid x:Name="LoadingOverlay" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}"
+              Panel.ZIndex="100">
+            <Border Background="#80F5F7FA" CornerRadius="0"/>
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                <TextBlock Text="⏳" FontSize="32" HorizontalAlignment="Center" Margin="0,0,0,12"/>
+                <TextBlock Text="Đang tải sơ đồ nhân sự..."
+                           FontSize="14" FontFamily="Segoe UI, Inter, Arial"
+                           Foreground="{StaticResource TopoTextSecondaryBrush}"
+                           HorizontalAlignment="Center"/>
+            </StackPanel>
+        </Grid>
+
+        <Grid Margin="20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <!-- HEADER BAR                                                  -->
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <Grid Grid.Row="0" Margin="0,0,0,16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" Orientation="Vertical">
+                    <TextBlock Text="SƠ ĐỒ NHÂN SỰ &amp; THẺ RFID"
+                               FontSize="22" FontWeight="Bold" FontFamily="Segoe UI, Inter, Arial"
+                               Foreground="{StaticResource TopoPrimaryBrush}"/>
+                    <TextBlock Text="Quản lý cơ cấu tổ chức doanh nghiệp: Công ty → Phòng ban → Chức vụ → Nhân sự &amp; Thẻ"
+                               FontSize="13" FontFamily="Segoe UI, Inter, Arial"
+                               Foreground="{StaticResource TopoTextSecondaryBrush}"
+                               Margin="0,4,0,0"/>
+                </StackPanel>
+
+                <!-- Quick Stats -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Border Background="{StaticResource TopoCardBgBrush}" CornerRadius="8" Padding="12,6" Margin="0,0,8,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="🏢" FontSize="14" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <TextBlock Text="{Binding Companies.Count}" FontWeight="Bold" FontSize="14"
+                                       Foreground="{StaticResource TopoPrimaryBrush}" VerticalAlignment="Center"/>
+                            <TextBlock Text=" Công ty" FontSize="12" Foreground="{StaticResource TopoTextSecondaryBrush}"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Background="{StaticResource TopoCardBgBrush}" CornerRadius="8" Padding="12,6" Margin="0,0,8,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="📁" FontSize="14" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <TextBlock Text="{Binding Departments.Count}" FontWeight="Bold" FontSize="14"
+                                       Foreground="{StaticResource TopoPrimaryBrush}" VerticalAlignment="Center"/>
+                            <TextBlock Text=" Phòng ban" FontSize="12" Foreground="{StaticResource TopoTextSecondaryBrush}"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Background="{StaticResource TopoCardBgBrush}" CornerRadius="8" Padding="12,6" Margin="0,0,8,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="👤" FontSize="14" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <TextBlock Text="{Binding Employees.Count}" FontWeight="Bold" FontSize="14"
+                                       Foreground="{StaticResource TopoPrimaryBrush}" VerticalAlignment="Center"/>
+                            <TextBlock Text=" Nhân sự" FontSize="12" Foreground="{StaticResource TopoTextSecondaryBrush}"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Background="{StaticResource TopoCardBgBrush}" CornerRadius="8" Padding="12,6">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="💳" FontSize="14" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <TextBlock Text="{Binding Cards.Count}" FontWeight="Bold" FontSize="14"
+                                       Foreground="{StaticResource TopoPrimaryBrush}" VerticalAlignment="Center"/>
+                            <TextBlock Text=" Thẻ RFID" FontSize="12" Foreground="{StaticResource TopoTextSecondaryBrush}"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Grid>
+
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <!-- MAIN 3-COLUMN LAYOUT                                        -->
+            <!-- ═══════════════════════════════════════════════════════════ -->
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="240"/>
+                    <ColumnDefinition Width="12"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="12"/>
+                    <ColumnDefinition Width="180"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- ═══════════════════════════════════════════════════════ -->
+                <!-- LEFT PANEL: PERSONNEL TREEVIEW                          -->
+                <!-- ═══════════════════════════════════════════════════════ -->
+                <Border Grid.Column="0" Background="{StaticResource TopoCardBgBrush}" CornerRadius="10">
+                    <Border.Effect>
+                        <DropShadowEffect ShadowDepth="1" BlurRadius="8" Opacity="0.06" Color="#000000"/>
+                    </Border.Effect>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Panel Header -->
+                        <Border Grid.Row="0" Padding="16,14,16,10">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="SƠ ĐỒ TỔ CHỨC"
+                                           FontSize="11" FontWeight="Bold" FontFamily="Segoe UI, Inter, Arial"
+                                           Foreground="{StaticResource TopoTextSecondaryBrush}"
+                                           VerticalAlignment="Center"/>
+                                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                    <Button Content="⊞" ToolTip="Mở rộng tất cả"
+                                            Style="{StaticResource TopoToolbarButton}"
+                                            Command="{Binding ExpandAllCommand}" Padding="6,4"/>
+                                    <Button Content="⊟" ToolTip="Thu gọn tất cả"
+                                            Style="{StaticResource TopoToolbarButton}"
+                                            Command="{Binding CollapseAllCommand}" Padding="6,4"/>
+                                    <Button Content="🔄" ToolTip="Làm mới"
+                                            Style="{StaticResource TopoToolbarButton}"
+                                            Command="{Binding RefreshCommand}" Padding="6,4"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <!-- Search Box -->
+                        <Border Grid.Row="1" Padding="12,0,12,8">
+                            <TextBox Style="{StaticResource TopoSearchBox}"
+                                     Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}">
+                                <TextBox.Template>
+                                    <ControlTemplate TargetType="TextBox">
+                                        <Border x:Name="border"
+                                                Background="{TemplateBinding Background}"
+                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                BorderThickness="{TemplateBinding BorderThickness}"
+                                                CornerRadius="8"
+                                                SnapsToDevicePixels="True">
+                                            <Grid>
+                                                <TextBlock x:Name="placeholder"
+                                                           Text="🔍 Tìm kiếm nhân sự, thẻ..."
+                                                           Foreground="{StaticResource TopoTextMutedBrush}"
+                                                           FontSize="13"
+                                                           Margin="12,8,10,8"
+                                                           VerticalAlignment="Center"
+                                                           Visibility="Collapsed"/>
+                                                <ScrollViewer x:Name="PART_ContentHost"
+                                                              Margin="10,0"
+                                                              VerticalAlignment="Center"/>
+                                            </Grid>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="Text" Value="">
+                                                <Setter TargetName="placeholder" Property="Visibility" Value="Visible"/>
+                                            </Trigger>
+                                            <Trigger Property="Text" Value="{x:Null}">
+                                                <Setter TargetName="placeholder" Property="Visibility" Value="Visible"/>
+                                            </Trigger>
+                                            <Trigger Property="IsFocused" Value="True">
+                                                <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource TopoPrimaryBrush}"/>
+                                                <Setter TargetName="placeholder" Property="Visibility" Value="Collapsed"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </TextBox.Template>
+                            </TextBox>
+                        </Border>
+
+                        <!-- Divider -->
+                        <Border Grid.Row="2" Height="1" Background="{StaticResource TopoBorderBrush}" Margin="12,0"/>
+
+                        <!-- Tree View -->
+                        <TreeView Grid.Row="3"
+                                  Style="{StaticResource TopologyTreeViewStyle}"
+                                  ItemContainerStyle="{StaticResource TopologyTreeViewItemStyle}"
+                                  ItemsSource="{Binding TreeNodes}"
+                                  SelectedItemChanged="TreeView_SelectedItemChanged"
+                                  Margin="8,8,4,8">
+                            <TreeView.ItemTemplate>
+                                <HierarchicalDataTemplate DataType="{x:Type viewmodels:PersonnelTreeNode}"
+                                                          ItemsSource="{Binding Children}">
+                                    <Grid Margin="2,2,4,2">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- Status Dot -->
+                                        <Ellipse Grid.Column="0" Width="7" Height="7"
+                                                 VerticalAlignment="Center" Margin="0,0,6,0">
+                                            <Ellipse.Style>
+                                                <Style TargetType="Ellipse">
+                                                    <Setter Property="Fill" Value="{StaticResource TopoSuccessBrush}"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsActive}" Value="False">
+                                                            <Setter Property="Fill" Value="{StaticResource TopoDangerBrush}"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Ellipse.Style>
+                                        </Ellipse>
+
+                                        <!-- Icon -->
+                                        <TextBlock Grid.Column="1" Text="{Binding Icon}"
+                                                   FontSize="14" VerticalAlignment="Center"
+                                                   Margin="0,0,8,0"/>
+
+                                        <!-- Name -->
+                                        <TextBlock Grid.Column="2" Text="{Binding Name}"
+                                                   FontSize="13" FontWeight="Medium"
+                                                   FontFamily="Segoe UI, Inter, Arial"
+                                                   VerticalAlignment="Center"
+                                                   TextTrimming="CharacterEllipsis"/>
+
+                                        <!-- Badge -->
+                                        <Border Grid.Column="3" CornerRadius="4" Padding="6,2"
+                                                Margin="6,0,0,0" VerticalAlignment="Center"
+                                                Visibility="{Binding Badge, Converter={StaticResource BadgeVisibilityConverter}}">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="#F0F2F5"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding NodeType}" Value="Card">
+                                                            <Setter Property="Background" Value="#EBF1FF"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding NodeType}" Value="Employee">
+                                                            <Setter Property="Background" Value="#F0F4F8"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <TextBlock Text="{Binding Badge}" FontSize="10" FontWeight="SemiBold"
+                                                       FontFamily="Segoe UI, Inter, Arial">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Foreground" Value="{StaticResource TopoTextSecondaryBrush}"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding NodeType}" Value="Card">
+                                                                <Setter Property="Foreground" Value="{StaticResource TopoPrimaryBrush}"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </Border>
+                                    </Grid>
+                                </HierarchicalDataTemplate>
+                            </TreeView.ItemTemplate>
+
+                            <!-- Context Menu -->
+                            <TreeView.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="✏️ Sửa" Command="{Binding EditSelectedCommand}"/>
+                                    <MenuItem Header="🗑️ Xóa" Command="{Binding DeleteSelectedCommand}"/>
+                                    <Separator/>
+                                    <MenuItem Header="🏢 Thêm Công ty" Command="{Binding AddCompanyCommand}"/>
+                                    <MenuItem Header="📁 Thêm Phòng ban" Command="{Binding AddDeptCommand}" CommandParameter="{Binding SelectedNode.DataItem}"/>
+                                    <MenuItem Header="🏷️ Thêm Chức vụ" Command="{Binding AddPosCommand}"/>
+                                    <MenuItem Header="👤 Thêm Nhân viên" Command="{Binding AddEmpCommand}" CommandParameter="{Binding SelectedNode.DataItem}"/>
+                                    <MenuItem Header="💳 Cấp thẻ RFID" Command="{Binding AddCardCommand}" CommandParameter="{Binding SelectedNode.DataItem}"/>
+                                    <Separator/>
+                                    <MenuItem Header="🔄 Làm mới" Command="{Binding RefreshCommand}"/>
+                                </ContextMenu>
+                            </TreeView.ContextMenu>
+                        </TreeView>
+                    </Grid>
+                </Border>
+
+                <!-- ═══════════════════════════════════════════════════════ -->
+                <!-- CENTER PANEL: DETAIL CARD                               -->
+                <!-- ═══════════════════════════════════════════════════════ -->
+                <Border Grid.Column="2">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                                   Padding="0">
+                        <Grid>
+                            <!-- EMPTY STATE (no selection) -->
+                            <StackPanel x:Name="EmptyState" VerticalAlignment="Center" HorizontalAlignment="Center"
+                                        Margin="0,60,0,0">
+                                <StackPanel.Style>
+                                    <Style TargetType="StackPanel">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding HasSelection}" Value="False">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </StackPanel.Style>
+                                <TextBlock Text="📇" FontSize="48" HorizontalAlignment="Center" Margin="0,0,0,16"/>
+                                <TextBlock Text="Chọn một mục từ sơ đồ cơ cấu"
+                                           FontSize="18" FontWeight="SemiBold" FontFamily="Segoe UI, Inter, Arial"
+                                           Foreground="{StaticResource TopoTextPrimaryBrush}"
+                                           HorizontalAlignment="Center"/>
+                                <TextBlock Text="Click vào Công ty, Phòng ban, Chức vụ, Nhân viên hoặc Thẻ ở panel bên trái để xem chi tiết"
+                                           FontSize="13" FontFamily="Segoe UI, Inter, Arial"
+                                           Foreground="{StaticResource TopoTextMutedBrush}"
+                                           HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                            </StackPanel>
+
+                            <!-- ─── COMPANY DETAIL ──────────────────────── -->
+                            <StackPanel Visibility="{Binding IsCompanySelected, Converter={StaticResource BoolToVisibilityConverter}}">
+                                <Border Style="{StaticResource DetailCardStyle}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                                <TextBlock Text="🏢" FontSize="24" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                                <TextBlock Text="{Binding DetailCompanyName}" FontSize="22" FontWeight="Bold"
+                                                           FontFamily="Segoe UI, Inter, Arial"
+                                                           Foreground="{StaticResource TopoTextPrimaryBrush}"
+                                                           VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                            <TextBlock Text="{Binding DetailCompanyCode, StringFormat='Mã doanh nghiệp: {0}'}" FontSize="13"
+                                                       FontFamily="Segoe UI, Inter, Arial"
+                                                       Foreground="{StaticResource TopoTextSecondaryBrush}" Margin="0,0,0,4"/>
+                                            <TextBlock Text="{Binding DetailCompanyAddress, StringFormat='Địa chỉ: {0}'}" FontSize="13"
+                                                       FontFamily="Segoe UI, Inter, Arial"
+                                                       Foreground="{StaticResource TopoTextMutedBrush}"
+                                                       TextWrapping="Wrap"/>
+                                            <TextBlock Text="{Binding DetailCompanyPhone, StringFormat='Số điện thoại: {0}'}" FontSize="13"
+                                                       FontFamily="Segoe UI, Inter, Arial"
+                                                       Foreground="{StaticResource TopoTextMutedBrush}"
+                                                       Margin="0,4,0,0"/>
+                                        </StackPanel>
+                                        <Border Grid.Column="1" CornerRadius="6" Padding="12,6" VerticalAlignment="Top">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="#E8F5E9"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding DetailCompanyStatus}" Value="Inactive">
+                                                            <Setter Property="Background" Value="#FFEBEE"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <TextBlock FontSize="12" FontWeight="SemiBold" FontFamily="Segoe UI, Inter, Arial">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Text" Value="● Active"/>
+                                                        <Setter Property="Foreground" Value="{StaticResource TopoSuccessBrush}"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding DetailCompanyStatus}" Value="Inactive">
+                                                                <Setter Property="Text" Value="● Inactive"/>
+                                                                <Setter Property="Foreground" Value="{StaticResource TopoDangerBrush}"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </Border>
+                                    </Grid>
+                                </Border>
+
+                                <UniformGrid Columns="2" Margin="0,0,0,4">
+                                    <Border Style="{StaticResource StatCardStyle}" Margin="0,0,8,8">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding DetailCompanyDeptsCount}" Style="{StaticResource StatNumberStyle}"/>
+                                            <TextBlock Text="Phòng ban trực thuộc" Style="{StaticResource StatLabelStyle}"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Border Style="{StaticResource StatCardStyle}" Margin="0,0,8,8">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding DetailCompanyEmpsCount}" Style="{StaticResource StatNumberStyle}"/>
+                                            <TextBlock Text="Tổng số nhân sự" Style="{StaticResource StatLabelStyle}"/>
+                                        </StackPanel>
+                                    </Border>
+                                </UniformGrid>
+                            </StackPanel>
+
+                             <!-- ─── DEPARTMENT DETAIL ───────────────────── -->
+                            <StackPanel Visibility="{Binding IsEmployeeListVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+                                <Border Style="{StaticResource DetailCardStyle}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                                <TextBlock Text="📁" FontSize="24" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                                <TextBlock Text="{Binding DetailDeptName}" FontSize="22" FontWeight="Bold"
+                                                           FontFamily="Segoe UI, Inter, Arial"
+                                                           Foreground="{StaticResource TopoTextPrimaryBrush}"
+                                                           VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                            <TextBlock FontSize="13" FontFamily="Segoe UI, Inter, Arial"
+                                                       Foreground="{StaticResource TopoTextSecondaryBrush}" Margin="0,0,0,4">
+                                                <Run Text="Doanh nghiệp:"/>
+                                                <Run Text="{Binding DetailDeptCompanyName, Mode=OneWay}" FontWeight="SemiBold"/>
+                                            </TextBlock>
+                                        </StackPanel>
+                                        <Border Grid.Column="1" CornerRadius="6" Padding="12,6" VerticalAlignment="Top">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="#E8F5E9"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding DetailDeptStatus}" Value="Inactive">
+                                                            <Setter Property="Background" Value="#FFEBEE"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <TextBlock FontSize="12" FontWeight="SemiBold" FontFamily="Segoe UI, Inter, Arial">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Text" Value="● Active"/>
+                                                        <Setter Property="Foreground" Value="{StaticResource TopoSuccessBrush}"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding DetailDeptStatus}" Value="Inactive">
+                                                                <Setter Property="Text" Value="● Inactive"/>
+                                                                <Setter Property="Foreground" Value="{StaticResource TopoDangerBrush}"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </Border>
+                                    </Grid>
+                                </Border>
+
+                                <UniformGrid Columns="2" Margin="0,0,0,4">
+                                    <Border Style="{StaticResource StatCardStyle}" Margin="0,0,8,8">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding DetailDeptEmpsCount}" Style="{StaticResource StatNumberStyle}"/>
+                                            <TextBlock Text="Nhân sự trong phòng ban" Style="{StaticResource StatLabelStyle}"/>
+                                        </StackPanel>
+                                    </Border>
+                                </UniformGrid>
+
+                                <!-- Department Employee List with Search & Filters -->
+                                <Border Style="{StaticResource DetailCardStyle}" Margin="0,8,0,0" Padding="16">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="*"/>
+                                        </Grid.RowDefinitions>
+
+                                         <!-- Title & Actions Header -->
+                                         <Grid Grid.Row="0" Margin="0,0,0,12">
+                                             <Grid.ColumnDefinitions>
+                                                 <ColumnDefinition Width="*"/>
+                                                 <ColumnDefinition Width="Auto"/>
+                                             </Grid.ColumnDefinitions>
+
+                                             <!-- Title -->
+                                             <TextBlock Grid.Column="0" Text="DANH SÁCH NHÂN VIÊN TRONG PHÒNG" 
+                                                        FontSize="12" FontWeight="Bold" FontFamily="Segoe UI, Inter, Arial"
+                                                        Foreground="{StaticResource TopoTextSecondaryBrush}" VerticalAlignment="Center"/>
+
+                                             <!-- Action Buttons -->
+                                             <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                                 <Button Content="📥 Tải Template" Click="DownloadTemplate_Click" 
+                                                         Style="{StaticResource TopoOutlineButton}" Height="32" Padding="12,0" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                                 <Button Content="📁 Nhập từ Excel" Click="OpenImport_Click" 
+                                                         Style="{StaticResource TopoOutlineButton}" Height="32" Padding="12,0" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                                 <Button Content="➕ Thêm nhân viên" 
+                                                         Style="{StaticResource TopoActionButton}" Height="32" Padding="12,0" Margin="0" VerticalAlignment="Center"
+                                                         Command="{Binding AddEmpCommand}" 
+                                                         CommandParameter="{Binding SelectedNode.DataItem}"/>
+                                             </StackPanel>
+                                         </Grid>
+
+                                         <!-- Search & Filters -->
+                                         <WrapPanel Grid.Row="1" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,0,12">
+                                             <!-- Search TextBox -->
+                                             <TextBox Style="{StaticResource TopoSearchBox}" Width="220" Height="32" Margin="0,0,16,4" VerticalAlignment="Center"
+                                                      Text="{Binding DeptEmpSearchText, UpdateSourceTrigger=PropertyChanged}">
+                                                 <TextBox.Template>
+                                                     <ControlTemplate TargetType="TextBox">
+                                                         <Border x:Name="border"
+                                                                 Background="{TemplateBinding Background}"
+                                                                 BorderBrush="{TemplateBinding BorderBrush}"
+                                                                 BorderThickness="{TemplateBinding BorderThickness}"
+                                                                 CornerRadius="6"
+                                                                 SnapsToDevicePixels="True">
+                                                             <Grid>
+                                                                 <TextBlock x:Name="placeholder"
+                                                                            Text="🔍 Tìm tên, mã NV, SĐT..."
+                                                                            Foreground="{StaticResource TopoTextMutedBrush}"
+                                                                            FontSize="12"
+                                                                            Margin="10,0"
+                                                                            VerticalAlignment="Center"
+                                                                            Visibility="Collapsed"/>
+                                                                 <ScrollViewer x:Name="PART_ContentHost"
+                                                                               Margin="8,0"
+                                                                               VerticalAlignment="Center"/>
+                                                             </Grid>
+                                                         </Border>
+                                                         <ControlTemplate.Triggers>
+                                                             <Trigger Property="Text" Value="">
+                                                                 <Setter TargetName="placeholder" Property="Visibility" Value="Visible"/>
+                                                             </Trigger>
+                                                             <Trigger Property="Text" Value="{x:Null}">
+                                                                 <Setter TargetName="placeholder" Property="Visibility" Value="Visible"/>
+                                                             </Trigger>
+                                                             <Trigger Property="IsFocused" Value="True">
+                                                                 <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource TopoPrimaryBrush}"/>
+                                                                 <Setter TargetName="placeholder" Property="Visibility" Value="Collapsed"/>
+                                                             </Trigger>
+                                                         </ControlTemplate.Triggers>
+                                                     </ControlTemplate>
+                                                 </TextBox.Template>
+                                             </TextBox>
+
+                                             <!-- Status Filter -->
+                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,16,4">
+                                                 <TextBlock Text="Trạng thái:" VerticalAlignment="Center" Margin="0,0,6,0" 
+                                                            FontSize="12" Foreground="{StaticResource TopoTextSecondaryBrush}"/>
+                                                 <ComboBox SelectedValue="{Binding DeptEmpStatusFilter, Mode=TwoWay}" 
+                                                           SelectedValuePath="Content" Style="{StaticResource ModernComboBox}" 
+                                                           Width="90" Height="32" VerticalAlignment="Center">
+                                                     <ComboBoxItem Content="Tất cả" IsSelected="True"/>
+                                                     <ComboBoxItem Content="Hoạt động"/>
+                                                     <ComboBoxItem Content="Ngừng hoạt động"/>
+                                                 </ComboBox>
+                                             </StackPanel>
+
+                                             <!-- Position Filter -->
+                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,16,4">
+                                                 <TextBlock Text="Chức vụ:" VerticalAlignment="Center" Margin="0,0,6,0" 
+                                                            FontSize="12" Foreground="{StaticResource TopoTextSecondaryBrush}"/>
+                                                 <ComboBox ItemsSource="{Binding DeptEmpPositionFilterList}"
+                                                           SelectedValue="{Binding DeptEmpPositionFilter, Mode=TwoWay}"
+                                                           SelectedValuePath="Id"
+                                                           DisplayMemberPath="PositionName"
+                                                           Style="{StaticResource ModernComboBox}" 
+                                                           Width="150" Height="32" VerticalAlignment="Center"/>
+                                             </StackPanel>
+                                         </WrapPanel>
+
+                                        <!-- Employees DataGrid -->
+                                        <DataGrid Grid.Row="2" ItemsSource="{Binding FilteredDeptEmployees}"
+                                                  Style="{StaticResource ModernDataGrid}" AutoGenerateColumns="False"
+                                                  IsReadOnly="True" MaxHeight="350" MinHeight="120"
+                                                  HeadersVisibility="Column" GridLinesVisibility="None"
+                                                  Margin="0">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="Mã NV" Binding="{Binding EmployeeCode}" Width="90" FontWeight="SemiBold"/>
+                                                <DataGridTextColumn Header="Họ và tên" Binding="{Binding FullName}" Width="150"/>
+                                                <DataGridTextColumn Header="Chức vụ" Binding="{Binding PositionName}" Width="110"/>
+                                                <DataGridTextColumn Header="Điện thoại" Binding="{Binding Phone}" Width="95"/>
+                                                
+                                                <!-- Card UID -->
+                                                <DataGridTemplateColumn Header="Mã thẻ RFID" Width="110">
+                                                    <DataGridTemplateColumn.CellTemplate>
+                                                        <DataTemplate>
+                                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                                <TextBlock FontSize="12" VerticalAlignment="Center">
+                                                                    <TextBlock.Style>
+                                                                        <Style TargetType="TextBlock">
+                                                                            <Setter Property="Text" Value="{Binding CardUID}"/>
+                                                                            <Style.Triggers>
+                                                                                <DataTrigger Binding="{Binding CardUID}" Value="{x:Null}">
+                                                                                    <Setter Property="Text" Value="Chưa cấp"/>
+                                                                                    <Setter Property="Foreground" Value="{StaticResource TopoTextMutedBrush}"/>
+                                                                                </DataTrigger>
+                                                                                <DataTrigger Binding="{Binding CardUID}" Value="">
+                                                                                    <Setter Property="Text" Value="Chưa cấp"/>
+                                                                                    <Setter Property="Foreground" Value="{StaticResource TopoTextMutedBrush}"/>
+                                                                                </DataTrigger>
+                                                                            </Style.Triggers>
+                                                                        </Style>
+                                                                    </TextBlock.Style>
+                                                                </TextBlock>
+                                                            </StackPanel>
+                                                        </DataTemplate>
+                                                    </DataGridTemplateColumn.CellTemplate>
+                                                </DataGridTemplateColumn>
+
+                                                <!-- Status -->
+                                                <DataGridTemplateColumn Header="Trạng thái" Width="85">
+                                                    <DataGridTemplateColumn.CellTemplate>
+                                                        <DataTemplate>
+                                                            <Border CornerRadius="4" Padding="6,2" HorizontalAlignment="Left">
+                                                                <Border.Style>
+                                                                    <Style TargetType="Border">
+                                                                        <Setter Property="Background" Value="#E8F5E9"/>
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding Status}" Value="Inactive">
+                                                                                <Setter Property="Background" Value="#FFEBEE"/>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </Border.Style>
+                                                                <TextBlock Text="{Binding Status}" FontSize="11" FontWeight="Bold">
+                                                                    <TextBlock.Style>
+                                                                        <Style TargetType="TextBlock">
+                                                                            <Setter Property="Foreground" Value="{StaticResource TopoSuccessBrush}"/>
+                                                                            <Style.Triggers>
+                                                                                <DataTrigger Binding="{Binding Status}" Value="Inactive">
+                                                                                    <Setter Property="Foreground" Value="{StaticResource TopoDangerBrush}"/>
+                                                                                </DataTrigger>
+                                                                            </Style.Triggers>
+                                                                        </Style>
+                                                                    </TextBlock.Style>
+                                                                </TextBlock>
+                                                            </Border>
+                                                        </DataTemplate>
+                                                    </DataGridTemplateColumn.CellTemplate>
+                                                </DataGridTemplateColumn>
+
+                                                <!-- Actions -->
+                                                <DataGridTemplateColumn Header="Thao tác" Width="*">
+                                                    <DataGridTemplateColumn.CellTemplate>
+                                                        <DataTemplate>
+                                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                                <!-- Detail -->
+                                                                <Button Content="👁️ Chi tiết" ToolTip="Xem chi tiết nhân sự"
+                                                                        Style="{StaticResource TopoToolbarButton}" Padding="4,2" Margin="1,0" FontSize="11"
+                                                                        Command="{Binding DataContext.ViewEmpDetailCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                        CommandParameter="{Binding}"/>
+
+                                                                <!-- Edit -->
+                                                                <Button Content="✏️ Sửa" ToolTip="Chỉnh sửa nhân viên"
+                                                                        Style="{StaticResource TopoToolbarButton}" Padding="4,2" Margin="1,0" FontSize="11"
+                                                                        Command="{Binding DataContext.EditEmpCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                        CommandParameter="{Binding}"/>
+
+                                                                <!-- Add/Renew Card -->
+                                                                <Button Content="💳 Thêm thẻ" ToolTip="Cấp thẻ RFID"
+                                                                        Padding="4,2" Margin="1,0" FontSize="11"
+                                                                        Command="{Binding DataContext.AddCardCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                        CommandParameter="{Binding}">
+                                                                    <Button.Style>
+                                                                        <Style TargetType="Button" BasedOn="{StaticResource TopoToolbarButton}">
+                                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                                            <Style.Triggers>
+                                                                                <DataTrigger Binding="{Binding CardUID}" Value="{x:Null}">
+                                                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                                                </DataTrigger>
+                                                                                <DataTrigger Binding="{Binding CardUID}" Value="">
+                                                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                                                </DataTrigger>
+                                                                            </Style.Triggers>
+                                                                        </Style>
+                                                                    </Button.Style>
+                                                                </Button>
+                                                                
+                                                                <Button Content="📆 Gia hạn" ToolTip="Gia hạn thẻ RFID"
+                                                                        Padding="4,2" Margin="1,0" FontSize="11"
+                                                                        Command="{Binding DataContext.RenewCardCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                        CommandParameter="{Binding}">
+                                                                    <Button.Style>
+                                                                        <Style TargetType="Button" BasedOn="{StaticResource TopoToolbarButton}">
+                                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                                            <Style.Triggers>
+                                                                                <DataTrigger Binding="{Binding CardUID}" Value="{x:Null}">
+                                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                                </DataTrigger>
+                                                                                <DataTrigger Binding="{Binding CardUID}" Value="">
+                                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                                </DataTrigger>
+                                                                            </Style.Triggers>
+                                                                        </Style>
+                                                                    </Button.Style>
+                                                                </Button>
+
+                                                                <!-- Delete -->
+                                                                <Button Content="🗑️ Xóa" ToolTip="Xóa nhân sự"
+                                                                        Style="{StaticResource TopoToolbarButton}" Foreground="{StaticResource TopoDangerBrush}" Padding="4,2" Margin="1,0" FontSize="11"
+                                                                        Command="{Binding DataContext.DeleteEmpCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                                        CommandParameter="{Binding}"/>
+                                                            </StackPanel>
+                                                        </DataTemplate>
+                                                    </DataGridTemplateColumn.CellTemplate>
+                                                </DataGridTemplateColumn>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+
+                            <!-- ─── POSITION DETAIL ─────────────────────── -->
+                            <StackPanel Visibility="{Binding IsPositionSelected, Converter={StaticResource BoolToVisibilityConverter}}">
+                                <Border Style="{StaticResource DetailCardStyle}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                                <TextBlock Text="🏷️" FontSize="24" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                                <TextBlock Text="{Binding DetailPosName}" FontSize="22" FontWeight="Bold"
+                                                           FontFamily="Segoe UI, Inter, Arial"
+                                                           Foreground="{StaticResource TopoTextPrimaryBrush}"
+                                                           VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                        <Border Grid.Column="1" CornerRadius="6" Padding="12,6" VerticalAlignment="Top">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="#E8F5E9"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding DetailPosStatus}" Value="Inactive">
+                                                            <Setter Property="Background" Value="#FFEBEE"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <TextBlock FontSize="12" FontWeight="SemiBold" FontFamily="Segoe UI, Inter, Arial">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Text" Value="● Active"/>
+                                                        <Setter Property="Foreground" Value="{StaticResource TopoSuccessBrush}"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding DetailPosStatus}" Value="Inactive">
+                                                                <Setter Property="Text" Value="● Inactive"/>
+                                                                <Setter Property="Foreground" Value="{StaticResource TopoDangerBrush}"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </Border>
+                                    </Grid>
+                                </Border>
+
+                                <UniformGrid Columns="2" Margin="0,0,0,4">
+                                    <Border Style="{StaticResource StatCardStyle}" Margin="0,0,8,8">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding DetailPosEmpsCount}" Style="{StaticResource StatNumberStyle}"/>
+                                            <TextBlock Text="Tổng nhân viên giữ chức vụ" Style="{StaticResource StatLabelStyle}"/>
+                                        </StackPanel>
+                                    </Border>
+                                </UniformGrid>
+                            </StackPanel>
+
+                            <!-- ─── EMPLOYEE DETAIL ─────────────────────── -->
+                            <StackPanel Visibility="{Binding IsEmployeeSelected, Converter={StaticResource BoolToVisibilityConverter}}">
+                                <Border Style="{StaticResource DetailCardStyle}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <!-- Circular Avatar or Placeholder -->
+                                        <Border Grid.Column="0" Width="70" Height="70" CornerRadius="35" 
+                                                Background="{StaticResource TopoPrimaryLightBrush}"
+                                                BorderBrush="{StaticResource TopoBorderBrush}" BorderThickness="1.5"
+                                                Margin="0,0,16,0" VerticalAlignment="Top" HorizontalAlignment="Center">
+                                            <Grid>
+                                                <!-- Icon default if no avatar -->
+                                                <TextBlock Text="👤" FontSize="32" VerticalAlignment="Center" HorizontalAlignment="Center" 
+                                                           Foreground="{StaticResource TopoPrimaryBrush}"/>
+                                                <!-- Could bind image here if DetailEmpAvatar has path -->
+                                            </Grid>
+                                        </Border>
+
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding DetailEmpName}" FontSize="20" FontWeight="Bold"
+                                                       FontFamily="Segoe UI, Inter, Arial"
+                                                       Foreground="{StaticResource TopoTextPrimaryBrush}"/>
+                                            <TextBlock Text="{Binding DetailEmpCode, StringFormat='Mã nhân viên: {0}'}" FontSize="13"
+                                                       FontFamily="Segoe UI, Inter, Arial"
+                                                       Foreground="{StaticResource TopoTextSecondaryBrush}" Margin="0,4,0,0"/>
+                                        </StackPanel>
+
+                                        <Border Grid.Column="2" CornerRadius="6" Padding="12,6" VerticalAlignment="Top">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="#E8F5E9"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding DetailEmpStatus}" Value="Inactive">
+                                                            <Setter Property="Background" Value="#FFEBEE"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <TextBlock FontSize="12" FontWeight="SemiBold" FontFamily="Segoe UI, Inter, Arial">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Text" Value="● Active"/>
+                                                        <Setter Property="Foreground" Value="{StaticResource TopoSuccessBrush}"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding DetailEmpStatus}" Value="Inactive">
+                                                                <Setter Property="Text" Value="● Inactive"/>
+                                                                <Setter Property="Foreground" Value="{StaticResource TopoDangerBrush}"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </Border>
+                                    </Grid>
+                                </Border>
+
+                                <Border Style="{StaticResource DetailCardStyle}">
+                                    <StackPanel>
+                                        <TextBlock Text="THÔNG TIN TỔ CHỨC &amp; LIÊN HỆ" Style="{StaticResource PanelHeaderStyle}"/>
+                                        
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+
+                                            <!-- Row 0 -->
+                                            <StackPanel Grid.Column="0" Grid.Row="0" Margin="0,0,10,0">
+                                                <TextBlock Text="Công ty" Style="{StaticResource InfoLabelStyle}"/>
+                                                <TextBlock Text="{Binding DetailEmpCompanyName}" Style="{StaticResource InfoValueStyle}"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" Grid.Row="0">
+                                                <TextBlock Text="Phòng ban" Style="{StaticResource InfoLabelStyle}"/>
+                                                <TextBlock Text="{Binding DetailEmpDeptName}" Style="{StaticResource InfoValueStyle}"/>
+                                            </StackPanel>
+
+                                            <!-- Row 1 -->
+                                            <StackPanel Grid.Column="0" Grid.Row="1" Margin="0,0,10,0">
+                                                <TextBlock Text="Chức vụ" Style="{StaticResource InfoLabelStyle}"/>
+                                                <TextBlock Text="{Binding DetailEmpPositionName}" Style="{StaticResource InfoValueStyle}"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" Grid.Row="1">
+                                                <TextBlock Text="Số CCCD" Style="{StaticResource InfoLabelStyle}"/>
+                                                <TextBlock Text="{Binding DetailEmpCCCD}" Style="{StaticResource InfoValueStyle}"/>
+                                            </StackPanel>
+
+                                            <!-- Row 2 -->
+                                            <StackPanel Grid.Column="0" Grid.Row="2" Margin="0,0,10,0">
+                                                <TextBlock Text="Điện thoại" Style="{StaticResource InfoLabelStyle}"/>
+                                                <TextBlock Text="{Binding DetailEmpPhone}" Style="{StaticResource InfoValueStyle}"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" Grid.Row="2">
+                                                <TextBlock Text="Email" Style="{StaticResource InfoLabelStyle}"/>
+                                                <TextBlock Text="{Binding DetailEmpEmail}" Style="{StaticResource InfoValueStyle}"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- LINKED RFID CARD -->
+                                <Border Style="{StaticResource DetailCardStyle}">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+
+                                        <TextBlock Grid.Row="0" Text="THẺ RFID LIÊN KẾT" Style="{StaticResource PanelHeaderStyle}"/>
+
+                                        <!-- Has Card Container -->
+                                        <Grid Grid.Row="1" Visibility="{Binding DetailEmpHasCard, Converter={StaticResource BoolToVisibilityConverter}}">
+                                            <Border Background="#F5F7FA" CornerRadius="8" Padding="16">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Grid.Column="0" Text="💳" FontSize="28" VerticalAlignment="Center" Margin="0,0,16,0"/>
+                                                    
+                                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                                            <TextBlock Text="UID: " FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource TopoTextSecondaryBrush}"/>
+                                                            <TextBlock Text="{Binding DetailEmpCardUID}" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TopoPrimaryBrush}"/>
+                                                        </StackPanel>
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock Text="Hạn dùng: " FontSize="12" Foreground="{StaticResource TopoTextSecondaryBrush}"/>
+                                                            <TextBlock Text="{Binding DetailEmpCardExp}" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource TopoTextPrimaryBrush}"/>
+                                                        </StackPanel>
+                                                    </StackPanel>
+
+                                                    <Border Grid.Column="2" CornerRadius="4" Padding="8,4" VerticalAlignment="Center">
+                                                        <Border.Style>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="Background" Value="#EBF1FF"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding DetailEmpCardStatus}" Value="Lock">
+                                                                        <Setter Property="Background" Value="#FFEBEE"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Border.Style>
+                                                        <TextBlock FontSize="11" FontWeight="Bold">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock">
+                                                                    <Setter Property="Text" Value="HOẠT ĐỘNG"/>
+                                                                    <Setter Property="Foreground" Value="{StaticResource TopoPrimaryBrush}"/>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding DetailEmpCardStatus}" Value="Lock">
+                                                                            <Setter Property="Text" Value="BỊ KHÓA"/>
+                                                                            <Setter Property="Foreground" Value="{StaticResource TopoDangerBrush}"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+                                                    </Border>
+                                                </Grid>
+                                            </Border>
+                                        </Grid>
+
+                                        <!-- No Card Placeholder -->
+                                        <Grid Grid.Row="1" Visibility="{Binding DetailEmpHasCard, Converter={StaticResource InverseBoolToVisibilityConverter}, FallbackValue=Visible}">
+                                            <Border BorderBrush="{StaticResource TopoBorderBrush}" BorderThickness="1.5" CornerRadius="8" Padding="20">
+                                                <StackPanel HorizontalAlignment="Center">
+                                                    <TextBlock Text="Chưa gán thẻ" FontSize="13" Foreground="{StaticResource TopoTextMutedBrush}" HorizontalAlignment="Center"/>
+                                                    <Button Content="➕ Cấp thẻ RFID" Margin="0,10,0,0" Padding="12,6"
+                                                            Style="{StaticResource TopoActionButton}" HorizontalAlignment="Center"
+                                                            Command="{Binding AddCardCommand}"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+
+                            <!-- ─── CARD DETAIL ────────────────────────── -->
+                            <StackPanel Visibility="{Binding IsCardSelected, Converter={StaticResource BoolToVisibilityConverter}}">
+                                <Border Style="{StaticResource DetailCardStyle}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel Grid.Column="0">
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                                <TextBlock Text="💳" FontSize="24" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                                <TextBlock Text="{Binding DetailCardUID}" FontSize="22" FontWeight="Bold"
+                                                           FontFamily="Segoe UI, Inter, Arial"
+                                                           Foreground="{StaticResource TopoPrimaryBrush}"
+                                                           VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                            <TextBlock Text="{Binding DetailCardName, StringFormat='Tên thẻ: {0}'}" FontSize="13"
+                                                       FontFamily="Segoe UI, Inter, Arial"
+                                                       Foreground="{StaticResource TopoTextSecondaryBrush}"/>
+                                        </StackPanel>
+                                        <Border Grid.Column="1" CornerRadius="6" Padding="12,6" VerticalAlignment="Top">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="#E8F5E9"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding DetailCardStatus}" Value="Lock">
+                                                            <Setter Property="Background" Value="#FFEBEE"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <TextBlock FontSize="12" FontWeight="SemiBold" FontFamily="Segoe UI, Inter, Arial">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Text" Value="● Active"/>
+                                                        <Setter Property="Foreground" Value="{StaticResource TopoSuccessBrush}"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding DetailCardStatus}" Value="Lock">
+                                                                <Setter Property="Text" Value="● Locked"/>
+                                                                <Setter Property="Foreground" Value="{StaticResource TopoDangerBrush}"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </Border>
+                                    </Grid>
+                                </Border>
+
+                                <Border Style="{StaticResource DetailCardStyle}">
+                                    <StackPanel>
+                                        <TextBlock Text="THÔNG TIN CHI TIẾT THẺ" Style="{StaticResource PanelHeaderStyle}"/>
+                                        
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+
+                                            <!-- Row 0 -->
+                                            <StackPanel Grid.Column="0" Grid.Row="0" Margin="0,0,10,0">
+                                                <TextBlock Text="Biển số xe gán" Style="{StaticResource InfoLabelStyle}"/>
+                                                <TextBlock Text="{Binding DetailCardPlate}" Style="{StaticResource InfoValueStyle}"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" Grid.Row="0">
+                                                <TextBlock Text="Loại vé" Style="{StaticResource InfoLabelStyle}"/>
+                                                <TextBlock Text="{Binding DetailCardLoaiVe}" Style="{StaticResource InfoValueStyle}"/>
+                                            </StackPanel>
+
+                                            <!-- Row 1 -->
+                                            <StackPanel Grid.Column="0" Grid.Row="1" Margin="0,0,10,0">
+                                                <TextBlock Text="Loại xe" Style="{StaticResource InfoLabelStyle}"/>
+                                                <TextBlock Text="{Binding DetailCardLoaiXe}" Style="{StaticResource InfoValueStyle}"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" Grid.Row="1">
+                                                <TextBlock Text="Ngày đăng ký" Style="{StaticResource InfoLabelStyle}"/>
+                                                <TextBlock Text="{Binding DetailCardCreated}" Style="{StaticResource InfoValueStyle}"/>
+                                            </StackPanel>
+
+                                            <!-- Row 2 -->
+                                            <StackPanel Grid.Column="0" Grid.Row="2" Margin="0,0,10,0">
+                                                <TextBlock Text="Hạn sử dụng" Style="{StaticResource InfoLabelStyle}"/>
+                                                <TextBlock Text="{Binding DetailCardExp}" Style="{StaticResource InfoValueStyle}"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- ASSIGNED EMPLOYEE -->
+                                <Border Style="{StaticResource DetailCardStyle}">
+                                    <StackPanel>
+                                        <TextBlock Text="NHÂN VIÊN SỞ HỮU THẺ" Style="{StaticResource PanelHeaderStyle}"/>
+                                        <Border Background="#F5F7FA" CornerRadius="8" Padding="16">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" Text="👤" FontSize="24" VerticalAlignment="Center" Margin="0,0,16,0"/>
+                                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding DetailCardEmpName}" FontSize="15" FontWeight="Bold" Foreground="{StaticResource TopoTextPrimaryBrush}"/>
+                                                    <TextBlock Text="{Binding DetailCardEmpCode, StringFormat='Mã số: {0}'}" FontSize="12" Foreground="{StaticResource TopoTextSecondaryBrush}" Margin="0,2,0,0"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </Grid>
+                    </ScrollViewer>
+                </Border>
+
+                <!-- ═══════════════════════════════════════════════════════ -->
+                <!-- RIGHT PANEL: ACTION CENTRE                              -->
+                <!-- ═══════════════════════════════════════════════════════ -->
+                <Border Grid.Column="4" Background="{StaticResource TopoSidebarBgBrush}" BorderBrush="{StaticResource TopoBorderBrush}" BorderThickness="1,0,0,0" Padding="16,16,16,10">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Header -->
+                        <TextBlock Grid.Row="0" Text="TRUNG TÂM THAO TÁC" Style="{StaticResource PanelHeaderStyle}"/>
+
+                        <!-- Action List -->
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                            <StackPanel Margin="0,10,0,0">
+
+                                <!-- GENERAL ACTIONS (always visible) -->
+                                <TextBlock Text="Hành động chung" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TopoTextMutedBrush}" Margin="0,0,0,10"/>
+                                <Button Content="🔄 Tải lại sơ đồ" Style="{StaticResource TopoOutlineButton}" Command="{Binding RefreshCommand}"/>
+                                
+                                <Border Height="1" Background="{StaticResource TopoBorderBrush}" Margin="0,8,0,12"/>
+
+                                <!-- CONTEXT ACTIONS -->
+                                <TextBlock Text="Thao tác theo mục chọn" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TopoTextMutedBrush}" Margin="0,0,0,10"/>
+
+                                <!-- No Selection -->
+                                <StackPanel Visibility="{Binding HasSelection, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                                    <TextBlock Text="Chọn một đối tượng trên cây sơ đồ để thực hiện thao tác" FontSize="12" Foreground="{StaticResource TopoTextSecondaryBrush}" TextWrapping="Wrap"/>
+                                </StackPanel>
+
+                                <!-- Context-dependent Button Groups -->
+                                <!-- 1. Company Actions -->
+                                <StackPanel Visibility="{Binding IsCompanySelected, Converter={StaticResource BoolToVisibilityConverter}}">
+                                    <Button Content="✏️ Sửa công ty" Style="{StaticResource TopoActionButton}" Command="{Binding EditCompanyCommand}"/>
+                                    <Button Content="📁 Thêm phòng ban" Style="{StaticResource TopoOutlineButton}" Command="{Binding AddDeptCommand}" CommandParameter="{Binding SelectedNode.DataItem}"/>
+                                    <Button Content="🗑️ Xóa công ty" Style="{StaticResource TopoDangerOutlineButton}" Command="{Binding DeleteCompanyCommand}"/>
+                                </StackPanel>
+
+                                <!-- 2. Department Actions -->
+                                <StackPanel Visibility="{Binding IsDepartmentSelected, Converter={StaticResource BoolToVisibilityConverter}}">
+                                    <Button Content="✏️ Sửa phòng ban" Style="{StaticResource TopoActionButton}" Command="{Binding EditDeptCommand}"/>
+                                    <Button Content="👤 Thêm nhân viên" Style="{StaticResource TopoOutlineButton}" Command="{Binding AddEmpCommand}" CommandParameter="{Binding SelectedNode.DataItem}"/>
+                                    <Button Content="🗑️ Xóa phòng ban" Style="{StaticResource TopoDangerOutlineButton}" Command="{Binding DeleteDeptCommand}"/>
+                                </StackPanel>
+
+                                <!-- 2.5. Orphan Group Actions -->
+                                <StackPanel Visibility="{Binding IsOrphanGroupSelected, Converter={StaticResource BoolToVisibilityConverter}}">
+                                    <Button Content="👤 Thêm nhân viên" Style="{StaticResource TopoOutlineButton}" Command="{Binding AddEmpCommand}"/>
+                                </StackPanel>
+
+                                <!-- 3. Position Actions -->
+                                <StackPanel Visibility="{Binding IsPositionSelected, Converter={StaticResource BoolToVisibilityConverter}}">
+                                    <Button Content="✏️ Sửa chức vụ" Style="{StaticResource TopoActionButton}" Command="{Binding EditPosCommand}"/>
+                                    <Button Content="🗑️ Xóa chức vụ" Style="{StaticResource TopoDangerOutlineButton}" Command="{Binding DeletePosCommand}"/>
+                                </StackPanel>
+
+                                <!-- 4. Employee Actions -->
+                                <StackPanel Visibility="{Binding IsEmployeeSelected, Converter={StaticResource BoolToVisibilityConverter}}">
+                                    <Button Content="🔍 Chi tiết nhân sự" Style="{StaticResource TopoActionButton}" Command="{Binding ViewEmpDetailCommand}"/>
+                                    <Button Content="✏️ Chỉnh sửa hồ sơ" Style="{StaticResource TopoOutlineButton}" Command="{Binding EditEmpCommand}"/>
+                                    <Button Content="💳 Gán/Cấp thẻ RFID" Style="{StaticResource TopoOutlineButton}" Command="{Binding AddCardCommand}" CommandParameter="{Binding SelectedNode.DataItem}"/>
+                                    <Button Content="📆 Gia hạn thẻ RFID" Style="{StaticResource TopoOutlineButton}" Command="{Binding RenewCardCommand}" CommandParameter="{Binding SelectedNode.DataItem}"/>
+                                    <Button Content="🗑️ Xóa nhân sự" Style="{StaticResource TopoDangerOutlineButton}" Command="{Binding DeleteEmpCommand}"/>
+                                </StackPanel>
+
+                                <!-- 5. Card Actions -->
+                                <StackPanel Visibility="{Binding IsCardSelected, Converter={StaticResource BoolToVisibilityConverter}}">
+                                    <Button Content="📆 Gia hạn thẻ" Style="{StaticResource TopoActionButton}" Command="{Binding RenewCardCommand}" CommandParameter="{Binding SelectedNode.DataItem}"/>
+                                    <Button Content="🔓 Thu hồi (hủy gán) thẻ" Style="{StaticResource TopoOutlineButton}" Command="{Binding UnassignCardCommand}" CommandParameter="{Binding SelectedNode.DataItem}"/>
+                                    <Button Content="🗑️ Xóa thẻ khỏi hệ thống" Style="{StaticResource TopoDangerOutlineButton}" Command="{Binding DeleteCardCommand}"/>
+                                </StackPanel>
+
+                                <Border Height="1" Background="{StaticResource TopoBorderBrush}" Margin="0,12,0,12"/>
+
+                                <!-- QUICK ADD SECTOR -->
+                                <TextBlock Text="Tạo mới nhanh" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TopoTextMutedBrush}" Margin="0,0,0,10"/>
+                                <Button Content="🏢 Thêm công ty" Style="{StaticResource TopoOutlineButton}" Command="{Binding AddCompanyCommand}"/>
+                                <Button Content="🏷️ Thêm chức vụ" Style="{StaticResource TopoOutlineButton}" Command="{Binding AddPosCommand}"/>
+
+                            </StackPanel>
+                        </ScrollViewer>
+
+                        <!-- Footer notes -->
+                        <TextBlock Grid.Row="2" Text="Lưu ý: Thao tác xóa có thể ảnh hưởng đến lịch sử ra vào." FontSize="11" Foreground="{StaticResource TopoTextMutedBrush}" TextWrapping="Wrap"/>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
+    </Grid>
+</UserControl>

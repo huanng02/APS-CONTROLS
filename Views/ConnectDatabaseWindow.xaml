@@ -1,0 +1,1021 @@
+<Window x:Class="QuanLyGiuXe.Views.ConnectDatabaseWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="THIẾT LẬP DATABASE" 
+        Height="760" Width="820"
+        WindowStartupLocation="CenterScreen" 
+        ResizeMode="NoResize"
+        AllowsTransparency="True"
+        WindowStyle="None"
+        Background="Transparent">
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisConverter" />
+        
+        <!-- Style nhãn ô nhập liệu -->
+        <Style x:Key="ModernFieldLabel" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="Segoe UI, Inter"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#64748b"/>
+            <Setter Property="Margin" Value="0,0,0,6"/>
+        </Style>
+
+        <!-- Style bọc ngoài của input field -->
+        <Style x:Key="InputContainerStyle" TargetType="Border">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderBrush" Value="#cbd5e1"/>
+            <Setter Property="BorderThickness" Value="1.5"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Height" Value="48"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="BorderBrush" Value="#94a3b8"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Style cơ bản cho các điều khiển nhập liệu bên trong container -->
+        <Style x:Key="EmbeddedInputBaseStyle" TargetType="Control">
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Foreground" Value="#1e293b"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="FontFamily" Value="Segoe UI, Inter"/>
+        </Style>
+
+        <!-- Style textbox bên trong container -->
+        <Style x:Key="EmbeddedTextBoxStyle" TargetType="TextBox" BasedOn="{StaticResource EmbeddedInputBaseStyle}"/>
+
+        <!-- Style passwordbox bên trong container -->
+        <Style x:Key="EmbeddedPasswordBoxStyle" TargetType="PasswordBox" BasedOn="{StaticResource EmbeddedInputBaseStyle}"/>
+
+        <!-- Action Button Style (Check Server) -->
+        <Style x:Key="BlueOutlineButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="#2563eb"/>
+            <Setter Property="BorderBrush" Value="#2563eb"/>
+            <Setter Property="BorderThickness" Value="1.5"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Height" Value="44"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="BtnBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="12">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="BtnBorder" Property="Background" Value="#eff6ff"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="BtnBorder" Property="Background" Value="#dbeafe"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="BtnBorder" Property="Opacity" Value="0.6"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Action Button Style (Test Connection) -->
+        <Style x:Key="GreenButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#16a34a"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Height" Value="44"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="BtnBorder" Background="{TemplateBinding Background}" CornerRadius="12">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="BtnBorder" Property="Background" Value="#15803d"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="BtnBorder" Property="Background" Value="#166534"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="BtnBorder" Property="Background" Value="#cbd5e1"/>
+                                <Setter Property="Foreground" Value="#94a3b8"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Action Button Style (Orange - Initialize) -->
+        <Style x:Key="OrangeButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#f59e0b"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Height" Value="44"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="BtnBorder" Background="{TemplateBinding Background}" CornerRadius="12">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="BtnBorder" Property="Background" Value="#d97706"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="BtnBorder" Property="Background" Value="#b45309"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Action Button Style (Indigo - Migrate) -->
+        <Style x:Key="IndigoButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#4f46e5"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Height" Value="44"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="BtnBorder" Background="{TemplateBinding Background}" CornerRadius="12">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="BtnBorder" Property="Background" Value="#4338ca"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="BtnBorder" Property="Background" Value="#3730a3"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Main Action Button -->
+        <Style x:Key="PrimaryActionBtnStyle" TargetType="Button">
+            <Setter Property="Background" Value="#2563eb"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="Height" Value="48"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="BtnBorder" Background="{TemplateBinding Background}" CornerRadius="14">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="BtnBorder" Property="Background" Value="#1d4ed8"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="BtnBorder" Property="Background" Value="#1e40af"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="BtnBorder" Property="Background" Value="#cbd5e1"/>
+                                <Setter Property="Foreground" Value="#94a3b8"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <Grid Margin="15">
+        <!-- Cửa sổ Card trung tâm bo tròn lớn -->
+        <Border Background="White" 
+                BorderBrush="#e2e8f0" 
+                BorderThickness="1" 
+                CornerRadius="24">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="30" Color="#091e42" Opacity="0.12" ShadowDepth="4"/>
+            </Border.Effect>
+            
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- I. HEADER -->
+                <Border Background="#f8fafc" CornerRadius="24,24,0,0" Padding="25,20" 
+                        MouseLeftButtonDown="Header_MouseLeftButtonDown">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        
+                        <!-- Icon Database -->
+                        <Border Width="46" Height="46" Background="#eff6ff" CornerRadius="12" SnapsToDevicePixels="True">
+                            <Path Data="M12 2C6.48 2 2 4.02 2 6.5s4.48 4.5 10 4.5 10-2.02 10-4.5S17.52 2 12 2zm0 13c-5.52 0-10-2.02-10-4.5V15c0 2.48 4.48 4.5 10 4.5s10-2.02 10-4.5v-4.5c0 2.48-4.48 4.5-10 4.5zm0-4.5c-5.52 0-10-2.02-10-4.5V9c0 2.48 4.48 4.5 10 4.5s10-2.02 10-4.5V7.5c0 2.48-4.48 4.5-10 4.5z" 
+                                  Fill="#2563eb" Width="20" Height="20" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+
+                        <StackPanel Grid.Column="1" Margin="16,0,0,0" VerticalAlignment="Center">
+                            <TextBlock Text="THIẾT LẬP DATABASE" FontSize="16" FontWeight="Bold" Foreground="#0f172a"/>
+                            <TextBlock Text="Cấu hình kết nối SQL Server cho hệ thống quản lý bãi xe" FontSize="12.5" Foreground="#64748b" Margin="0,2,0,0"/>
+                        </StackPanel>
+
+                        <!-- Nút Close -->
+                        <Button Grid.Column="2" Width="32" Height="32" Cursor="Hand" Click="CloseButton_Click" Background="Transparent" BorderThickness="0" Focusable="False">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="CloseBorder" Background="Transparent" CornerRadius="8">
+                                        <Path Data="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z" 
+                                              Fill="#64748b" Width="14" Height="14" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="CloseBorder" Property="Background" Value="#fee2e2"/>
+                                            <Setter Property="Foreground" Value="#ef4444"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                    </Grid>
+                </Border>
+
+                <!-- II. MAIN CONTENT (2 columns layout) -->
+                <Grid Grid.Row="1">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="260"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- COLUMN 1: FORM INPUT -->
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="25,20">
+                        <StackPanel>
+                            <!-- I. MÁY CHỦ CHÍNH (PRIMARY SERVER) -->
+                            <TextBlock Text="I. MÁY CHỦ CHÍNH (PRIMARY SERVER)" FontSize="13" FontWeight="Bold" Foreground="#2563eb" Margin="0,5,0,12"/>
+                            
+                            <!-- IP & PORT Row -->
+                            <Grid Margin="0,0,0,14">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="110"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Margin="0,0,12,0">
+                                    <TextBlock Text="ĐỊA CHỈ SERVER" Style="{StaticResource ModernFieldLabel}"/>
+                                    <Border Style="{StaticResource InputContainerStyle}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="42"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Path Data="M19 15v4H5v-4h14m1-2H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1v-6c0-.55-.45-1-1-1zM19 5v4H5V5h14m1-2H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1V4c0-.55-.45-1-1-1z" 
+                                                  Fill="#94a3b8" Width="16" Height="16" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="1" Text="192.168.1.10 hoặc localhost\SQLEXPRESS" Foreground="#94a3b8" VerticalAlignment="Center" FontSize="13.5" IsHitTestVisible="False">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Text, ElementName=txtServerIP}" Value="">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                            <TextBox x:Name="txtServerIP" Grid.Column="1" Style="{StaticResource EmbeddedTextBoxStyle}"
+                                                     Text="{Binding ServerIP, UpdateSourceTrigger=PropertyChanged}" GotFocus="InputField_GotFocus" LostFocus="InputField_LostFocus"/>
+                                        </Grid>
+                                    </Border>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="CỔNG (PORT)" Style="{StaticResource ModernFieldLabel}"/>
+                                    <Border Style="{StaticResource InputContainerStyle}">
+                                        <TextBox x:Name="txtPort" Style="{StaticResource EmbeddedTextBoxStyle}" Padding="15,0"
+                                                 Text="{Binding Port, UpdateSourceTrigger=PropertyChanged}" GotFocus="InputField_GotFocus" LostFocus="InputField_LostFocus"/>
+                                    </Border>
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- SQL Username -->
+                            <StackPanel Margin="0,0,0,14">
+                                <TextBlock Text="TÀI KHOẢN SQL" Style="{StaticResource ModernFieldLabel}"/>
+                                <Border Style="{StaticResource InputContainerStyle}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="42"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Path Data="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" 
+                                              Fill="#94a3b8" Width="16" Height="16" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="1" Text="Nhập tài khoản đăng nhập (sa)" Foreground="#94a3b8" VerticalAlignment="Center" FontSize="13.5" IsHitTestVisible="False">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Text, ElementName=txtUsername}" Value="">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        <TextBox x:Name="txtUsername" Grid.Column="1" Style="{StaticResource EmbeddedTextBoxStyle}"
+                                                 Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}" GotFocus="InputField_GotFocus" LostFocus="InputField_LostFocus"/>
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+
+                            <!-- Password -->
+                            <StackPanel Margin="0,0,0,16">
+                                <TextBlock Text="MẬT KHẨU" Style="{StaticResource ModernFieldLabel}"/>
+                                <Border Style="{StaticResource InputContainerStyle}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="42"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="42"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Path Data="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" 
+                                              Fill="#94a3b8" Width="16" Height="16" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        
+                                        <TextBlock Grid.Column="1" Text="Nhập mật khẩu cơ sở dữ liệu" Foreground="#94a3b8" VerticalAlignment="Center" FontSize="13.5" IsHitTestVisible="False">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <MultiDataTrigger>
+                                                            <MultiDataTrigger.Conditions>
+                                                                <Condition Binding="{Binding Password}" Value=""/>
+                                                                <Condition Binding="{Binding IsPasswordVisible}" Value="False"/>
+                                                            </MultiDataTrigger.Conditions>
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </MultiDataTrigger>
+                                                        <MultiDataTrigger>
+                                                            <MultiDataTrigger.Conditions>
+                                                                <Condition Binding="{Binding Password}" Value=""/>
+                                                                <Condition Binding="{Binding IsPasswordVisible}" Value="True"/>
+                                                            </MultiDataTrigger.Conditions>
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </MultiDataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+
+                                        <PasswordBox x:Name="txtPassword" Grid.Column="1" 
+                                                     PasswordChanged="txtPassword_PasswordChanged" GotFocus="InputField_GotFocus" LostFocus="InputField_LostFocus">
+                                            <PasswordBox.Style>
+                                                <Style TargetType="PasswordBox" BasedOn="{StaticResource EmbeddedPasswordBoxStyle}">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsPasswordVisible}" Value="True">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </PasswordBox.Style>
+                                        </PasswordBox>
+
+                                        <TextBox x:Name="txtPasswordVisible" Grid.Column="1" 
+                                                 Text="{Binding Password, UpdateSourceTrigger=PropertyChanged}" TextChanged="txtPasswordVisible_TextChanged" GotFocus="InputField_GotFocus" LostFocus="InputField_LostFocus">
+                                            <TextBox.Style>
+                                                <Style TargetType="TextBox" BasedOn="{StaticResource EmbeddedTextBoxStyle}">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsPasswordVisible}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBox.Style>
+                                        </TextBox>
+
+                                        <!-- Eye Toggle -->
+                                        <Button Grid.Column="2" Command="{Binding TogglePasswordVisibilityCommand}" Background="Transparent" BorderThickness="0" Cursor="Hand" Focusable="False">
+                                            <Button.Template>
+                                                <ControlTemplate TargetType="Button">
+                                                    <Border Background="Transparent">
+                                                        <Path x:Name="EyeIconPath" Fill="#94a3b8" Width="18" Height="18" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <DataTrigger Binding="{Binding IsPasswordVisible}" Value="True">
+                                                            <Setter TargetName="EyeIconPath" Property="Data" Value="M12 4.5c-5 0-9.27 3.11-11 7.5 1.62 4.14 5.56 7.12 10.3 7.45l-2.09-2.09C7.45 16.82 5.86 14.65 5 12c1.47-3.44 4.88-5.83 8.87-5.83.94 0 1.84.14 2.71.4l1.52-1.52C16.29 4.75 14.2 4.5 12 4.5zM17 12c0-.34-.04-.67-.1-1L12 6.1c.33-.06.66-.1 1-.1 3.31 0 6 2.69 6 6 0 1.07-.28 2.07-.77 2.94l-1.46-1.46c.14-.44.23-.9.23-1.48zm-5 5c-2.76 0-5-2.24-5-5 0-.58.1-1.14.28-1.66L9.82 12.8c-.52-.23-.82-.77-.82-1.38V11c0-1.1.9-2 2-2h.58c.61 0 1.15.3 1.38.82l2.46 2.46c-.52.18-1.08.28-1.66.28-2.76 0-5-2.24-5-5zm6.81 4.56l-18-18L2.09 2.28 3.5 3.5l3.81 3.81C4.43 8.71 2.37 10.65 1.25 13c1.72 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.41-.84l3.14 3.14 1.41-1.41z"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding IsPasswordVisible}" Value="False">
+                                                            <Setter TargetName="EyeIconPath" Property="Data" Value="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+                                                        </DataTrigger>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter TargetName="EyeIconPath" Property="Fill" Value="#475569"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Button.Template>
+                                        </Button>
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+
+                            <!-- Databases (with status indicators) -->
+                            <StackPanel Margin="0,0,0,16">
+                                <TextBlock Text="CƠ SỞ DỮ LIỆU" Style="{StaticResource ModernFieldLabel}"/>
+                                <Border BorderBrush="#cbd5e1" BorderThickness="1.5" CornerRadius="10" Height="48" x:Name="DatabaseComboBorder">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Background" Value="White"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsDatabaseComboEnabled}" Value="False">
+                                                    <Setter Property="Background" Value="#f8fafc"/>
+                                                    <Setter Property="BorderBrush" Value="#e2e8f0"/>
+                                                    <Setter Property="Opacity" Value="0.75"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="42"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        
+                                        <Path Data="M12 2C6.48 2 2 4.02 2 6.5s4.48 4.5 10 4.5 10-2.02 10-4.5S17.52 2 12 2zm0 13c-5.52 0-10-2.02-10-4.5V15c0 2.48 4.48 4.5 10 4.5s10-2.02 10-4.5v-4.5c0 2.48-4.48 4.5-10 4.5zm0-4.5c-5.52 0-10-2.02-10-4.5V9c0 2.48 4.48 4.5 10 4.5s10-2.02 10-4.5V7.5c0 2.48-4.48 4.5-10 4.5z" 
+                                              Fill="#94a3b8" Width="16" Height="16" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        
+                                        <TextBlock Grid.Column="1" Text="Chọn cơ sở dữ liệu" Foreground="#94a3b8" VerticalAlignment="Center" FontSize="14" IsHitTestVisible="False" Margin="10,0,0,0">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding SelectedItem, ElementName=cbDatabase}" Value="{x:Null}">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+
+                                        <ComboBox x:Name="cbDatabase" Grid.Column="1" 
+                                                  ItemsSource="{Binding Databases}" 
+                                                  SelectedItem="{Binding SelectedDatabaseItem}"
+                                                  IsEnabled="{Binding IsDatabaseComboEnabled}"
+                                                  BorderThickness="0" Background="Transparent"
+                                                  VerticalContentAlignment="Center" Padding="10,0,10,0" FontSize="14">
+                                            <ComboBox.Template>
+                                                <ControlTemplate TargetType="ComboBox">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="32"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        
+                                                        <ToggleButton x:Name="ToggleButton" Grid.ColumnSpan="2" Focusable="false" ClickMode="Press" Background="Transparent" BorderThickness="0"
+                                                                      IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                                                            <ToggleButton.Template>
+                                                                <ControlTemplate TargetType="ToggleButton">
+                                                                    <Border Background="Transparent"/>
+                                                                </ControlTemplate>
+                                                            </ToggleButton.Template>
+                                                        </ToggleButton>
+                                                        
+                                                        <ContentPresenter Name="ContentSite" IsHitTestVisible="False" Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}" Margin="{TemplateBinding Padding}" VerticalAlignment="Center"/>
+                                                        
+                                                        <Path Grid.Column="1" Data="M7 10l5 5 5-5z" Fill="#64748b" Width="14" Height="14" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"/>
+                                                        
+                                                        <Popup Name="Popup" Placement="Bottom" IsOpen="{TemplateBinding IsDropDownOpen}" AllowsTransparency="True" Focusable="False" PopupAnimation="Slide">
+                                                            <Grid Name="DropDown" SnapsToDevicePixels="True" MinWidth="{TemplateBinding ActualWidth}" MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                                                                <Border x:Name="DropDownBorder" Background="White" BorderBrush="#cbd5e1" BorderThickness="1.5" CornerRadius="10" Margin="0,4,0,4">
+                                                                    <Border.Effect>
+                                                                        <DropShadowEffect BlurRadius="15" Color="#000" Opacity="0.08" ShadowDepth="2"/>
+                                                                    </Border.Effect>
+                                                                    <ScrollViewer Margin="4" SnapsToDevicePixels="True">
+                                                                        <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained"/>
+                                                                    </ScrollViewer>
+                                                                </Border>
+                                                            </Grid>
+                                                        </Popup>
+                                                    </Grid>
+                                                </ControlTemplate>
+                                            </ComboBox.Template>
+                                            
+                                            <!-- Custom ItemTemplate for DB items + status colors -->
+                                            <ComboBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Grid Margin="2,1">
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="*"/>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Foreground="#1e293b" VerticalAlignment="Center"/>
+                                                        <Border Grid.Column="1" Padding="8,3" CornerRadius="6" Margin="15,0,0,0">
+                                                            <Border.Style>
+                                                                <Style TargetType="Border">
+                                                                    <Setter Property="Background" Value="#f1f5f9"/>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding Status}" Value="Valid">
+                                                                            <Setter Property="Background" Value="#dcfce7"/>
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding Status}" Value="Empty">
+                                                                            <Setter Property="Background" Value="#fef3c7"/>
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding Status}" Value="NeedMigration">
+                                                                            <Setter Property="Background" Value="#e0e7ff"/>
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding Status}" Value="Invalid">
+                                                                            <Setter Property="Background" Value="#fee2e2"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </Border.Style>
+                                                            <TextBlock Text="{Binding StatusDisplay}" FontSize="10.5" FontWeight="Bold">
+                                                                <TextBlock.Style>
+                                                                    <Style TargetType="TextBlock">
+                                                                        <Setter Property="Foreground" Value="#64748b"/>
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding Status}" Value="Valid">
+                                                                                <Setter Property="Foreground" Value="#15803d"/>
+                                                                            </DataTrigger>
+                                                                            <DataTrigger Binding="{Binding Status}" Value="Empty">
+                                                                                <Setter Property="Foreground" Value="#b45309"/>
+                                                                            </DataTrigger>
+                                                                            <DataTrigger Binding="{Binding Status}" Value="NeedMigration">
+                                                                                <Setter Property="Foreground" Value="#4338ca"/>
+                                                                            </DataTrigger>
+                                                                            <DataTrigger Binding="{Binding Status}" Value="Invalid">
+                                                                                <Setter Property="Foreground" Value="#b91c1c"/>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </TextBlock.Style>
+                                                            </TextBlock>
+                                                        </Border>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ComboBox.ItemTemplate>
+                                            
+                                            <ComboBox.ItemContainerStyle>
+                                                <Style TargetType="ComboBoxItem">
+                                                    <Setter Property="Padding" Value="10,6"/>
+                                                    <Setter Property="Background" Value="Transparent"/>
+                                                    <Setter Property="Template">
+                                                        <Setter.Value>
+                                                            <ControlTemplate TargetType="ComboBoxItem">
+                                                                <Border x:Name="ItemBorder" Background="{TemplateBinding Background}" CornerRadius="6" Margin="2,1">
+                                                                    <ContentPresenter Margin="{TemplateBinding Padding}"/>
+                                                                </Border>
+                                                                <ControlTemplate.Triggers>
+                                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                                        <Setter TargetName="ItemBorder" Property="Background" Value="#eff6ff"/>
+                                                                    </Trigger>
+                                                                    <Trigger Property="IsSelected" Value="True">
+                                                                        <Setter TargetName="ItemBorder" Property="Background" Value="#dbeafe"/>
+                                                                    </Trigger>
+                                                                </ControlTemplate.Triggers>
+                                                            </ControlTemplate>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </Style>
+                                            </ComboBox.ItemContainerStyle>
+                                        </ComboBox>
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+
+                            <!-- II. MÁY CHỦ DỰ PHÒNG (SECONDARY SERVER) -->
+                            <TextBlock Text="II. MÁY CHỦ DỰ PHÒNG (SECONDARY SERVER)" FontSize="13" FontWeight="Bold" Foreground="#2563eb" Margin="0,15,0,12"/>
+                            
+                            <!-- Secondary IP & PORT Row -->
+                            <Grid Margin="0,0,0,14">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="110"/>
+                                </Grid.ColumnDefinitions>
+
+                                <StackPanel Margin="0,0,12,0">
+                                    <TextBlock Text="ĐỊA CHỈ SERVER DỰ PHÒNG" Style="{StaticResource ModernFieldLabel}"/>
+                                    <Border Style="{StaticResource InputContainerStyle}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="42"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Path Data="M19 15v4H5v-4h14m1-2H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1v-6c0-.55-.45-1-1-1zM19 5v4H5V5h14m1-2H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1V4c0-.55-.45-1-1-1z" 
+                                                  Fill="#94a3b8" Width="16" Height="16" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            <TextBlock Grid.Column="1" Text="192.168.2.10 (Bỏ trống nếu không dùng)" Foreground="#94a3b8" VerticalAlignment="Center" FontSize="13.5" IsHitTestVisible="False">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Text, ElementName=txtSecondaryServerIP}" Value="">
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                            <TextBox x:Name="txtSecondaryServerIP" Grid.Column="1" Style="{StaticResource EmbeddedTextBoxStyle}"
+                                                     Text="{Binding SecondaryServerIP, UpdateSourceTrigger=PropertyChanged}" GotFocus="InputField_GotFocus" LostFocus="InputField_LostFocus"/>
+                                        </Grid>
+                                    </Border>
+                                </StackPanel>
+
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="CỔNG DỰ PHÒNG" Style="{StaticResource ModernFieldLabel}"/>
+                                    <Border Style="{StaticResource InputContainerStyle}">
+                                        <TextBox x:Name="txtSecondaryPort" Style="{StaticResource EmbeddedTextBoxStyle}" Padding="15,0"
+                                                 Text="{Binding SecondaryPort, UpdateSourceTrigger=PropertyChanged}" GotFocus="InputField_GotFocus" LostFocus="InputField_LostFocus"/>
+                                    </Border>
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- Secondary SQL Username -->
+                            <StackPanel Margin="0,0,0,14">
+                                <TextBlock Text="TÀI KHOẢN SQL DỰ PHÒNG" Style="{StaticResource ModernFieldLabel}"/>
+                                <Border Style="{StaticResource InputContainerStyle}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="42"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Path Data="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" 
+                                              Fill="#94a3b8" Width="16" Height="16" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="1" Text="sa" Foreground="#94a3b8" VerticalAlignment="Center" FontSize="13.5" IsHitTestVisible="False">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Text, ElementName=txtSecondaryUsername}" Value="">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        <TextBox x:Name="txtSecondaryUsername" Grid.Column="1" Style="{StaticResource EmbeddedTextBoxStyle}"
+                                                 Text="{Binding SecondaryUsername, UpdateSourceTrigger=PropertyChanged}" GotFocus="InputField_GotFocus" LostFocus="InputField_LostFocus"/>
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+
+                            <!-- Secondary Password -->
+                            <StackPanel Margin="0,0,0,14">
+                                <TextBlock Text="MẬT KHẨU DỰ PHÒNG" Style="{StaticResource ModernFieldLabel}"/>
+                                <Border Style="{StaticResource InputContainerStyle}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="42"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Path Data="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" 
+                                              Fill="#94a3b8" Width="16" Height="16" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        <TextBox x:Name="txtSecondaryPassword" Grid.Column="1" Style="{StaticResource EmbeddedTextBoxStyle}"
+                                                 Text="{Binding SecondaryPassword, UpdateSourceTrigger=PropertyChanged}" GotFocus="InputField_GotFocus" LostFocus="InputField_LostFocus"/>
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+
+                            <!-- Secondary Database Name -->
+                            <StackPanel Margin="0,0,0,20">
+                                <TextBlock Text="DATABASE DỰ PHÒNG" Style="{StaticResource ModernFieldLabel}"/>
+                                <Border Style="{StaticResource InputContainerStyle}">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="42"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Path Data="M12 2C6.48 2 2 4.02 2 6.5s4.48 4.5 10 4.5 10-2.02 10-4.5S17.52 2 12 2zm0 13c-5.52 0-10-2.02-10-4.5V15c0 2.48 4.48 4.5 10 4.5s10-2.02 10-4.5v-4.5c0 2.48-4.48 4.5-10 4.5zm0-4.5c-5.52 0-10-2.02-10-4.5V9c0 2.48 4.48 4.5 10 4.5s10-2.02 10-4.5V7.5c0 2.48-4.48 4.5-10 4.5z" 
+                                              Fill="#94a3b8" Width="16" Height="16" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        <TextBox x:Name="txtSecondaryDatabase" Grid.Column="1" Style="{StaticResource EmbeddedTextBoxStyle}"
+                                                 Text="{Binding SecondaryDatabase, UpdateSourceTrigger=PropertyChanged}" GotFocus="InputField_GotFocus" LostFocus="InputField_LostFocus"/>
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+
+                            <!-- BUTTONS GROUP Row -->
+                            <Grid Margin="0,5,0,16">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="10"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                
+                                <Button Content="KIỂM TRA SERVER" Command="{Binding PingServerCommand}" Style="{StaticResource BlueOutlineButtonStyle}"/>
+                                <Button Grid.Column="2" Content="THỬ KẾT NỐI" Command="{Binding TestConnectionCommand}" Style="{StaticResource GreenButtonStyle}"/>
+                            </Grid>
+
+
+                            <!-- STATUS SECTION -->
+                            <Border BorderThickness="1.5" CornerRadius="12" Padding="15,12">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="Background" Value="#f8fafc"/>
+                                        <Setter Property="BorderBrush" Value="#cbd5e1"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding StatusState}" Value="success">
+                                                <Setter Property="Background" Value="#f0fdf4"/>
+                                                <Setter Property="BorderBrush" Value="#bbf7d0"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding StatusState}" Value="error">
+                                                <Setter Property="Background" Value="#fef2f2"/>
+                                                <Setter Property="BorderBrush" Value="#fecaca"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding StatusState}" Value="warning">
+                                                <Setter Property="Background" Value="#fffbeb"/>
+                                                <Setter Property="BorderBrush" Value="#fef3c7"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding StatusState}" Value="loading">
+                                                <Setter Property="Background" Value="#f0f9ff"/>
+                                                <Setter Property="BorderBrush" Value="#bae6fd"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    
+                                    <Grid Width="20" Height="20" Margin="0,0,12,0" VerticalAlignment="Center">
+                                        <Path Data="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" 
+                                              Fill="#16a34a" Stretch="Uniform" x:Name="IconSuccess">
+                                            <Path.Style>
+                                                <Style TargetType="Path">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding StatusState}" Value="success">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Path.Style>
+                                        </Path>
+                                        
+                                        <Path Data="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm5 13.59L15.59 17 12 13.41 8.41 17 7 15.59 10.59 12 7 8.41 8.41 7 12 10.59 15.59 7 17 8.41 13.41 12 17 15.59z" 
+                                              Fill="#dc2626" Stretch="Uniform" x:Name="IconError">
+                                            <Path.Style>
+                                                <Style TargetType="Path">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding StatusState}" Value="error">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Path.Style>
+                                        </Path>
+                                        
+                                        <Path Data="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" 
+                                              Fill="#d97706" Stretch="Uniform" x:Name="IconWarning">
+                                            <Path.Style>
+                                                <Style TargetType="Path">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding StatusState}" Value="warning">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Path.Style>
+                                        </Path>
+
+                                        <Grid x:Name="IconLoading" RenderTransformOrigin="0.5,0.5">
+                                            <Grid.Style>
+                                                <Style TargetType="Grid">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding StatusState}" Value="loading">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Grid.Style>
+                                            <Grid.RenderTransform>
+                                                <RotateTransform x:Name="SpinnerTransform" Angle="0"/>
+                                            </Grid.RenderTransform>
+                                            <Ellipse Stroke="#bae6fd" StrokeThickness="2.5" Width="18" Height="18"/>
+                                            <Ellipse Stroke="#0284c7" StrokeThickness="2.5" Width="18" Height="18" StrokeDashArray="3,3"/>
+                                            <Grid.Triggers>
+                                                <EventTrigger RoutedEvent="Grid.Loaded">
+                                                    <BeginStoryboard>
+                                                        <Storyboard RepeatBehavior="Forever">
+                                                            <DoubleAnimation Storyboard.TargetName="SpinnerTransform" Storyboard.TargetProperty="Angle" From="0" To="360" Duration="0:0:1"/>
+                                                        </Storyboard>
+                                                    </BeginStoryboard>
+                                                </EventTrigger>
+                                            </Grid.Triggers>
+                                        </Grid>
+                                    </Grid>
+                                    
+                                    <TextBlock Grid.Column="1" Text="{Binding StatusMessage}" VerticalAlignment="Center" FontSize="13.5" FontWeight="SemiBold" TextWrapping="Wrap">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="#475569"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding StatusState}" Value="success">
+                                                        <Setter Property="Foreground" Value="#15803d"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding StatusState}" Value="error">
+                                                        <Setter Property="Foreground" Value="#b91c1c"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding StatusState}" Value="warning">
+                                                        <Setter Property="Foreground" Value="#b45309"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding StatusState}" Value="loading">
+                                                        <Setter Property="Foreground" Value="#0369a1"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </Grid>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+
+                    <!-- SEPARATING LINE -->
+                    <Border Grid.Column="1" Width="1.5" Background="#e2e8f0" Margin="0,15,0,15"/>
+
+                    <!-- COLUMN 2: RECENT CONNECTIONS -->
+                    <Grid Grid.Column="2" Margin="20,20,20,20">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        
+                        <TextBlock Text="KẾT NỐI GẦN ĐÂY" FontSize="12.5" FontWeight="Bold" Foreground="#64748b" Margin="0,0,0,12"/>
+                        
+                        <ListBox Grid.Row="1" ItemsSource="{Binding RecentConnections}" SelectedItem="{Binding SelectedRecentConnection}"
+                                 BorderThickness="0" Background="Transparent" Padding="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="#cbd5e1" BorderThickness="1.5" CornerRadius="10" Background="White" Padding="12,10" Margin="0,0,0,10">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="BorderBrush" Value="#2563eb"/>
+                                                        <Setter Property="Background" Value="#eff6ff"/>
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+                                            
+                                            <!-- IP Server -->
+                                            <StackPanel Orientation="Horizontal">
+                                                <Path Data="M19 15v4H5v-4h14m1-2H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1v-6c0-.55-.45-1-1-1zM19 5v4H5V5h14m1-2H4c-.55 0-1 .45-1 1v6c0 .55.45 1 1 1h16c.55 0 1-.45 1-1V4c0-.55-.45-1-1-1z" 
+                                                      Fill="#64748b" Width="11" Height="11" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                <TextBlock Text="{Binding ServerIP}" FontSize="12.5" FontWeight="Bold" Foreground="#334155" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                            
+                                            <!-- Database Name -->
+                                            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,5,0,0">
+                                                <Path Data="M12 2C6.48 2 2 4.02 2 6.5s4.48 4.5 10 4.5 10-2.02 10-4.5S17.52 2 12 2zm0 13c-5.52 0-10-2.02-10-4.5V15c0 2.48 4.48 4.5 10 4.5s10-2.02 10-4.5v-4.5c0 2.48-4.48 4.5-10 4.5zm0-4.5c-5.52 0-10-2.02-10-4.5V9c0 2.48 4.48 4.5 10 4.5s10-2.02 10-4.5V7.5c0 2.48-4.48 4.5-10 4.5z" 
+                                                      Fill="#2563eb" Width="11" Height="11" Stretch="Uniform" VerticalAlignment="Center"/>
+                                                <TextBlock Text="{Binding Database}" FontSize="11.5" FontWeight="SemiBold" Foreground="#2563eb" Margin="6,0,0,0" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                            <ListBox.ItemContainerStyle>
+                                <Style TargetType="ListBoxItem">
+                                    <Setter Property="Padding" Value="0"/>
+                                    <Setter Property="Margin" Value="0"/>
+                                    <Setter Property="Background" Value="Transparent"/>
+                                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="ListBoxItem">
+                                                <ContentPresenter/>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </ListBox.ItemContainerStyle>
+                        </ListBox>
+                    </Grid>
+                </Grid>
+
+                <!-- III. FOOTER -->
+                <Border Grid.Row="2" Background="#f8fafc" CornerRadius="0,0,24,24" Padding="30,20" BorderBrush="#f1f5f9" BorderThickness="0,1.5,0,0">
+                    <StackPanel>
+                        <!-- Ghi nhớ cấu hình CheckBox -->
+                        <CheckBox IsChecked="{Binding RememberConnection}" Margin="0,0,0,15" HorizontalAlignment="Left" Cursor="Hand">
+                            <CheckBox.Template>
+                                <ControlTemplate TargetType="CheckBox">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+                                        <Border x:Name="CheckBorder" Width="20" Height="20" BorderBrush="#cbd5e1" BorderThickness="1.5" CornerRadius="5" Background="White">
+                                            <Path x:Name="CheckMark" Data="M4.3 8.3L8 12l7.7-7.7" Stroke="#2563eb" StrokeThickness="2.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" Visibility="Collapsed" Width="10" Height="10" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <ContentPresenter Grid.Column="1" VerticalAlignment="Center" Margin="10,0,0,0"/>
+                                    </Grid>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsChecked" Value="True">
+                                            <Setter TargetName="CheckBorder" Property="Background" Value="#eff6ff"/>
+                                            <Setter TargetName="CheckBorder" Property="BorderBrush" Value="#2563eb"/>
+                                            <Setter TargetName="CheckMark" Property="Visibility" Value="Visible"/>
+                                        </Trigger>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="CheckBorder" Property="BorderBrush" Value="#2563eb"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </CheckBox.Template>
+                            <TextBlock Text="Ghi nhớ cấu hình kết nối" FontSize="13.5" Foreground="#475569" FontWeight="Medium"/>
+                        </CheckBox>
+
+                        <!-- Button Lưu -->
+                        <Button Content="LƯU VÀ KẾT NỐI HỆ THỐNG" Command="{Binding ConnectCommand}" Style="{StaticResource PrimaryActionBtnStyle}"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- MÀN LOADING OVERLAY (Tải text động) -->
+                <Border Grid.RowSpan="3" Background="#50ffffff" CornerRadius="24" SnapsToDevicePixels="True">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsProcessing}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    
+                    <Border Background="#ffffff" BorderBrush="#e2e8f0" BorderThickness="1" Width="280" Height="78" CornerRadius="16" Padding="18,12" VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="20" Color="#000" Opacity="0.1" ShadowDepth="3"/>
+                        </Border.Effect>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <Grid x:Name="OverlaySpinner" Width="26" Height="26" RenderTransformOrigin="0.5,0.5" VerticalAlignment="Center">
+                                <Grid.RenderTransform>
+                                    <RotateTransform x:Name="OverlaySpinnerTransform" Angle="0"/>
+                                </Grid.RenderTransform>
+                                <Ellipse Stroke="#eff6ff" StrokeThickness="3.5" Width="26" Height="26"/>
+                                <Ellipse Stroke="#2563eb" StrokeThickness="3.5" Width="26" Height="26" StrokeDashArray="3,3"/>
+                                <Grid.Triggers>
+                                    <EventTrigger RoutedEvent="Grid.Loaded">
+                                        <BeginStoryboard>
+                                            <Storyboard RepeatBehavior="Forever">
+                                                <DoubleAnimation Storyboard.TargetName="OverlaySpinnerTransform" Storyboard.TargetProperty="Angle" From="0" To="360" Duration="0:0:1"/>
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </EventTrigger>
+                                </Grid.Triggers>
+                            </Grid>
+                            
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="14,0,0,0">
+                                <TextBlock Text="{Binding LoadingMessage}" FontSize="13.5" FontWeight="Bold" Foreground="#1e293b"/>
+                                <TextBlock Text="Vui lòng chờ trong giây lát" FontSize="11" Foreground="#64748b" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </Border>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

@@ -1,0 +1,236 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using QuanLyGiuXe.Models;
+
+namespace QuanLyGiuXe.Services
+{
+    public class RFIDCardService
+    {
+        private readonly DatabaseService db = new DatabaseService();
+
+        public async System.Threading.Tasks.Task<System.Collections.Generic.List<RFIDCards>> GetAllAsync()
+        {
+            var rows = await db.GetRFIDCardsAsync();
+            var list = new System.Collections.Generic.List<RFIDCards>();
+            if (rows == null) return list;
+
+            var loaiVeMap = new System.Collections.Generic.Dictionary<int, string>();
+            var loaiXeMap = new System.Collections.Generic.Dictionary<int, string>();
+
+            try
+            {
+                var lvs = await new LoaiVeService().GetAllAsync();
+                foreach (var lv in lvs) loaiVeMap[lv.Id] = lv.TenLoai ?? string.Empty;
+            }
+            catch { }
+
+            try
+            {
+                var lxs = await new LoaiXeService().GetAllAsync();
+                foreach (var lx in lxs) loaiXeMap[lx.Id] = lx.TenLoai ?? string.Empty;
+            }
+            catch { }
+
+            foreach (var r in rows)
+            {
+                list.Add(new RFIDCards
+                {
+                    Id = r.Id,
+                    CardUID = r.UID,
+                    CardName = r.CardName,
+                    BienSo = r.BienSo,
+                    LoaiVeId = r.LoaiVeId == 0 ? (int?)null : r.LoaiVeId,
+                    LoaiXeId = r.LoaiXeId == 0 ? (int?)null : r.LoaiXeId,
+                    NgayDangKy = r.NgayTao == DateTime.MinValue ? (DateTime?)null : r.NgayTao,
+                    NgayHetHan = r.NgayHetHan,
+                    TrangThai = r.TrangThai ?? string.Empty,
+                    LoaiXe = r.LoaiXeId != 0 && loaiXeMap.TryGetValue(r.LoaiXeId, out var lxName) ? lxName : string.Empty,
+                    LoaiVe = r.LoaiVeId != 0 && loaiVeMap.TryGetValue(r.LoaiVeId, out var lvName) ? lvName : string.Empty,
+                    EmployeeId = r.EmployeeId,
+                    EmployeeName = r.EmployeeName,
+                    EmployeeCode = r.EmployeeCode
+                });
+            }
+            return list;
+        }
+
+        public async System.Threading.Tasks.Task<System.Collections.Generic.List<RFIDCards>> GetByLoaiVeAsync(int loaiVeId)
+        {
+            if (loaiVeId <= 0) return await GetAllAsync();
+
+            var rows = await db.GetRFIDCardsAsync();
+            var filtered = rows?.FindAll(x => x.LoaiVeId == loaiVeId) ?? new System.Collections.Generic.List<RFIDCard>();
+            var list = new System.Collections.Generic.List<RFIDCards>();
+
+            var loaiVeMap = new System.Collections.Generic.Dictionary<int, string>();
+            var loaiXeMap = new System.Collections.Generic.Dictionary<int, string>();
+
+            try
+            {
+                var lvs = await new LoaiVeService().GetAllAsync();
+                foreach (var lv in lvs) loaiVeMap[lv.Id] = lv.TenLoai ?? string.Empty;
+            }
+            catch { }
+
+            try
+            {
+                var lxs = await new LoaiXeService().GetAllAsync();
+                foreach (var lx in lxs) loaiXeMap[lx.Id] = lx.TenLoai ?? string.Empty;
+            }
+            catch { }
+
+            foreach (var r in filtered)
+            {
+                list.Add(new RFIDCards
+                {
+                    Id = r.Id,
+                    CardUID = r.UID,
+                    CardName = r.CardName,
+                    BienSo = r.BienSo,
+                    LoaiVeId = r.LoaiVeId == 0 ? (int?)null : r.LoaiVeId,
+                    LoaiXeId = r.LoaiXeId == 0 ? (int?)null : r.LoaiXeId,
+                    NgayDangKy = r.NgayTao == DateTime.MinValue ? (DateTime?)null : r.NgayTao,
+                    NgayHetHan = r.NgayHetHan,
+                    TrangThai = r.TrangThai ?? string.Empty,
+                    LoaiXe = r.LoaiXeId != 0 && loaiXeMap.TryGetValue(r.LoaiXeId, out var lxName) ? lxName : string.Empty,
+                    LoaiVe = r.LoaiVeId != 0 && loaiVeMap.TryGetValue(r.LoaiVeId, out var lvName) ? lvName : string.Empty,
+                    EmployeeId = r.EmployeeId,
+                    EmployeeName = r.EmployeeName,
+                    EmployeeCode = r.EmployeeCode
+                });
+            }
+            return list;
+        }
+
+        public async Task AddAsync(RFIDCards model)
+        {
+            AuthorizationGuard.Protect("RFID_CREATE", "Add RFID Card");
+            if (model == null) throw new ArgumentNullException(nameof(model));
+            if (string.IsNullOrWhiteSpace(model.CardUID)) throw new ArgumentException("CardUID không được rỗng");
+
+            var ngayDangKy = model.NgayDangKy ?? DateTime.Now;
+            var ngayHetHan = model.NgayHetHan;
+
+            await db.InsertRFIDCardAsync(model.CardUID, model.BienSo ?? string.Empty, model.CardName ?? string.Empty, model.LoaiVeId ?? 0, model.LoaiXeId ?? 0, model.TrangThai ?? string.Empty, ngayDangKy, ngayHetHan, model.EmployeeId);
+
+            try
+            {
+                var newValues = new { model.CardUID, model.BienSo, model.CardName, model.LoaiVeId, model.LoaiXeId, model.TrangThai, NgayDangKy = ngayDangKy, NgayHetHan = ngayHetHan, model.EmployeeId };
+                LoggingService.Instance.LogCrud("CARD_REGISTERED", "RFIDCard", model.CardUID, null, newValues, source: "RFIDCardService", details: $"Đăng ký thẻ RFID mới UID: {model.CardUID}, Biển số: {model.BienSo}, Nhân viên: {model.EmployeeId}");
+            }
+            catch { }
+        }
+
+        public async Task UpdateAsync(RFIDCards model)
+        {
+            AuthorizationGuard.Protect("RFID_UPDATE", "Update RFID Card");
+            if (model == null || model.Id <= 0) throw new ArgumentException("Model không hợp lệ");
+
+            var previous = await GetByIdAsync(model.Id);
+            var oldValues = previous == null ? null : new { previous.CardUID, previous.BienSo, previous.CardName, previous.LoaiVeId, previous.LoaiXeId, previous.TrangThai, previous.NgayDangKy, previous.NgayHetHan, previous.EmployeeId };
+            var newValues = new { model.CardUID, model.BienSo, model.CardName, model.LoaiVeId, model.LoaiXeId, model.TrangThai, model.NgayDangKy, model.NgayHetHan, model.EmployeeId };
+
+            await db.UpdateRFIDCardAsync(model.Id, model.CardUID ?? string.Empty, model.BienSo ?? string.Empty, model.CardName ?? string.Empty, model.LoaiVeId ?? 0, model.LoaiXeId ?? 0, model.TrangThai ?? string.Empty, model.NgayDangKy, model.NgayHetHan, model.EmployeeId);
+
+            try
+            {
+                LoggingService.Instance.LogCrud("CARD_UPDATED", "RFIDCard", model.Id.ToString(), oldValues, newValues, source: "RFIDCardService", details: $"Cập nhật thẻ RFID UID: {model.CardUID}, Nhân viên: {model.EmployeeId}");
+            }
+            catch { }
+        }
+
+        public async Task DeleteAsync(int id)
+        {
+            AuthorizationGuard.Protect("RFID_DELETE", "Delete RFID Card");
+            if (id <= 0) throw new ArgumentException("ID không hợp lệ");
+            var previous = await GetByIdAsync(id);
+            var oldValues = previous == null ? null : new { previous.CardUID, previous.BienSo, previous.CardName, previous.LoaiVeId, previous.LoaiXeId, previous.TrangThai, previous.NgayDangKy, previous.NgayHetHan };
+
+            await db.DeleteRFIDCardAsync(id);
+
+            try
+            {
+                LoggingService.Instance.LogCrud("CARD_DELETED", "RFIDCard", id.ToString(), oldValues, null, source: "RFIDCardService", details: $"Xóa thẻ RFID ID: {id}, UID: {previous?.CardUID}");
+            }
+            catch { }
+        }
+
+        public async System.Threading.Tasks.Task<RFIDCards?> GetByIdAsync(int id)
+        {
+            if (id <= 0) return null;
+            var list = await db.GetRFIDCardsAsync();
+            var found = list?.FirstOrDefault(x => x.Id == id);
+            if (found == null) return null;
+
+            return new RFIDCards
+            {
+                Id = found.Id,
+                CardUID = found.UID,
+                CardName = found.CardName,
+                BienSo = found.BienSo,
+                LoaiVeId = found.LoaiVeId == 0 ? (int?)null : found.LoaiVeId,
+                LoaiXeId = found.LoaiXeId == 0 ? (int?)null : found.LoaiXeId,
+                TrangThai = found.TrangThai,
+                NgayDangKy = found.NgayTao == DateTime.MinValue ? (DateTime?)null : found.NgayTao,
+                NgayHetHan = found.NgayHetHan,
+                EmployeeId = found.EmployeeId,
+                EmployeeName = found.EmployeeName,
+                EmployeeCode = found.EmployeeCode
+            };
+        }
+
+        public async Task GiaHanAsync(int id, int soThang)
+        {
+            AuthorizationGuard.Protect("RFID_RENEW", "Renew RFID Card");
+            if (id <= 0 || soThang <= 0) throw new ArgumentException("Tham số không hợp lệ");
+            var previous = await GetByIdAsync(id);
+            var oldValues = previous == null ? null : new { previous.CardUID, previous.BienSo, previous.CardName, previous.TrangThai, previous.NgayHetHan };
+
+            await db.GiaHanRFIDCardAsync(id, soThang);
+
+            try
+            {
+                var updated = await GetByIdAsync(id);
+                var newValues = updated == null ? null : new { updated.CardUID, updated.BienSo, updated.CardName, updated.TrangThai, updated.NgayHetHan };
+                LoggingService.Instance.LogCrud("CARD_RENEWED", "RFIDCard", id.ToString(), oldValues, newValues, source: "RFIDCardService", details: $"Gia hạn thẻ RFID {soThang} tháng. UID: {previous?.CardUID}");
+            }
+            catch { }
+
+            // Optimistic offline cache update
+            try
+            {
+                var cachedCards = await QuanLyGiuXe.Services.OfflineCache.OfflineCacheService.Instance.GetCacheAsync<List<RFIDCard>>("LIST_RFID_CARDS");
+                if (cachedCards != null)
+                {
+                    var card = cachedCards.FirstOrDefault(c => c.Id == id);
+                    if (card != null)
+                    {
+                        var now = DateTime.Now;
+                        if (!card.NgayHetHan.HasValue || card.NgayHetHan.Value < now)
+                            card.NgayHetHan = now.AddMonths(soThang);
+                        else
+                            card.NgayHetHan = card.NgayHetHan.Value.AddMonths(soThang);
+                        
+                        card.TrangThai = "Active";
+                        await QuanLyGiuXe.Services.OfflineCache.OfflineCacheService.Instance.SaveCacheAsync("LIST_RFID_CARDS", cachedCards);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                LoggingService.Instance.LogError("OFFLINE_CACHE", "OptimisticUpdate", "Failed to update local cache for GiaHan", ex);
+            }
+        }
+
+        // Legacy synchronous wrappers for UI compatibility
+        public List<RFIDCards> GetAll() => Task.Run(() => GetAllAsync()).GetAwaiter().GetResult();
+        public List<RFIDCards> GetByLoaiVe(int loaiVeId) => Task.Run(() => GetByLoaiVeAsync(loaiVeId)).GetAwaiter().GetResult();
+        public RFIDCards? GetById(int id) => Task.Run(() => GetByIdAsync(id)).GetAwaiter().GetResult();
+        public void Add(RFIDCards model) => Task.Run(() => AddAsync(model)).GetAwaiter().GetResult();
+        public void Update(RFIDCards model) => Task.Run(() => UpdateAsync(model)).GetAwaiter().GetResult();
+        public void Delete(int id) => Task.Run(() => DeleteAsync(id)).GetAwaiter().GetResult();
+        public void GiaHan(int id, int soThang) => Task.Run(() => GiaHanAsync(id, soThang)).GetAwaiter().GetResult();
+    }
+}

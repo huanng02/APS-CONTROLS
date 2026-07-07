@@ -1,0 +1,184 @@
+<Window x:Class="QuanLyGiuXe.Views.EmployeeDetailDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Chi tiết nhân viên &amp; Quản lý RFID" 
+        Height="480" Width="700"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="{StaticResource BgLightBrush}"
+        FontFamily="Segoe UI">
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,0,0,1" Padding="0,0,0,15" Margin="0,0,0,15">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal">
+                    <Border Background="{StaticResource APSBlueBrush}" CornerRadius="4" Padding="8" Margin="0,0,12,0">
+                        <TextBlock Text="💳" Foreground="White" FontSize="14"/>
+                    </Border>
+                    <StackPanel>
+                        <TextBlock x:Name="lblHeaderName" Text="CHI TIẾT THẺ NHÂN VIÊN" FontSize="16" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}"/>
+                        <TextBlock Text="Thông tin chi tiết và danh sách thẻ RFID đang hoạt động" Style="{StaticResource SubTitleStyle}"/>
+                    </StackPanel>
+                </StackPanel>
+                <Border Grid.Column="1" x:Name="badgeStatus" CornerRadius="12" Padding="12,3" VerticalAlignment="Center">
+                    <TextBlock x:Name="lblStatus" Text="Hoạt động" FontSize="11" FontWeight="Bold" Foreground="White"/>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- Details Grid (Left/Right) -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="220"/>
+                <ColumnDefinition Width="20"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Left pane: Profile Card -->
+            <Border Grid.Column="0" Style="{StaticResource EnterpriseCardBorder}" Padding="15" Background="White">
+                <StackPanel HorizontalAlignment="Center">
+                    <Border Width="100" Height="100" CornerRadius="50" BorderThickness="2" BorderBrush="{StaticResource APSBlueBrush}" ClipToBounds="True" Margin="0,0,0,10">
+                        <Image x:Name="imgAvatar" Stretch="UniformToFill"/>
+                    </Border>
+
+                    <TextBlock x:Name="lblFullName" Text="Họ và tên" FontWeight="Bold" FontSize="15" HorizontalAlignment="Center" TextAlignment="Center" Margin="0,0,0,8"/>
+                    <TextBlock x:Name="lblCode" Text="Mã" FontSize="12" Foreground="{StaticResource TextSecondaryBrush}" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+
+                    <Separator Margin="0,8" Background="{StaticResource BorderLightBrush}"/>
+
+                    <StackPanel HorizontalAlignment="Stretch">
+                        <TextBlock Text="THÔNG TIN LIÊN HỆ" FontSize="10" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,5"/>
+                        <TextBlock x:Name="lblPhone" Text="📞 Điện thoại" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,5"/>
+                        <TextBlock x:Name="lblEmail" Text="✉️ Email" FontSize="12" TextWrapping="Wrap" Margin="0,0,0,5"/>
+                        <TextBlock x:Name="lblCCCD" Text="🆔 CCCD" FontSize="12" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Right pane: Org & RFID details -->
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="15"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Org Section -->
+                <Border Grid.Row="0" Style="{StaticResource EnterpriseCardBorder}" Padding="15" Background="White">
+                    <StackPanel>
+                        <TextBlock Text="TỔ CHỨC" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,10"/>
+                        
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="100"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Công ty" FontWeight="SemiBold"/>
+                            <TextBlock Grid.Column="1" x:Name="lblCompany" Text="Tên công ty" Foreground="{StaticResource TextSecondaryBrush}"/>
+                        </Grid>
+
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="100"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Phòng ban" FontWeight="SemiBold"/>
+                            <TextBlock Grid.Column="1" x:Name="lblDepartment" Text="Tên phòng ban" Foreground="{StaticResource TextSecondaryBrush}"/>
+                        </Grid>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="100"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Chức vụ" FontWeight="SemiBold"/>
+                            <TextBlock Grid.Column="1" x:Name="lblPosition" Text="Tên chức vụ" Foreground="{StaticResource TextSecondaryBrush}"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- RFID Management Section -->
+                <Border Grid.Row="2" Style="{StaticResource EnterpriseCardBorder}" Padding="15" Background="White">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Text="CẤU HÌNH THẺ RFID" FontSize="11" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="0,0,0,10"/>
+
+                        <!-- Sub-panel: Active Card details -->
+                        <Grid Grid.Row="1" x:Name="panelActiveCard" Visibility="Collapsed">
+                            <StackPanel>
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="100"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="UID Thẻ" FontWeight="SemiBold"/>
+                                    <TextBlock Grid.Column="1" x:Name="lblCardUID" Text="Mã thẻ (UID)" FontWeight="Bold" Foreground="{StaticResource APSBlueBrush}" FontSize="13"/>
+                                </Grid>
+
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="100"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Trạng thái thẻ" FontWeight="SemiBold"/>
+                                    <Border Grid.Column="1" Background="#E8F5E9" CornerRadius="10" Padding="8,1" HorizontalAlignment="Left">
+                                        <TextBlock x:Name="lblCardStatus" Text="Hoạt động" FontSize="10" FontWeight="Bold" Foreground="{StaticResource SuccessBrush}"/>
+                                    </Border>
+                                </Grid>
+
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="100"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Hạn sử dụng" FontWeight="SemiBold"/>
+                                    <TextBlock Grid.Column="1" x:Name="lblCardExpiration" Text="dd/MM/yyyy" Foreground="{StaticResource TextSecondaryBrush}"/>
+                                </Grid>
+
+                                <Button Content="Hủy liên kết thẻ" Click="RemoveCard_Click" Style="{StaticResource DangerButton}" Height="32" Width="150" HorizontalAlignment="Left" Margin="0,10,0,0"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Sub-panel: No Card linked -->
+                        <Grid Grid.Row="1" x:Name="panelNoCard" Visibility="Visible">
+                            <StackPanel>
+                                <TextBlock Text="Nhân viên này chưa được gán thẻ RFID nào." Style="{StaticResource SubTitleStyle}" VerticalAlignment="Center" Margin="0,0,0,10"/>
+                                
+                                <StackPanel Orientation="Horizontal" Margin="0,5,0,10">
+                                    <TextBlock Text="Nhập UID thẻ:" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <TextBox x:Name="txtCardUID" Style="{StaticResource ModernTextBox}" Width="180" Height="32" Padding="5,0"/>
+                                    <Button Content="Gán thẻ" Click="AssignCard_Click" Style="{StaticResource ModernButton}" Height="32" Width="100" Margin="10,0,0,0"/>
+                                    <Button Content="Đăng ký thẻ mới" Click="RegisterNewCard_Click" Style="{StaticResource ModernOutlineButton}" Height="32" Width="150" Margin="10,0,0,0" BorderBrush="{StaticResource APSBlueBrush}" Foreground="{StaticResource APSBlueBrush}"/>
+                                </StackPanel>
+                                
+                                <TextBlock Text="* Nếu UID thẻ chưa tồn tại, hệ thống sẽ tự động tạo mới và gán cho nhân viên." FontSize="11" Foreground="{StaticResource TextMutedBrush}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
+
+        <!-- Footer Actions -->
+        <Border Grid.Row="2" BorderBrush="{StaticResource BorderLightBrush}" BorderThickness="0,1,0,0" Padding="0,15,0,0" Margin="0,15,0,0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="Đóng" Click="Close_Click" Style="{StaticResource ModernButton}" Width="95" Height="32"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>
